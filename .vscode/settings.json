@@ -1,0 +1,6 @@
+{
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "python.formatting.provider": "black"
+}

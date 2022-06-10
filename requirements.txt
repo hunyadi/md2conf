@@ -1,0 +1,4 @@
+lxml
+markdown
+pymdown-extensions
+requests
