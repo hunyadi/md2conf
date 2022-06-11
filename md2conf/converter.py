@@ -173,6 +173,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
 
+        # normalize line breaks to regular space in element text
+        if child.text:
+            child.text = child.text.replace("\n", " ")
+        if child.tail:
+            child.tail = child.tail.replace("\n", " ")
+
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
