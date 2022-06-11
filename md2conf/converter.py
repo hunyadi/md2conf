@@ -1,12 +1,22 @@
 import re
-from urllib.parse import urlparse
 from typing import List, Optional
+from urllib.parse import urlparse
 
 import lxml.etree as ET
 import markdown
+from lxml.builder import ElementMaker
 
-ET.register_namespace("ac", "http://atlassian.com/content")
-ET.register_namespace("ri", "http://atlassian.com/resource/identifier")
+namespaces = {
+    "ac": "http://atlassian.com/content",
+    "ri": "http://atlassian.com/resource/identifier",
+}
+for key, value in namespaces.items():
+    ET.register_namespace(key, value)
+
+
+HTML = ElementMaker()
+AC = ElementMaker(namespace=namespaces["ac"])
+RI = ElementMaker(namespace=namespaces["ri"])
 
 
 class ParseError(RuntimeError):
@@ -29,30 +39,23 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def element_from_string(text: str) -> ET.Element:
-    "Creates an XML node from its string representation."
-
-    return element_from_string_list([text])
-
-
-def element_from_string_list(items: List[str]) -> ET.Element:
-    "Creates an XML node from its string representation."
+def elements_from_strings(items: List[str]) -> ET.Element:
+    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
 
     parser = ET.XMLParser(remove_blank_text=True, strip_cdata=False)
 
+    ns_attr_list = "".join(
+        f' xmlns:{key}="{value}"' for key, value in namespaces.items()
+    )
     data = [
         '<?xml version="1.0"?>',
-        '<root xmlns:ac="http://atlassian.com/content" xmlns:ri="http://atlassian.com/resource/identifier">',
+        f"<root{ns_attr_list}>",
     ]
     data.extend(items)
     data.append("</root>")
 
     try:
-        root = ET.fromstringlist(data, parser=parser)
-        if len(root) > 1:
-            return root
-        else:
-            return root[0]
+        return ET.fromstringlist(data, parser=parser)
     except ET.XMLSyntaxError as e:
         raise ParseError(e)
 
@@ -122,13 +125,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         path = image.attrib["src"]
         self.images.append(path)
         caption = image.attrib["alt"]
-        return element_from_string_list(
-            [
-                '<ac:image ac:align="center" ac:layout="center">',
-                f'<ri:attachment ri:filename="{path}" />',
-                f"<ac:caption><p>{caption}</p></ac:caption>",
-                "</ac:image>",
-            ]
+        return AC(
+            "image",
+            {
+                ET.QName(namespaces["ac"], "align"): "center",
+                ET.QName(namespaces["ac"], "layout"): "center",
+            },
+            RI("attachment", {ET.QName(namespaces["ri"], "filename"): path}),
+            AC("caption", HTML.p(caption)),
         )
 
     def _transform_block(self, code: ET.Element) -> ET.Element:
@@ -138,15 +142,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if language not in _languages:
             language = "none"
         content = code.text
-        return element_from_string_list(
-            [
-                '<ac:structured-macro ac:name="code" ac:schema-version="1">',
-                '<ac:parameter ac:name="theme">Midnight</ac:parameter>',
-                f'<ac:parameter ac:name="language">{language}</ac:parameter>',
-                '<ac:parameter ac:name="linenumbers">true</ac:parameter>',
-                f"<ac:plain-text-body><![CDATA[{content}]]></ac:plain-text-body>",
-                "</ac:structured-macro>",
-            ]
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "code",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "theme"}, "Midnight"),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "language"}, language),
+            AC(
+                "parameter", {ET.QName(namespaces["ac"], "name"): "linenumbers"}, "true"
+            ),
+            AC("plain-text-body", ET.CDATA(content)),
         )
 
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
@@ -171,10 +178,8 @@ class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
 
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
-        child.attrib.pop("{http://atlassian.com/content}macro-id", None)
-        child.attrib.pop(
-            "{http://atlassian.com/resource/identifier}version-at-save", None
-        )
+        child.attrib.pop(ET.QName(namespaces["ac"], "macro-id"), None)
+        child.attrib.pop(ET.QName(namespaces["ri"], "version-at-save"), None)
 
 
 class ConfluenceDocument:
@@ -188,7 +193,7 @@ class ConfluenceDocument:
         match = re.search(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", html)
         self.id = match.group(1)
 
-        self.root = element_from_string_list(
+        self.root = elements_from_strings(
             [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
                 "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
@@ -210,7 +215,7 @@ class ConfluenceDocument:
 def sanitize_confluence(html: str) -> str:
     "Generates a sanitized version of a Confluence storage format XHTML document with no volatile attributes."
 
-    root = element_from_string(html)
+    root = elements_from_strings([html])
     ConfluenceStorageFormatCleaner().visit(root)
     return _content_to_string(root)
 

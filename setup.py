@@ -10,7 +10,7 @@ with open(os.path.join(ROOT, "README.md"), "r") as f:
 
 setup(
     name="markdown-to-confluence",
-    version="0.1.0",
+    version="0.1.1",
     description="Publish Markdown files to Confluence wiki",
     long_description=README,
     long_description_content_type="text/markdown",
