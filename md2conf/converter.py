@@ -1,3 +1,4 @@
+import os.path
 import re
 from typing import List, Optional
 from urllib.parse import urlparse
@@ -105,6 +106,11 @@ class NodeVisitor:
         pass
 
 
+def _change_ext(path: str, target_ext: str) -> str:
+    root, source_ext = os.path.splitext(path)
+    return f"{root}{target_ext}"
+
+
 class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into the Confluence storage format."
 
@@ -122,7 +128,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             self.links.append(url)
 
     def _transform_image(self, image: ET.Element) -> ET.Element:
-        path = image.attrib["src"]
+        path: str = image.attrib["src"]
+
+        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
+        if path and not is_absolute_url(path) and path.endswith(".svg"):
+            suggested_path = _change_ext(path, ".png")
+            if os.path.exists(suggested_path):
+                path = suggested_path
+
         self.images.append(path)
         caption = image.attrib["alt"]
         return AC(

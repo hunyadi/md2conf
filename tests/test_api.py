@@ -23,7 +23,7 @@ class TestAPI(unittest.TestCase):
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
-            ["figure/interoperability.png", "figure/interoperability.svg"],
+            ["figure/interoperability.png", "figure/interoperability.png"],
         )
 
         with open(os.path.join("tests", "output", "document.html"), "w") as f:
