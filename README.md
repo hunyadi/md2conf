@@ -23,10 +23,19 @@ This Python package
 In order to get started, you will need
 * your organization URL (e.g. `https://instructure.atlassian.net`),
 * your Confluence username (e.g. `levente.hunyadi@instructure.com`),
-* an API key (a string of alphanumeric characters), and
-* the space key (e.g. `DAP`) you are publishing content to.
+* a Confluence API token (a string of alphanumeric characters), and
+* the space key in Confluence (e.g. `DAP`) you are publishing content to.
 
-These can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
+### Obtaining an API token
+
+1. Log in to https://id.atlassian.com/manage/api-tokens.
+2. Click *Create API token*.
+3. From the dialog that appears, enter a memorable and concise *Label* for your token and click *Create*.
+4. Click *Copy to clipboard*, then paste the token to your script, or elsewhere to save.
+
+### Setting up the environment
+
+Confluence organization URL, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
 ```bash
 export CONFLUENCE_DOMAIN='instructure.atlassian.net'
 export CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
@@ -38,9 +47,19 @@ On Windows, these can be set via system properties.
 
 The tool requires appropriate permissions in Confluence in order to invoke endpoints.
 
-### Obtaining an API token
+### Associating a Markdown file with a wiki page
 
-1. Log in to https://id.atlassian.com/manage/api-tokens.
-2. Click *Create API token*.
-3. From the dialog that appears, enter a memorable and concise *Label* for your token and click *Create*.
-4. Click *Copy to clipboard*, then paste the token to your script, or elsewhere to save.
+Each Markdown file is associated with a Confluence wiki page with a Markdown comment:
+
+```markdown
+<!-- confluence-page-id: 85668266616 -->
+```
+
+The above tells the tool to synchronize the Markdown file with the given Confluence page ID. This implies that the Confluence wiki page must exist such that it has an ID. The comment can be placed anywhere in the source file.
+
+### Running the tool
+
+You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
+```bash
+python3 -m md2conf example.md
+```
