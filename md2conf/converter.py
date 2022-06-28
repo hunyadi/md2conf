@@ -154,7 +154,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             language = re.match("^language-(.*)$", language).group(1)
         if language not in _languages:
             language = "none"
-        content = code.text
+        content: str = code.text
+        content = content.rstrip()
         return AC(
             "structured-macro",
             {
@@ -170,6 +171,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
 
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
+        # normalize line breaks to regular space in element text
+        if child.text:
+            s: str = child.text
+            child.text = s.replace("\n", " ")
+        if child.tail:
+            s: str = child.tail
+            child.tail = s.replace("\n", " ")
+
         # <p><img src="..." /></p>
         if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
             return self._transform_image(child[0])
@@ -185,12 +194,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
-
-        # normalize line breaks to regular space in element text
-        if child.text:
-            child.text = child.text.replace("\n", " ")
-        if child.tail:
-            child.tail = child.tail.replace("\n", " ")
 
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):

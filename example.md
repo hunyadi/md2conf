@@ -2,7 +2,7 @@
 
 # Publish Markdown to Confluence
 
-This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the Confluence storage format. 
+This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the Confluence storage format.
 
 ## Basic features
 
@@ -14,12 +14,14 @@ An ordered list:
 
 1. List item 1
 2. List item 2
+spanning multiple text file lines but rendered as a single line
 3. List item 3
 
 An unordered list:
 
 * List item 1
 * List item 2
+spanning multiple text file lines but rendered as a single line
 * List item 3
 
 ![PNG image with caption](figure/interoperability.png)
@@ -69,4 +71,9 @@ Integer vel cursus neque. Ut a ex orci. Nulla elementum lacus sed accumsan rutru
 
 ### Subsection 2
 
-Nullam a dictum urna, volutpat convallis purus. Fusce at vulputate mauris. Donec dignissim id nisl quis ultricies. Quisque pulvinar nulla risus, vel tincidunt felis pretium hendrerit. Pellentesque placerat, mi vel luctus tristique, sem nisi volutpat dolor, vitae pulvinar ipsum orci vitae ligula. Morbi tempus at tortor sed volutpat. Vivamus facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et semper dapibus. Suspendisse ut velit sit amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at, dignissim finibus dui.
+Nullam a dictum urna, volutpat convallis purus. Fusce at vulputate mauris. Donec dignissim id nisl quis ultricies.
+Quisque pulvinar nulla risus, vel tincidunt felis pretium hendrerit. Pellentesque placerat, mi vel luctus tristique,
+sem nisi volutpat dolor, vitae pulvinar ipsum orci vitae ligula. Morbi tempus at tortor sed volutpat. Vivamus
+facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et semper dapibus. Suspendisse ut velit sit
+amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at,
+dignissim finibus dui.
