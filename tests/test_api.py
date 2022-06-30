@@ -16,10 +16,7 @@ logging.basicConfig(
 
 class TestAPI(unittest.TestCase):
     def test_markdown(self):
-        with open("example.md", "r") as f:
-            html = markdown_to_html(f.read())
-
-        document = ConfluenceDocument(html)
+        document = ConfluenceDocument("example.md")
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,

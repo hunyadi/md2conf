@@ -114,11 +114,13 @@ def _change_ext(path: str, target_ext: str) -> str:
 class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into the Confluence storage format."
 
+    base_path: str
     links: List[str]
     images: List[str]
 
-    def __init__(self) -> None:
+    def __init__(self, base_path: str) -> None:
         super().__init__()
+        self.base_path = base_path
         self.links = []
         self.images = []
 
@@ -132,9 +134,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
         if path and not is_absolute_url(path) and path.endswith(".svg"):
-            suggested_path = _change_ext(path, ".png")
-            if os.path.exists(suggested_path):
-                path = suggested_path
+            replacement_path = _change_ext(path, ".png")
+            if os.path.exists(os.path.join(self.base_path, replacement_path)):
+                path = replacement_path
 
         self.images.append(path)
         caption = image.attrib["alt"]
@@ -211,7 +213,12 @@ class ConfluenceDocument:
 
     root: ET.Element
 
-    def __init__(self, html: str) -> None:
+    def __init__(self, path: str) -> None:
+        path = os.path.abspath(path)
+
+        with open(path, "r") as f:
+            html = markdown_to_html(f.read())
+
         match = re.search(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", html)
         self.id = match.group(1)
 
@@ -225,7 +232,7 @@ class ConfluenceDocument:
             ]
         )
 
-        converter = ConfluenceStorageFormatConverter()
+        converter = ConfluenceStorageFormatConverter(os.path.dirname(path))
         converter.visit(self.root)
         self.links = converter.links
         self.images = converter.images
