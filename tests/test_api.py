@@ -31,6 +31,12 @@ class TestAPI(unittest.TestCase):
             id = api.get_page_id_by_title("Publish to Confluence")
             self.assertEqual(id, "85668266616")
 
+    def test_switch_space(self):
+        with ConfluenceAPI(space_key="PLAT") as api:
+            with api.switch_space("DAP"):
+                id = api.get_page_id_by_title("Publish to Confluence")
+                self.assertEqual(id, "85668266616")
+
     def test_get_page(self):
         with ConfluenceAPI() as api:
             page = api.get_page("85668266616")

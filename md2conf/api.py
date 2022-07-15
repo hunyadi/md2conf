@@ -1,13 +1,12 @@
-from __future__ import annotations
-
 import json
 import logging
 import mimetypes
 import os
 import os.path
 import urllib.parse
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Generator
 
 import requests
 
@@ -60,7 +59,7 @@ class ConfluenceAPI:
     user_name: str
     api_key: str
 
-    session: ConfluenceSession
+    session: "ConfluenceSession"
 
     def __init__(
         self,
@@ -104,6 +103,15 @@ class ConfluenceSession:
 
     def close(self) -> None:
         self.session.close()
+
+    @contextmanager
+    def switch_space(self, new_space_key: str) -> Generator[None, None, None]:
+        old_space_key = self.space_key
+        self.space_key = new_space_key
+        try:
+            yield
+        finally:
+            self.space_key = old_space_key
 
     def _build_url(self, path: str, query: Dict[str, str] = None) -> str:
         base_url = f"https://{self.domain}/wiki/rest/api{path}"

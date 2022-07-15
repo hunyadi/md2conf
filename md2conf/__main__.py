@@ -5,6 +5,16 @@ import os.path
 from .api import ConfluenceAPI
 from .application import synchronize_page
 
+
+class Arguments(argparse.Namespace):
+    mdfile: str
+    domain: str
+    username: str
+    apikey: str
+    space: str
+    loglevel: str
+
+
 parser = argparse.ArgumentParser()
 parser.prog = os.path.basename(os.path.dirname(__file__))
 parser.add_argument("mdfile", help="Markdown file to convert and publish.")
@@ -23,11 +33,22 @@ parser.add_argument(
 parser.add_argument(
     "-l",
     "--loglevel",
-    choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
-    default="INFO",
+    choices=[
+        logging.getLevelName(level)
+        for level in (
+            logging.DEBUG,
+            logging.INFO,
+            logging.WARN,
+            logging.ERROR,
+            logging.CRITICAL,
+        )
+    ],
+    default=logging.getLevelName(logging.INFO),
     help="Use this option to set the log verbosity.",
 )
-args = parser.parse_args()
+
+args = Arguments()
+parser.parse_args(namespace=args)
 
 logging.basicConfig(
     level=getattr(logging, args.loglevel.upper(), logging.INFO),

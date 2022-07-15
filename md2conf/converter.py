@@ -1,6 +1,6 @@
 import os.path
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 import lxml.etree as ET
@@ -206,8 +206,25 @@ class ConfluenceStorageFormatCleaner(NodeVisitor):
         child.attrib.pop(ET.QName(namespaces["ri"], "version-at-save"), None)
 
 
+class DocumentError(RuntimeError):
+    pass
+
+
+def _extract_value(pattern, string) -> Tuple[Optional[str], str]:
+    values: List[str] = []
+
+    def _repl_func(matchobj: re.Match) -> str:
+        values.append(matchobj.group(1))
+        return ""
+
+    string = re.sub(pattern, _repl_func, string, 1, re.ASCII)
+    value = values[0] if values else None
+    return value, string
+
+
 class ConfluenceDocument:
-    id: str
+    page_id: str
+    space_key: Optional[str] = None
     links: List[str]
     images: List[str]
 
@@ -219,16 +236,28 @@ class ConfluenceDocument:
         with open(path, "r") as f:
             html = markdown_to_html(f.read())
 
-        match = re.search(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", html)
-        self.id = match.group(1)
+        # extract Confluence page ID
+        page_id, html = _extract_value(
+            r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", html
+        )
+        if page_id is None:
+            raise DocumentError(
+                "Markdown document has no Confluence page ID associated with it"
+            )
+        self.page_id = page_id
 
+        # extract Confluence space key
+        self.space_key, html = _extract_value(
+            r"<!--\s+confluence-space-key:\s*(\w+)\s+-->", html
+        )
+
+        # parse Markdown document
         self.root = elements_from_strings(
             [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
                 "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
-                html[: match.start()],
-                html[match.end() :],
+                html,
             ]
         )
 
