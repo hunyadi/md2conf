@@ -21,7 +21,7 @@ This Python package
 ## Getting started
 
 In order to get started, you will need
-* your organization URL (e.g. `https://instructure.atlassian.net`),
+* your organization domain name (e.g. `instructure.atlassian.net`),
 * your Confluence username (e.g. `levente.hunyadi@instructure.com`),
 * a Confluence API token (a string of alphanumeric characters), and
 * the space key in Confluence (e.g. `DAP`) you are publishing content to.

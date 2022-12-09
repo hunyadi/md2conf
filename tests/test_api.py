@@ -5,7 +5,7 @@ import unittest
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import synchronize_page
-from md2conf.converter import ConfluenceDocument, markdown_to_html, sanitize_confluence
+from md2conf.converter import ConfluenceDocument, sanitize_confluence
 
 
 logging.basicConfig(

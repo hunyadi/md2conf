@@ -3,10 +3,10 @@ import logging
 import mimetypes
 import os
 import os.path
-import urllib.parse
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Dict, Generator
+from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
 
@@ -16,7 +16,7 @@ from .converter import ParseError, sanitize_confluence
 def build_url(base_url: str, query: Dict[str, str] = None):
     "Builds a URL with scheme, host, port, path and query string parameters."
 
-    scheme, netloc, path, params, query_str, fragment = urllib.parse.urlparse(base_url)
+    scheme, netloc, path, params, query_str, fragment = urlparse(base_url)
 
     if params:
         raise ValueError("expected: url with no parameters")
@@ -25,9 +25,9 @@ def build_url(base_url: str, query: Dict[str, str] = None):
     if fragment:
         raise ValueError("expected: url with no fragment")
 
-    query_str = urllib.parse.urlencode(query) if query else None
+    query_str = urlencode(query) if query else None
     url_parts = (scheme, netloc, path, None, query_str, None)
-    return urllib.parse.urlunparse(url_parts)
+    return urlunparse(url_parts)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -79,6 +79,11 @@ class ConfluenceAPI:
             raise ConfluenceError("Confluence user name not specified")
         if not self.api_key:
             raise ConfluenceError("Confluence API key not specified")
+
+        if self.domain.startswith(("http://", "https://")):
+            raise ConfluenceError(
+                "Confluence domain looks like a URL; only host name required"
+            )
 
     def __enter__(self):
         session = requests.Session()

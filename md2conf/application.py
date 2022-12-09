@@ -1,7 +1,7 @@
 import os.path
 
 from .api import ConfluenceSession
-from .converter import ConfluenceDocument, markdown_to_html
+from .converter import ConfluenceDocument
 
 
 def update_document(
