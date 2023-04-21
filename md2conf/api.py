@@ -3,17 +3,30 @@ import logging
 import mimetypes
 import os
 import os.path
+import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Dict, Generator
+from types import TracebackType
+from typing import Dict, Generator, List, Optional, Type, Union
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
 
 from .converter import ParseError, sanitize_confluence
 
+# a JSON type with possible `null` values
+JsonType = Union[
+    None,
+    bool,
+    int,
+    float,
+    str,
+    Dict[str, "JsonType"],
+    List["JsonType"],
+]
 
-def build_url(base_url: str, query: Dict[str, str] = None):
+
+def build_url(base_url: str, query: Optional[Dict[str, str]] = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
 
     scheme, netloc, path, params, query_str, fragment = urlparse(base_url)
@@ -25,8 +38,7 @@ def build_url(base_url: str, query: Dict[str, str] = None):
     if fragment:
         raise ValueError("expected: url with no fragment")
 
-    query_str = urlencode(query) if query else None
-    url_parts = (scheme, netloc, path, None, query_str, None)
+    url_parts = (scheme, netloc, path, None, urlencode(query) if query else None, None)
     return urlunparse(url_parts)
 
 
@@ -59,41 +71,54 @@ class ConfluenceAPI:
     user_name: str
     api_key: str
 
-    session: "ConfluenceSession"
+    session: Optional["ConfluenceSession"] = None
 
     def __init__(
         self,
-        domain: str = None,
-        user_name: str = None,
-        api_key: str = None,
-        space_key: str = None,
+        domain: Optional[str] = None,
+        user_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+        space_key: Optional[str] = None,
     ) -> None:
-        self.domain = domain or os.getenv("CONFLUENCE_DOMAIN")
-        self.user_name = user_name or os.getenv("CONFLUENCE_USER_NAME")
-        self.api_key = api_key or os.getenv("CONFLUENCE_API_KEY")
-        self.space_key = space_key or os.getenv("CONFLUENCE_SPACE_KEY")
+        opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
+        opt_user_name = user_name or os.getenv("CONFLUENCE_USER_NAME")
+        opt_api_key = api_key or os.getenv("CONFLUENCE_API_KEY")
+        opt_space_key = space_key or os.getenv("CONFLUENCE_SPACE_KEY")
 
-        if not self.domain:
+        if not opt_domain:
             raise ConfluenceError("Confluence domain not specified")
-        if not self.user_name:
+        if not opt_user_name:
             raise ConfluenceError("Confluence user name not specified")
-        if not self.api_key:
+        if not opt_api_key:
             raise ConfluenceError("Confluence API key not specified")
+        if not opt_space_key:
+            raise ConfluenceError("Confluence space key not specified")
 
-        if self.domain.startswith(("http://", "https://")):
+        if opt_domain.startswith(("http://", "https://")):
             raise ConfluenceError(
                 "Confluence domain looks like a URL; only host name required"
             )
 
-    def __enter__(self):
+        self.domain = opt_domain
+        self.user_name = opt_user_name
+        self.api_key = opt_api_key
+        self.space_key = opt_space_key
+
+    def __enter__(self) -> "ConfluenceSession":
         session = requests.Session()
         session.auth = (self.user_name, self.api_key)
         self.session = ConfluenceSession(session, self.domain, self.space_key)
         return self.session
 
-    def __exit__(self, type, value, traceback):
-        self.session.close()
-        self.session = None
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        if self.session is not None:
+            self.session.close()
+            self.session = None
 
 
 class ConfluenceSession:
@@ -118,11 +143,11 @@ class ConfluenceSession:
         finally:
             self.space_key = old_space_key
 
-    def _build_url(self, path: str, query: Dict[str, str] = None) -> str:
+    def _build_url(self, path: str, query: Optional[Dict[str, str]] = None) -> str:
         base_url = f"https://{self.domain}/wiki/rest/api{path}"
         return build_url(base_url, query)
 
-    def _invoke(self, path: str, query: Dict[str, str]) -> str:
+    def _invoke(self, path: str, query: Dict[str, str]) -> JsonType:
         url = self._build_url(path, query)
         response = self.session.get(url)
         response.raise_for_status()
@@ -142,17 +167,18 @@ class ConfluenceSession:
     ) -> ConfluenceAttachment:
         path = f"/content/{page_id}/child/attachment"
         query = {"spaceKey": self.space_key, "filename": filename}
-        data = self._invoke(path, query)
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
 
-        results = data["results"]
+        results = typing.cast(List[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
+        result = typing.cast(Dict[str, JsonType], results[0])
 
-        id = results[0]["id"]
-        extensions = results[0]["extensions"]
-        media_type = extensions["mediaType"]
-        file_size = extensions["fileSize"]
-        comment = extensions["comment"]
+        id = typing.cast(str, result["id"])
+        extensions = typing.cast(Dict[str, JsonType], result["extensions"])
+        media_type = typing.cast(str, extensions["mediaType"])
+        file_size = typing.cast(int, extensions["fileSize"])
+        comment = typing.cast(str, extensions["comment"])
         return ConfluenceAttachment(id, media_type, file_size, comment)
 
     def upload_attachment(
@@ -160,9 +186,8 @@ class ConfluenceSession:
         page_id: str,
         attachment_path: str,
         attachment_name: str,
-        comment: str = None,
+        comment: Optional[str] = None,
     ) -> None:
-
         content_type = mimetypes.guess_type(attachment_path, strict=True)[0]
 
         if not os.path.isfile(attachment_path):
@@ -195,7 +220,9 @@ class ConfluenceSession:
             }
             LOGGER.info("Uploading attachment: %s", attachment_name)
             response = self.session.post(
-                url, files=file_to_upload, headers={"X-Atlassian-Token": "no-check"}
+                url,
+                files=file_to_upload,  # type: ignore
+                headers={"X-Atlassian-Token": "no-check"},
             )
 
         response.raise_for_status()
@@ -215,7 +242,6 @@ class ConfluenceSession:
     def _update_attachment(
         self, page_id: str, attachment_id: str, version: int, attachment_title: str
     ) -> None:
-
         id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
         data = {
@@ -241,13 +267,14 @@ class ConfluenceSession:
         LOGGER.info("Looking up page with title: %s", title)
         path = "/content"
         query = {"title": title, "spaceKey": self.space_key}
-        data = self._invoke(path, query)
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
 
-        results = data["results"]
+        results = typing.cast(List[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"page not found with title: {title}")
 
-        id = results[0]["id"]
+        result = typing.cast(Dict[str, JsonType], results[0])
+        id = typing.cast(str, result["id"])
         return id
 
     def get_page(self, page_id: str) -> ConfluencePage:
@@ -256,13 +283,16 @@ class ConfluenceSession:
             "spaceKey": self.space_key,
             "expand": "body.storage,version",
         }
-        data = self._invoke(path, query)
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        version = typing.cast(Dict[str, JsonType], data["version"])
+        body = typing.cast(Dict[str, JsonType], data["body"])
+        storage = typing.cast(Dict[str, JsonType], body["storage"])
 
         return ConfluencePage(
             id=page_id,
-            title=data["title"],
-            version=data["version"]["number"],
-            content=data["body"]["storage"]["value"],
+            title=typing.cast(str, data["title"]),
+            version=typing.cast(int, version["number"]),
+            content=typing.cast(str, storage["value"]),
         )
 
     def get_page_version(self, page_id: str) -> int:
@@ -271,8 +301,9 @@ class ConfluenceSession:
             "spaceKey": self.space_key,
             "expand": "version",
         }
-        data = self._invoke(path, query)
-        return data["version"]["number"]
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        version = typing.cast(Dict[str, JsonType], data["version"])
+        return typing.cast(int, version["number"])
 
     def update_page(self, page_id: str, new_content: str) -> None:
         page = self.get_page(page_id)

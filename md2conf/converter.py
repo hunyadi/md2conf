@@ -24,7 +24,7 @@ class ParseError(RuntimeError):
     pass
 
 
-def is_absolute_url(url):
+def is_absolute_url(url: str) -> bool:
     return bool(urlparse(url).netloc)
 
 
@@ -153,7 +153,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_block(self, code: ET.Element) -> ET.Element:
         language = code.attrib.get("class")
         if language:
-            language = re.match("^language-(.*)$", language).group(1)
+            m = re.match("^language-(.*)$", language)
+            if m:
+                language = m.group(1)
+            else:
+                language = "none"
         if language not in _languages:
             language = "none"
         content: str = code.text
@@ -175,11 +179,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
         # normalize line breaks to regular space in element text
         if child.text:
-            s: str = child.text
-            child.text = s.replace("\n", " ")
+            text: str = child.text
+            child.text = text.replace("\n", " ")
         if child.tail:
-            s: str = child.tail
-            child.tail = s.replace("\n", " ")
+            tail: str = child.tail
+            child.tail = tail.replace("\n", " ")
 
         # <p><img src="..." /></p>
         if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
@@ -197,6 +201,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
 
+        return None
+
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
@@ -204,13 +210,14 @@ class ConfluenceStorageFormatCleaner(NodeVisitor):
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
         child.attrib.pop(ET.QName(namespaces["ac"], "macro-id"), None)
         child.attrib.pop(ET.QName(namespaces["ri"], "version-at-save"), None)
+        return None
 
 
 class DocumentError(RuntimeError):
     pass
 
 
-def _extract_value(pattern, string) -> Tuple[Optional[str], str]:
+def _extract_value(pattern: str, string: str) -> Tuple[Optional[str], str]:
     values: List[str] = []
 
     def _repl_func(matchobj: re.Match) -> str:
@@ -281,4 +288,7 @@ def sanitize_confluence(html: str) -> str:
 def _content_to_string(root: ET.Element) -> str:
     xml = ET.tostring(root, encoding="utf8", method="xml").decode("utf8")
     m = re.match(r"^<root\s+[^>]*>(.*)</root>\s*$", xml, re.DOTALL)
-    return m.group(1)
+    if m:
+        return m.group(1)
+    else:
+        raise ValueError("expected: Confluence content")
