@@ -3,6 +3,7 @@ import logging
 import mimetypes
 import os
 import os.path
+import sys
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -40,6 +41,24 @@ def build_url(base_url: str, query: Optional[Dict[str, str]] = None) -> str:
 
     url_parts = (scheme, netloc, path, None, urlencode(query) if query else None, None)
     return urlunparse(url_parts)
+
+
+if sys.version_info >= (3, 9):
+
+    def removeprefix(string: str, prefix: str) -> str:
+        "If the string starts with the prefix, return the string without the prefix; otherwise, return the original string."
+
+        return string.removeprefix(prefix)
+
+else:
+
+    def removeprefix(string: str, prefix: str) -> str:
+        "If the string starts with the prefix, return the string without the prefix; otherwise, return the original string."
+
+        if string.startswith(prefix):
+            return string[len(prefix) :]
+        else:
+            return string
 
 
 LOGGER = logging.getLogger(__name__)
@@ -200,7 +219,7 @@ class ConfluenceSession:
                 LOGGER.info("Up-to-date attachment: %s", attachment_name)
                 return
 
-            id = attachment.id.removeprefix("att")
+            id = removeprefix(attachment.id, "att")
             path = f"/content/{page_id}/child/attachment/{id}/data"
 
         except ConfluenceError:
@@ -242,7 +261,7 @@ class ConfluenceSession:
     def _update_attachment(
         self, page_id: str, attachment_id: str, version: int, attachment_title: str
     ) -> None:
-        id = attachment_id.removeprefix("att")
+        id = removeprefix(attachment_id, "att")
         path = f"/content/{page_id}/child/attachment/{id}"
         data = {
             "id": attachment_id,
