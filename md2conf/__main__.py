@@ -1,6 +1,9 @@
 import argparse
 import logging
 import os.path
+import sys
+
+import requests
 
 from .api import ConfluenceAPI
 from .application import synchronize_page
@@ -55,5 +58,17 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
-with ConfluenceAPI(args.domain, args.username, args.apikey, args.space) as api:
-    synchronize_page(api, args.mdfile)
+try:
+    with ConfluenceAPI(args.domain, args.username, args.apikey, args.space) as api:
+        synchronize_page(api, args.mdfile)
+except requests.exceptions.HTTPError as err:
+    logging.error(err)
+
+    # print details for a response with JSON body
+    try:
+        response: requests.Response = err.response
+        logging.error(response.json())
+    except requests.exceptions.JSONDecodeError:
+        pass
+
+    sys.exit(1)
