@@ -280,6 +280,9 @@ class ConfluenceDocument:
 def sanitize_confluence(html: str) -> str:
     "Generates a sanitized version of a Confluence storage format XHTML document with no volatile attributes."
 
+    if not html:
+        return ""
+
     root = elements_from_strings([html])
     ConfluenceStorageFormatCleaner().visit(root)
     return _content_to_string(root)

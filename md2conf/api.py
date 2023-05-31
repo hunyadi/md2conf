@@ -332,8 +332,8 @@ class ConfluenceSession:
             if old_content == new_content:
                 LOGGER.info("Up-to-date page: %s", page_id)
                 return
-        except ParseError:
-            pass
+        except ParseError as exc:
+            LOGGER.warning(exc)
 
         path = f"/content/{page_id}"
         data = {
