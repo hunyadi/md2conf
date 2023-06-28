@@ -5,7 +5,11 @@ import unittest
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import synchronize_page
-from md2conf.converter import ConfluenceDocument, sanitize_confluence
+from md2conf.converter import (
+    ConfluenceDocument,
+    ConfluenceDocumentOptions,
+    sanitize_confluence,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,7 +19,7 @@ logging.basicConfig(
 
 class TestAPI(unittest.TestCase):
     def test_markdown(self) -> None:
-        document = ConfluenceDocument("example.md")
+        document = ConfluenceDocument("example.md", ConfluenceDocumentOptions())
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
@@ -62,7 +66,7 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            synchronize_page(api, "example.md")
+            synchronize_page(api, "example.md", ConfluenceDocumentOptions())
 
 
 if __name__ == "__main__":

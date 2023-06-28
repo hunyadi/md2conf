@@ -1,7 +1,7 @@
 import os.path
 
 from .api import ConfluenceSession
-from .converter import ConfluenceDocument
+from .converter import ConfluenceDocument, ConfluenceDocumentOptions
 
 
 def update_document(
@@ -15,11 +15,13 @@ def update_document(
     api.update_page(document.page_id, document.xhtml())
 
 
-def synchronize_page(api: ConfluenceSession, path: str) -> None:
+def synchronize_page(
+    api: ConfluenceSession, path: str, options: ConfluenceDocumentOptions
+) -> None:
     page_path = os.path.abspath(path)
     base_path = os.path.dirname(page_path)
 
-    document = ConfluenceDocument(path)
+    document = ConfluenceDocument(path, options)
 
     if document.space_key:
         with api.switch_space(document.space_key):
