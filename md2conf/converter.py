@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import logging
 import os.path
 import re
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
@@ -285,15 +286,28 @@ def extract_value(pattern: str, string: str) -> Tuple[Optional[str], str]:
     return value, string
 
 
+@dataclass
+class ConfluenceDocumentOptions:
+    """
+    Options that control the generated page content.
+
+    :param show_generated: Whether to display a prompt "This page has been generated with a tool."
+    """
+
+    generated_by: bool = True
+
+
 class ConfluenceDocument:
     page_id: str
     space_key: Optional[str] = None
     links: List[str]
     images: List[str]
 
+    options: ConfluenceDocumentOptions
     root: ET.Element
 
-    def __init__(self, path: str, page_metadata: dict[str, str] = dict()) -> None:
+    def __init__(self, path: str, options: ConfluenceDocumentOptions, page_metadata: dict[str, str] = dict()) -> None:
+        self.options = options
         path = os.path.abspath(path)
 
         with open(path, "r") as f:
@@ -313,14 +327,16 @@ class ConfluenceDocument:
         )
 
         # parse Markdown document
-        self.root = elements_from_strings(
-            [
+        if self.options.generated_by:
+            content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
                 '<ac:rich-text-body><p> Do Not Edit In Confluence: This page is being periodically imported from the <a href="https://infra-wiki.onemedical.io/">infra-wiki</a> with a tool.</p></ac:rich-text-body>',
                 "</ac:structured-macro>",
                 html,
             ]
-        )
+        else:
+            content = [html]
+        self.root = elements_from_strings(content)
 
         converter = ConfluenceStorageFormatConverter(path, page_metadata)
         converter.visit(self.root)

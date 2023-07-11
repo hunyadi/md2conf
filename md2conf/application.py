@@ -3,7 +3,8 @@ import os.path
 import re
 
 from .api import ConfluenceSession
-from .converter import ConfluenceDocument, ConfluencePageMetadata, extract_value
+
+from .converter import ConfluenceDocument, ConfluencePageMetadata, ConfluenceDocumentOptions,extract_value
 
 from typing import List, Optional, Tuple
 
@@ -22,23 +23,24 @@ def update_document(
     api.update_page(document.page_id, document.xhtml())
 
 
-def synchronize_pages(api: ConfluenceSession, path: str) -> None:
+
+def synchronize_pages(api: ConfluenceSession, path: str, options: ConfluenceDocumentOptions) -> None:
     if os.path.isdir(path):
-        synchronize_directory(api, path)
+        synchronize_directory(api, path, options)
     elif os.path.isfile(path):
-        synchronize_page(api, path)
+        synchronize_page(api, path, options)
     else:
         raise ValueError(f"expected: valid file of directory path. got: {path}")
 
 
 def synchronize_page(
-    api: ConfluenceSession, path: str, page_metadata: dict[str, str] = dict()
+    api: ConfluenceSession, path: str, options: ConfluenceDocumentOptions, page_metadata: dict[str, str] = dict()
 ) -> None:
     page_path = os.path.abspath(path)
     base_path = os.path.dirname(page_path)
 
     LOGGER.info(f"synchronize_page: {page_path}")
-    document = ConfluenceDocument(path, page_metadata)
+    document = ConfluenceDocument(path, options, page_metadata)
 
     if document.space_key:
         with api.switch_space(document.space_key):
@@ -47,7 +49,7 @@ def synchronize_page(
         update_document(api, document, base_path)
 
 
-def synchronize_directory(api: ConfluenceSession, dir: str) -> None:
+def synchronize_directory(api: ConfluenceSession, dir: str, options: ConfluenceDocumentOptions) -> None:
     page_metadata = dict()
     LOGGER.info(f"synchronize_directory: {dir}")
 
@@ -84,7 +86,7 @@ def synchronize_directory(api: ConfluenceSession, dir: str) -> None:
     # Step 2: Convert each page
     for page_path in page_metadata.keys():
         try:
-            synchronize_page(api, page_path, page_metadata)
+            synchronize_page(api, page_path, options, page_metadata)
         except Exception as e:
             # log error and continue converting other pages
             LOGGER.error(f"Failed to synchronize page. {page_path}: {e}")
