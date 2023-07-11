@@ -177,6 +177,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("plain-text-body", ET.CDATA(content)),
         )
 
+    def _transform_toc(self, code: ET.Element) -> ET.Element:
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "toc",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "outline"}, "clear"),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "style"}, "default"),
+        )
+
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
         # normalize line breaks to regular space in element text
         if child.text:
@@ -189,6 +200,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <p><img src="..." /></p>
         if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
             return self._transform_image(child[0])
+
+        # <p>[[_TOC_]]</p>
+        # <p>[TOC]</p>
+        elif child.tag == "p" and "".join(child.itertext()) in ["[[TOC]]", "[TOC]"]:
+            return self._transform_toc(child)
 
         # <img src="..." alt="..." />
         elif child.tag == "img":

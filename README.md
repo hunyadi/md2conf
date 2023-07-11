@@ -17,6 +17,7 @@ This Python package
 * Ordered and unordered lists
 * Code blocks (e.g. Python, JSON, XML)
 * Image references (uploaded as Confluence page attachments)
+* [Table of Contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
 
 ## Getting started
 
