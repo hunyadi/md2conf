@@ -130,7 +130,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     images: List[str]
     page_metadata: dict[str, str]
 
-    def __init__(self, path: str, page_metadata: dict[str, str] = dict()) -> None:
+    def __init__(self, path: str, page_metadata: dict[str, ConfluencePageMetadata] = dict()) -> None:
         super().__init__()
         self.path = path
         self.base_path = os.path.dirname(path)
