@@ -328,6 +328,8 @@ class ConfluenceSession:
         page = self.get_page(page_id)
 
         try:
+            # sanitize_confluence throws an error for unknown characters. Which if not fix will always result in a page update.
+            # as old_content != new_content, since confluence will not save unknown characters.
             old_content = sanitize_confluence(page.content)
             if old_content == new_content:
                 LOGGER.info("Up-to-date page: %s", page_id)
@@ -339,7 +341,7 @@ class ConfluenceSession:
         data = {
             "id": page_id,
             "type": "page",
-            "title": page.title,
+            "title": page.title, # title needs to be unique within a space so the original title is maintained
             "space": {"key": self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
             "version": {"minorEdit": True, "number": page.version + 1},

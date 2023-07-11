@@ -6,7 +6,7 @@ import sys
 import requests
 
 from .api import ConfluenceAPI
-from .application import synchronize_page
+from .application import synchronize_pages
 
 
 class Arguments(argparse.Namespace):
@@ -60,7 +60,7 @@ logging.basicConfig(
 
 try:
     with ConfluenceAPI(args.domain, args.username, args.apikey, args.space) as api:
-        synchronize_page(api, args.mdfile)
+        synchronize_pages(api, args.mdfile)
 except requests.exceptions.HTTPError as err:
     logging.error(err)
 

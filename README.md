@@ -63,3 +63,8 @@ You execute the command-line tool `md2conf` to synchronize the Markdown file wit
 ```bash
 python3 -m md2conf example.md
 ```
+
+You can also run it on a directory:
+```bash
+python -m md2conf ../infra-wiki/site/
+```
