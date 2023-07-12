@@ -352,7 +352,7 @@ class ConfluenceDocument:
     def metadata(self) -> ConfluencePageMetadata:
         return ConfluencePageMetadata(
             page_id=self.page_id,
-            space_key=self.space_key,
+            space_key=self.space_key or "",
             title=self.title()
         )
 

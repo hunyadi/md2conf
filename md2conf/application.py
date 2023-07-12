@@ -73,8 +73,8 @@ def synchronize_directory(api: ConfluenceSession, dir: str, options: ConfluenceD
                         confluence_page = api.get_page(page_id)
                         page_metadata[abs_path] = ConfluencePageMetadata(
                             page_id = page_id,
-                            space_key = space_key,
-                            title = confluence_page.title
+                            space_key = space_key or "",
+                            title = confluence_page.title or ""
                         )
                         LOGGER.debug(
                             f"indexed {abs_path} with metadata '{page_metadata[abs_path]}'"
