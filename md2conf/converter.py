@@ -163,11 +163,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             relative_url = None
             if link_metadata:
                 LOGGER.debug(f"found page {page_path} with metadata: {link_metadata}")
-                confluence_page_id = link_metadata.page_id # link_metadata[0] # link_metadata.page_id #
-                confluence_space_key = link_metadata.space_key # link_metadata[1] # link_metadata.space_key #
+                confluence_page_id = link_metadata.page_id
+                confluence_space_key = link_metadata.space_key
                 relative_url = f"https://onemedical.atlassian.net/wiki/spaces/{confluence_space_key}/pages/{confluence_page_id}"
-                # TODO page anchor convert page anchor. Move this to a function.
-
 
                 if "#" in url:
                     page_anchor = url.split("#", 1)[-1]
