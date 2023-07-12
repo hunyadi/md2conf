@@ -3,7 +3,7 @@ import logging
 import os.path
 import re
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from urllib.parse import urlparse
 
 import lxml.etree as ET
@@ -129,9 +129,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     base_path: str
     links: List[str]
     images: List[str]
-    page_metadata: dict[str, str]
+    page_metadata: Dict[str, ConfluencePageMetadata]
 
-    def __init__(self, path: str, page_metadata: dict[str, ConfluencePageMetadata] = dict()) -> None:
+    def __init__(self, path: str, page_metadata: Dict[str, ConfluencePageMetadata] = dict()) -> None:
         super().__init__()
         self.path = path
         self.base_path = os.path.dirname(path)
@@ -306,7 +306,7 @@ class ConfluenceDocument:
     options: ConfluenceDocumentOptions
     root: ET.Element
 
-    def __init__(self, path: str, options: ConfluenceDocumentOptions, page_metadata: dict[str, str] = dict()) -> None:
+    def __init__(self, path: str, options: ConfluenceDocumentOptions, page_metadata: Dict[str, ConfluencePageMetadata] = dict()) -> None:
         self.options = options
         path = os.path.abspath(path)
 
@@ -330,7 +330,7 @@ class ConfluenceDocument:
         if self.options.generated_by:
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                '<ac:rich-text-body><p> Do Not Edit In Confluence: This page is being periodically imported from the <a href="https://infra-wiki.onemedical.io/">infra-wiki</a> with a tool.</p></ac:rich-text-body>',
+                "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]
@@ -374,7 +374,7 @@ def _content_title(root: ET.Element) -> str:
     m = re.match(r".*<h1>(.*)</h1>.*", xml, re.DOTALL)
 
     # if the contents of the page are empty
-    if m == None:
+    if m is None:
         return ""
 
     return m.group(1)

@@ -6,7 +6,7 @@ from .api import ConfluenceSession
 
 from .converter import ConfluenceDocument, ConfluencePageMetadata, ConfluenceDocumentOptions,extract_value
 
-from typing import List, Optional, Tuple
+from typing import Dict
 
 
 LOGGER = logging.getLogger(__name__)
@@ -30,11 +30,11 @@ def synchronize_pages(api: ConfluenceSession, path: str, options: ConfluenceDocu
     elif os.path.isfile(path):
         synchronize_page(api, path, options)
     else:
-        raise ValueError(f"expected: valid file of directory path. got: {path}")
+        raise ValueError(f"expected: valid file or directory path; got: {path}")
 
 
 def synchronize_page(
-    api: ConfluenceSession, path: str, options: ConfluenceDocumentOptions, page_metadata: dict[str, str] = dict()
+    api: ConfluenceSession, path: str, options: ConfluenceDocumentOptions, page_metadata: Dict[str, ConfluencePageMetadata] = dict()
 ) -> None:
     page_path = os.path.abspath(path)
     base_path = os.path.dirname(page_path)
@@ -58,11 +58,10 @@ def synchronize_directory(api: ConfluenceSession, dir: str, options: ConfluenceD
         for filename in files:
             # Extract the file extension from the path
             file_extension = os.path.splitext(filename)[1]
-            abs_path = os.path.abspath(os.path.join(os.path.abspath(root), filename))
+            abs_path = os.path.join(os.path.abspath(root), filename)
             if file_extension.lower() == ".md":
                 # Open file
                 with open(abs_path, "r") as f:
-                    # document = markdown_to_html(f.read())
                     document = f.read()
                     page_id, document = extract_value(
                         r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", document
