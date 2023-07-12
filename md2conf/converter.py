@@ -293,7 +293,7 @@ class ConfluenceDocument:
         if self.options.generated_by:
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
+                f"<ac:rich-text-body><p>{self.options.generated_by}</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]
