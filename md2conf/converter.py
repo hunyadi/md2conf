@@ -289,11 +289,20 @@ class ConfluenceDocument:
             r"<!--\s+confluence-space-key:\s*(\w+)\s+-->", html
         )
 
+        # extract 'generated-by' tag text
+        generated_by_tag, html = _extract_value(
+            r"<!--\s+generated-by:\s*(.*)\s+-->", html
+        )
+
         # parse Markdown document
         if self.options.generated_by:
+            generated_by = self.options.generated_by
+            if generated_by_tag is not None:
+                generated_by = generated_by_tag
+
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
+                f"<ac:rich-text-body><p>{generated_by}</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]

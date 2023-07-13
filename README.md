@@ -58,6 +58,15 @@ Each Markdown file is associated with a Confluence wiki page with a Markdown com
 
 The above tells the tool to synchronize the Markdown file with the given Confluence page ID. This implies that the Confluence wiki page must exist such that it has an ID. The comment can be placed anywhere in the source file.
 
+### Provide generated-by prompt text in Markdown file
+
+Provide generated-by prompt text in Markdown file via the following optional tag:
+
+```markdown
+<!-- generated-by: Do not edit! Origin can be found <a href="https://git.example.com/project">here</a>. -->
+```
+Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
+
 ### Running the tool
 
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
