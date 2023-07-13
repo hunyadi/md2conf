@@ -281,7 +281,7 @@ class ConfluenceDocumentOptions:
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
     """
 
-    generated_by: bool = True
+    generated_by: Optional[str] = "This page has been generated with a tool."
 
 
 class ConfluenceDocument:
@@ -322,7 +322,7 @@ class ConfluenceDocument:
         )
 
         # parse Markdown document
-        if self.options.generated_by:
+        if self.options.generated_by is not None:
             generated_by = self.options.generated_by
             if generated_by_tag is not None:
                 generated_by = generated_by_tag
