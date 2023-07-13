@@ -1,5 +1,8 @@
+import importlib.resources as resources
 import os.path
+import pathlib
 import re
+import sys
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse
@@ -41,16 +44,28 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def elements_from_strings(items: List[str]) -> ET.Element:
-    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
+def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET.Element:
+    """
+    Creates a fragment of several XML nodes from their string representation wrapped in a root element.
 
-    parser = ET.XMLParser(remove_blank_text=True, strip_cdata=False)
+    :param dtd_path: Path to a DTD document that defines entities like &cent; or &copy;.
+    :param items: Strings to parse into XML fragments.
+    :returns: An XML document as an element tree.
+    """
+
+    parser = ET.XMLParser(
+        remove_blank_text=True,
+        strip_cdata=False,
+        load_dtd=True,
+    )
 
     ns_attr_list = "".join(
         f' xmlns:{key}="{value}"' for key, value in namespaces.items()
     )
+
     data = [
         '<?xml version="1.0"?>',
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path}">'
         f"<root{ns_attr_list}>",
     ]
     data.extend(items)
@@ -60,6 +75,18 @@ def elements_from_strings(items: List[str]) -> ET.Element:
         return ET.fromstringlist(data, parser=parser)
     except ET.XMLSyntaxError as e:
         raise ParseError(e)
+
+
+def elements_from_strings(items: List[str]) -> ET.Element:
+    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
+
+    if sys.version_info >= (3, 9):
+        resource_path = resources.files(__package__).joinpath("entities.dtd")
+        with resources.as_file(resource_path) as dtd_path:
+            return _elements_from_strings(dtd_path, items)
+    else:
+        with resources.path(__package__, "entities.dtd") as dtd_path:
+            return _elements_from_strings(dtd_path, items)
 
 
 _languages = [

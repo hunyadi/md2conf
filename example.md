@@ -77,3 +77,7 @@ sem nisi volutpat dolor, vitae pulvinar ipsum orci vitae ligula. Morbi tempus at
 facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et semper dapibus. Suspendisse ut velit sit
 amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at,
 dignissim finibus dui.
+
+## UTF-8 characters
+
+UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
