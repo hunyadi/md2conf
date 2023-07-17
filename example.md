@@ -1,8 +1,10 @@
 <!-- confluence-page-id: 85668266616 -->
 
+If you are a user who wants to publish pages to Confluence, you should install the package [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) from PyPI. If you are a developer who wants to contribute, you should clone the repository [md2conf](https://github.com/hunyadi/md2conf) from GitHub.
+
 # Publish Markdown to Confluence
 
-This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the Confluence storage format.
+This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the *Confluence Storage Format*.
 
 ## Basic features
 
