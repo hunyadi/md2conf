@@ -1,8 +1,10 @@
 <!-- confluence-page-id: 85668266616 -->
 
+If you are a user who wants to publish pages to Confluence, you should install the package [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) from PyPI. If you are a developer who wants to contribute, you should clone the repository [md2conf](https://github.com/hunyadi/md2conf) from GitHub.
+
 # Publish Markdown to Confluence
 
-This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the Confluence storage format.
+This page demonstrates the various features of converting a Markdown document into an XHTML document compliant with the *Confluence Storage Format*.
 
 ## Basic features
 
@@ -77,3 +79,7 @@ sem nisi volutpat dolor, vitae pulvinar ipsum orci vitae ligula. Morbi tempus at
 facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et semper dapibus. Suspendisse ut velit sit
 amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at,
 dignissim finibus dui.
+
+## UTF-8 characters
+
+UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.

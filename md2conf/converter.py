@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 import logging
+import importlib.resources as resources
 import os.path
+import pathlib
 import re
+import sys
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict
 from urllib.parse import urlparse
@@ -45,16 +48,28 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def elements_from_strings(items: List[str]) -> ET.Element:
-    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
+def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET.Element:
+    """
+    Creates a fragment of several XML nodes from their string representation wrapped in a root element.
 
-    parser = ET.XMLParser(remove_blank_text=True, strip_cdata=False)
+    :param dtd_path: Path to a DTD document that defines entities like &cent; or &copy;.
+    :param items: Strings to parse into XML fragments.
+    :returns: An XML document as an element tree.
+    """
+
+    parser = ET.XMLParser(
+        remove_blank_text=True,
+        strip_cdata=False,
+        load_dtd=True,
+    )
 
     ns_attr_list = "".join(
         f' xmlns:{key}="{value}"' for key, value in namespaces.items()
     )
+
     data = [
         '<?xml version="1.0"?>',
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path}">'
         f"<root{ns_attr_list}>",
     ]
     data.extend(items)
@@ -64,6 +79,18 @@ def elements_from_strings(items: List[str]) -> ET.Element:
         return ET.fromstringlist(data, parser=parser)
     except ET.XMLSyntaxError as e:
         raise ParseError(e)
+
+
+def elements_from_strings(items: List[str]) -> ET.Element:
+    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
+
+    if sys.version_info >= (3, 9):
+        resource_path = resources.files(__package__).joinpath("entities.dtd")
+        with resources.as_file(resource_path) as dtd_path:
+            return _elements_from_strings(dtd_path, items)
+    else:
+        with resources.path(__package__, "entities.dtd") as dtd_path:
+            return _elements_from_strings(dtd_path, items)
 
 
 _languages = [
@@ -231,6 +258,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("plain-text-body", ET.CDATA(content)),
         )
 
+    def _transform_toc(self, code: ET.Element) -> ET.Element:
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "toc",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "outline"}, "clear"),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "style"}, "default"),
+        )
+
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
         # normalize line breaks to regular space in element text
         if child.text:
@@ -243,6 +281,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <p><img src="..." /></p>
         if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
             return self._transform_image(child[0])
+
+        # <p>[[_TOC_]]</p>
+        # <p>[TOC]</p>
+        elif child.tag == "p" and "".join(child.itertext()) in ["[[TOC]]", "[TOC]"]:
+            return self._transform_toc(child)
 
         # <img src="..." alt="..." />
         elif child.tag == "img":
@@ -292,7 +335,7 @@ class ConfluenceDocumentOptions:
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
     """
 
-    generated_by: bool = True
+    generated_by: Optional[str] = "This page has been generated with a tool."
 
 
 class ConfluenceDocument:
@@ -324,11 +367,20 @@ class ConfluenceDocument:
             r"<!--\s+confluence-space-key:\s*(\w+)\s+-->", html
         )
 
+        # extract 'generated-by' tag text
+        generated_by_tag, html = _extract_value(
+            r"<!--\s+generated-by:\s*(.*)\s+-->", html
+        )
+
         # parse Markdown document
-        if self.options.generated_by:
+        if self.options.generated_by is not None:
+            generated_by = self.options.generated_by
+            if generated_by_tag is not None:
+                generated_by = generated_by_tag
+
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                "<ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body>",
+                f"<ac:rich-text-body><p>{generated_by}</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]
