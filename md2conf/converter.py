@@ -169,7 +169,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_link(self, anchor: ET.Element) -> ET.Element:
         url = anchor.attrib["href"]
         if not is_absolute_url(url):
-            LOGGER.debug(f"not is_absolute_url = {url} from = {self.path}")
+            LOGGER.debug(f"found link {url} relative to {self.path}")
             self.links.append(url)
             # Convert the relative href to absolute based on relative url the base path value then
             # look up the absolute path in the page metadata dictionary to discover
@@ -368,7 +368,7 @@ class ConfluenceDocument:
         )
 
         # extract 'generated-by' tag text
-        generated_by_tag, html = _extract_value(
+        generated_by_tag, html = extract_value(
             r"<!--\s+generated-by:\s*(.*)\s+-->", html
         )
 
