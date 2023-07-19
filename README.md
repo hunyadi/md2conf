@@ -97,7 +97,7 @@ usage: md2conf [-h] [-d DOMAIN] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {DEBUG,
                mdpath
 
 positional arguments:
-  mdpath                Markdown file or director of Markdown files to convert and publish.
+  mdpath                Path to a Markdown file or director of Markdown files to convert and publish.
 
 options:
   -h, --help            show this help message and exit

@@ -122,6 +122,7 @@ _languages = [
 
 @dataclass
 class ConfluencePageMetadata:
+    domain: str
     page_id: str
     space_key: str
     title: str
@@ -189,12 +190,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             transformed_url = None
             if link_metadata:
                 LOGGER.debug(f"found page {abs_path} with metadata: {link_metadata}")
-                confluence_page_id = link_metadata.page_id
-                confluence_space_key = link_metadata.space_key
-                transformed_url = f"https://onemedical.atlassian.net/wiki/spaces/{confluence_space_key}/pages/{confluence_page_id}"
+                transformed_url = f"https://{link_metadata.domain}/wiki/spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}"
 
                 if relative_url.fragment:
-                    # confluence url put `+` in the url of page
+                    # confluence url's use `+` instead of spaces for the page title part
                     confluence_page_title = link_metadata.title.replace(" ", "+")
                     transformed_url = f"{transformed_url}/{confluence_page_title}#{relative_url.fragment}"
 
@@ -396,14 +395,6 @@ class ConfluenceDocument:
 
     def title(self) -> str:
         return _content_title(self.root)
-
-    def metadata(self) -> ConfluencePageMetadata:
-        return ConfluencePageMetadata(
-            page_id=self.page_id,
-            space_key=self.space_key or "",
-            title=self.title()
-        )
-
 
 
 def sanitize_confluence(html: str) -> str:

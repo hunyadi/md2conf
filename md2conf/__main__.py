@@ -7,7 +7,7 @@ from typing import Optional
 import requests
 
 from .api import ConfluenceAPI
-from .application import synchronize_pages
+from .application import Application
 from .converter import ConfluenceDocumentOptions
 
 
@@ -76,7 +76,7 @@ logging.basicConfig(
 
 try:
     with ConfluenceAPI(args.domain, args.username, args.apikey, args.space) as api:
-        synchronize_pages(api, args.mdfile, ConfluenceDocumentOptions(args.generated_by))
+        Application(api, args.mdfile, ConfluenceDocumentOptions(args.generated_by)).run()
 except requests.exceptions.HTTPError as err:
     logging.error(err)
 
