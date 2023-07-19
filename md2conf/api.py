@@ -328,8 +328,6 @@ class ConfluenceSession:
         page = self.get_page(page_id)
 
         try:
-            # sanitize_confluence throws an error for unknown characters. Which if not fix will always result in a page update.
-            # as old_content != new_content, since confluence will not save unknown characters.
             old_content = sanitize_confluence(page.content)
             if old_content == new_content:
                 LOGGER.info("Up-to-date page: %s", page_id)
