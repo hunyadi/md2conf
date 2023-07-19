@@ -171,42 +171,40 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not is_absolute_url(url):
             LOGGER.debug(f"found link {url} relative to {self.path}")
             self.links.append(url)
+            relative_url = urlparse(url)
+
             # Convert the relative href to absolute based on relative url the base path value then
             # look up the absolute path in the page metadata dictionary to discover
             # the relative path within confluence that should be used
-            abs_path = os.path.abspath(
-                os.path.join(os.path.abspath(self.base_path), url)
-            )
+            if not relative_url.path:
+                # relative url with no path are relative to the current path
+                abs_path = self.path
+            else:
+                abs_path = os.path.abspath(
+                    os.path.join(os.path.abspath(self.base_path), relative_url.path)
+                )
 
-            # Transform relative urls like "#page_anchor" to "$pagepath#page_anchor"
-            if url.startswith("#"):
-                abs_path = self.path + url
-
-            # The path prior to the page anchor if it exists
-            page_path = abs_path.split("#")[0]
-
-            # lookup page metadata using the page path (without the achor)
-            link_metadata = self.page_metadata.get(page_path)
-            relative_url = None
+            # lookup page metadata using the page path
+            link_metadata = self.page_metadata.get(abs_path)
+            transformed_url = None
             if link_metadata:
-                LOGGER.debug(f"found page {page_path} with metadata: {link_metadata}")
+                LOGGER.debug(f"found page {abs_path} with metadata: {link_metadata}")
                 confluence_page_id = link_metadata.page_id
                 confluence_space_key = link_metadata.space_key
-                relative_url = f"https://onemedical.atlassian.net/wiki/spaces/{confluence_space_key}/pages/{confluence_page_id}"
+                transformed_url = f"https://onemedical.atlassian.net/wiki/spaces/{confluence_space_key}/pages/{confluence_page_id}"
 
-                if "#" in url:
-                    page_anchor = url.split("#", 1)[-1]
-                    confluence_page_title = link_metadata.title # link_metadata[2]
-                    if confluence_page_title != None:
-                        confluence_page_title = confluence_page_title.replace(" ", "+")
-                        relative_url = f"{relative_url}/{confluence_page_title}#{page_anchor}"
+                if relative_url.fragment:
+                    # confluence url put `+` in the url of page
+                    confluence_page_title = link_metadata.title.replace(" ", "+")
+                    transformed_url = f"{transformed_url}/{confluence_page_title}#{relative_url.fragment}"
+
             else:
-                LOGGER.warn(f"unable to find page metadata for {page_path}")
+                LOGGER.warn(f"unable to find page metadata for {abs_path}")
 
-            if relative_url != None:
+            if transformed_url != None:
                 # Set confluence relative URL
-                LOGGER.debug(f"relative url: {url} now: {relative_url}") # change to debug
-                anchor.attrib["href"] = relative_url
+                LOGGER.debug(f"relative url: {url} now: {transformed_url}")
+                anchor.attrib["href"] = transformed_url
             else:
                 LOGGER.warn(f"unable to set relative url for {url} {abs_path}")
 
