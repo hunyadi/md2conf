@@ -4,7 +4,7 @@ import os.path
 import unittest
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
-from md2conf.application import synchronize_page
+from md2conf.application import Application
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -66,7 +66,7 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            synchronize_page(api, "example.md", ConfluenceDocumentOptions())
+            Application(api, "example.md", ConfluenceDocumentOptions()).run()
 
 
 if __name__ == "__main__":

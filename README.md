@@ -106,10 +106,10 @@ Use the `--help` switch to get a full list of supported command-line options:
 $ python3 -m md2conf --help
 usage: md2conf [-h] [-d DOMAIN] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                [--generated-by GENERATED_BY] [--no-generated-by]
-               mdfile
+               mdpath
 
 positional arguments:
-  mdfile                Markdown file to convert and publish.
+  mdpath                Path to a Markdown file or director of Markdown files to convert and publish.
 
 options:
   -h, --help            show this help message and exit
