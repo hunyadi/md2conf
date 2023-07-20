@@ -23,7 +23,8 @@ This Python package
 
 In order to get started, you will need
 * your organization domain name (e.g. `instructure.atlassian.net`),
-* your Confluence username (e.g. `levente.hunyadi@instructure.com`),
+* base path for Confluence wiki (typically `/wiki/` for managed Confluence, `/` for on-premise)
+* your Confluence username (e.g. `levente.hunyadi@instructure.com`) (only if required by your deployment),
 * a Confluence API token (a string of alphanumeric characters), and
 * the space key in Confluence (e.g. `DAP`) you are publishing content to.
 
@@ -36,9 +37,10 @@ In order to get started, you will need
 
 ### Setting up the environment
 
-Confluence organization URL, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
+Confluence organization domain, base path, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
 ```bash
 export CONFLUENCE_DOMAIN='instructure.atlassian.net'
+export CONFLUENCE_PATH='/wiki/'
 export CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
 export CONFLUENCE_API_KEY='0123456789abcdef'
 export CONFLUENCE_SPACE_KEY='DAP'
@@ -46,7 +48,17 @@ export CONFLUENCE_SPACE_KEY='DAP'
 
 On Windows, these can be set via system properties.
 
+### Permissions
+
 The tool requires appropriate permissions in Confluence in order to invoke endpoints.
+
+If a Confluence username is set, the tool uses HTTP *Basic* authentication to pass the username and the API key to Confluence REST API endpoints. If no username is provided, the tool authenticates with HTTP *Bearer*, and passes the API key as the bearer token.
+
+If you lack appropriate permissions, you will get an *Unauthorized* response from Confluence. The tool will emit a message that looks as follows:
+
+```
+2023-06-30 23:59:59,000 - ERROR - <module> [80] - 401 Client Error: Unauthorized for url: ...
+```
 
 ### Associating a Markdown file with a wiki page
 
