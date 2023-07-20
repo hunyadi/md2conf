@@ -19,7 +19,7 @@ logging.basicConfig(
 
 class TestAPI(unittest.TestCase):
     def test_markdown(self) -> None:
-        document = ConfluenceDocument("example.md", ConfluenceDocumentOptions())
+        document = ConfluenceDocument("example.md", ConfluenceDocumentOptions(), dict())
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
@@ -66,7 +66,7 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, "example.md", ConfluenceDocumentOptions()).run()
+            Application(api, ConfluenceDocumentOptions()).synchronize("example.md")
 
 
 if __name__ == "__main__":

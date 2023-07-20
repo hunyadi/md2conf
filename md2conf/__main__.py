@@ -11,10 +11,10 @@ from .application import Application
 from .converter import ConfluenceDocumentOptions
 
 
-
 class Arguments(argparse.Namespace):
-    mdfile: str
+    mdpath: str
     domain: str
+    path: str
     username: str
     apikey: str
     space: str
@@ -24,8 +24,11 @@ class Arguments(argparse.Namespace):
 
 parser = argparse.ArgumentParser()
 parser.prog = os.path.basename(os.path.dirname(__file__))
-parser.add_argument("mdfile", help="Markdown file to convert and publish.")
+parser.add_argument(
+    "mdpath", help="Path to Markdown file or directory to convert and publish."
+)
 parser.add_argument("-d", "--domain", help="Confluence organization domain.")
+parser.add_argument("-p", "--path", help="Base path for Confluece wiki.")
 parser.add_argument("-u", "--username", help="Confluence user name.")
 parser.add_argument(
     "-a",
@@ -75,8 +78,12 @@ logging.basicConfig(
 )
 
 try:
-    with ConfluenceAPI(args.domain, args.username, args.apikey, args.space) as api:
-        Application(api, args.mdfile, ConfluenceDocumentOptions(args.generated_by)).run()
+    with ConfluenceAPI(
+        args.domain, args.path, args.username, args.apikey, args.space
+    ) as api:
+        Application(api, ConfluenceDocumentOptions(args.generated_by)).synchronize(
+            args.mdpath
+        )
 except requests.exceptions.HTTPError as err:
     logging.error(err)
 
