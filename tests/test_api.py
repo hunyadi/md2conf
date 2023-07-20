@@ -1,6 +1,7 @@
 import logging
 import os
 import os.path
+import shutil
 import unittest
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
@@ -18,6 +19,15 @@ logging.basicConfig(
 
 
 class TestAPI(unittest.TestCase):
+    out_dir: str
+
+    def setUp(self) -> None:
+        self.out_dir = os.path.join(os.getcwd(), "tests", "output")
+        os.makedirs(self.out_dir, exist_ok=True)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.out_dir)
+
     def test_markdown(self) -> None:
         document = ConfluenceDocument(
             os.path.join(os.getcwd(), "sample", "example.md"),
@@ -30,7 +40,7 @@ class TestAPI(unittest.TestCase):
             ["figure/interoperability.png", "figure/interoperability.png"],
         )
 
-        with open(os.path.join("tests", "output", "document.html"), "w") as f:
+        with open(os.path.join(self.out_dir, "document.html"), "w") as f:
             f.write(document.xhtml())
 
     def test_find_page_by_title(self) -> None:
@@ -49,7 +59,7 @@ class TestAPI(unittest.TestCase):
             page = api.get_page("85668266616")
             self.assertIsInstance(page, ConfluencePage)
 
-        with open(os.path.join("tests", "output", "page.html"), "w") as f:
+        with open(os.path.join(self.out_dir, "page.html"), "w") as f:
             f.write(sanitize_confluence(page.content))
 
     def test_get_attachment(self) -> None:
