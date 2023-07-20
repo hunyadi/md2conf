@@ -43,8 +43,8 @@ class Application:
     def synchronize_directory(self, dir: str) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        page_metadata: Dict[str, ConfluencePageMetadata]
-        LOGGER.info(f"synchronizing directory: {dir}")
+        page_metadata: Dict[str, ConfluencePageMetadata] = dict()
+        LOGGER.info(f"Synchronizing directory: {dir}")
 
         # Step 1: build index of all page metadata
         for root, directories, files in os.walk(dir):
@@ -84,7 +84,7 @@ class Application:
     ) -> None:
         base_path = os.path.dirname(page_path)
 
-        LOGGER.info(f"synchronizing page: {page_path}")
+        LOGGER.info(f"Synchronizing page: {page_path}")
         document = ConfluenceDocument(page_path, self.options, page_metadata)
 
         if document.id.space_key:

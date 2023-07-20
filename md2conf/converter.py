@@ -210,7 +210,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         LOGGER.debug(f"transformed relative URL: {url} to URL: {transformed_url}")
         anchor.attrib["href"] = transformed_url
-        return anchor
 
     def _transform_image(self, image: ET.Element) -> ET.Element:
         path: str = image.attrib["src"]
