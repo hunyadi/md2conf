@@ -97,30 +97,32 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
 
 ```console
-$ python3 -m md2conf example.md
+$ python3 -m md2conf sample/example.md
 ```
 
 Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
 $ python3 -m md2conf --help
-usage: md2conf [-h] [-d DOMAIN] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-               [--generated-by GENERATED_BY] [--no-generated-by]
-               mdfile
+usage: md2conf [-h] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE]
+               [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--generated-by GENERATED_BY] [--no-generated-by]
+               mdpath
 
 positional arguments:
-  mdfile                Markdown file to convert and publish.
+  mdpath                Path to Markdown file or directory to convert and publish.
 
 options:
   -h, --help            show this help message and exit
   -d DOMAIN, --domain DOMAIN
                         Confluence organization domain.
+  -p PATH, --path PATH  Base path for Confluece wiki.
   -u USERNAME, --username USERNAME
                         Confluence user name.
   -a APIKEY, --apikey APIKEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s SPACE, --space SPACE
-                        Confluence space key for pages to be published. If omitted, will default to user space.
+                        Confluence space key for pages to be published. If omitted, will default to user
+                        space.
   -l {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Use this option to set the log verbosity.
   --generated-by GENERATED_BY

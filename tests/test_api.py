@@ -4,7 +4,7 @@ import os.path
 import unittest
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
-from md2conf.application import synchronize_page
+from md2conf.application import Application
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -19,7 +19,11 @@ logging.basicConfig(
 
 class TestAPI(unittest.TestCase):
     def test_markdown(self) -> None:
-        document = ConfluenceDocument("example.md", ConfluenceDocumentOptions())
+        document = ConfluenceDocument(
+            os.path.join(os.getcwd(), "sample", "example.md"),
+            ConfluenceDocumentOptions(),
+            dict(),
+        )
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
@@ -59,14 +63,28 @@ class TestAPI(unittest.TestCase):
         with ConfluenceAPI() as api:
             api.upload_attachment(
                 "85668266616",
-                os.path.join(os.getcwd(), "figure", "interoperability.png"),
+                os.path.join(os.getcwd(), "sample", "figure", "interoperability.png"),
                 "figure/interoperability.png",
                 "A sample figure",
             )
 
+    def test_synchronize(self) -> None:
+        with ConfluenceAPI() as api:
+            Application(api, ConfluenceDocumentOptions()).synchronize(
+                os.path.join(os.getcwd(), "sample", "example.md")
+            )
+
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            synchronize_page(api, "example.md", ConfluenceDocumentOptions())
+            Application(api, ConfluenceDocumentOptions()).synchronize_page(
+                os.path.join(os.getcwd(), "sample", "example.md")
+            )
+
+    def test_synchronize_directory(self) -> None:
+        with ConfluenceAPI() as api:
+            Application(api, ConfluenceDocumentOptions()).synchronize_directory(
+                os.path.join(os.getcwd(), "sample")
+            )
 
 
 if __name__ == "__main__":
