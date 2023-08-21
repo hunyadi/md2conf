@@ -2,6 +2,7 @@ import argparse
 import logging
 import os.path
 import sys
+import typing
 from typing import Optional
 
 import requests
@@ -44,7 +45,7 @@ parser.add_argument(
     "-l",
     "--loglevel",
     choices=[
-        logging.getLevelName(level)
+        typing.cast(str, logging.getLevelName(level)).lower()
         for level in (
             logging.DEBUG,
             logging.INFO,

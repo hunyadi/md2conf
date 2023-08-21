@@ -10,7 +10,7 @@ This page demonstrates the various features of converting a Markdown document in
 
 Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
 
-Absolute link to an [external location](http://example.com/) or a relative link to another page synchronized by the tool.
+Absolute link to an [external location](http://example.com/), relative link to a [heading in the same document](#Basic-features), or a relative link to another page synchronized by the tool.
 
 An ordered list:
 

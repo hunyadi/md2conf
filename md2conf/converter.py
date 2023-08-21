@@ -172,13 +172,24 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.images = []
         self.page_metadata = page_metadata
 
-    def _transform_link(self, anchor: ET.Element) -> ET.Element:
+    def _transform_link(self, anchor: ET.Element) -> None:
         url = anchor.attrib["href"]
         if is_absolute_url(url):
             return
 
         LOGGER.debug(f"found link {url} relative to {self.path}")
         relative_url: ParseResult = urlparse(url)
+
+        if (
+            not relative_url.scheme
+            and not relative_url.netloc
+            and not relative_url.path
+            and not relative_url.params
+            and not relative_url.query
+        ):
+            LOGGER.debug(f"found local URL: {url}")
+            anchor.attrib["href"] = url
+            return
 
         # convert the relative URL to absolute URL based on the base path value, then look up
         # the absolute path in the page metadata dictionary to discover the relative path
