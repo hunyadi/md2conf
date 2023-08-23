@@ -26,6 +26,21 @@ An unordered list:
 spanning multiple text file lines but rendered as a single line
 * List item 3
 
+A nested list:
+
+* List item 1
+    * Nested item 1
+        1. Item 1
+        2. Item 2
+        3. Item 3
+    * Nested item 2
+        - Item 4
+        - Item 5
+        - Item 6
+* List item 2
+    1. Nested item 3
+    2. Nested item 4
+
 ![PNG image with caption](figure/interoperability.png)
 
 ![SVG image with caption](figure/interoperability.svg)

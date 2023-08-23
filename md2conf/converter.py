@@ -353,7 +353,7 @@ def extract_page_id(string: str) -> Tuple[ConfluenceQualifiedID, str]:
 
     # extract Confluence space key
     space_key, string = extract_value(
-        r"<!--\s+confluence-space-key:\s*(\w+)\s+-->", string
+        r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", string
     )
 
     return ConfluenceQualifiedID(page_id, space_key), string
