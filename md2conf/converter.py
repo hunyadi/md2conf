@@ -41,6 +41,7 @@ def markdown_to_html(content: str) -> str:
         extensions=[
             "markdown.extensions.tables",
             "markdown.extensions.fenced_code",
+            "pymdownx.magiclink",
             "pymdownx.tilde",
             "sane_lists",
         ],
