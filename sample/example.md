@@ -14,17 +14,27 @@ Absolute link to an [external location](http://example.com/) or relative link to
 
 An ordered list:
 
-1. List item 1
-2. List item 2
+1. *List item 1*
+2. **List item 2**
 spanning multiple text file lines but rendered as a single line
-3. List item 3
+3. _List item 3_
+4. `List item 4`
+
+A bullet point list:
+
+* *List item 1*
+* **List item 2**
+spanning multiple text file lines but rendered as a single line
+* _List item 3_
+* `List item 4`
 
 An unordered list:
 
-* List item 1
-* List item 2
+- *List item 1*
+- **List item 2**
 spanning multiple text file lines but rendered as a single line
-* List item 3
+- _List item 3_
+- `List item 4`
 
 A nested list:
 

@@ -2,3 +2,5 @@ lxml
 markdown
 pymdown-extensions
 requests
+types-markdown
+types-requests

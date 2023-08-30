@@ -99,4 +99,6 @@ class Application:
                 document.id.page_id, os.path.join(base_path, image), image, ""
             )
 
-        self.api.update_page(document.id.page_id, document.xhtml())
+        content = document.xhtml()
+        LOGGER.debug(f"generated Confluence Storage Format document:\n{content}")
+        self.api.update_page(document.id.page_id, content)
