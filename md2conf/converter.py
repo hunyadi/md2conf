@@ -103,6 +103,7 @@ _languages = [
     "delphi",
     "diff",
     "erlang",
+    "go",
     "groovy",
     "html",
     "java",
