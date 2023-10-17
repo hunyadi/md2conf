@@ -39,6 +39,7 @@ def markdown_to_html(content: str) -> str:
     return markdown.markdown(
         content,
         extensions=[
+            "admonition",
             "markdown.extensions.tables",
             "markdown.extensions.fenced_code",
             "pymdownx.magiclink",
@@ -334,6 +335,51 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("parameter", {ET.QName(namespaces["ac"], "name"): "style"}, "default"),
         )
 
+    def _transform_admonition(self, elem: ET.Element) -> ET.Element:
+        """
+        Creates an info, tip, note or warning panel.
+
+        Transforms [Python-Markdown admonition](https://python-markdown.github.io/extensions/admonition/) syntax
+        into Confluence structured macro syntax.
+        """
+
+        # <div class="admonition note">
+        class_list = elem.attrib.get("class").split(" ")
+        class_name: Optional[str] = None
+        if "info" in class_list:
+            class_name = "info"
+        elif "tip" in class_list:
+            class_name = "tip"
+        elif "note" in class_list:
+            class_name = "note"
+        elif "warning" in class_list:
+            class_name = "warning"
+
+        if class_name is None:
+            raise DocumentError(f"unsupported admonition label: {class_list}")
+
+        # <p class="admonition-title">Note</p>
+        if "admonition-title" in elem[0].attrib.get("class").split(" "):
+            content = [
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "title"},
+                    elem[0].text,
+                ),
+                AC("rich-text-body", {}, *list(elem[1:])),
+            ]
+        else:
+            content = [AC("rich-text-body", {}, *list(elem))]
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): class_name,
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            *content,
+        )
+
     def transform(self, child: ET.Element) -> Optional[ET.Element]:
         # normalize line breaks to regular space in element text
         if child.text:
@@ -351,6 +397,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <p>[TOC]</p>
         elif child.tag == "p" and "".join(child.itertext()) in ["[[TOC]]", "[TOC]"]:
             return self._transform_toc(child)
+
+        # <div class="admonition note">
+        # <p class="admonition-title">Note</p>
+        # <p>...</p>
+        # </div>
+        #
+        # --- OR ---
+        #
+        # <div class="admonition note">
+        # <p>...</p>
+        # </div>
+        elif child.tag == "div" and "admonition" in child.attrib.get("class"):
+            return self._transform_admonition(child)
 
         # <img src="..." alt="..." />
         elif child.tag == "img":

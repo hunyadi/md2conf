@@ -105,6 +105,25 @@ facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et se
 amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at,
 dignissim finibus dui.
 
+## Admonitions
+
+!!! info
+    This is an information panel.
+
+!!! info "Optional explicit title"
+    This is an information panel with an explicit title.
+
+    This is the second paragraph.
+
+!!! tip "Tip of the day"
+    This is a structured macro panel showing a tip.
+
+!!! note "A note"
+    This is a structured macro panel showing a note.
+
+!!! warning "A warning message"
+    This is a structured macro panel showing a warning.
+
 ## UTF-8 characters
 
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
