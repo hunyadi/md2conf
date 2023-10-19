@@ -18,6 +18,7 @@ This Python package
 * Code blocks (e.g. Python, JSON, XML)
 * Image references (uploaded as Confluence page attachments)
 * [Table of Contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
+* [Admonitions](https://python-markdown.github.io/extensions/admonition/) (converted into *info*, *tip*, *note* and *warning* Confluence panels)
 
 ## Getting started
 

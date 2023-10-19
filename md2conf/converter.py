@@ -32,7 +32,13 @@ class ParseError(RuntimeError):
 
 
 def is_absolute_url(url: str) -> bool:
-    return bool(urlparse(url).netloc)
+    urlparts = urlparse(url)
+    return bool(urlparts.scheme) or bool(urlparts.netloc)
+
+
+def is_relative_url(url: str) -> bool:
+    urlparts = urlparse(url)
+    return not bool(urlparts.scheme) and not bool(urlparts.netloc)
 
 
 def markdown_to_html(content: str) -> str:
@@ -281,7 +287,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         path: str = image.attrib["src"]
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        if path and not is_absolute_url(path) and path.endswith(".svg"):
+        if path and is_relative_url(path) and path.endswith(".svg"):
             replacement_path = _change_ext(path, ".png")
             if os.path.exists(os.path.join(self.base_path, replacement_path)):
                 path = replacement_path

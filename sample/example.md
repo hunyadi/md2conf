@@ -10,7 +10,7 @@ This page demonstrates the various features of converting a Markdown document in
 
 Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
 
-Absolute link to an [external location](http://example.com/) or relative link to a [heading in the same document](#Basic-features). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links are automatically identified: <https://example.com>.
+Absolute link to an [external location](http://example.com/) or relative link to a [heading in the same document](#Basic-features). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>.
 
 An ordered list:
 
@@ -106,6 +106,8 @@ amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integ
 dignissim finibus dui.
 
 ## Admonitions
+
+Markdown has no native support for admonitions. Admonitions that follow the [Python-Markdown syntax](https://python-markdown.github.io/extensions/admonition/) are converted into Confluence structured macros, which are shown as info panels.
 
 !!! info
     This is an information panel.
