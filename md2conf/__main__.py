@@ -89,10 +89,10 @@ except requests.exceptions.HTTPError as err:
     logging.error(err)
 
     # print details for a response with JSON body
-    try:
-        response: requests.Response = err.response
-        logging.error(response.json())
-    except requests.exceptions.JSONDecodeError:
-        pass
+    if err.response is not None:
+        try:
+            logging.error(err.response.json())
+        except requests.exceptions.JSONDecodeError:
+            pass
 
     sys.exit(1)

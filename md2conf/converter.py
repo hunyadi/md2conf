@@ -55,7 +55,7 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET.Element:
+def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET._Element:
     """
     Creates a fragment of several XML nodes from their string representation wrapped in a root element.
 
@@ -88,7 +88,7 @@ def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET.Eleme
         raise ParseError(e)
 
 
-def elements_from_strings(items: List[str]) -> ET.Element:
+def elements_from_strings(items: List[str]) -> ET._Element:
     "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
 
     if sys.version_info >= (3, 9):
@@ -191,7 +191,7 @@ class ConfluencePageMetadata:
 
 
 class NodeVisitor:
-    def visit(self, node: ET.Element) -> None:
+    def visit(self, node: ET._Element) -> None:
         if len(node) < 1:
             return
 
@@ -203,7 +203,7 @@ class NodeVisitor:
             else:
                 self.visit(source)
 
-    def transform(self, child: ET.Element) -> Optional[ET.Element]:
+    def transform(self, child: ET._Element) -> Optional[ET._Element]:
         pass
 
 
@@ -233,7 +233,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.images = []
         self.page_metadata = page_metadata
 
-    def _transform_link(self, anchor: ET.Element) -> None:
+    def _transform_link(self, anchor: ET._Element) -> None:
         url = anchor.attrib["href"]
         if is_absolute_url(url):
             return
@@ -283,7 +283,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         LOGGER.debug(f"transformed relative URL: {url} to URL: {transformed_url}")
         anchor.attrib["href"] = transformed_url
 
-    def _transform_image(self, image: ET.Element) -> ET.Element:
+    def _transform_image(self, image: ET._Element) -> ET._Element:
         path: str = image.attrib["src"]
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
@@ -304,7 +304,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("caption", HTML.p(caption)),
         )
 
-    def _transform_block(self, code: ET.Element) -> ET.Element:
+    def _transform_block(self, code: ET._Element) -> ET._Element:
         language = code.attrib.get("class")
         if language:
             m = re.match("^language-(.*)$", language)
@@ -314,7 +314,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 language = "none"
         if language not in _languages:
             language = "none"
-        content: str = code.text
+        content: str = code.text or ""
         content = content.rstrip()
         return AC(
             "structured-macro",
@@ -330,7 +330,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("plain-text-body", ET.CDATA(content)),
         )
 
-    def _transform_toc(self, code: ET.Element) -> ET.Element:
+    def _transform_toc(self, code: ET._Element) -> ET._Element:
         return AC(
             "structured-macro",
             {
@@ -341,7 +341,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("parameter", {ET.QName(namespaces["ac"], "name"): "style"}, "default"),
         )
 
-    def _transform_admonition(self, elem: ET.Element) -> ET.Element:
+    def _transform_admonition(self, elem: ET._Element) -> ET._Element:
         """
         Creates an info, tip, note or warning panel.
 
@@ -350,7 +350,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
 
         # <div class="admonition note">
-        class_list = elem.attrib.get("class").split(" ")
+        class_list = elem.attrib.get("class", "").split(" ")
         class_name: Optional[str] = None
         if "info" in class_list:
             class_name = "info"
@@ -365,7 +365,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             raise DocumentError(f"unsupported admonition label: {class_list}")
 
         # <p class="admonition-title">Note</p>
-        if "admonition-title" in elem[0].attrib.get("class").split(" "):
+        if "admonition-title" in elem[0].attrib.get("class", "").split(" "):
             content = [
                 AC(
                     "parameter",
@@ -386,7 +386,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *content,
         )
 
-    def transform(self, child: ET.Element) -> Optional[ET.Element]:
+    def transform(self, child: ET._Element) -> Optional[ET._Element]:
         # normalize line breaks to regular space in element text
         if child.text:
             text: str = child.text
@@ -414,7 +414,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <div class="admonition note">
         # <p>...</p>
         # </div>
-        elif child.tag == "div" and "admonition" in child.attrib.get("class"):
+        elif child.tag == "div" and "admonition" in child.attrib.get("class", ""):
             return self._transform_admonition(child)
 
         # <img src="..." alt="..." />
@@ -423,7 +423,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <a href="..."> ... </a>
         elif child.tag == "a":
-            return self._transform_link(child)
+            self._transform_link(child)
+            return None
 
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
@@ -435,7 +436,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
 
-    def transform(self, child: ET.Element) -> Optional[ET.Element]:
+    def transform(self, child: ET._Element) -> Optional[ET._Element]:
         child.attrib.pop(ET.QName(namespaces["ac"], "macro-id"), None)
         child.attrib.pop(ET.QName(namespaces["ri"], "version-at-save"), None)
         return None
@@ -495,7 +496,7 @@ class ConfluenceDocument:
     images: List[str]
 
     options: ConfluenceDocumentOptions
-    root: ET.Element
+    root: ET._Element
 
     def __init__(
         self,
@@ -553,7 +554,7 @@ def sanitize_confluence(html: str) -> str:
     return _content_to_string(root)
 
 
-def _content_to_string(root: ET.Element) -> str:
+def _content_to_string(root: ET._Element) -> str:
     xml = ET.tostring(root, encoding="utf8", method="xml").decode("utf8")
     m = re.match(r"^<root\s+[^>]*>(.*)</root>\s*$", xml, re.DOTALL)
     if m:
