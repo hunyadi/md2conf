@@ -31,7 +31,7 @@ class TestAPI(unittest.TestCase):
     def test_markdown(self) -> None:
         document = ConfluenceDocument(
             os.path.join(os.getcwd(), "sample", "example.md"),
-            ConfluenceDocumentOptions(),
+            ConfluenceDocumentOptions(ignore_invalid_url=True),
             dict(),
         )
         self.assertListEqual(document.links, [])
@@ -80,21 +80,21 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize(
-                os.path.join(os.getcwd(), "sample", "example.md")
-            )
+            Application(
+                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
+            ).synchronize(os.path.join(os.getcwd(), "sample", "example.md"))
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize_page(
-                os.path.join(os.getcwd(), "sample", "example.md")
-            )
+            Application(
+                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
+            ).synchronize_page(os.path.join(os.getcwd(), "sample", "example.md"))
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize_directory(
-                os.path.join(os.getcwd(), "sample")
-            )
+            Application(
+                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
+            ).synchronize_directory(os.path.join(os.getcwd(), "sample"))
 
 
 if __name__ == "__main__":

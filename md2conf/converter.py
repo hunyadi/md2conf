@@ -212,9 +212,22 @@ def _change_ext(path: str, target_ext: str) -> str:
     return f"{root}{target_ext}"
 
 
+@dataclass
+class ConfluenceConverterOptions:
+    """
+    Options for converting an HTML tree into Confluence storage format.
+
+    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
+        plain text; when false, raise an exception.
+    """
+
+    ignore_invalid_url: bool = False
+
+
 class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into the Confluence storage format."
 
+    options: ConfluenceConverterOptions
     path: str
     base_path: str
     links: List[str]
@@ -223,10 +236,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
     def __init__(
         self,
+        options: ConfluenceConverterOptions,
         path: str,
         page_metadata: Dict[str, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
+        self.options = options
         self.path = path
         self.base_path = os.path.abspath(os.path.dirname(path)) + os.sep
         self.links = []
@@ -257,13 +272,25 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # within Confluence that should be used
         absolute_path = os.path.abspath(os.path.join(self.base_path, relative_url.path))
         if not absolute_path.startswith(self.base_path):
-            raise DocumentError(f"relative URL points to outside base path: {url}")
+            msg = f"relative URL points to outside base path: {url}"
+            if self.options.ignore_invalid_url:
+                LOGGER.warning(msg)
+                anchor.attrib.pop("href")
+                return
+            else:
+                raise DocumentError(msg)
 
         relative_path = os.path.relpath(absolute_path, self.base_path)
 
         link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
-            raise DocumentError(f"unable to find matching page for URL: {url}")
+            msg = f"unable to find matching page for URL: {url}"
+            if self.options.ignore_invalid_url:
+                LOGGER.warning(msg)
+                anchor.attrib.pop("href")
+                return
+            else:
+                raise DocumentError(msg)
 
         LOGGER.debug(
             f"found link to page {relative_path} with metadata: {link_metadata}"
@@ -484,9 +511,12 @@ class ConfluenceDocumentOptions:
     """
     Options that control the generated page content.
 
+    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
+        plain text; when false, raise an exception.
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
     """
 
+    ignore_invalid_url: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
 
 
@@ -534,7 +564,13 @@ class ConfluenceDocument:
             content = [html]
         self.root = elements_from_strings(content)
 
-        converter = ConfluenceStorageFormatConverter(path, page_metadata)
+        converter = ConfluenceStorageFormatConverter(
+            ConfluenceConverterOptions(
+                ignore_invalid_url=self.options.ignore_invalid_url
+            ),
+            path,
+            page_metadata,
+        )
         converter.visit(self.root)
         self.links = converter.links
         self.images = converter.images
