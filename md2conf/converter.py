@@ -310,10 +310,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
         self.links.append(url)
 
+        tiny_link_id: str = page_id_to_tiny_link(int(link_metadata.page_id))
         components = ParseResult(
             scheme="https",
             netloc=link_metadata.domain,
-            path=f"{link_metadata.base_path}/x/{page_id_to_tiny_link(link_metadata.page_id)}",
+            path=f"{link_metadata.base_path}/x/{tiny_link_id}",
             params="",
             query="",
             fragment=relative_url.fragment,
