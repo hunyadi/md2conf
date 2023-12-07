@@ -1,4 +1,6 @@
 import importlib.resources as resources
+import base64
+import struct
 import logging
 import os.path
 import pathlib
@@ -53,6 +55,17 @@ def markdown_to_html(content: str) -> str:
             "sane_lists",
         ],
     )
+
+def page_id_to_tiny_link(page_id: int) -> str:
+    """Convert confluence page id into tiny link id."""
+    packed_data = struct.pack("Q", page_id)
+    return base64.b64encode(packed_data).decode('ascii')
+
+def tiny_link_to_page_id(tiny_id: str) -> int:
+    """Convert confluence tiny link id into page id."""
+    padded = tiny_id.ljust(11, "A") + "="
+    decoded_id = base64.b64decode(padded)
+    return struct.unpack("Q", decoded_id)[0]
 
 
 def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET._Element:
@@ -300,7 +313,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         components = ParseResult(
             scheme="https",
             netloc=link_metadata.domain,
-            path=f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}",
+            path=f"{link_metadata.base_path}/x/{page_id_to_tiny_link(link_metadata.page_id)}",
             params="",
             query="",
             fragment=relative_url.fragment,
