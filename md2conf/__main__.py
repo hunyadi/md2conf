@@ -59,6 +59,11 @@ parser.add_argument(
     help="Use this option to set the log verbosity.",
 )
 parser.add_argument(
+    "-r",
+    dest="root_page",
+    help="Root Confluence page to create new pages. If omitted, will raise exception when creating new pages.",
+)
+parser.add_argument(
     "--generated-by",
     default="This page has been generated with a tool.",
     help="Add prompt to pages (default: 'This page has been generated with a tool.').",
@@ -94,6 +99,7 @@ try:
             ConfluenceDocumentOptions(
                 ignore_invalid_url=args.ignore_invalid_url,
                 generated_by=args.generated_by,
+                root_page_id=args.root_page
             ),
         ).synchronize(args.mdpath)
 except requests.exceptions.HTTPError as err:
