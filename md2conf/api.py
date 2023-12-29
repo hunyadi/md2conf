@@ -8,7 +8,7 @@ import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Type, Union, Tuple
+from typing import Dict, Generator, List, Optional, Type, Union
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -79,6 +79,7 @@ class ConfluenceAttachment:
 @dataclass
 class ConfluencePage:
     id: str
+    space_key: str
     title: str
     version: int
     content: str
@@ -197,10 +198,10 @@ class ConfluenceSession:
         response.raise_for_status()
 
     def get_attachment_by_name(
-        self, page_id: str, filename: str
+        self, page_id: str, filename: str, *, space_key: Optional[str] = None
     ) -> ConfluenceAttachment:
         path = f"/content/{page_id}/child/attachment"
-        query = {"spaceKey": self.space_key, "filename": filename}
+        query = {"spaceKey": space_key or self.space_key, "filename": filename}
         data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
 
         results = typing.cast(List[JsonType], data["results"])
@@ -221,6 +222,8 @@ class ConfluenceSession:
         attachment_path: str,
         attachment_name: str,
         comment: Optional[str] = None,
+        *,
+        space_key: Optional[str] = None,
     ) -> None:
         content_type = mimetypes.guess_type(attachment_path, strict=True)[0]
 
@@ -228,7 +231,9 @@ class ConfluenceSession:
             raise ConfluenceError(f"file not found: {attachment_path}")
 
         try:
-            attachment = self.get_attachment_by_name(page_id, attachment_name)
+            attachment = self.get_attachment_by_name(
+                page_id, attachment_name, space_key=space_key
+            )
 
             if attachment.file_size == os.path.getsize(attachment_path):
                 LOGGER.info("Up-to-date attachment: %s", attachment_name)
@@ -271,10 +276,18 @@ class ConfluenceSession:
         version = result["version"]["number"] + 1
 
         # ensure path component is retained in attachment name
-        self._update_attachment(page_id, attachment_id, version, attachment_name)
+        self._update_attachment(
+            page_id, attachment_id, version, attachment_name, space_key=space_key
+        )
 
     def _update_attachment(
-        self, page_id: str, attachment_id: str, version: int, attachment_title: str
+        self,
+        page_id: str,
+        attachment_id: str,
+        version: int,
+        attachment_title: str,
+        *,
+        space_key: Optional[str] = None,
     ) -> None:
         id = removeprefix(attachment_id, "att")
         path = f"/content/{page_id}/child/attachment/{id}"
@@ -283,24 +296,30 @@ class ConfluenceSession:
             "type": "attachment",
             "status": "current",
             "title": attachment_title,
-            "space": {"key": self.space_key},
+            "space": {"key": space_key or self.space_key},
             "version": {"minorEdit": True, "number": version},
         }
 
         LOGGER.info("Updating attachment: %s", attachment_id)
         self._save(path, data)
 
-    def get_page_id_by_title(self, title: str) -> str:
+    def get_page_id_by_title(
+        self,
+        title: str,
+        *,
+        space_key: Optional[str] = None,
+    ) -> str:
         """
-        Retrieve a Confluence wiki page details by title.
+        Look up a Confluence wiki page ID by title.
 
         :param title: The page title.
-        :returns: Confluence page info.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :returns: Confluence page ID.
         """
 
         LOGGER.info("Looking up page with title: %s", title)
         path = "/content"
-        query = {"title": title, "spaceKey": self.space_key}
+        query = {"title": title, "spaceKey": space_key or self.space_key}
         data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
 
         results = typing.cast(List[JsonType], data["results"])
@@ -311,10 +330,20 @@ class ConfluenceSession:
         id = typing.cast(str, result["id"])
         return id
 
-    def get_page(self, page_id: str) -> ConfluencePage:
+    def get_page(
+        self, page_id: str, *, space_key: Optional[str] = None
+    ) -> ConfluencePage:
+        """
+        Retrieve Confluence wiki page details.
+
+        :param page_id: The Confluence page ID.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :returns: Confluence page info.
+        """
+
         path = f"/content/{page_id}"
         query = {
-            "spaceKey": self.space_key,
+            "spaceKey": space_key or self.space_key,
             "expand": "body.storage,version",
         }
 
@@ -325,23 +354,43 @@ class ConfluenceSession:
 
         return ConfluencePage(
             id=page_id,
+            space_key=space_key or self.space_key,
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
         )
 
-    def get_page_version(self, page_id: str) -> int:
+    def get_page_version(
+        self,
+        page_id: str,
+        *,
+        space_key: Optional[str] = None,
+    ) -> int:
+        """
+        Retrieve a Confluence wiki page version.
+
+        :param page_id: The Confluence page ID.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :returns: Confluence page version.
+        """
+
         path = f"/content/{page_id}"
         query = {
-            "spaceKey": self.space_key,
+            "spaceKey": space_key or self.space_key,
             "expand": "version",
         }
         data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
         version = typing.cast(Dict[str, JsonType], data["version"])
         return typing.cast(int, version["number"])
 
-    def update_page(self, page_id: str, new_content: str) -> None:
-        page = self.get_page(page_id)
+    def update_page(
+        self,
+        page_id: str,
+        new_content: str,
+        *,
+        space_key: Optional[str] = None,
+    ) -> None:
+        page = self.get_page(page_id, space_key=space_key)
 
         try:
             old_content = sanitize_confluence(page.content)
@@ -356,7 +405,7 @@ class ConfluenceSession:
             "id": page_id,
             "type": "page",
             "title": page.title,  # title needs to be unique within a space so the original title is maintained
-            "space": {"key": self.space_key},
+            "space": {"key": space_key or self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
             "version": {"minorEdit": True, "number": page.version + 1},
         }
@@ -364,14 +413,21 @@ class ConfluenceSession:
         LOGGER.info("Updating page: %s", page_id)
         self._save(path, data)
 
-    def create_page(self, parent_page_id: str, title: str, new_content: str) -> ConfluencePage:
-        path = f"/content/"
+    def create_page(
+        self,
+        parent_page_id: str,
+        title: str,
+        new_content: str,
+        *,
+        space_key: Optional[str] = None,
+    ) -> ConfluencePage:
+        path = "/content/"
         query = {
             "type": "page",
             "title": title,
-            "space": {"key": self.space_key},
+            "space": {"key": space_key or self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
-            "ancestors": [{"type": "page", "id": parent_page_id}]
+            "ancestors": [{"type": "page", "id": parent_page_id}],
         }
 
         LOGGER.info("Creating page: %s", title)
@@ -391,34 +447,47 @@ class ConfluenceSession:
 
         return ConfluencePage(
             id=typing.cast(str, data["id"]),
+            space_key=space_key or self.space_key,
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
         )
 
-    def page_exists(self, title: str) -> Tuple[bool, Optional[str]]:
-        path = f"/content"
+    def page_exists(
+        self, title: str, *, space_key: Optional[str] = None
+    ) -> Optional[str]:
+        path = "/content"
         query = {
             "type": "page",
             "title": title,
-            "spaceKey": self.space_key
+            "spaceKey": space_key or self.space_key,
         }
+
+        LOGGER.info("Checking if page exists with title: %s", title)
 
         url = self._build_url(path)
         response = self.session.get(
-            url,
-            params=query,
-            headers={"Content-Type": "application/json"}
+            url, params=query, headers={"Content-Type": "application/json"}
         )
+        response.raise_for_status()
 
         data = typing.cast(Dict[str, JsonType], response.json())
         results = typing.cast(List, data["results"])
-        page_found = len(results) > 0
 
-        page_id = None
-        if page_found:
+        if len(results) == 1:
             page_info = typing.cast(Dict[str, JsonType], results[0])
-            page_id = typing.cast(str, page_info["id"])
+            return typing.cast(str, page_info["id"])
+        else:
+            return None
 
-        return page_found, page_id
+    def get_or_create_page(
+        self, title: str, parent_id: str, *, space_key: Optional[str] = None
+    ) -> ConfluencePage:
+        page_id = self.page_exists(title)
 
+        if page_id is not None:
+            LOGGER.debug("Retrieving existing page: %d", page_id)
+            return self.get_page(page_id)
+        else:
+            LOGGER.debug("Creating new page with title: %s", title)
+            return self.create_page(parent_id, title, "", space_key=space_key)

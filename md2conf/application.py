@@ -1,13 +1,13 @@
 import logging
 import os.path
-from typing import Dict
+from typing import Dict, Optional
 
-from .api import ConfluenceSession, ConfluencePage
+from .api import ConfluenceSession
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
-    extract_page_id,
+    extract_qualified_id,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -38,11 +38,7 @@ class Application:
     def synchronize_page(self, page_path: str) -> None:
         "Synchronizes a single Markdown page with Confluence."
 
-        file_name = os.path.basename(page_path)
-        file_name_without_extension = os.path.splitext(file_name)[0]
-
-        metadata = self._get_or_create_page_metadata(os.path.abspath(page_path), file_name_without_extension)
-        self._synchronize_page(page_path, {page_path: metadata})
+        self._synchronize_page(page_path, {})
 
     def synchronize_directory(self, dir: str) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
@@ -54,12 +50,12 @@ class Application:
         for root, directories, files in os.walk(dir):
             for file_name in files:
                 # check the file extension
-                file_name_without_extension, file_extension = os.path.splitext(file_name)
+                _, file_extension = os.path.splitext(file_name)
                 if file_extension.lower() != ".md":
                     continue
 
                 absolute_path = os.path.join(os.path.abspath(root), file_name)
-                metadata = self._get_or_create_page_metadata(absolute_path, file_name_without_extension)
+                metadata = self._get_or_create_page(absolute_path)
 
                 LOGGER.debug(f"indexed {absolute_path} with metadata: {metadata}")
                 page_metadata[absolute_path] = metadata
@@ -69,49 +65,6 @@ class Application:
         # Step 2: Convert each page
         for page_path in page_metadata.keys():
             self._synchronize_page(page_path, page_metadata)
-
-    def _get_or_create_page_metadata(self, absolute_path: str, title: str) -> ConfluencePageMetadata:
-        # parse file
-        with open(absolute_path, "r") as f:
-            document = f.read()
-
-        id, document = extract_page_id(document)
-
-        should_update_file = False
-        if id.page_id is None:
-            confluence_page = self._get_or_create_page(title)
-            should_update_file = True
-
-            if confluence_page is None:
-                raise RuntimeError(
-                    "Markdown document has no Confluence page ID and no root page ID was provided."
-                )
-        else:
-            confluence_page = self.api.get_page(id.page_id)
-
-        if should_update_file:
-            self._write_page_id(absolute_path, document, confluence_page.id)
-
-        return ConfluencePageMetadata(
-            domain=self.api.domain,
-            base_path=self.api.base_path,
-            page_id=confluence_page.id,
-            space_key=id.space_key or self.api.space_key,
-            title=confluence_page.title or "",
-        )
-
-    def _get_or_create_page(self, title) -> ConfluencePage:
-        page_found, page_id = self.api.page_exists(title)
-
-        confluence_page = None
-        if page_found:
-            LOGGER.debug(f"get page {page_id}")
-            confluence_page = self.api.get_page(page_id)
-        elif self.options.root_page_id is not None:
-            LOGGER.debug(f"create page with title '{title}'")
-            confluence_page = self.api.create_page(self.options.root_page_id, title, "")
-
-        return confluence_page
 
     def _synchronize_page(
         self,
@@ -129,6 +82,50 @@ class Application:
         else:
             self._update_document(document, base_path)
 
+    def _get_or_create_page(
+        self, absolute_path: str, title: Optional[str] = None
+    ) -> ConfluencePageMetadata:
+        """
+        Creates a new Confluence page if no page is linked in the Markdown document.
+        """
+
+        # parse file
+        with open(absolute_path, "r") as f:
+            document = f.read()
+
+        qualified_id, document = extract_qualified_id(document)
+        if qualified_id is not None:
+            confluence_page = self.api.get_page(
+                qualified_id.page_id, space_key=qualified_id.space_key
+            )
+        else:
+            if self.options.root_page_id is None:
+                raise ValueError(
+                    "expected: Confluence page ID to act as parent for Markdown files with no linked Confluence page"
+                )
+
+            # use file name without extension if no title is supplied
+            if title is None:
+                title, _ = os.path.splitext(os.path.basename(absolute_path))
+
+            confluence_page = self.api.get_or_create_page(
+                title, self.options.root_page_id
+            )
+            self._update_markdown(
+                absolute_path,
+                document,
+                confluence_page.id,
+                confluence_page.space_key,
+            )
+
+        return ConfluencePageMetadata(
+            domain=self.api.domain,
+            base_path=self.api.base_path,
+            page_id=confluence_page.id,
+            space_key=confluence_page.space_key or self.api.space_key,
+            title=confluence_page.title or "",
+        )
+
     def _update_document(self, document: ConfluenceDocument, base_path: str) -> None:
         for image in document.images:
             self.api.upload_attachment(
@@ -139,8 +136,15 @@ class Application:
         LOGGER.debug(f"generated Confluence Storage Format document:\n{content}")
         self.api.update_page(document.id.page_id, content)
 
-    def _write_page_id(self, path, document, page_id) -> None:
-        string = f'<!-- confluence-page-id: {page_id} -->\n'
-
-        with open(path, 'w') as file:
-            file.write(string + document)
+    def _update_markdown(
+        self,
+        path: str,
+        document: str,
+        page_id: str,
+        space_key: Optional[str],
+    ) -> None:
+        with open(path, "w") as file:
+            file.write(f"<!-- confluence-page-id: {page_id} -->\n")
+            if space_key:
+                file.write(f"<!-- confluence-space-key: {space_key} -->\n")
+            file.write(document)

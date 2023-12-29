@@ -491,8 +491,11 @@ class ConfluenceQualifiedID:
     space_key: Optional[str] = None
 
 
-def extract_page_id(string: str) -> Tuple[ConfluenceQualifiedID, str]:
+def extract_qualified_id(string: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
     page_id, string = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", string)
+
+    if page_id is None:
+        return None, string
 
     # extract Confluence space key
     space_key, string = extract_value(
@@ -538,7 +541,10 @@ class ConfluenceDocument:
             html = markdown_to_html(f.read())
 
         # extract Confluence page ID
-        self.id, html = extract_page_id(html)
+        qualified_id, html = extract_qualified_id(html)
+        if qualified_id is None:
+            raise ValueError("missing Confluence page ID")
+        self.id = qualified_id
 
         # extract 'generated-by' tag text
         generated_by_tag, html = extract_value(

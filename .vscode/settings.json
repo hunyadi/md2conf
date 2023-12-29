@@ -17,7 +17,7 @@
         "--show-column-numbers",
     ],
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true
+        "source.organizeImports": "explicit"
     },
     "editor.formatOnSave": true,
     "files.insertFinalNewline": true,

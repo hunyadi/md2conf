@@ -96,6 +96,32 @@ class TestAPI(unittest.TestCase):
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
             ).synchronize_directory(os.path.join(os.getcwd(), "sample"))
 
+    def test_synchronize_create(self) -> None:
+        dir = os.path.join(self.out_dir, "markdown")
+        os.makedirs(dir, exist_ok=True)
+
+        child = os.path.join(dir, "child.md")
+        with open(child, "w") as f:
+            f.write(
+                "This is a document without an explicitly linked Confluence document.\n"
+            )
+
+        with ConfluenceAPI() as api:
+            Application(
+                api,
+                ConfluenceDocumentOptions(
+                    ignore_invalid_url=True, root_page_id="86090481730"
+                ),
+            ).synchronize_directory(dir)
+
+        with open(child, "r") as f:
+            self.assertEqual(
+                f.read(),
+                "<!-- confluence-page-id: 86269493445 -->\n"
+                "<!-- confluence-space-key: DAP -->\n"
+                "This is a document without an explicitly linked Confluence document.\n",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
