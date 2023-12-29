@@ -8,7 +8,7 @@ import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Type, Union
+from typing import Dict, Generator, List, Optional, Type, Union, Tuple
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -317,6 +317,7 @@ class ConfluenceSession:
             "spaceKey": self.space_key,
             "expand": "body.storage,version",
         }
+
         data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
         version = typing.cast(Dict[str, JsonType], data["version"])
         body = typing.cast(Dict[str, JsonType], data["body"])
@@ -362,3 +363,62 @@ class ConfluenceSession:
 
         LOGGER.info("Updating page: %s", page_id)
         self._save(path, data)
+
+    def create_page(self, parent_page_id: str, title: str, new_content: str) -> ConfluencePage:
+        path = f"/content/"
+        query = {
+            "type": "page",
+            "title": title,
+            "space": {"key": self.space_key},
+            "body": {"storage": {"value": new_content, "representation": "storage"}},
+            "ancestors": [{"type": "page", "id": parent_page_id}]
+        }
+
+        LOGGER.info("Creating page: %s", title)
+
+        url = self._build_url(path)
+        response = self.session.post(
+            url,
+            data=json.dumps(query),
+            headers={"Content-Type": "application/json"},
+        )
+        response.raise_for_status()
+
+        data = typing.cast(Dict[str, JsonType], response.json())
+        version = typing.cast(Dict[str, JsonType], data["version"])
+        body = typing.cast(Dict[str, JsonType], data["body"])
+        storage = typing.cast(Dict[str, JsonType], body["storage"])
+
+        return ConfluencePage(
+            id=typing.cast(str, data["id"]),
+            title=typing.cast(str, data["title"]),
+            version=typing.cast(int, version["number"]),
+            content=typing.cast(str, storage["value"]),
+        )
+
+    def page_exists(self, title: str) -> Tuple[bool, Optional[str]]:
+        path = f"/content"
+        query = {
+            "type": "page",
+            "title": title,
+            "spaceKey": self.space_key
+        }
+
+        url = self._build_url(path)
+        response = self.session.get(
+            url,
+            params=query,
+            headers={"Content-Type": "application/json"}
+        )
+
+        data = typing.cast(Dict[str, JsonType], response.json())
+        results = typing.cast(List, data["results"])
+        page_found = len(results) > 0
+
+        page_id = None
+        if page_found:
+            page_info = typing.cast(Dict[str, JsonType], results[0])
+            page_id = typing.cast(str, page_info["id"])
+
+        return page_found, page_id
+

@@ -493,10 +493,6 @@ class ConfluenceQualifiedID:
 
 def extract_page_id(string: str) -> Tuple[ConfluenceQualifiedID, str]:
     page_id, string = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", string)
-    if page_id is None:
-        raise DocumentError(
-            "Markdown document has no Confluence page ID associated with it"
-        )
 
     # extract Confluence space key
     space_key, string = extract_value(
@@ -518,6 +514,7 @@ class ConfluenceDocumentOptions:
 
     ignore_invalid_url: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
+    root_page_id: Optional[str] = None
 
 
 class ConfluenceDocument:
