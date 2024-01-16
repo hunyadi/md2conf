@@ -43,7 +43,7 @@ class Application:
     def synchronize_directory(self, dir: str) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        page_metadata: Dict[str, ConfluencePageMetadata] = dict()
+        page_metadata: Dict[str, ConfluencePageMetadata] = {}
         LOGGER.info(f"Synchronizing directory: {dir}")
 
         # Step 1: build index of all page metadata

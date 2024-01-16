@@ -11,6 +11,7 @@ from md2conf.converter import (
     ConfluenceDocumentOptions,
     sanitize_confluence,
 )
+from md2conf.properties import ConfluenceProperties
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +33,7 @@ class TestAPI(unittest.TestCase):
         document = ConfluenceDocument(
             os.path.join(os.getcwd(), "sample", "example.md"),
             ConfluenceDocumentOptions(ignore_invalid_url=True),
-            dict(),
+            {},
         )
         self.assertListEqual(document.links, [])
         self.assertListEqual(
@@ -49,7 +50,7 @@ class TestAPI(unittest.TestCase):
             self.assertEqual(id, "85668266616")
 
     def test_switch_space(self) -> None:
-        with ConfluenceAPI(space_key="PLAT") as api:
+        with ConfluenceAPI(ConfluenceProperties(space_key="PLAT")) as api:
             with api.switch_space("DAP"):
                 id = api.get_page_id_by_title("Publish to Confluence")
                 self.assertEqual(id, "85668266616")

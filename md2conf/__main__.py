@@ -10,6 +10,8 @@ import requests
 from .api import ConfluenceAPI
 from .application import Application
 from .converter import ConfluenceDocumentOptions
+from .processor import Processor
+from .properties import ConfluenceProperties
 
 
 class Arguments(argparse.Namespace):
@@ -81,6 +83,12 @@ parser.add_argument(
     default=False,
     help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.",
 )
+parser.add_argument(
+    "--local",
+    action="store_true",
+    default=False,
+    help="Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.",
+)
 
 args = Arguments()
 parser.parse_args(namespace=args)
@@ -90,26 +98,32 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
-try:
-    with ConfluenceAPI(
-        args.domain, args.path, args.username, args.apikey, args.space
-    ) as api:
-        Application(
-            api,
-            ConfluenceDocumentOptions(
-                ignore_invalid_url=args.ignore_invalid_url,
-                generated_by=args.generated_by,
-                root_page_id=args.root_page
-            ),
-        ).synchronize(args.mdpath)
-except requests.exceptions.HTTPError as err:
-    logging.error(err)
 
-    # print details for a response with JSON body
-    if err.response is not None:
-        try:
-            logging.error(err.response.json())
-        except requests.exceptions.JSONDecodeError:
-            pass
+options = ConfluenceDocumentOptions(
+    ignore_invalid_url=args.ignore_invalid_url,
+    generated_by=args.generated_by,
+    root_page_id=args.root_page,
+)
+properties = ConfluenceProperties(
+    args.domain, args.path, args.username, args.apikey, args.space
+)
+if args.local:
+    Processor(options, properties).process(args.mdpath)
+else:
+    try:
+        with ConfluenceAPI(properties) as api:
+            Application(
+                api,
+                options,
+            ).synchronize(args.mdpath)
+    except requests.exceptions.HTTPError as err:
+        logging.error(err)
 
-    sys.exit(1)
+        # print details for a response with JSON body
+        if err.response is not None:
+            try:
+                logging.error(err.response.json())
+            except requests.exceptions.JSONDecodeError:
+                pass
+
+        sys.exit(1)
