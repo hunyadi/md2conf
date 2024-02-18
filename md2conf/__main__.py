@@ -32,7 +32,7 @@ parser.add_argument(
     "mdpath", help="Path to Markdown file or directory to convert and publish."
 )
 parser.add_argument("-d", "--domain", help="Confluence organization domain.")
-parser.add_argument("-p", "--path", help="Base path for Confluece wiki.")
+parser.add_argument("-p", "--path", help="Base path for Confluence (default: '/wiki/').")
 parser.add_argument("-u", "--username", help="Confluence user name.")
 parser.add_argument(
     "-a",
