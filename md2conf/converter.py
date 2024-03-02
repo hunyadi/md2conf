@@ -538,18 +538,24 @@ class ConfluenceDocument:
         path = os.path.abspath(path)
 
         with open(path, "r") as f:
-            html = markdown_to_html(f.read())
+            text = f.read()
 
         # extract Confluence page ID
-        qualified_id, html = extract_qualified_id(html)
+        qualified_id, text = extract_qualified_id(text)
         if qualified_id is None:
             raise ValueError("missing Confluence page ID")
         self.id = qualified_id
 
         # extract 'generated-by' tag text
-        generated_by_tag, html = extract_value(
-            r"<!--\s+generated-by:\s*(.*)\s+-->", html
+        generated_by_tag, text = extract_value(
+            r"<!--\s+generated-by:\s*(.*)\s+-->", text
         )
+
+        # extract frontmatter
+        frontmatter, text = extract_value(r"(?ms)\A---$(.+?)^---$", text)
+
+        # convert to HTML
+        html = markdown_to_html(text)
 
         # parse Markdown document
         if self.options.generated_by is not None:
