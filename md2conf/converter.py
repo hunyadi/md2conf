@@ -281,6 +281,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(msg)
 
         relative_path = os.path.relpath(absolute_path, self.base_path)
+        relative_path = os.path.splitext(os.path.relpath(absolute_path, self.base_path))[0]
 
         link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
@@ -301,6 +302,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             scheme="https",
             netloc=link_metadata.domain,
             path=f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}",
+            path=os.path.join(link_metadata.base_path, "display", link_metadata.space_key, relative_path),
             params="",
             query="",
             fragment=relative_url.fragment,
