@@ -280,7 +280,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 raise DocumentError(msg)
 
-        relative_path = os.path.relpath(absolute_path, self.base_path)
         relative_path = os.path.splitext(os.path.relpath(absolute_path, self.base_path))[0]
 
         link_metadata = self.page_metadata.get(absolute_path)
