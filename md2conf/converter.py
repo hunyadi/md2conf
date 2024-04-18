@@ -197,11 +197,10 @@ class NodeVisitor:
 
         for index in range(len(node)):
             source = node[index]
+            self.visit(source)
             target = self.transform(source)
             if target is not None:
                 node[index] = target
-            else:
-                self.visit(source)
 
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
         pass
