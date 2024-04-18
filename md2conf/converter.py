@@ -301,7 +301,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         components = ParseResult(
             scheme="https",
             netloc=link_metadata.domain,
-            path=f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}",
             path=os.path.join(link_metadata.base_path, "display", link_metadata.space_key, relative_path),
             params="",
             query="",
