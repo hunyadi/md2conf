@@ -391,6 +391,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if class_name is None:
             raise DocumentError(f"unsupported admonition label: {class_list}")
 
+        for e in elem:
+            self.visit(e)
+
         # <p class="admonition-title">Note</p>
         if "admonition-title" in elem[0].attrib.get("class", "").split(" "):
             content = [

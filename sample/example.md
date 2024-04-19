@@ -115,7 +115,7 @@ Markdown has no native support for admonitions. Admonitions that follow the [Pyt
 !!! info "Optional explicit title"
     This is an information panel with an explicit title.
 
-    This is the second paragraph.
+    This is the second paragraph with a [link](https://example.com/).
 
 !!! tip "Tip of the day"
     This is a structured macro panel showing a tip.
