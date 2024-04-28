@@ -387,9 +387,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             class_name = "note"
         elif "warning" in class_list:
             class_name = "warning"
-
-        if class_name is None:
-            raise DocumentError(f"unsupported admonition label: {class_list}")
+        else:
+            class_name = "info"
 
         for e in elem:
             self.visit(e)

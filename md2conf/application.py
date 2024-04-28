@@ -55,7 +55,8 @@ class Application:
                     continue
 
                 absolute_path = os.path.join(os.path.abspath(root), file_name)
-                metadata = self._get_or_create_page(absolute_path)
+                relative_path = os.path.relpath(absolute_path, dir)
+                metadata = self._get_or_create_page(absolute_path, relative_path)
 
                 LOGGER.debug(f"indexed {absolute_path} with metadata: {metadata}")
                 page_metadata[absolute_path] = metadata
@@ -83,7 +84,10 @@ class Application:
             self._update_document(document, base_path)
 
     def _get_or_create_page(
-        self, absolute_path: str, title: Optional[str] = None
+        self,
+        absolute_path: str,
+        relative_path: str,
+        title: Optional[str] = None
     ) -> ConfluencePageMetadata:
         """
         Creates a new Confluence page if no page is linked in the Markdown document.
@@ -92,6 +96,13 @@ class Application:
         # parse file
         with open(absolute_path, "r") as f:
             document = f.read()
+        for line in document.splitlines():
+            if line.startswith("# "):
+                title = line.lstrip("# ")
+                break
+        else:
+            title = None
+        LOGGER.info(f"Title: '{title}'")
 
         qualified_id, document = extract_qualified_id(document)
         if qualified_id is not None:
@@ -104,12 +115,35 @@ class Application:
                     "expected: Confluence page ID to act as parent for Markdown files with no linked Confluence page"
                 )
 
+            # Split the relative_path into individual directories
+            directories = relative_path.split(os.path.sep)
+            # Start from the root page
+            current_page_id = self.options.root_page_id
+            
+            # Iterate through the directories and create pages as needed
+            for directory in directories:
+                # Exit if extension is .md (not a directory)
+                if directory.endswith(".md"):
+                    break
+
+                # Check if the directory page already exists
+                directory_page_id = self.api.get_page_id_by_title(directory)
+                
+                if directory_page_id is None:
+                    # Create the directory page
+                    LOGGER.info(f"Creating directory page: {directory}")
+                    directory_page = self.api.get_or_create_page(directory, current_page_id)
+                    directory_page_id = directory_page.id
+                
+                # Update the current_page_id for the next iteration
+                current_page_id = directory_page_id
+
             # use file name without extension if no title is supplied
             if title is None:
                 title, _ = os.path.splitext(os.path.basename(absolute_path))
 
             confluence_page = self.api.get_or_create_page(
-                title, self.options.root_page_id
+                title, current_page_id
             )
             self._update_markdown(
                 absolute_path,
@@ -143,8 +177,22 @@ class Application:
         page_id: str,
         space_key: Optional[str],
     ) -> None:
+        with open(path, "r") as file:
+            content = file.read()
+
+        # Check if the file has frontmatter
+        if content.startswith("---"):
+            # Insert the confluence keys after the frontmatter
+            frontmatter_end = content.find("\n---", 4) + 4
+            new_content = content[:frontmatter_end] + \
+                        f"\n<!-- confluence-page-id: {page_id} -->" + \
+                        (f"\n<!-- confluence-space-key: {space_key} -->" if space_key else "") + \
+                        content[frontmatter_end:]
+        else:
+            # Insert the confluence keys at the top of the file
+            new_content = f"<!-- confluence-page-id: {page_id} -->\n" + \
+                        (f"<!-- confluence-space-key: {space_key} -->\n" if space_key else "") + \
+                        content
+
         with open(path, "w") as file:
-            file.write(f"<!-- confluence-page-id: {page_id} -->\n")
-            if space_key:
-                file.write(f"<!-- confluence-space-key: {space_key} -->\n")
-            file.write(document)
+            file.write(new_content)

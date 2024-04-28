@@ -27,6 +27,25 @@ JsonType = Union[
     List["JsonType"],
 ]
 
+# Array of 16 Unicode characters which show as spaces, and workaround Confluence page name uniqueness
+SPACE_CHARACTERS = [
+    "\u00A0",
+    "\u2000",
+    "\u2001",
+    "\u2002",
+    "\u2003",
+    "\u2004",
+    "\u2005",
+    "\u2006",
+    "\u2007",
+    "\u2008",
+    "\u2009",
+    "\u200A",
+    "\u200B",
+    "\u202F",
+    "\u205F",
+    "\u3000",
+]
 
 def build_url(base_url: str, query: Optional[Dict[str, str]] = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
@@ -122,6 +141,7 @@ class ConfluenceSession:
     domain: str
     base_path: str
     space_key: str
+    nb_duplications: int = 0
 
     def __init__(
         self, session: requests.Session, domain: str, base_path: str, space_key: str
@@ -149,6 +169,7 @@ class ConfluenceSession:
 
     def _invoke(self, path: str, query: Dict[str, str]) -> JsonType:
         url = self._build_url(path, query)
+        LOGGER.debug(f"GET API call: {url}")
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -282,14 +303,14 @@ class ConfluenceSession:
         :returns: Confluence page ID.
         """
 
-        LOGGER.info("Looking up page with title: %s", title)
+        LOGGER.info("Looking up page with title: '%s'", title)
         path = "/content"
         query = {"title": title, "spaceKey": space_key or self.space_key}
         data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
 
         results = typing.cast(List[JsonType], data["results"])
-        if len(results) != 1:
-            raise ConfluenceError(f"page not found with title: {title}")
+        if len(results) == 0:
+            return None
 
         result = typing.cast(Dict[str, JsonType], results[0])
         id = typing.cast(str, result["id"])
@@ -324,6 +345,33 @@ class ConfluenceSession:
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
         )
+        
+    def get_page_ancestors(
+        self, page_id: str, *, space_key: Optional[str] = None
+    ) -> List[str]:
+        """
+        Retrieve Confluence wiki page ancestors.
+
+        :param page_id: The Confluence page ID.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :returns: Confluence page info.
+        """
+
+        path = f"/content/{page_id}"
+        query = {
+            "spaceKey": space_key or self.space_key,
+            "expand": "ancestors",
+        }
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        ancestors = typing.cast(Dict[str, JsonType], data["ancestors"])
+        ancestors_titles = []
+        # From the JSON array of ancestors, extract the "id" and "title" and push both to object in list
+        for ancestor in ancestors:
+            ancestors_titles.append(
+                {"id": ancestor["id"], "title": ancestor["title"]}
+            )
+        
+        return ancestors_titles
 
     def get_page_version(
         self,
@@ -395,7 +443,7 @@ class ConfluenceSession:
             "ancestors": [{"type": "page", "id": parent_page_id}],
         }
 
-        LOGGER.info("Creating page: %s", title)
+        LOGGER.info("Creating page: '%s'", title)
 
         url = self._build_url(path)
         response = self.session.post(
@@ -428,7 +476,7 @@ class ConfluenceSession:
             "spaceKey": space_key or self.space_key,
         }
 
-        LOGGER.info("Checking if page exists with title: %s", title)
+        LOGGER.info("Checking if page exists with title: '%s'", title)
 
         url = self._build_url(path)
         response = self.session.get(
@@ -439,7 +487,7 @@ class ConfluenceSession:
         data = typing.cast(Dict[str, JsonType], response.json())
         results = typing.cast(List, data["results"])
 
-        if len(results) == 1:
+        if len(results) >= 1:
             page_info = typing.cast(Dict[str, JsonType], results[0])
             return typing.cast(str, page_info["id"])
         else:
@@ -451,8 +499,22 @@ class ConfluenceSession:
         page_id = self.page_exists(title)
 
         if page_id is not None:
-            LOGGER.debug("Retrieving existing page: %d", page_id)
-            return self.get_page(page_id)
+            ancestors = self.get_page_ancestors(page_id)
+            # If last ancestor is not the parent, create a new page
+            if ancestors[-1]["id"] != parent_id:
+                page_id = None
+                # Confluence page titles must be unique within a space
+                # Append hidden space to cover duplications
+                title += str(SPACE_CHARACTERS[self.nb_duplications])
+                self.nb_duplications += 1
+                LOGGER.info("Duplicate page name found: expecting parent %s, but parent is %s. Append hidden space to title: '%s'", 
+                             parent_id,
+                             ancestors[-1]["id"],
+                             title)
+                return self.create_page(parent_id, title, "", space_key=space_key)
+            else:
+                LOGGER.debug("Retrieving existing page: %d", page_id)
+                return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
             return self.create_page(parent_id, title, "", space_key=space_key)
