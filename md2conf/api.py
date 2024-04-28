@@ -356,6 +356,34 @@ class ConfluenceSession:
             content=typing.cast(str, storage["value"]),
         )
 
+    def get_page_ancestors(
+        self, page_id: str, *, space_key: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Retrieve Confluence wiki page ancestors.
+
+        :param page_id: The Confluence page ID.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :returns: Dictionary of ancestor page ID to title, with topmost ancestor first.
+        """
+
+        path = f"/content/{page_id}"
+        query = {
+            "spaceKey": space_key or self.space_key,
+            "expand": "ancestors",
+        }
+        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        ancestors = typing.cast(List[JsonType], data["ancestors"])
+
+        # from the JSON array of ancestors, extract the "id" and "title"
+        results: Dict[str, str] = {}
+        for node in ancestors:
+            ancestor = typing.cast(Dict[str, JsonType], node)
+            id = typing.cast(str, ancestor["id"])
+            title = typing.cast(str, ancestor["title"])
+            results[id] = title
+        return results
+
     def get_page_version(
         self,
         page_id: str,
