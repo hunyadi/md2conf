@@ -207,11 +207,6 @@ class NodeVisitor:
         pass
 
 
-def _change_ext(path: str, target_ext: str) -> str:
-    root, source_ext = os.path.splitext(path)
-    return f"{root}{target_ext}"
-
-
 @dataclass
 class ConfluenceConverterOptions:
     """
@@ -228,22 +223,22 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into the Confluence storage format."
 
     options: ConfluenceConverterOptions
-    path: str
-    base_path: str
+    path: pathlib.Path
+    base_path: pathlib.Path
     links: List[str]
     images: List[str]
-    page_metadata: Dict[str, ConfluencePageMetadata]
+    page_metadata: Dict[pathlib.Path, ConfluencePageMetadata]
 
     def __init__(
-        self,
-        options: ConfluenceConverterOptions,
-        path: str,
-        page_metadata: Dict[str, ConfluencePageMetadata],
+            self,
+            options: ConfluenceConverterOptions,
+            path: pathlib.Path,
+            page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
         self.options = options
         self.path = path
-        self.base_path = os.path.abspath(os.path.dirname(path)) + os.sep
+        self.base_path = path.parent
         self.links = []
         self.images = []
         self.page_metadata = page_metadata
@@ -270,9 +265,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # convert the relative URL to absolute URL based on the base path value, then look up
         # the absolute path in the page metadata dictionary to discover the relative path
         # within Confluence that should be used
-        absolute_path = os.path.abspath(os.path.join(self.base_path, relative_url.path))
-        if not absolute_path.startswith(self.base_path):
-            msg = f"relative URL points to outside base path: {url}"
+        absolute_path = (self.base_path / relative_url.path).absolute()
+        # TODO: Looks bit suspicious, should look in path.resolve for better checking
+        if not str(absolute_path).startswith(str(self.base_path)):
+            msg = f"relative URL {url} points to outside base path: {self.base_path}"
             if self.options.ignore_invalid_url:
                 LOGGER.warning(msg)
                 anchor.attrib.pop("href")
@@ -314,10 +310,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         path: str = image.attrib["src"]
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        if path and is_relative_url(path) and path.endswith(".svg"):
-            replacement_path = _change_ext(path, ".png")
-            if os.path.exists(os.path.join(self.base_path, replacement_path)):
-                path = replacement_path
+        if path and is_relative_url(path):
+            rel_path = pathlib.Path(path)
+            if rel_path.suffix == ".svg" and \
+                    (self.base_path / rel_path.with_suffix(".png")).exists():
+                path = str(rel_path.with_suffix(".png"))
 
         self.images.append(path)
         caption = image.attrib["alt"]
@@ -532,13 +529,13 @@ class ConfluenceDocument:
     root: ET._Element
 
     def __init__(
-        self,
-        path: str,
-        options: ConfluenceDocumentOptions,
-        page_metadata: Dict[str, ConfluencePageMetadata],
+            self,
+            path: pathlib.Path,
+            options: ConfluenceDocumentOptions,
+            page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
-        path = os.path.abspath(path)
+        path = path.absolute()
 
         with open(path, "r") as f:
             text = f.read()

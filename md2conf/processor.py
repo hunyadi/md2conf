@@ -1,5 +1,6 @@
 import logging
-import os.path
+import os
+from pathlib import Path
 from typing import Dict
 
 from .converter import (
@@ -23,35 +24,37 @@ class Processor:
         self.options = options
         self.properties = properties
 
-    def process(self, path: str) -> None:
+    def process(self, path: Path) -> None:
         "Processes a single Markdown file or a directory of Markdown files."
 
-        if os.path.isdir(path):
+        if path.is_dir():
             self.process_directory(path)
-        elif os.path.isfile(path):
+        elif path.is_file():
             self.process_page(path, {})
         else:
             raise ValueError(f"expected: valid file or directory path; got: {path}")
 
-    def process_directory(self, dir: str) -> None:
+    def process_directory(self, local_dir: Path) -> None:
         "Recursively scans a directory hierarchy for Markdown files."
 
-        page_metadata: Dict[str, ConfluencePageMetadata] = {}
-        LOGGER.info(f"Synchronizing directory: {dir}")
+        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        LOGGER.info(f"Synchronizing directory: {local_dir}")
 
         # Step 1: build index of all page metadata
-        for root, directories, files in os.walk(dir):
+        # NOTE: Pathlib.walk() is implemented only in Python 3.12+
+        # so sticking for old os.walk
+        for root, directories, files in os.walk(local_dir):
             for file_name in files:
-                # check the file extension
-                _, file_extension = os.path.splitext(file_name)
-                if file_extension.lower() != ".md":
+                # Reconstitute Path object back
+                docfile = (Path(root) / file_name).absolute()
+
+                # Skip non-markdown files
+                if docfile.suffix.lower() != ".md":
                     continue
 
-                absolute_path = os.path.join(os.path.abspath(root), file_name)
-                metadata = self._get_page(absolute_path)
-
-                LOGGER.debug(f"indexed {absolute_path} with metadata: {metadata}")
-                page_metadata[absolute_path] = metadata
+                metadata = self._get_page(docfile)
+                LOGGER.debug(f"indexed {docfile} with metadata: {metadata}")
+                page_metadata[docfile] = metadata
 
         LOGGER.info(f"indexed {len(page_metadata)} pages")
 
@@ -60,17 +63,16 @@ class Processor:
             self.process_page(page_path, page_metadata)
 
     def process_page(
-        self, path: str, page_metadata: Dict[str, ConfluencePageMetadata]
+        self, path: Path, page_metadata: Dict[Path, ConfluencePageMetadata]
     ) -> None:
         "Processes a single Markdown file."
 
         document = ConfluenceDocument(path, self.options, page_metadata)
         content = document.xhtml()
-        output_path, _ = os.path.splitext(path)
-        with open(f"{output_path}.csf", "w") as f:
+        with open(path.with_suffix(".csf"), "w") as f:
             f.write(content)
 
-    def _get_page(self, absolute_path: str) -> ConfluencePageMetadata:
+    def _get_page(self, absolute_path: Path) -> ConfluencePageMetadata:
         "Extracts metadata from a Markdown file."
 
         with open(absolute_path, "r") as f:

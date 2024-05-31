@@ -1,12 +1,11 @@
 import json
 import logging
 import mimetypes
-import os
-import os.path
 import sys
 import typing
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from types import TracebackType
 from typing import Dict, Generator, List, Optional, Type, Union
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -184,15 +183,16 @@ class ConfluenceSession:
     def upload_attachment(
         self,
         page_id: str,
-        attachment_path: str,
+        attachment_path: Path,
         attachment_name: str,
         comment: Optional[str] = None,
         *,
         space_key: Optional[str] = None,
+        force: bool = False,
     ) -> None:
         content_type = mimetypes.guess_type(attachment_path, strict=True)[0]
 
-        if not os.path.isfile(attachment_path):
+        if not attachment_path.is_file():
             raise ConfluenceError(f"file not found: {attachment_path}")
 
         try:
@@ -200,7 +200,7 @@ class ConfluenceSession:
                 page_id, attachment_name, space_key=space_key
             )
 
-            if attachment.file_size == os.path.getsize(attachment_path):
+            if not force and attachment.file_size ==  attachment_path.stat().st_size:
                 LOGGER.info("Up-to-date attachment: %s", attachment_name)
                 return
 

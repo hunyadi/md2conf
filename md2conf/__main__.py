@@ -3,6 +3,7 @@ import logging
 import os.path
 import sys
 import typing
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -15,7 +16,7 @@ from .properties import ConfluenceProperties
 
 
 class Arguments(argparse.Namespace):
-    mdpath: str
+    mdpath: Path
     domain: str
     path: str
     username: str
@@ -26,7 +27,7 @@ class Arguments(argparse.Namespace):
     generated_by: Optional[str]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument(
@@ -95,6 +96,10 @@ def main():
 
     args = Arguments()
     parser.parse_args(namespace=args)
+
+    # NOTE:  If we switch to modern type aware CLI tool like typer
+    #  the following line won't be necessary
+    args.mdpath = Path(args.mdpath)
 
     logging.basicConfig(
         level=getattr(logging, args.loglevel.upper(), logging.INFO),
