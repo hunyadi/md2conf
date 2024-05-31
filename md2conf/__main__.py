@@ -26,7 +26,7 @@ class Arguments(argparse.Namespace):
     generated_by: Optional[str]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument(
