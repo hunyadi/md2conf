@@ -1,5 +1,6 @@
 import logging
 import os.path
+from pathlib import Path
 from typing import Dict, Optional
 
 from .api import ConfluenceSession
@@ -25,40 +26,42 @@ class Application:
         self.api = api
         self.options = options
 
-    def synchronize(self, path: str) -> None:
+    def synchronize(self, path: Path) -> None:
         "Synchronizes a single Markdown page or a directory of Markdown pages."
 
-        if os.path.isdir(path):
+        if path.is_dir():
             self.synchronize_directory(path)
-        elif os.path.isfile(path):
+        elif path.is_file():
             self.synchronize_page(path)
         else:
             raise ValueError(f"expected: valid file or directory path; got: {path}")
 
-    def synchronize_page(self, page_path: str) -> None:
+    def synchronize_page(self, page_path: Path) -> None:
         "Synchronizes a single Markdown page with Confluence."
 
         self._synchronize_page(page_path, {})
 
-    def synchronize_directory(self, dir: str) -> None:
+    def synchronize_directory(self, local_dir: Path) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        page_metadata: Dict[str, ConfluencePageMetadata] = {}
-        LOGGER.info(f"Synchronizing directory: {dir}")
+        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        LOGGER.info(f"Synchronizing directory: {local_dir}")
 
         # Step 1: build index of all page metadata
-        for root, directories, files in os.walk(dir):
+        # NOTE: Pathlib.walk() is implemented only in Python 3.12+
+        # so sticking for old os.walk
+        for root, directories, files in os.walk(local_dir):
             for file_name in files:
-                # check the file extension
-                _, file_extension = os.path.splitext(file_name)
-                if file_extension.lower() != ".md":
+                # Reconstitute Path object back
+                docfile = (Path(root) / file_name).absolute()
+
+                # Skip non-markdown files
+                if docfile.suffix.lower() != ".md":
                     continue
+                metadata = self._get_or_create_page(docfile)
 
-                absolute_path = os.path.join(os.path.abspath(root), file_name)
-                metadata = self._get_or_create_page(absolute_path)
-
-                LOGGER.debug(f"indexed {absolute_path} with metadata: {metadata}")
-                page_metadata[absolute_path] = metadata
+                LOGGER.debug(f"indexed {docfile} with metadata: {metadata}")
+                page_metadata[docfile] = metadata
 
         LOGGER.info(f"indexed {len(page_metadata)} pages")
 
@@ -68,10 +71,10 @@ class Application:
 
     def _synchronize_page(
         self,
-        page_path: str,
-        page_metadata: Dict[str, ConfluencePageMetadata],
+        page_path: Path,
+        page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
-        base_path = os.path.dirname(page_path)
+        base_path = page_path.parent
 
         LOGGER.info(f"Synchronizing page: {page_path}")
         document = ConfluenceDocument(page_path, self.options, page_metadata)
@@ -83,7 +86,7 @@ class Application:
             self._update_document(document, base_path)
 
     def _get_or_create_page(
-        self, absolute_path: str, title: Optional[str] = None
+        self, absolute_path: Path, title: Optional[str] = None
     ) -> ConfluencePageMetadata:
         """
         Creates a new Confluence page if no page is linked in the Markdown document.
@@ -106,7 +109,7 @@ class Application:
 
             # use file name without extension if no title is supplied
             if title is None:
-                title, _ = os.path.splitext(os.path.basename(absolute_path))
+                title = absolute_path.stem
 
             confluence_page = self.api.get_or_create_page(
                 title, self.options.root_page_id
@@ -126,10 +129,10 @@ class Application:
             title=confluence_page.title or "",
         )
 
-    def _update_document(self, document: ConfluenceDocument, base_path: str) -> None:
+    def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
         for image in document.images:
             self.api.upload_attachment(
-                document.id.page_id, os.path.join(base_path, image), image, ""
+                document.id.page_id, base_path / image, image, ""
             )
 
         content = document.xhtml()
@@ -138,7 +141,7 @@ class Application:
 
     def _update_markdown(
         self,
-        path: str,
+        path: Path,
         document: str,
         page_id: str,
         space_key: Optional[str],

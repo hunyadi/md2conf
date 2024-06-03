@@ -3,6 +3,7 @@ import os
 import os.path
 import shutil
 import unittest
+from pathlib import Path
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
@@ -13,6 +14,10 @@ from md2conf.converter import (
 )
 from md2conf.properties import ConfluenceProperties
 
+TEST_PAGE_TITLE = "Test Page"
+TEST_SPACE = "DAP"
+TEST_PAGE_ID = "85668266616"
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
@@ -20,10 +25,14 @@ logging.basicConfig(
 
 
 class TestAPI(unittest.TestCase):
-    out_dir: str
+    out_dir: Path
 
     def setUp(self) -> None:
-        self.out_dir = os.path.join(os.getcwd(), "tests", "output")
+        test_dir = Path(__file__).parent
+        parent_dir = test_dir.parent
+
+        self.out_dir = test_dir / "tests" / "output"
+        self.sample_dir = parent_dir / "sample"
         os.makedirs(self.out_dir, exist_ok=True)
 
     def tearDown(self) -> None:
@@ -31,7 +40,7 @@ class TestAPI(unittest.TestCase):
 
     def test_markdown(self) -> None:
         document = ConfluenceDocument(
-            os.path.join(os.getcwd(), "sample", "example.md"),
+            self.sample_dir / "example.md",
             ConfluenceDocumentOptions(ignore_invalid_url=True),
             {},
         )
@@ -41,67 +50,68 @@ class TestAPI(unittest.TestCase):
             ["figure/interoperability.png", "figure/interoperability.png"],
         )
 
-        with open(os.path.join(self.out_dir, "document.html"), "w") as f:
+        with open(self.out_dir / "document.html", "w") as f:
             f.write(document.xhtml())
 
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
-            id = api.get_page_id_by_title("Publish to Confluence")
-            self.assertEqual(id, "85668266616")
+            id = api.get_page_id_by_title(TEST_PAGE_TITLE)
+            self.assertEqual(id, "%s" % TEST_PAGE_ID)
 
     def test_switch_space(self) -> None:
         with ConfluenceAPI(ConfluenceProperties(space_key="PLAT")) as api:
-            with api.switch_space("DAP"):
-                id = api.get_page_id_by_title("Publish to Confluence")
-                self.assertEqual(id, "85668266616")
+            with api.switch_space(TEST_SPACE):
+                id = api.get_page_id_by_title(TEST_PAGE_TITLE)
+                self.assertEqual(id, TEST_PAGE_ID)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page("85668266616")
+            page = api.get_page(TEST_PAGE_ID)
             self.assertIsInstance(page, ConfluencePage)
 
-        with open(os.path.join(self.out_dir, "page.html"), "w") as f:
+        with open(self.out_dir / "page.html", "w") as f:
             f.write(sanitize_confluence(page.content))
 
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
             data = api.get_attachment_by_name(
-                "85668266616", "figure/interoperability.png"
+                TEST_PAGE_ID, "figure/interoperability.png"
             )
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
-                "85668266616",
-                os.path.join(os.getcwd(), "sample", "figure", "interoperability.png"),
+                TEST_PAGE_ID,
+                self.sample_dir / "figure" / "interoperability.png",
                 "figure/interoperability.png",
                 "A sample figure",
+                force=True,
             )
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
             Application(
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize(os.path.join(os.getcwd(), "sample", "example.md"))
+            ).synchronize(self.sample_dir / "example.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
             Application(
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize_page(os.path.join(os.getcwd(), "sample", "example.md"))
+            ).synchronize_page(self.sample_dir / "example.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
             Application(
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize_directory(os.path.join(os.getcwd(), "sample"))
+            ).synchronize_directory(self.sample_dir)
 
     def test_synchronize_create(self) -> None:
-        dir = os.path.join(self.out_dir, "markdown")
-        os.makedirs(dir, exist_ok=True)
+        source_dir = self.out_dir / "markdown"
+        os.makedirs(source_dir, exist_ok=True)
 
-        child = os.path.join(dir, "child.md")
+        child = source_dir / "child.md"
         with open(child, "w") as f:
             f.write(
                 "This is a document without an explicitly linked Confluence document.\n"
@@ -111,15 +121,15 @@ class TestAPI(unittest.TestCase):
             Application(
                 api,
                 ConfluenceDocumentOptions(
-                    ignore_invalid_url=True, root_page_id="86090481730"
+                    ignore_invalid_url=True, root_page_id=TEST_PAGE_ID
                 ),
-            ).synchronize_directory(dir)
+            ).synchronize_directory(source_dir)
 
         with open(child, "r") as f:
             self.assertEqual(
                 f.read(),
-                "<!-- confluence-page-id: 86269493445 -->\n"
-                "<!-- confluence-space-key: DAP -->\n"
+                f"<!-- confluence-page-id: 544014402 -->\n"
+                f"<!-- confluence-space-key: {TEST_SPACE} -->\n"
                 "This is a document without an explicitly linked Confluence document.\n",
             )
 
