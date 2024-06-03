@@ -58,7 +58,6 @@ class Application:
                 # Skip non-markdown files
                 if docfile.suffix.lower() != ".md":
                     continue
-                # check the file extension
                 metadata = self._get_or_create_page(docfile)
 
                 LOGGER.debug(f"indexed {docfile} with metadata: {metadata}")
