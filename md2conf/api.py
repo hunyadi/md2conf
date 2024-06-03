@@ -200,7 +200,7 @@ class ConfluenceSession:
                 page_id, attachment_name, space_key=space_key
             )
 
-            if not force and attachment.file_size ==  attachment_path.stat().st_size:
+            if not force and attachment.file_size == attachment_path.stat().st_size:
                 LOGGER.info("Up-to-date attachment: %s", attachment_name)
                 return
 

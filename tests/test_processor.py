@@ -3,9 +3,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from md2conf.converter import (
-    ConfluenceDocumentOptions,
-)
+from md2conf.converter import ConfluenceDocumentOptions
 from md2conf.processor import Processor
 from md2conf.properties import ConfluenceProperties
 
@@ -38,7 +36,9 @@ class TestProcessor(unittest.TestCase):
             root_page_id="None",
         )
 
-        properties = ConfluenceProperties("example.com", "/wiki/", "bob@the.operator", "NA", "DUMB")
+        properties = ConfluenceProperties(
+            "example.com", "/wiki/", "bob@example.com", "API_KEY", "SPACE_KEY"
+        )
         Processor(options, properties).process(self.sample_dir / "code.md")
 
         self.assertTrue((self.sample_dir / "example.csf").exists())
@@ -46,11 +46,13 @@ class TestProcessor(unittest.TestCase):
     def test_process_directory(self) -> None:
         options = ConfluenceDocumentOptions(
             ignore_invalid_url=True,
-            generated_by="Dumb",
-            root_page_id="Dumb",
+            generated_by="The Author",
+            root_page_id="ROOT_PAGE_ID",
         )
 
-        properties = ConfluenceProperties("example.com", "/wiki/", "bob@the.operator", "NA", "DUMB")
+        properties = ConfluenceProperties(
+            "example.com", "/wiki/", "bob@example.com", "API_KEY", "SPACE_KEY"
+        )
         Processor(options, properties).process(self.sample_dir)
 
         self.assertTrue((self.sample_dir / "example.csf").exists())

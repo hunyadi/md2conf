@@ -14,7 +14,7 @@ from md2conf.converter import (
 )
 from md2conf.properties import ConfluenceProperties
 
-TEST_PAGE_TITLE = "Test Page"
+TEST_PAGE_TITLE = "Publish to Confluence"
 TEST_SPACE = "DAP"
 TEST_PAGE_ID = "85668266616"
 
@@ -121,14 +121,14 @@ class TestAPI(unittest.TestCase):
             Application(
                 api,
                 ConfluenceDocumentOptions(
-                    ignore_invalid_url=True, root_page_id=TEST_PAGE_ID
+                    ignore_invalid_url=True, root_page_id="86090481730"
                 ),
             ).synchronize_directory(source_dir)
 
         with open(child, "r") as f:
             self.assertEqual(
                 f.read(),
-                f"<!-- confluence-page-id: 544014402 -->\n"
+                "<!-- confluence-page-id: 86269493445 -->\n"
                 f"<!-- confluence-space-key: {TEST_SPACE} -->\n"
                 "This is a document without an explicitly linked Confluence document.\n",
             )
