@@ -230,10 +230,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     page_metadata: Dict[pathlib.Path, ConfluencePageMetadata]
 
     def __init__(
-            self,
-            options: ConfluenceConverterOptions,
-            path: pathlib.Path,
-            page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
+        self,
+        options: ConfluenceConverterOptions,
+        path: pathlib.Path,
+        page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
         self.options = options
@@ -310,10 +310,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
         if path and is_relative_url(path):
-            rel_path = pathlib.Path(path)
-            if rel_path.suffix == ".svg" and \
-                    (self.base_path / rel_path.with_suffix(".png")).exists():
-                path = str(rel_path.with_suffix(".png"))
+            relative_path = pathlib.Path(path)
+            if (
+                relative_path.suffix == ".svg"
+                and (self.base_path / relative_path.with_suffix(".png")).exists()
+            ):
+                path = str(relative_path.with_suffix(".png"))
 
         self.images.append(path)
         caption = image.attrib["alt"]
@@ -323,7 +325,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 ET.QName(namespaces["ac"], "align"): "center",
                 ET.QName(namespaces["ac"], "layout"): "center",
             },
-            RI("attachment", {ET.QName(namespaces["ri"], "filename"): path}),
+            RI(
+                "attachment",
+                {ET.QName(namespaces["ri"], "filename"): attachment_name(path)},
+            ),
             AC("caption", HTML.p(caption)),
         )
 
@@ -528,10 +533,10 @@ class ConfluenceDocument:
     root: ET._Element
 
     def __init__(
-            self,
-            path: pathlib.Path,
-            options: ConfluenceDocumentOptions,
-            page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
+        self,
+        path: pathlib.Path,
+        options: ConfluenceDocumentOptions,
+        page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
         path = path.absolute()
@@ -585,6 +590,18 @@ class ConfluenceDocument:
 
     def xhtml(self) -> str:
         return _content_to_string(self.root)
+
+
+def attachment_name(name: str) -> str:
+    """
+    Safe name for use with attachment uploads.
+
+    Allowed characters:
+    * Alphanumeric characters: 0-9, a-z, A-Z
+    * Special characters: hyphen (-), underscore (_), period (.)
+    """
+
+    return re.sub(r"[^\-0-9A-Za-z_.]", "_", name)
 
 
 def sanitize_confluence(html: str) -> str:

@@ -8,6 +8,7 @@ from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
+    attachment_name,
     extract_qualified_id,
 )
 
@@ -132,7 +133,7 @@ class Application:
     def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
         for image in document.images:
             self.api.upload_attachment(
-                document.id.page_id, base_path / image, image, ""
+                document.id.page_id, base_path / image, attachment_name(image), ""
             )
 
         content = document.xhtml()
