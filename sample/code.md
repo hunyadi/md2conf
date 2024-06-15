@@ -23,7 +23,7 @@ int main(void)
 C++:
 ```cpp
 #include <iostream>
- 
+
 int main()
 {
     std::cout << "Hello World" << std::endl;
@@ -63,10 +63,10 @@ HTML:
 
 Java:
 ```java
-class Simple {  
-    public static void main(String args[]) {  
-        System.out.println("Hello Java!");  
-    }  
+class Simple {
+    public static void main(String args[]) {
+        System.out.println("Hello Java!");
+    }
 }
 ```
 
@@ -153,7 +153,7 @@ TeX:
 Correct and improve the following examples of technical writing.
 \begin{enumerate}
 \item For $n>2\  f(n)=(na+n^2)/(n-1).\ f(2)=2a+4$ for example.\\
-\item $a$ is negative so by (1.1)\ $a^2>a$. 
+\item $a$ is negative so by (1.1)\ $a^2>a$.
 \end{enumerate}
 
 \end{document}
