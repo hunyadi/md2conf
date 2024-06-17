@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import mimetypes
@@ -60,7 +61,6 @@ else:
             return string[prefix_len:]
         else:
             return string
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -185,6 +185,7 @@ class ConfluenceSession:
         page_id: str,
         attachment_path: Path,
         attachment_name: str,
+        raw_data: Optional[bytes] = None,
         comment: Optional[str] = None,
         *,
         space_key: Optional[str] = None,
@@ -192,7 +193,7 @@ class ConfluenceSession:
     ) -> None:
         content_type = mimetypes.guess_type(attachment_path, strict=True)[0]
 
-        if not attachment_path.is_file():
+        if not raw_data and not attachment_path.is_file():
             raise ConfluenceError(f"file not found: {attachment_path}")
 
         try:
@@ -200,9 +201,14 @@ class ConfluenceSession:
                 page_id, attachment_name, space_key=space_key
             )
 
-            if not force and attachment.file_size == attachment_path.stat().st_size:
-                LOGGER.info("Up-to-date attachment: %s", attachment_name)
-                return
+            if not raw_data:
+                if not force and attachment.file_size == attachment_path.stat().st_size:
+                    LOGGER.info("Up-to-date attachment: %s", attachment_name)
+                    return
+            else:
+                if not force and attachment.file_size == len(raw_data):
+                    LOGGER.info("Up-to-date embedded image: %s", attachment_name)
+                    return
 
             id = removeprefix(attachment.id, "att")
             path = f"/content/{page_id}/child/attachment/{id}/data"
@@ -212,17 +218,36 @@ class ConfluenceSession:
 
         url = self._build_url(path)
 
-        with open(attachment_path, "rb") as attachment_file:
+        if not raw_data:
+            with open(attachment_path, "rb") as attachment_file:
+                file_to_upload = {
+                    "comment": comment,
+                    "file": (
+                        attachment_name,  # will truncate path component
+                        attachment_file,
+                        content_type,
+                        {"Expires": "0"},
+                    ),
+                }
+                LOGGER.info("Uploading attachment: %s", attachment_name)
+                response = self.session.post(
+                    url,
+                    files=file_to_upload,  # type: ignore
+                    headers={"X-Atlassian-Token": "no-check"},
+                )
+        else:
+            LOGGER.info("Uploading raw data: %s", attachment_name)
+
             file_to_upload = {
                 "comment": comment,
                 "file": (
                     attachment_name,  # will truncate path component
-                    attachment_file,
+                    io.BytesIO(raw_data),  # type: ignore
                     content_type,
                     {"Expires": "0"},
                 ),
             }
-            LOGGER.info("Uploading attachment: %s", attachment_name)
+
             response = self.session.post(
                 url,
                 files=file_to_upload,  # type: ignore
