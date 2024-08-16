@@ -94,7 +94,7 @@ class Application:
         """
 
         # parse file
-        with open(absolute_path, "r") as f:
+        with open(absolute_path, "r", encoding="utf-8") as f:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
@@ -147,7 +147,7 @@ class Application:
         page_id: str,
         space_key: Optional[str],
     ) -> None:
-        with open(path, "w") as file:
+        with open(path, "w", encoding="utf-8") as file:
             file.write(f"<!-- confluence-page-id: {page_id} -->\n")
             if space_key:
                 file.write(f"<!-- confluence-space-key: {space_key} -->\n")

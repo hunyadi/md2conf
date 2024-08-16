@@ -75,7 +75,7 @@ class Processor:
     def _get_page(self, absolute_path: Path) -> ConfluencePageMetadata:
         "Extracts metadata from a Markdown file."
 
-        with open(absolute_path, "r") as f:
+        with open(absolute_path, "r", encoding="utf-8") as f:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
