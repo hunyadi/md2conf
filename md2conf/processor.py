@@ -69,7 +69,7 @@ class Processor:
 
         document = ConfluenceDocument(path, self.options, page_metadata)
         content = document.xhtml()
-        with open(path.with_suffix(".csf"), "w") as f:
+        with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
             f.write(content)
 
     def _get_page(self, absolute_path: Path) -> ConfluencePageMetadata:

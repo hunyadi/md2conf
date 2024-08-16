@@ -55,6 +55,8 @@ A nested list:
 
 ![SVG image with caption](figure/interoperability.svg)
 
+International characters (UTF-8): árvíztűrő tükörfúrógép
+
 ## Code blocks
 
 A language-neutral code block:
