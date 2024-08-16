@@ -2,7 +2,6 @@ import argparse
 import logging
 import os.path
 import sys
-import typing
 from pathlib import Path
 from typing import Optional
 
@@ -52,7 +51,7 @@ def main() -> None:
         "-l",
         "--loglevel",
         choices=[
-            typing.cast(str, logging.getLevelName(level)).lower()
+            logging.getLevelName(level).lower()
             for level in (
                 logging.DEBUG,
                 logging.INFO,
