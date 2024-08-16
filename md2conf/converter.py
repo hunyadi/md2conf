@@ -541,7 +541,7 @@ class ConfluenceDocument:
         self.options = options
         path = path.absolute()
 
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             text = f.read()
 
         # extract Confluence page ID
