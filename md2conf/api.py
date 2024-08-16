@@ -177,7 +177,8 @@ class ConfluenceSession:
         extensions = typing.cast(Dict[str, JsonType], result["extensions"])
         media_type = typing.cast(str, extensions["mediaType"])
         file_size = typing.cast(int, extensions["fileSize"])
-        comment = typing.cast(str, extensions["comment"])
+        comment = extensions.get("comment", "")
+        comment = typing.cast(str, comment)
         return ConfluenceAttachment(id, media_type, file_size, comment)
 
     def upload_attachment(
