@@ -1,3 +1,5 @@
+# mypy: disable-error-code="dict-item"
+
 import importlib.resources as resources
 import logging
 import os.path
@@ -401,7 +403,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC(
                     "parameter",
                     {ET.QName(namespaces["ac"], "name"): "title"},
-                    elem[0].text,
+                    elem[0].text or "",
                 ),
                 AC("rich-text-body", {}, *list(elem[1:])),
             ]
