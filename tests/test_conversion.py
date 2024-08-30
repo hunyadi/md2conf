@@ -52,6 +52,21 @@ class TestConversion(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_markdown_in_html(self) -> None:
+        actual = ConfluenceDocument(
+            self.sample_dir / "markdown-in-html.md",
+            ConfluenceDocumentOptions(ignore_invalid_url=True),
+            {},
+        ).xhtml()
+        actual = self.make_canonical(actual)
+
+        with open(
+            self.sample_dir / "expected" / "markdown-in-html.xml", "r", encoding="utf-8"
+        ) as f:
+            expected = f.read().strip()
+
+        self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
