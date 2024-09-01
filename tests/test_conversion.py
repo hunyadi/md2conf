@@ -6,10 +6,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from md2conf.converter import (
-    ConfluenceDocument,
-    ConfluenceDocumentOptions,
-)
+from md2conf.converter import ConfluenceDocument, ConfluenceDocumentOptions
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,10 +21,9 @@ class TestConversion(unittest.TestCase):
         self.maxDiff = 1024
 
         test_dir = Path(__file__).parent
-        parent_dir = test_dir.parent
-
         self.out_dir = test_dir / "output"
-        self.sample_dir = parent_dir / "sample"
+        self.source_dir = test_dir / "source"
+        self.target_dir = test_dir / "target"
         os.makedirs(self.out_dir, exist_ok=True)
 
     def tearDown(self) -> None:
@@ -35,27 +31,34 @@ class TestConversion(unittest.TestCase):
 
     @staticmethod
     def make_canonical(content: str) -> str:
-        uuid_pattern = re.compile(r'\b[0-9a-fA-F-]{36}\b')
-        content = re.sub(uuid_pattern, 'UUID', content)
+        uuid_pattern = re.compile(r"\b[0-9a-fA-F-]{36}\b")
+        content = re.sub(uuid_pattern, "UUID", content)
         content = content.strip()
         return content
 
     def test_markdown(self) -> None:
-        actual = ConfluenceDocument(
-            self.sample_dir / "example.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True),
-            {},
-        ).xhtml()
-        actual = self.make_canonical(actual)
+        for entry in os.scandir(self.source_dir):
+            if not entry.name.endswith(".md"):
+                continue
 
-        with open(self.sample_dir / "expected" / "example.xml", "r") as f:
-            expected = f.read().strip()
+            name, _ = os.path.splitext(entry.name)
 
-        self.assertEqual(actual, expected)
+            with self.subTest(name=name):
+                actual = ConfluenceDocument(
+                    self.source_dir / f"{name}.md",
+                    ConfluenceDocumentOptions(ignore_invalid_url=True),
+                    {},
+                ).xhtml()
+                actual = self.make_canonical(actual)
+
+                with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
+                    expected = f.read().strip()
+
+                self.assertEqual(actual, expected)
 
     def test_mermaid(self) -> None:
         actual = ConfluenceDocument(
-            self.sample_dir / "with_mermaid.md",
+            self.source_dir / "with_mermaid.md",
             ConfluenceDocumentOptions(
                 ignore_invalid_url=True,
                 render_mermaid=False,
@@ -64,14 +67,14 @@ class TestConversion(unittest.TestCase):
         ).xhtml()
         actual = self.make_canonical(actual)
 
-        with open(self.sample_dir / "expected" / "with_mermaid.xml", "r") as f:
+        with open(self.target_dir / "with_mermaid.xml", "r") as f:
             expected = f.read().strip()
 
         self.assertEqual(actual, expected)
 
     def test_mermaid_with_kroki(self) -> None:
         document = ConfluenceDocument(
-            self.sample_dir / "with_mermaid.md",
+            self.source_dir / "with_mermaid.md",
             ConfluenceDocumentOptions(
                 ignore_invalid_url=True,
                 render_mermaid=True,
@@ -84,7 +87,7 @@ class TestConversion(unittest.TestCase):
 
     def test_mermaid_with_kroki_png(self) -> None:
         document = ConfluenceDocument(
-            self.sample_dir / "with_mermaid.md",
+            self.source_dir / "with_mermaid.md",
             ConfluenceDocumentOptions(
                 ignore_invalid_url=True,
                 render_mermaid=True,
@@ -94,7 +97,6 @@ class TestConversion(unittest.TestCase):
         )
 
         self.assertIn('embedded_d953c781dcc5da4e8e8da4dd3af2e082.png', document.embedded_images)
-
 
 
 if __name__ == "__main__":

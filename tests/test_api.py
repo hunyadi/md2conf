@@ -50,7 +50,7 @@ class TestAPI(unittest.TestCase):
             ["figure/interoperability.png", "figure/interoperability.png"],
         )
 
-        with open(self.out_dir / "document.html", "w") as f:
+        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
             f.write(document.xhtml())
 
     def test_find_page_by_title(self) -> None:
@@ -69,7 +69,7 @@ class TestAPI(unittest.TestCase):
             page = api.get_page(TEST_PAGE_ID)
             self.assertIsInstance(page, ConfluencePage)
 
-        with open(self.out_dir / "page.html", "w") as f:
+        with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
             f.write(sanitize_confluence(page.content))
 
     def test_get_attachment(self) -> None:
@@ -128,7 +128,7 @@ class TestAPI(unittest.TestCase):
         os.makedirs(source_dir, exist_ok=True)
 
         child = source_dir / "child.md"
-        with open(child, "w") as f:
+        with open(child, "w", encoding="utf-8") as f:
             f.write(
                 "This is a document without an explicitly linked Confluence document.\n"
             )
@@ -141,7 +141,7 @@ class TestAPI(unittest.TestCase):
                 ),
             ).synchronize_directory(source_dir)
 
-        with open(child, "r") as f:
+        with open(child, "r", encoding="utf-8") as f:
             self.assertEqual(
                 f.read(),
                 "<!-- confluence-page-id: 86269493445 -->\n"

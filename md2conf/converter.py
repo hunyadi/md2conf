@@ -1,3 +1,5 @@
+# mypy: disable-error-code="dict-item"
+
 import hashlib
 import importlib.resources as resources
 import logging
@@ -54,6 +56,7 @@ def markdown_to_html(content: str) -> str:
             "pymdownx.magiclink",
             "pymdownx.tilde",
             "sane_lists",
+            "md_in_html",
         ],
     )
 
@@ -196,6 +199,8 @@ class ConfluencePageMetadata:
 
 class NodeVisitor:
     def visit(self, node: ET._Element) -> None:
+        "Recursively visits all descendants of this node."
+
         if len(node) < 1:
             return
 
@@ -447,7 +452,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC(
                     "parameter",
                     {ET.QName(namespaces["ac"], "name"): "title"},
-                    elem[0].text,
+                    elem[0].text or "",
                 ),
                 AC("rich-text-body", {}, *list(elem[1:])),
             ]
@@ -461,6 +466,39 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 ET.QName(namespaces["ac"], "schema-version"): "1",
             },
             *content,
+        )
+
+    def _transform_section(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates a collapsed section.
+
+        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+        into the Confluence structured macro *expand*.
+        """
+
+        if elem[0].tag != "summary":
+            raise DocumentError(
+                "expected: `<summary>` as first direct child of `<details>`"
+            )
+        if elem[0].tail is not None:
+            raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
+        summary = elem[0].text or ""
+        elem.remove(elem[0])
+
+        self.visit(elem)
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "expand",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "title"},
+                summary,
+            ),
+            AC("rich-text-body", {}, *list(elem)),
         )
 
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
@@ -493,6 +531,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # </div>
         elif child.tag == "div" and "admonition" in child.attrib.get("class", ""):
             return self._transform_admonition(child)
+
+        # <details markdown="1">
+        # <summary>...</summary>
+        # ...
+        # </details>
+        elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
+            return self._transform_section(child)
 
         # <img src="..." alt="..." />
         elif child.tag == "img":
@@ -589,7 +634,7 @@ class ConfluenceDocument:
         self.options = options
         path = path.absolute()
 
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             text = f.read()
 
         # extract Confluence page ID

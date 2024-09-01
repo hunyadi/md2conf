@@ -55,6 +55,8 @@ A nested list:
 
 ![SVG image with caption](figure/interoperability.svg)
 
+UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
+
 ## Code blocks
 
 A language-neutral code block:
@@ -126,6 +128,18 @@ Markdown has no native support for admonitions. Admonitions that follow the [Pyt
 !!! warning "A warning message"
     This is a structured macro panel showing a warning.
 
-## UTF-8 characters
+## Collapsed sections
 
-UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
+The [GitHub-specific](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) formatting tag `<details>` that produces a collapsed section block is converted into the Confluence structured macro *expand* with a similar appearance.
+
+<details markdown="1">
+<summary>Tips for collapsed sections</summary>
+
+You can add text within a collapsed section.
+
+You can add an image or a code block, too.
+
+```ruby
+puts "Hello World"
+```
+</details>
