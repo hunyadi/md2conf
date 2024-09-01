@@ -53,6 +53,7 @@ def markdown_to_html(content: str) -> str:
             "pymdownx.magiclink",
             "pymdownx.tilde",
             "sane_lists",
+            "md_in_html"
         ],
     )
 
