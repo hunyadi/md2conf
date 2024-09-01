@@ -53,7 +53,7 @@ def markdown_to_html(content: str) -> str:
             "pymdownx.magiclink",
             "pymdownx.tilde",
             "sane_lists",
-            "md_in_html"
+            "md_in_html",
         ],
     )
 
@@ -422,6 +422,39 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *content,
         )
 
+    def _transform_section(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates a collapsed section.
+
+        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+        into the Confluence structured macro *expand*.
+        """
+
+        if elem[0].tag != "summary":
+            raise DocumentError(
+                "expected: `<summary>` as first direct child of `<details>`"
+            )
+        if elem[0].tail is not None:
+            raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
+        summary = elem[0].text or ""
+        elem.remove(elem[0])
+
+        self.visit(elem)
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "expand",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "title"},
+                summary,
+            ),
+            AC("rich-text-body", {}, *list(elem)),
+        )
+
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
         # normalize line breaks to regular space in element text
         if child.text:
@@ -452,6 +485,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # </div>
         elif child.tag == "div" and "admonition" in child.attrib.get("class", ""):
             return self._transform_admonition(child)
+
+        # <details markdown="1">
+        # <summary>...</summary>
+        # ...
+        # </details>
+        elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
+            return self._transform_section(child)
 
         # <img src="..." alt="..." />
         elif child.tag == "img":
