@@ -1,18 +1,8 @@
-<!-- confluence-page-id: 577832609 -->
+<!-- confluence-page-id: 00000000000 -->
 
-[Mermaid](https://mermaid.js.org/)  is a simple and powerful diagramming
-and charting tool that uses a markdown-like syntax.
+[Mermaid](https://mermaid.js.org/) is a simple and powerful diagramming and charting tool that uses a markdown-like syntax.
 
-You can include Mermaid diagrams in your
-documents to create visual representations of systems, processes,
-and relationships.
-
-There are two options for rendering Mermaid diagrams in Confluence:
-
-1. Inline the Mermaid diagrams directly in the Confluence page. This requires installing the [Markdown HTML PlantUML LaTeX Diagrams Open API Mermaid](https://marketplace.atlassian.com/apps/1211438/markdown-html-plantuml-latex-diagrams-open-api-mermaid?hosting=cloud&tab=overview) plugin into your Confluence account.
-
-2. Render the Mermaid diagrams using the [Kroki](https://docs.kroki.io/kroki/architecture/) server. This option does not require installing any additional plugins in Confluence.  By default, the public server at https://kroki.io is used. You can choose to [install your a private copy of the Kroki server](https://docs.kroki.io/kroki/setup/install/) in your environment and set the `KROKI_SERVER_URL` environment variable to use yours instead.
-<p />
+You can include Mermaid diagrams in your documents to create visual representations of systems, processes, and relationships.
 
 # Example Mermaid Diagrams
 
@@ -134,7 +124,6 @@ intersection of these axes.
 
 
 ```mermaid
-
 %%{init: {"quadrantChart": {"chartWidth": 400, "chartHeight": 400}, "themeVariables": {"quadrant1TextFill": "#ff0000"} }}%%
 quadrantChart
   x-axis Urgent --> Not Urgent

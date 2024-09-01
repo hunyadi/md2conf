@@ -9,14 +9,14 @@ import re
 import sys
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Literal
+from typing import Dict, List, Literal, Optional, Tuple
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
 import markdown
 from lxml.builder import ElementMaker
 
-from md2conf import kroki
+from . import kroki
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -227,7 +227,7 @@ class ConfluenceConverterOptions:
 
     ignore_invalid_url: bool = False
     render_mermaid: bool = False
-    kroki_output_format: Literal['png', 'svg'] = 'png'
+    kroki_output_format: Literal["png", "svg"] = "png"
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -325,8 +325,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if path and is_relative_url(path):
             relative_path = pathlib.Path(path)
             if (
-                    relative_path.suffix == ".svg"
-                    and (self.base_path / relative_path.with_suffix(".png")).exists()
+                relative_path.suffix == ".svg"
+                and (self.base_path / relative_path.with_suffix(".png")).exists()
             ):
                 path = str(relative_path.with_suffix(".png"))
 
@@ -359,53 +359,86 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         content = content.rstrip()
 
         if language == "mermaid":
-            if self.options.render_mermaid:
-                image_data = kroki.render(content, output_format=self.options.kroki_output_format)
-                image_hash = hashlib.md5(image_data).hexdigest()
-                image_filename = attachment_name(f"embedded/{image_hash}.{self.options.kroki_output_format}")
-                self.embedded_images[image_filename] = image_data
-                return AC(
-                    "image",
-                    {
-                        ET.QName(namespaces["ac"], "align"): "center",
-                        ET.QName(namespaces["ac"], "layout"): "center",
-                    },
-                    RI(
-                        "attachment",
-                        {ET.QName(namespaces["ri"], "filename"): image_filename},
-                    ),
-                )
-            else:
-                local_id = str(uuid.uuid4())
-                macro_id = str(uuid.uuid4())
-                return AC(
-                    "structured-macro",
-                    {
-                        ET.QName(namespaces["ac"], "name"): "macro-diagram",
-                        ET.QName(namespaces["ac"], "schema-version"): "1",
-                        ET.QName(namespaces["ac"], "data-layout"): "default",
-                        ET.QName(namespaces["ac"], "local-id"): local_id,
-                        ET.QName(namespaces["ac"], "macro-id"): macro_id,
-                    },
-                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "sourceType"}, "MacroBody"),
-                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "attachmentPageId"}),
-                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "syntax"}, "Mermaid"),
-                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "attachmentId"}),
-                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "url"}),
-                    AC("plain-text-body", ET.CDATA(content)),
-                )
+            return self._transform_mermaid(content)
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "code",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "theme"},
+                "Midnight",
+            ),
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "language"},
+                language,
+            ),
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "linenumbers"},
+                "true",
+            ),
+            AC("plain-text-body", ET.CDATA(content)),
+        )
+
+    def _transform_mermaid(self, content: str) -> ET._Element:
+        "Transforms a Mermaid diagram code block."
+
+        if self.options.render_mermaid:
+            image_data = kroki.render(
+                content, output_format=self.options.kroki_output_format
+            )
+            image_hash = hashlib.md5(image_data).hexdigest()
+            image_filename = attachment_name(
+                f"embedded/{image_hash}.{self.options.kroki_output_format}"
+            )
+            self.embedded_images[image_filename] = image_data
+            return AC(
+                "image",
+                {
+                    ET.QName(namespaces["ac"], "align"): "center",
+                    ET.QName(namespaces["ac"], "layout"): "center",
+                },
+                RI(
+                    "attachment",
+                    {ET.QName(namespaces["ri"], "filename"): image_filename},
+                ),
+            )
         else:
+            local_id = str(uuid.uuid4())
+            macro_id = str(uuid.uuid4())
             return AC(
                 "structured-macro",
                 {
-                    ET.QName(namespaces["ac"], "name"): "code",
+                    ET.QName(namespaces["ac"], "name"): "macro-diagram",
                     ET.QName(namespaces["ac"], "schema-version"): "1",
+                    ET.QName(namespaces["ac"], "data-layout"): "default",
+                    ET.QName(namespaces["ac"], "local-id"): local_id,
+                    ET.QName(namespaces["ac"], "macro-id"): macro_id,
                 },
-                AC("parameter", {ET.QName(namespaces["ac"], "name"): "theme"}, "Midnight"),
-                AC("parameter", {ET.QName(namespaces["ac"], "name"): "language"}, language),
                 AC(
-                    "parameter", {ET.QName(namespaces["ac"], "name"): "linenumbers"}, "true"
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "sourceType"},
+                    "MacroBody",
                 ),
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "attachmentPageId"},
+                ),
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "syntax"},
+                    "Mermaid",
+                ),
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "attachmentId"},
+                ),
+                AC("parameter", {ET.QName(namespaces["ac"], "name"): "url"}),
                 AC("plain-text-body", ET.CDATA(content)),
             )
 
@@ -614,7 +647,7 @@ class ConfluenceDocumentOptions:
     generated_by: Optional[str] = "This page has been generated with a tool."
     root_page_id: Optional[str] = None
     render_mermaid: bool = False
-    kroki_output_format: str = 'png'
+    kroki_output_format: Literal["png", "svg"] = "png"
 
 
 class ConfluenceDocument:

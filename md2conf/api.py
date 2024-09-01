@@ -62,6 +62,7 @@ else:
         else:
             return string
 
+
 LOGGER = logging.getLogger(__name__)
 
 

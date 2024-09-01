@@ -85,25 +85,9 @@ class TestAPI(unittest.TestCase):
                 TEST_PAGE_ID,
                 self.sample_dir / "figure" / "interoperability.png",
                 "figure_interoperability.png",
-                "A sample figure",
+                comment="A sample figure",
                 force=True,
             )
-
-    def test_synchronize_with_mermaid(self) -> None:
-        with ConfluenceAPI() as api:
-            Application(
-                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize(self.sample_dir / "with_mermaid.md")
-
-    def test_synchronize_with_mermaid_render_svg(self) -> None:
-        with ConfluenceAPI() as api:
-            Application(
-                api, ConfluenceDocumentOptions(
-                    ignore_invalid_url=True,
-                    render_mermaid=True,
-                    kroki_output_format='svg'
-                )
-            ).synchronize(self.sample_dir / "with_mermaid.md")
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:

@@ -11,12 +11,12 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
-MERMAID_SOURCE = '''
+MERMAID_SOURCE = """
 graph TD
   C{ How to contribute? }
   C --> D[ Reporting bugs ]
   C --> E[ Sharing ideas ]
-'''
+"""
 
 
 class TestKrokiRendering(unittest.TestCase):
@@ -36,12 +36,16 @@ class TestKrokiRendering(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_render_simple_svg(self) -> None:
-        svg = kroki.render(MERMAID_SOURCE, output_format='svg').decode()
+        svg = kroki.render(MERMAID_SOURCE, output_format="svg").decode()
 
-        assert 'transform=' in svg
-        assert 'translate(' in svg
-        assert '<rect height=' in svg
+        self.assertIn("transform=", svg)
+        self.assertIn("translate(", svg)
+        self.assertIn("<rect height=", svg)
 
     def test_render_simple_png(self) -> None:
         png = kroki.render(MERMAID_SOURCE)
-        assert b'PNG' in png
+        self.assertIn(b"PNG", png)
+
+
+if __name__ == "__main__":
+    unittest.main()

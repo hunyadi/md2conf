@@ -42,7 +42,7 @@ In order to get started, you will need
 
 ### Setting up the environment
 
-Confluence organization domain, base path, username, API token, space key, and Kroki server URL can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
+Confluence organization domain, base path, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
 
 ```bash
 export CONFLUENCE_DOMAIN='instructure.atlassian.net'
@@ -50,7 +50,6 @@ export CONFLUENCE_PATH='/wiki/'
 export CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
 export CONFLUENCE_API_KEY='0123456789abcdef'
 export CONFLUENCE_SPACE_KEY='DAP'
-export KROKI_SERVER_URL=https://kroki.your.env
 ```
 
 On Windows, these can be set via system properties.
