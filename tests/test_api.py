@@ -75,7 +75,7 @@ class TestAPI(unittest.TestCase):
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
             data = api.get_attachment_by_name(
-                TEST_PAGE_ID, "figure/interoperability.png"
+                TEST_PAGE_ID, "figure_interoperability.png"
             )
             self.assertIsInstance(data, ConfluenceAttachment)
 
@@ -84,8 +84,8 @@ class TestAPI(unittest.TestCase):
             api.upload_attachment(
                 TEST_PAGE_ID,
                 self.sample_dir / "figure" / "interoperability.png",
-                "figure/interoperability.png",
-                b"A sample figure",
+                "figure_interoperability.png",
+                "A sample figure",
                 force=True,
             )
 
