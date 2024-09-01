@@ -55,14 +55,14 @@ class TestAPI(unittest.TestCase):
 
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
-            id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-            self.assertEqual(id, "%s" % TEST_PAGE_ID)
+            page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
+            self.assertEqual(page_id, "%s" % TEST_PAGE_ID)
 
     def test_switch_space(self) -> None:
         with ConfluenceAPI(ConfluenceProperties(space_key="PLAT")) as api:
             with api.switch_space(TEST_SPACE):
-                id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-                self.assertEqual(id, TEST_PAGE_ID)
+                page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
+                self.assertEqual(page_id, TEST_PAGE_ID)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
@@ -88,6 +88,22 @@ class TestAPI(unittest.TestCase):
                 "A sample figure",
                 force=True,
             )
+
+    def test_synchronize_with_mermaid(self) -> None:
+        with ConfluenceAPI() as api:
+            Application(
+                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
+            ).synchronize(self.sample_dir / "with_mermaid.md")
+
+    def test_synchronize_with_mermaid_render_svg(self) -> None:
+        with ConfluenceAPI() as api:
+            Application(
+                api, ConfluenceDocumentOptions(
+                    ignore_invalid_url=True,
+                    render_mermaid=True,
+                    kroki_output_format='svg'
+                )
+            ).synchronize(self.sample_dir / "with_mermaid.md")
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:

@@ -1,18 +1,22 @@
 # mypy: disable-error-code="dict-item"
 
+import hashlib
 import importlib.resources as resources
 import logging
 import os.path
 import pathlib
 import re
 import sys
+import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Literal
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
 import markdown
 from lxml.builder import ElementMaker
+
+from md2conf import kroki
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -20,7 +24,6 @@ namespaces = {
 }
 for key, value in namespaces.items():
     ET.register_namespace(key, value)
-
 
 HTML = ElementMaker()
 AC = ElementMaker(namespace=namespaces["ac"])
@@ -142,6 +145,7 @@ _languages = [
     "kotlin",
     "livescript",
     "lua",
+    "mermaid",
     "mathematica",
     "matlab",
     "objectivec",
@@ -222,6 +226,8 @@ class ConfluenceConverterOptions:
     """
 
     ignore_invalid_url: bool = False
+    render_mermaid: bool = False
+    kroki_output_format: Literal['png', 'svg'] = 'png'
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -232,6 +238,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     base_path: pathlib.Path
     links: List[str]
     images: List[str]
+    embedded_images: Dict[str, bytes]
     page_metadata: Dict[pathlib.Path, ConfluencePageMetadata]
 
     def __init__(
@@ -246,6 +253,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.base_path = path.parent
         self.links = []
         self.images = []
+        self.embedded_images = {}
         self.page_metadata = page_metadata
 
     def _transform_link(self, anchor: ET._Element) -> None:
@@ -317,8 +325,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if path and is_relative_url(path):
             relative_path = pathlib.Path(path)
             if (
-                relative_path.suffix == ".svg"
-                and (self.base_path / relative_path.with_suffix(".png")).exists()
+                    relative_path.suffix == ".svg"
+                    and (self.base_path / relative_path.with_suffix(".png")).exists()
             ):
                 path = str(relative_path.with_suffix(".png"))
 
@@ -349,19 +357,57 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             language = "none"
         content: str = code.text or ""
         content = content.rstrip()
-        return AC(
-            "structured-macro",
-            {
-                ET.QName(namespaces["ac"], "name"): "code",
-                ET.QName(namespaces["ac"], "schema-version"): "1",
-            },
-            AC("parameter", {ET.QName(namespaces["ac"], "name"): "theme"}, "Midnight"),
-            AC("parameter", {ET.QName(namespaces["ac"], "name"): "language"}, language),
-            AC(
-                "parameter", {ET.QName(namespaces["ac"], "name"): "linenumbers"}, "true"
-            ),
-            AC("plain-text-body", ET.CDATA(content)),
-        )
+
+        if language == "mermaid":
+            if self.options.render_mermaid:
+                image_data = kroki.render(content, output_format=self.options.kroki_output_format)
+                image_hash = hashlib.md5(image_data).hexdigest()
+                image_filename = attachment_name(f"embedded/{image_hash}.{self.options.kroki_output_format}")
+                self.embedded_images[image_filename] = image_data
+                return AC(
+                    "image",
+                    {
+                        ET.QName(namespaces["ac"], "align"): "center",
+                        ET.QName(namespaces["ac"], "layout"): "center",
+                    },
+                    RI(
+                        "attachment",
+                        {ET.QName(namespaces["ri"], "filename"): image_filename},
+                    ),
+                )
+            else:
+                local_id = str(uuid.uuid4())
+                macro_id = str(uuid.uuid4())
+                return AC(
+                    "structured-macro",
+                    {
+                        ET.QName(namespaces["ac"], "name"): "macro-diagram",
+                        ET.QName(namespaces["ac"], "schema-version"): "1",
+                        ET.QName(namespaces["ac"], "data-layout"): "default",
+                        ET.QName(namespaces["ac"], "local-id"): local_id,
+                        ET.QName(namespaces["ac"], "macro-id"): macro_id,
+                    },
+                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "sourceType"}, "MacroBody"),
+                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "attachmentPageId"}),
+                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "syntax"}, "Mermaid"),
+                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "attachmentId"}),
+                    AC("parameter", {ET.QName(namespaces["ac"], "name"): "url"}),
+                    AC("plain-text-body", ET.CDATA(content)),
+                )
+        else:
+            return AC(
+                "structured-macro",
+                {
+                    ET.QName(namespaces["ac"], "name"): "code",
+                    ET.QName(namespaces["ac"], "schema-version"): "1",
+                },
+                AC("parameter", {ET.QName(namespaces["ac"], "name"): "theme"}, "Midnight"),
+                AC("parameter", {ET.QName(namespaces["ac"], "name"): "language"}, language),
+                AC(
+                    "parameter", {ET.QName(namespaces["ac"], "name"): "linenumbers"}, "true"
+                ),
+                AC("plain-text-body", ET.CDATA(content)),
+            )
 
     def _transform_toc(self, code: ET._Element) -> ET._Element:
         return AC(
@@ -567,6 +613,8 @@ class ConfluenceDocumentOptions:
     ignore_invalid_url: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
     root_page_id: Optional[str] = None
+    render_mermaid: bool = False
+    kroki_output_format: str = 'png'
 
 
 class ConfluenceDocument:
@@ -624,7 +672,9 @@ class ConfluenceDocument:
 
         converter = ConfluenceStorageFormatConverter(
             ConfluenceConverterOptions(
-                ignore_invalid_url=self.options.ignore_invalid_url
+                ignore_invalid_url=self.options.ignore_invalid_url,
+                render_mermaid=self.options.render_mermaid,
+                kroki_output_format=self.options.kroki_output_format,
             ),
             path,
             page_metadata,
@@ -632,6 +682,7 @@ class ConfluenceDocument:
         converter.visit(self.root)
         self.links = converter.links
         self.images = converter.images
+        self.embedded_images = converter.embedded_images
 
     def xhtml(self) -> str:
         return _content_to_string(self.root)

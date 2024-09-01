@@ -56,6 +56,48 @@ class TestConversion(unittest.TestCase):
 
                 self.assertEqual(actual, expected)
 
+    def test_mermaid(self) -> None:
+        actual = ConfluenceDocument(
+            self.source_dir / "with_mermaid.md",
+            ConfluenceDocumentOptions(
+                ignore_invalid_url=True,
+                render_mermaid=False,
+            ),
+            {},
+        ).xhtml()
+        actual = self.make_canonical(actual)
+
+        with open(self.target_dir / "with_mermaid.xml", "r") as f:
+            expected = f.read().strip()
+
+        self.assertEqual(actual, expected)
+
+    def test_mermaid_with_kroki(self) -> None:
+        document = ConfluenceDocument(
+            self.source_dir / "with_mermaid.md",
+            ConfluenceDocumentOptions(
+                ignore_invalid_url=True,
+                render_mermaid=True,
+                kroki_output_format='svg'
+            ),
+            {},
+        )
+
+        self.assertIn('embedded_70e2677fa2ad7c42464193fe5d7f8eb1.svg', document.embedded_images)
+
+    def test_mermaid_with_kroki_png(self) -> None:
+        document = ConfluenceDocument(
+            self.source_dir / "with_mermaid.md",
+            ConfluenceDocumentOptions(
+                ignore_invalid_url=True,
+                render_mermaid=True,
+                kroki_output_format='png'
+            ),
+            {},
+        )
+
+        self.assertIn('embedded_d953c781dcc5da4e8e8da4dd3af2e082.png', document.embedded_images)
+
 
 if __name__ == "__main__":
     unittest.main()
