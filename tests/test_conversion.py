@@ -21,10 +21,9 @@ class TestConversion(unittest.TestCase):
         self.maxDiff = 1024
 
         test_dir = Path(__file__).parent
-        parent_dir = test_dir.parent
-
         self.out_dir = test_dir / "output"
-        self.sample_dir = parent_dir / "sample"
+        self.source_dir = test_dir / "source"
+        self.target_dir = test_dir / "target"
         os.makedirs(self.out_dir, exist_ok=True)
 
     def tearDown(self) -> None:
@@ -38,34 +37,24 @@ class TestConversion(unittest.TestCase):
         return content
 
     def test_markdown(self) -> None:
-        actual = ConfluenceDocument(
-            self.sample_dir / "example.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True),
-            {},
-        ).xhtml()
-        actual = self.make_canonical(actual)
+        for entry in os.scandir(self.source_dir):
+            if not entry.name.endswith(".md"):
+                continue
 
-        with open(
-            self.sample_dir / "expected" / "example.xml", "r", encoding="utf-8"
-        ) as f:
-            expected = f.read().strip()
+            name, _ = os.path.splitext(entry.name)
 
-        self.assertEqual(actual, expected)
+            with self.subTest(name=name):
+                actual = ConfluenceDocument(
+                    self.source_dir / f"{name}.md",
+                    ConfluenceDocumentOptions(ignore_invalid_url=True),
+                    {},
+                ).xhtml()
+                actual = self.make_canonical(actual)
 
-    def test_markdown_in_html(self) -> None:
-        actual = ConfluenceDocument(
-            self.sample_dir / "markdown-in-html.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True),
-            {},
-        ).xhtml()
-        actual = self.make_canonical(actual)
+                with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
+                    expected = f.read().strip()
 
-        with open(
-            self.sample_dir / "expected" / "markdown-in-html.xml", "r", encoding="utf-8"
-        ) as f:
-            expected = f.read().strip()
-
-        self.assertEqual(actual, expected)
+                self.assertEqual(actual, expected)
 
 
 if __name__ == "__main__":

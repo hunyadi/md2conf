@@ -1,14 +1,15 @@
-<!-- confluence-page-id: 85668266616 -->
+<!-- confluence-page-id: 00000000000 -->
+
 ## Inside Details/Summary block
 
 <!-- If you add the attribute of markdown it'll be converted to html -->
-<details markdown="1">
+<div markdown="1">
 <summary><b>My summary</b></summary>
 
 | Operation  | Types | Subtypes | Additional info |
 |------------|-------|----------|-----------------|
 | Test       | One   | Sub-One  | This is a test  |
-</details>
+</div>
 
 <!-- With no attribute it will not be converted and you'll end up with the raw markdown table -->
 <div>

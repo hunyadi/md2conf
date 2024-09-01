@@ -195,6 +195,8 @@ class ConfluencePageMetadata:
 
 class NodeVisitor:
     def visit(self, node: ET._Element) -> None:
+        "Recursively visits all descendants of this node."
+
         if len(node) < 1:
             return
 

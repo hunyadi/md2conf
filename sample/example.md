@@ -55,7 +55,7 @@ A nested list:
 
 ![SVG image with caption](figure/interoperability.svg)
 
-International characters (UTF-8): árvíztűrő tükörfúrógép
+UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
 
 ## Code blocks
 
