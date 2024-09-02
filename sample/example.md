@@ -130,7 +130,17 @@ Markdown has no native support for admonitions. Admonitions that follow the [Pyt
 
 ## Collapsed sections
 
-The [GitHub-specific](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) formatting tag `<details>` that produces a collapsed section block is converted into the Confluence structured macro *expand* with a similar appearance.
+The [GitHub-specific](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) formatting tag `<details>` that produces a collapsed section block is converted into the Confluence structured macro *expand* with a similar appearance. Behind the scenes, *md2conf* uses [Markdown in HTML](https://python-markdown.github.io/extensions/md_in_html/) to parse the content of the `<details>` element as Markdown, which is why you must always include the attribute `markdown="1"` on `<details>`:
+
+```markdown
+<details markdown="1">
+<summary>Tips for collapsed sections</summary>
+
+You can add text within a collapsed section.
+
+You can add an image or a code block, too.
+</details>
+```
 
 <details markdown="1">
 <summary>Tips for collapsed sections</summary>

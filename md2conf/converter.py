@@ -16,7 +16,7 @@ import lxml.etree as ET
 import markdown
 from lxml.builder import ElementMaker
 
-from . import kroki
+from . import mermaid
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -227,7 +227,7 @@ class ConfluenceConverterOptions:
 
     ignore_invalid_url: bool = False
     render_mermaid: bool = False
-    kroki_output_format: Literal["png", "svg"] = "png"
+    diagram_output_format: Literal["png", "svg"] = "png"
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -389,12 +389,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Transforms a Mermaid diagram code block."
 
         if self.options.render_mermaid:
-            image_data = kroki.render(
-                content, output_format=self.options.kroki_output_format
-            )
+            image_data = mermaid.render(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(
-                f"embedded/{image_hash}.{self.options.kroki_output_format}"
+                f"embedded_{image_hash}.{self.options.diagram_output_format}"
             )
             self.embedded_images[image_filename] = image_data
             return AC(
@@ -647,7 +645,7 @@ class ConfluenceDocumentOptions:
     generated_by: Optional[str] = "This page has been generated with a tool."
     root_page_id: Optional[str] = None
     render_mermaid: bool = False
-    kroki_output_format: Literal["png", "svg"] = "png"
+    diagram_output_format: Literal["png", "svg"] = "png"
 
 
 class ConfluenceDocument:
@@ -707,7 +705,7 @@ class ConfluenceDocument:
             ConfluenceConverterOptions(
                 ignore_invalid_url=self.options.ignore_invalid_url,
                 render_mermaid=self.options.render_mermaid,
-                kroki_output_format=self.options.kroki_output_format,
+                diagram_output_format=self.options.diagram_output_format,
             ),
             path,
             page_metadata,

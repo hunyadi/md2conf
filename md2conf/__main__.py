@@ -91,14 +91,14 @@ def main() -> None:
         "--no-render-mermaid",
         dest="render_mermaid",
         action="store_false",
-        help="Inline mermaid diagram in the confluence page.",
+        help="Inline Mermaid diagram in Confluence page.",
     )
     parser.add_argument(
         "--render-mermaid-format",
-        dest="kroki_output_format",
+        dest="diagram_output_format",
         choices=["png", "svg"],
         default="png",
-        help="Format for rendering mermaid diagrams (default: 'png').",
+        help="Format for rendering Mermaid diagrams (default: 'png').",
     )
     parser.add_argument(
         "--ignore-invalid-url",
@@ -130,7 +130,7 @@ def main() -> None:
         generated_by=args.generated_by,
         root_page_id=args.root_page,
         render_mermaid=args.render_mermaid,
-        kroki_output_format=args.kroki_output_format,
+        diagram_output_format=args.diagram_output_format,
     )
     properties = ConfluenceProperties(
         args.domain, args.path, args.username, args.apikey, args.space

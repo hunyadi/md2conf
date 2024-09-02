@@ -56,31 +56,29 @@ class TestConversion(unittest.TestCase):
 
                 self.assertEqual(actual, expected)
 
-    @unittest.skip("server unavailable")
-    def test_mermaid_with_kroki(self) -> None:
+    def test_mermaid_embedded_svg(self) -> None:
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                ignore_invalid_url=True, render_mermaid=True, kroki_output_format="svg"
+                ignore_invalid_url=True,
+                render_mermaid=True,
+                diagram_output_format="svg",
             ),
             {},
         )
-        self.assertIn(
-            "embedded_70e2677fa2ad7c42464193fe5d7f8eb1.svg", document.embedded_images
-        )
+        self.assertEqual(len(document.embedded_images), 6)
 
-    @unittest.skip("server unavailable")
-    def test_mermaid_with_kroki_png(self) -> None:
+    def test_mermaid_embedded_png(self) -> None:
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                ignore_invalid_url=True, render_mermaid=True, kroki_output_format="png"
+                ignore_invalid_url=True,
+                render_mermaid=True,
+                diagram_output_format="png",
             ),
             {},
         )
-        self.assertIn(
-            "embedded_d953c781dcc5da4e8e8da4dd3af2e082.png", document.embedded_images
-        )
+        self.assertEqual(len(document.embedded_images), 6)
 
 
 if __name__ == "__main__":

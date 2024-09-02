@@ -4,7 +4,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-import md2conf.kroki as kroki
+import md2conf.mermaid as mermaid
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +19,7 @@ graph TD
 """
 
 
-class TestKrokiRendering(unittest.TestCase):
+class TestMermaidRendering(unittest.TestCase):
     out_dir: Path
 
     def setUp(self) -> None:
@@ -36,14 +36,14 @@ class TestKrokiRendering(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_render_simple_svg(self) -> None:
-        svg = kroki.render(MERMAID_SOURCE, output_format="svg").decode()
+        svg = mermaid.render(MERMAID_SOURCE, output_format="svg").decode()
 
         self.assertIn("transform=", svg)
         self.assertIn("translate(", svg)
         self.assertIn("<rect height=", svg)
 
     def test_render_simple_png(self) -> None:
-        png = kroki.render(MERMAID_SOURCE)
+        png = mermaid.render(MERMAID_SOURCE)
         self.assertIn(b"PNG", png)
 
 
