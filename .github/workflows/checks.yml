@@ -17,4 +17,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements.txt
       - run: bash check.sh
-      - run: CONFLUENCE_USER_NAME="yyy" CONFLUENCE_SPACE_KEY="xxx" CONFLUENCE_DOMAIN="zzz" CONFLUENCE_API_KEY="123" python -m unittest discover -s tests
+      - run: python -m unittest discover -s tests
