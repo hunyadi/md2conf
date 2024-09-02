@@ -33,6 +33,17 @@ python -m unittest discover -s tests
 
 #### Running integration tests
 
+Before running these test you must setup your environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS or on Windows, these can be set via system properties.):
+
+```bash
+CONFLUENCE_DOMAIN='<your domain>.atlassian.net'
+CONFLUENCE_PATH='/wiki/'
+CONFLUENCE_USER_NAME='<your email>'
+CONFLUENCE_API_KEY='0123456789abcdef'
+CONFLUENCE_SPACE_KEY='<your space key>'
+```
+
+Runing the tests. 
 ```
 python -m unittest discover -s integration_tests
 ```
