@@ -515,7 +515,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
-        summary = elem[0].text or ""
+
+        summary = ''.join(elem[0].itertext()).strip() or ""
         elem.remove(elem[0])
 
         self.visit(elem)
