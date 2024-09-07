@@ -36,7 +36,7 @@ jobs:
         run: |
           pip wheel . -w ./_dist
           mkdir dist
-          mv ./_dist/markdown_to_confluence-*.whl ./dist
+          mv ./_dist/hemstreet_markdown_to_confluence-*.whl ./dist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
