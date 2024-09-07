@@ -15,15 +15,15 @@ on: push
 #    types: [published]
 
 env:
-  PACKAGE_NAME: hemstreet_markdown_to_confluence
+  PACKAGE_NAME:
 
 jobs:
   pypi-publish:
     name: Publish release to PyPI
     runs-on: ubuntu-latest
     environment:
-      name: ${{env.PACKAGE_NAME}}
-      url: https://pypi.org/p/${{env.PACKAGE_NAME}}
+      name: pypi
+      url: https://pypi.org/p/hemstreet_markdown_to_confluence
     permissions:
       id-token: write
     steps:
