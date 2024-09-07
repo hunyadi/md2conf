@@ -1,0 +1,24 @@
+ARG PYTHON_VERSION=3.11
+
+FROM python:${PYTHON_VERSION}-alpine as builder
+
+COPY ./ ./
+
+RUN python3 -m pip install --upgrade pip && \
+    pip wheel . -w /dist
+
+
+FROM python:${PYTHON_VERSION}-alpine as runner
+
+RUN adduser -D user
+USER user
+WORKDIR /app
+
+COPY --from=builder --chown=user:user /dist/*.whl dist/
+
+RUN python3 -m pip install `ls -1 dist/*.whl` && \
+    apk add --update nodejs npm && \
+    npm install -g @mermaid-js/mermaid-cli
+
+ENTRYPOINT ["python3", "-m", "md2conf"]
+
