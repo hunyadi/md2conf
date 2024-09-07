@@ -37,9 +37,9 @@ jobs:
           python3 -m pip install --upgrade pip
       - name: Build package
         run: |
-          pip wheel . -w /dist
+          pip wheel . -w ./dist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ID_TOKEN }}
-          packages-dir: dist/
+          packages-dir: ./dist
