@@ -38,8 +38,9 @@ jobs:
       - name: Build package
         run: |
           pip wheel . -w ./dist
+          mkdir build
+          mv ./dist/markdown_to_confluence-*.whl ./build
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ID_TOKEN }}
-          packages-dir: ./dist
