@@ -21,9 +21,6 @@ jobs:
   pypi-publish:
     name: Publish release to PyPI
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/hemstreet_markdown_to_confluence
     permissions:
       id-token: write
     steps:
@@ -39,7 +36,7 @@ jobs:
         run: |
           pip wheel . -w ./_dist
           mkdir dist
-          mv ./_dist/markdown_to_confluence-*.whl ./dist
+          mv ./_dist/markdown_to_confluence-*.whl ./dist/hemstreeet_markdown_to_confluence-0.1.14-py3-none-any.whl
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
