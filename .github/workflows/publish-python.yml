@@ -9,9 +9,10 @@
 
 name: Publish Python Package
 
-on:
-  release:
-    types: [published]
+on: push
+#on:
+#  release:
+#    types: [published]
 
 env:
   PACKAGE_NAME: hemstreet_markdown_to_confluence
@@ -21,10 +22,10 @@ jobs:
     name: Publish release to PyPI
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/p/$PACKAGE_NAME
+      name: ${{env.PACKAGE_NAME}}
+      url: https://pypi.org/p/${{env.PACKAGE_NAME}}
     permissions:
-      id-token: ${{ secrets.PYPI_ID_TOKEN }}
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -40,4 +41,5 @@ jobs:
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          password: ${{ secrets.PYPI_ID_TOKEN }}
           packages-dir: dist/
