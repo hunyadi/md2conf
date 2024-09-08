@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.12
 
 FROM python:${PYTHON_VERSION}-alpine as builder
 
@@ -22,4 +22,3 @@ RUN python3 -m pip install `ls -1 dist/*.whl` && \
 USER user
 
 ENTRYPOINT ["python3", "-m", "md2conf"]
-
