@@ -35,11 +35,11 @@ jobs:
           python3 -m pip install --upgrade pip
       - name: Build package
         run: |
-#          pip wheel . -w ./_dist
           python -m build --sdist --outdir _dist/
           mkdir dist
           mv ./_dist/${{ env.PACKAGE_NAME }}-*.whl ./dist
           mv ./_dist/${{ env.PACKAGE_NAME }}-*.tar.gz ./dist
+        # pip wheel . -w ./_dist
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v2.1.1
         with:
