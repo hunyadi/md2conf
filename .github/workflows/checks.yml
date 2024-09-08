@@ -17,4 +17,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements.txt
       - run: bash check.sh
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+      - run: npm install -g @mermaid-js/mermaid-cli
       - run: python -m unittest discover -s tests
