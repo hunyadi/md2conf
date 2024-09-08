@@ -152,7 +152,7 @@ optional arguments:
 
 ### Using the docker container
 
-You can run the dokcer container via docker run or via dockerfile. Either can accept the environment variables or argument similar to the python options. 
+You can run the docker container via docker run or via dockerfile. Either can accept the environment variables or argument similar to the python options. 
 The final argument `./` is mdpath.
 
 * `docker run --rm --name md2conf hemstreet/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./`
