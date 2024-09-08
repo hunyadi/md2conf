@@ -1,21 +1,21 @@
 # Contributing
 
-We want to make contributing to this project as easy and transparent as
-possible.
+We want to make contributing to this project as easy and transparent as possible.
 
-## Pull Requests
+## Pull requests
 
-We actively welcome your pull requests.
+We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix
+or a single feature.
 
-### Pre-reqs
+### Prerequisites
 
-1. Python is setup. Minimum version we support is 3.8 so you should develop using that. 
+Python is installed. Minimum version we support is Python 3.8.
 
-### Helping you get setup
+### Helping you get set up
 
-0. Create a GitHub issue proposing the issue or feature you would like to have added.
-1. Fork the repo and create your branch from `master`.
-2. Setup your enviornment
+1. Create a GitHub issue proposing the feature you would like to have added.
+2. Fork the repo and create your branch from `master`.
+3. Set up your environment:
 
    ```
    git clone git@github.com:<your github username>/md2conf.git
@@ -23,17 +23,19 @@ We actively welcome your pull requests.
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
-3. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
-   Note: The `integration_tests` directory assumes you have an active confluence instance to run those against. 
 
-#### Running Unit tests
+4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
+   Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against. 
+
+### Running unit tests
+
 ```
 python -m unittest discover -s tests
 ```
 
-#### Running integration tests
+### Running integration tests
 
-Before running these test you must setup your environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS or on Windows, these can be set via system properties.):
+Before running these tests, you must set up your environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS, or *System properties* on Windows.):
 
 ```bash
 CONFLUENCE_DOMAIN='<your domain>.atlassian.net'
@@ -43,10 +45,12 @@ CONFLUENCE_API_KEY='0123456789abcdef'
 CONFLUENCE_SPACE_KEY='<your space key>'
 ```
 
-Runing the tests. 
+Runing the tests:
 ```
 python -m unittest discover -s integration_tests
 ```
 
-4. Verify all code you have added passes static and code checks. Depending on your OS there is a script for you to use. If using windows `check.bat`, otherwise use `check.sh`. 
+### Running static code checks
+
+Verify that all code you have added passes static code checks. Depending on your OS, there is a script for you to use. If using Windows, run `check.bat`, otherwise run `./check.sh`.
 
