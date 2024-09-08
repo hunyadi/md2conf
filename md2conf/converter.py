@@ -503,7 +503,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates a collapsed section.
 
-        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) # noqa: E501 # no way to make this link shorter
         into the Confluence structured macro *expand*.
         """
 
