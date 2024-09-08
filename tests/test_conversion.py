@@ -18,7 +18,7 @@ class TestConversion(unittest.TestCase):
     out_dir: Path
 
     def setUp(self) -> None:
-        self.maxDiff = 1024
+        self.maxDiff = None
 
         test_dir = Path(__file__).parent
         self.out_dir = test_dir / "output"
