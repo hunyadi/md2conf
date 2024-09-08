@@ -14,15 +14,11 @@ on: push
 #  release:
 #    types: [published]
 
-env:
-  PACKAGE_NAME: hemstreet_markdown_to_confluence
-
 jobs:
   pypi-publish:
     name: Publish release to PyPI
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # IMPORTANT: mandatory for making GitHub Releases
       id-token: write  # IMPORTANT: mandatory for sigstore
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +31,7 @@ jobs:
           python3 -m pip install --upgrade pip
       - name: Build package
         run: |
-          python -m build --sdist --outdir _dist/
-          mkdir dist
-          mv ./_dist/${{ env.PACKAGE_NAME }}-*.whl ./dist
-          mv ./_dist/${{ env.PACKAGE_NAME }}-*.tar.gz ./dist
-        # pip wheel . -w ./_dist
+          python setup.py sdist bdist_wheel
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v2.1.1
         with:
@@ -50,4 +42,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ID_TOKEN }}
-          packages-dir: ./dist
