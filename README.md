@@ -149,3 +149,30 @@ optional arguments:
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
 ```
+
+### Using the docker container
+
+You can run the dokcer container via docker run or via dockerfile. Either can accept the environment variables or argument similar to the python options. 
+The final argument `./` is mdpath.
+
+* `docker run --rm --name md2conf hemstreet/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./`
+
+Note that the entrypont for the docker container's base image is `ENTRYPOINT ["python3", "-m", "md2conf"]`
+```Dockerfile
+FROM hunyadi/md2conf:latest
+
+ENV CONFLUENCE_DOMAIN='instructure.atlassian.net'
+ENV CONFLUENCE_PATH='/wiki/'
+ENV CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
+ENV CONFLUENCE_API_KEY='0123456789abcdef'
+ENV CONFLUENCE_SPACE_KEY='DAP'
+
+CMD ["./"]
+```
+or via arguments
+
+ ```Dockerfile
+FROM hunyadi/md2conf:latest
+
+CMD ["-d", "instructure.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "DAP", "./"]
+```
