@@ -13,3 +13,12 @@ You can add an image or a code block, too.
 puts "Hello World"
 ```
 </details>
+
+
+<details markdown="1">
+<summary><b>Tips</b> for <i>collapsed sections with html</i></summary>
+
+You can add text within a collapsed section.
+
+And the summary can have html in it but it should get stripped
+</details>

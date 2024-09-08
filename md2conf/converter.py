@@ -503,7 +503,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates a collapsed section.
 
-        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) # noqa: E501 # no way to make this link shorter
         into the Confluence structured macro *expand*.
         """
 
@@ -513,7 +513,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
-        summary = elem[0].text or ""
+
+        summary = ''.join(elem[0].itertext()).strip() or ""
         elem.remove(elem[0])
 
         self.visit(elem)
