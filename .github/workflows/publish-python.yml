@@ -19,10 +19,10 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install wheel
+          pip3 install build
       - name: Build package
         run: |
-          python3 setup.py sdist bdist_wheel
+          python -m build --wheel --sdist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
