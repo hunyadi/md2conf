@@ -10,15 +10,10 @@ RUN python3 -m pip install --upgrade pip && \
 
 FROM python:${PYTHON_VERSION}-alpine as runner
 
-RUN adduser -D user
-WORKDIR /app
-
-COPY --from=builder --chown=user:user /dist/*.whl dist/
+COPY --from=builder /dist/*.whl dist/
 
 RUN python3 -m pip install `ls -1 dist/*.whl` && \
     apk add --update nodejs npm && \
     npm install -g @mermaid-js/mermaid-cli
-
-USER user
 
 ENTRYPOINT ["python3", "-m", "md2conf"]
