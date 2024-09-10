@@ -503,6 +503,52 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *content,
         )
 
+    def _transform_alert(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates an info, tip, note or warning panel from a GitHub alert.
+
+        Transforms
+        [GitHub alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)  # noqa: E501 # no way to make this link shorter
+        syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
+        """
+
+        pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
+
+        content = elem[0]
+        if content.text is None:
+            raise DocumentError("empty content")
+
+        match = pattern.match(content.text)
+        if match is None:
+            raise DocumentError("not an alert")
+        alert = match.group(1)
+
+        if alert == "NOTE":
+            class_name = "note"
+        elif alert == "TIP":
+            class_name = "tip"
+        elif alert == "IMPORTANT":
+            class_name = "tip"
+        elif alert == "WARNING":
+            class_name = "warning"
+        elif alert == "CAUTION":
+            class_name = "warning"
+        else:
+            raise DocumentError(f"unsupported alert: {alert}")
+
+        for e in elem:
+            self.visit(e)
+
+        content.text = pattern.sub("", content.text, count=1)
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): class_name,
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC("rich-text-body", {}, *list(elem)),
+        )
+
     def _transform_section(self, elem: ET._Element) -> ET._Element:
         """
         Creates a collapsed section.
@@ -568,6 +614,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # </div>
         elif child.tag == "div" and "admonition" in child.attrib.get("class", ""):
             return self._transform_admonition(child)
+
+        # Alerts in GitHub
+        # <blockquote>
+        #   <p>[!TIP] ...</p>
+        # </blockquote>
+        elif (
+            child.tag == "blockquote"
+            and len(child) > 0
+            and child[0].tag == "p"
+            and child[0].text is not None
+            and child[0].text.startswith("[!")
+        ):
+            return self._transform_alert(child)
 
         # <details markdown="1">
         # <summary>...</summary>
