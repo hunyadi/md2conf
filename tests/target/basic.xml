@@ -1,1 +1,61 @@
-<ac:structured-macro ac:name="info" ac:schema-version="1"><ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body></ac:structured-macro><h2>Basic features</h2><p>Text with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <ins>underline</ins> and <del>strikethrough</del>.</p><p>Absolute link to an <a href="http://example.com/">external location</a> or relative link to a <a href="#Basic-features">heading in the same document</a>. Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <a href="https://example.com">https://example.com</a> and <a href="mailto:me@example.com">me@example.com</a>. Relative URLs to <a>locations not exported</a> may be skipped.</p><p>An ordered list:</p><ol><li><em>List item 1</em></li><li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li><li><em>List item 3</em></li><li><code>List item 4</code></li></ol><p>A bullet point list:</p><ul><li><em>List item 1</em></li><li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li><li><em>List item 3</em></li><li><code>List item 4</code></li></ul><p>An unordered list:</p><ul><li><em>List item 1</em></li><li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li><li><em>List item 3</em></li><li><code>List item 4</code></li></ul><p>A nested list:</p><ul><li>List item 1<ul><li>Nested item 1<ol><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol> </li><li>Nested item 2<ul><li>Item 4</li><li>Item 5</li><li>Item 6</li></ul> </li></ul> </li><li>List item 2<ol><li>Nested item 3</li><li>Nested item 4</li></ol> </li></ul><ac:image ac:align="center" ac:layout="center"><ri:attachment ri:filename="figure_interoperability.png"/><ac:caption><p>PNG image with caption</p></ac:caption></ac:image><ac:image ac:align="center" ac:layout="center"><ri:attachment ri:filename="figure_interoperability.svg"/><ac:caption><p>SVG image with caption</p></ac:caption></ac:image><p>UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.</p>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Basic features</h2>
+<p>Text with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <ins>underline</ins> and <del>strikethrough</del>.</p>
+<p>Absolute link to an <a href="http://example.com/">external location</a> or relative link to a <a href="#Basic-features">heading in the same document</a>. Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <a href="https://example.com">https://example.com</a> and <a href="mailto:me@example.com">me@example.com</a>. Relative URLs to <a>locations not exported</a> may be skipped.</p>
+<p>An ordered list:</p>
+<ol>
+  <li><em>List item 1</em></li>
+  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
+  <li><em>List item 3</em></li>
+  <li><code>List item 4</code></li>
+</ol>
+<p>A bullet point list:</p>
+<ul>
+  <li><em>List item 1</em></li>
+  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
+  <li><em>List item 3</em></li>
+  <li><code>List item 4</code></li>
+</ul>
+<p>An unordered list:</p>
+<ul>
+  <li><em>List item 1</em></li>
+  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
+  <li><em>List item 3</em></li>
+  <li><code>List item 4</code></li>
+</ul>
+<p>A nested list:</p>
+<ul>
+  <li>List item 1<ul>
+      <li>Nested item 1<ol>
+          <li>Item 1</li>
+          <li>Item 2</li>
+          <li>Item 3</li>
+        </ol> </li>
+      <li>Nested item 2<ul>
+          <li>Item 4</li>
+          <li>Item 5</li>
+          <li>Item 6</li>
+        </ul> </li>
+    </ul> </li>
+  <li>List item 2<ol>
+      <li>Nested item 3</li>
+      <li>Nested item 4</li>
+    </ol> </li>
+</ul>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:attachment ri:filename="figure_interoperability.png"/>
+  <ac:caption>
+    <p>PNG image with caption</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:attachment ri:filename="figure_interoperability.svg"/>
+  <ac:caption>
+    <p>SVG image with caption</p>
+  </ac:caption>
+</ac:image>
+<p>UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.</p>

@@ -6,12 +6,31 @@ import shutil
 import unittest
 from pathlib import Path
 
-from md2conf.converter import ConfluenceDocument, ConfluenceDocumentOptions
+from md2conf.converter import (
+    ConfluenceDocument,
+    ConfluenceDocumentOptions,
+    elements_from_string,
+    elements_to_string,
+)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
+
+
+def canonicalize(content: str) -> str:
+    "Converts a Confluence Storage Format (CSF) document to the normalized format."
+
+    return elements_to_string(elements_from_string(content))
+
+
+def standardize(content: str) -> str:
+    "Converts a Confluence Storage Format (CSF) document to the normalized format, removing unique identifiers."
+
+    uuid_pattern = re.compile(r"\b[0-9a-fA-F-]{36}\b")
+    content = re.sub(uuid_pattern, "UUID", content)
+    return canonicalize(content)
 
 
 class TestConversion(unittest.TestCase):
@@ -29,13 +48,6 @@ class TestConversion(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 
-    @staticmethod
-    def make_canonical(content: str) -> str:
-        uuid_pattern = re.compile(r"\b[0-9a-fA-F-]{36}\b")
-        content = re.sub(uuid_pattern, "UUID", content)
-        content = content.strip()
-        return content
-
     def test_markdown(self) -> None:
         for entry in os.scandir(self.source_dir):
             if not entry.name.endswith(".md"):
@@ -49,10 +61,10 @@ class TestConversion(unittest.TestCase):
                     ConfluenceDocumentOptions(ignore_invalid_url=True),
                     {},
                 ).xhtml()
-                actual = self.make_canonical(actual)
+                actual = standardize(actual)
 
                 with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
-                    expected = f.read().strip()
+                    expected = canonicalize(f.read())
 
                 self.assertEqual(actual, expected)
 

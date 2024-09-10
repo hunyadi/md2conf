@@ -1,12 +1,31 @@
-<ac:structured-macro ac:name="info" ac:schema-version="1"><ac:rich-text-body><p>This page has been generated with a tool.</p></ac:rich-text-body></ac:structured-macro><h2>Code blocks</h2><p>A language-neutral code block:</p><ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="theme">Midnight</ac:parameter><ac:parameter ac:name="language">none</ac:parameter><ac:parameter ac:name="linenumbers">true</ac:parameter><ac:plain-text-body><![CDATA[func:
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Code blocks</h2>
+<p>A language-neutral code block:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="theme">Midnight</ac:parameter>
+  <ac:parameter ac:name="language">none</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[func:
     preformatted text]]></ac:plain-text-body></ac:structured-macro><p>A code block in Python:</p><ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="theme">Midnight</ac:parameter><ac:parameter ac:name="language">python</ac:parameter><ac:parameter ac:name="linenumbers">true</ac:parameter><ac:plain-text-body><![CDATA[def func(n: int) -> str:
     return str(n)]]></ac:plain-text-body></ac:structured-macro><p>A code block in Java:</p><ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="theme">Midnight</ac:parameter><ac:parameter ac:name="language">java</ac:parameter><ac:parameter ac:name="linenumbers">true</ac:parameter><ac:plain-text-body><![CDATA[class Simple {
     public static void main(String args[]) {
         System.out.println("Hello Java!");
     }
-}]]></ac:plain-text-body></ac:structured-macro><p>A code block in JSON:</p><ac:structured-macro ac:name="code" ac:schema-version="1"><ac:parameter ac:name="theme">Midnight</ac:parameter><ac:parameter ac:name="language">json</ac:parameter><ac:parameter ac:name="linenumbers">true</ac:parameter><ac:plain-text-body><![CDATA[{
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>A code block in JSON:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="theme">Midnight</ac:parameter>
+  <ac:parameter ac:name="language">json</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[{
     "boolean": true,
     "integer": 42,
     "string": "value",
     "list": [1,2,3]
-}]]></ac:plain-text-body></ac:structured-macro>
+}]]></ac:plain-text-body>
+</ac:structured-macro>

@@ -106,6 +106,10 @@ def elements_from_strings(items: List[str]) -> ET._Element:
             return _elements_from_strings(dtd_path, items)
 
 
+def elements_from_string(content: str) -> ET._Element:
+    return elements_from_strings([content])
+
+
 _languages = [
     "abap",
     "actionscript3",
@@ -455,8 +459,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates an info, tip, note or warning panel.
 
-        Transforms [Python-Markdown admonition](https://python-markdown.github.io/extensions/admonition/) syntax
-        into Confluence structured macro syntax.
+        Transforms [Python-Markdown admonition](https://python-markdown.github.io/extensions/admonition/)
+        syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
         """
 
         # <div class="admonition note">
@@ -503,8 +507,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates a collapsed section.
 
-        Transforms a [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections) # noqa: E501 # no way to make this link shorter
-        into the Confluence structured macro *expand*.
+        Transforms
+        [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)  # noqa: E501 # no way to make this link shorter
+        syntax into the Confluence structured macro *expand*.
         """
 
         if elem[0].tag != "summary":
@@ -514,7 +519,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
 
-        summary = ''.join(elem[0].itertext()).strip() or ""
+        summary = "".join(elem[0].itertext()).strip() or ""
         elem.remove(elem[0])
 
         self.visit(elem)
@@ -717,7 +722,7 @@ class ConfluenceDocument:
         self.embedded_images = converter.embedded_images
 
     def xhtml(self) -> str:
-        return _content_to_string(self.root)
+        return elements_to_string(self.root)
 
 
 def attachment_name(name: str) -> str:
@@ -740,10 +745,10 @@ def sanitize_confluence(html: str) -> str:
 
     root = elements_from_strings([html])
     ConfluenceStorageFormatCleaner().visit(root)
-    return _content_to_string(root)
+    return elements_to_string(root)
 
 
-def _content_to_string(root: ET._Element) -> str:
+def elements_to_string(root: ET._Element) -> str:
     xml = ET.tostring(root, encoding="utf8", method="xml").decode("utf8")
     m = re.match(r"^<root\s+[^>]*>(.*)</root>\s*$", xml, re.DOTALL)
     if m:
