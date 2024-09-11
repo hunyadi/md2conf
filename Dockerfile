@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.9
 FROM python:${PYTHON_VERSION}-alpine
 RUN python3 -m pip install --upgrade pip
 COPY dist/*.whl dist/
