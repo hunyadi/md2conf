@@ -68,6 +68,19 @@ class TestConversion(unittest.TestCase):
 
                 self.assertEqual(actual, expected)
 
+    def test_heading_anchors(self) -> None:
+        actual = ConfluenceDocument(
+            self.source_dir / "sections.md",
+            ConfluenceDocumentOptions(ignore_invalid_url=True, heading_anchors=True),
+            {},
+        ).xhtml()
+        actual = standardize(actual)
+
+        with open(self.target_dir / "anchors.xml", "r", encoding="utf-8") as f:
+            expected = canonicalize(f.read())
+
+        self.assertEqual(actual, expected)
+
     def test_mermaid_embedded_svg(self) -> None:
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",

@@ -23,6 +23,7 @@ class Arguments(argparse.Namespace):
     space: str
     loglevel: str
     ignore_invalid_url: bool
+    heading_anchors: bool
     generated_by: Optional[str]
 
 
@@ -101,6 +102,12 @@ def main() -> None:
         help="Format for rendering Mermaid diagrams (default: 'png').",
     )
     parser.add_argument(
+        "--heading-anchors",
+        action="store_true",
+        default=False,
+        help="Place an anchor at each section heading with GitHub-style same-page identifiers.",
+    )
+    parser.add_argument(
         "--ignore-invalid-url",
         action="store_true",
         default=False,
@@ -126,6 +133,7 @@ def main() -> None:
     )
 
     options = ConfluenceDocumentOptions(
+        heading_anchors=args.heading_anchors,
         ignore_invalid_url=args.ignore_invalid_url,
         generated_by=args.generated_by,
         root_page_id=args.root_page,

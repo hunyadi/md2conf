@@ -220,6 +220,15 @@ class NodeVisitor:
         pass
 
 
+def title_to_identifier(title: str) -> str:
+    "Converts a section heading title to a GitHub-style Markdown same-page anchor."
+
+    s = title.strip().lower()
+    s = re.sub("[^ A-Za-z0-9]", "", s)
+    s = s.replace(" ", "-")
+    return s
+
+
 @dataclass
 class ConfluenceConverterOptions:
     """
@@ -227,9 +236,14 @@ class ConfluenceConverterOptions:
 
     :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
         plain text; when false, raise an exception.
+    :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
+        conversion rules for the identifier.
+    :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
+    :param diagram_output_format: Target image format for diagrams.
     """
 
     ignore_invalid_url: bool = False
+    heading_anchors: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
 
@@ -259,6 +273,30 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.images = []
         self.embedded_images = {}
         self.page_metadata = page_metadata
+
+    def _transform_heading(self, heading: ET._Element) -> None:
+        title = "".join(heading.itertext()).strip()
+
+        for e in heading:
+            self.visit(e)
+
+        anchor = AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "anchor",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): ""},
+                title_to_identifier(title),
+            ),
+        )
+
+        # insert anchor as first child, pushing any text nodes
+        heading.insert(0, anchor)
+        anchor.tail = heading.text
+        heading.text = None
 
     def _transform_link(self, anchor: ET._Element) -> None:
         url = anchor.attrib["href"]
@@ -565,7 +603,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
 
-        summary = "".join(elem[0].itertext()).strip() or ""
+        summary = "".join(elem[0].itertext()).strip()
         elem.remove(elem[0])
 
         self.visit(elem)
@@ -592,6 +630,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if child.tail:
             tail: str = child.tail
             child.tail = tail.replace("\n", " ")
+
+        if self.options.heading_anchors:
+            # <h1>...</h1>
+            # <h2>...</h2> ...
+            if re.match(r"^h[1-6]$", child.tag, flags=re.IGNORECASE) is not None:
+                self._transform_heading(child)
+                return None
 
         # <p><img src="..." /></p>
         if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
@@ -703,10 +748,16 @@ class ConfluenceDocumentOptions:
 
     :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
         plain text; when false, raise an exception.
+    :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
+        conversion rules for the identifier.
+    :param generated_by: Text to use as the generated-by prompt.
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
+    :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
+    :param diagram_output_format: Target image format for diagrams.
     """
 
     ignore_invalid_url: bool = False
+    heading_anchors: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
     root_page_id: Optional[str] = None
     render_mermaid: bool = False
@@ -769,6 +820,7 @@ class ConfluenceDocument:
         converter = ConfluenceStorageFormatConverter(
             ConfluenceConverterOptions(
                 ignore_invalid_url=self.options.ignore_invalid_url,
+                heading_anchors=self.options.heading_anchors,
                 render_mermaid=self.options.render_mermaid,
                 diagram_output_format=self.options.diagram_output_format,
             ),
