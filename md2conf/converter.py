@@ -495,7 +495,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
     def _transform_admonition(self, elem: ET._Element) -> ET._Element:
         """
-        Creates an info, tip, note or warning panel.
+        Creates an info, tip, note or warning panel from a Markdown admonition.
 
         Transforms [Python-Markdown admonition](https://python-markdown.github.io/extensions/admonition/)
         syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.

@@ -1,7 +1,18 @@
 import os
 import os.path
+import shutil
 import subprocess
 from typing import Literal
+
+
+def has_mmdc() -> bool:
+    "True if Mermaid diagram converter is available on the OS."
+
+    if os.name == "nt":
+        executable = "mmdc.cmd"
+    else:
+        executable = "mmdc"
+    return shutil.which(executable) is not None
 
 
 def render(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:

@@ -18,6 +18,8 @@
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "cSpell.words": [
-        "blockquote"
+        "blockquote",
+        "levelname",
+        "mmdc"
     ]
 }

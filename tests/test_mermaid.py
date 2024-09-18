@@ -4,7 +4,8 @@ import shutil
 import unittest
 from pathlib import Path
 
-import md2conf.mermaid as mermaid
+from md2conf.mermaid import has_mmdc, render
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,6 +20,7 @@ graph TD
 """
 
 
+@unittest.skipUnless(has_mmdc(), "mmdc is not available")
 class TestMermaidRendering(unittest.TestCase):
     out_dir: Path
 
@@ -36,14 +38,14 @@ class TestMermaidRendering(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_render_simple_svg(self) -> None:
-        svg = mermaid.render(MERMAID_SOURCE, output_format="svg").decode()
+        svg = render(MERMAID_SOURCE, output_format="svg").decode()
 
         self.assertIn("transform=", svg)
         self.assertIn("translate(", svg)
         self.assertIn("<rect height=", svg)
 
     def test_render_simple_png(self) -> None:
-        png = mermaid.render(MERMAID_SOURCE)
+        png = render(MERMAID_SOURCE)
         self.assertIn(b"PNG", png)
 
 

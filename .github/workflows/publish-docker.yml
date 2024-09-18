@@ -15,5 +15,5 @@ jobs:
           name: hunyadi/md2conf
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: Dockerfile_dist
+          dockerfile: Dockerfile
           tags: "latest,${{ github.ref_name }}"

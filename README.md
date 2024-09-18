@@ -14,16 +14,23 @@ This Python package
 
 * Sections and subsections
 * Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~
-* Link to [external locations](http://example.com/)
+* Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
 * Ordered and unordered lists
 * Code blocks (e.g. Python, JSON, XML)
 * Image references (uploaded as Confluence page attachments)
-* [Table of Contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
-* [Admonitions](https://python-markdown.github.io/extensions/admonition/) (converted into *info*, *tip*, *note* and *warning* Confluence panels)
-* Collapsed sections (converted into *expand* macros)
-* [Mermaid diagrams](https://mermaid.live/) in code blocks
+* Tables
+* [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
+* [Admonitions](https://python-markdown.github.io/extensions/admonition/) and [alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
+* [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+* [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
 
 ## Installation
+
+Install the core package from PyPI:
+
+```sh
+pip install markdown-to-confluence
+```
 
 Converting code blocks of Mermaid diagrams into Confluence image attachments requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli):
 
@@ -110,7 +117,7 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
 
-```console
+```sh
 $ python3 -m md2conf sample/example.md
 ```
 
@@ -118,14 +125,15 @@ Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
 $ python3 -m md2conf --help
-usage: md2conf [-h] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE] [--generated-by GENERATED_BY]
-               [--no-generated-by] [--ignore-invalid-url] [--local]
+usage: md2conf [-h] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE]
+               [--generated-by GENERATED_BY] [--no-generated-by] [--render-mermaid] [--no-render-mermaid]
+               [--render-mermaid-format {png,svg}] [--heading-anchors] [--ignore-invalid-url] [--local]
                mdpath
 
 positional arguments:
   mdpath                Path to Markdown file or directory to convert and publish.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -d DOMAIN, --domain DOMAIN
                         Confluence organization domain.
@@ -146,18 +154,21 @@ optional arguments:
   --no-render-mermaid   Inline Mermaid diagram in Confluence page.
   --render-mermaid-format {png,svg}
                         Format for rendering Mermaid diagrams (default: 'png').
+  --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
 ```
 
 ### Using the docker container
 
-You can run the docker container via docker run or via dockerfile. Either can accept the environment variables or argument similar to the python options. 
-The final argument `./` is mdpath.
+You can run the docker container via `docker run` or via `Dockerfile`. Either can accept the environment variables or arguments similar to the Python options.  The final argument `./` corresponds to `mdpath` in the command-line utility.
 
-* `docker run --rm --name md2conf hunyadi/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./`
+```sh
+docker run --rm --name md2conf hunyadi/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
+```
 
-Note that the entrypont for the docker container's base image is `ENTRYPOINT ["python3", "-m", "md2conf"]`
+Note that the entry point for the docker container's base image is `ENTRYPOINT ["python3", "-m", "md2conf"]`.
+
 ```Dockerfile
 FROM hunyadi/md2conf:latest
 
@@ -169,9 +180,10 @@ ENV CONFLUENCE_SPACE_KEY='DAP'
 
 CMD ["./"]
 ```
-or via arguments
 
- ```Dockerfile
+Alternatively,
+
+```Dockerfile
 FROM hunyadi/md2conf:latest
 
 CMD ["-d", "instructure.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "DAP", "./"]

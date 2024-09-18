@@ -12,6 +12,7 @@ from md2conf.converter import (
     elements_from_string,
     elements_to_string,
 )
+from md2conf.mermaid import has_mmdc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -81,6 +82,7 @@ class TestConversion(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+    @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_svg(self) -> None:
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
@@ -93,6 +95,7 @@ class TestConversion(unittest.TestCase):
         )
         self.assertEqual(len(document.embedded_images), 6)
 
+    @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_png(self) -> None:
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
