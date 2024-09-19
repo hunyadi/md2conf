@@ -1,7 +1,7 @@
 import logging
 import os.path
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from .api import ConfluenceSession
 from .converter import (
@@ -42,31 +42,64 @@ class Application:
 
         self._synchronize_page(page_path, {})
 
+    def _get_qualified_id(self, absolute_path: Path) -> Optional[str]:
+        with open(absolute_path, "r", encoding="utf-8") as f:
+            document = f.read()
+
+        qualified_id, _ = extract_qualified_id(document)
+        if qualified_id is not None:
+            return qualified_id.page_id
+        else:
+            return None
+
+    def _index_directory(
+        self,
+        local_dir: Path,
+        root_id: Optional[str],
+        page_metadata: Dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        "Indexes Markdown files in a directory recursively."
+
+        LOGGER.info(f"Synchronizing directory: {local_dir}")
+
+        files: List[Path] = []
+        directories: List[Path] = []
+        for entry in os.scandir(local_dir):
+            if entry.is_file():
+                if entry.name.endswith(".md"):
+                    # skip non-markdown files
+                    files.append((Path(local_dir) / entry.name).absolute())
+            elif entry.is_dir():
+                if not entry.name.startswith("."):
+                    directories.append((Path(local_dir) / entry.name).absolute())
+
+        # make page act as parent node in Confluence
+        parent_id: Optional[str] = None
+        if "index.md" in files:
+            parent_id = self._get_qualified_id(Path(local_dir) / "index.md")
+        elif "README.md" in files:
+            parent_id = self._get_qualified_id(Path(local_dir) / "README.md")
+
+        if parent_id is None:
+            parent_id = root_id
+
+        for doc in files:
+            metadata = self._get_or_create_page(doc, parent_id)
+            LOGGER.debug(f"indexed {doc} with metadata: {metadata}")
+            page_metadata[doc] = metadata
+
+        for directory in directories:
+            self._index_directory(Path(local_dir) / directory, parent_id, page_metadata)
+
     def synchronize_directory(self, local_dir: Path) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
-        LOGGER.info(f"Synchronizing directory: {local_dir}")
-
         # Step 1: build index of all page metadata
-        # NOTE: Pathlib.walk() is implemented only in Python 3.12+
-        # so sticking for old os.walk
-        for root, directories, files in os.walk(local_dir):
-            for file_name in files:
-                # Reconstitute Path object back
-                docfile = (Path(root) / file_name).absolute()
+        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        self._index_directory(local_dir, self.options.root_page_id, page_metadata)
+        LOGGER.info(f"indexed {len(page_metadata)} page(s)")
 
-                # Skip non-markdown files
-                if docfile.suffix.lower() != ".md":
-                    continue
-                metadata = self._get_or_create_page(docfile)
-
-                LOGGER.debug(f"indexed {docfile} with metadata: {metadata}")
-                page_metadata[docfile] = metadata
-
-        LOGGER.info(f"indexed {len(page_metadata)} pages")
-
-        # Step 2: Convert each page
+        # Step 2: convert each page
         for page_path in page_metadata.keys():
             self._synchronize_page(page_path, page_metadata)
 
@@ -87,7 +120,11 @@ class Application:
             self._update_document(document, base_path)
 
     def _get_or_create_page(
-        self, absolute_path: Path, title: Optional[str] = None
+        self,
+        absolute_path: Path,
+        parent_id: Optional[str],
+        *,
+        title: Optional[str] = None,
     ) -> ConfluencePageMetadata:
         """
         Creates a new Confluence page if no page is linked in the Markdown document.
@@ -103,7 +140,7 @@ class Application:
                 qualified_id.page_id, space_key=qualified_id.space_key
             )
         else:
-            if self.options.root_page_id is None:
+            if parent_id is None:
                 raise ValueError(
                     "expected: Confluence page ID to act as parent for Markdown files with no linked Confluence page"
                 )
@@ -112,9 +149,7 @@ class Application:
             if title is None:
                 title = absolute_path.stem
 
-            confluence_page = self.api.get_or_create_page(
-                title, self.options.root_page_id
-            )
+            confluence_page = self.api.get_or_create_page(title, parent_id)
             self._update_markdown(
                 absolute_path,
                 document,
