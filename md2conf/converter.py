@@ -4,11 +4,11 @@ import hashlib
 import importlib.resources as resources
 import logging
 import os.path
-import pathlib
 import re
 import sys
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Tuple
 from urllib.parse import ParseResult, urlparse, urlunparse
 
@@ -61,7 +61,7 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def _elements_from_strings(dtd_path: pathlib.Path, items: List[str]) -> ET._Element:
+def _elements_from_strings(dtd_path: Path, items: List[str]) -> ET._Element:
     """
     Creates a fragment of several XML nodes from their string representation wrapped in a root element.
 
@@ -252,18 +252,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into the Confluence storage format."
 
     options: ConfluenceConverterOptions
-    path: pathlib.Path
-    base_path: pathlib.Path
+    path: Path
+    base_path: Path
     links: List[str]
     images: List[str]
     embedded_images: Dict[str, bytes]
-    page_metadata: Dict[pathlib.Path, ConfluencePageMetadata]
+    page_metadata: Dict[Path, ConfluencePageMetadata]
 
     def __init__(
         self,
         options: ConfluenceConverterOptions,
-        path: pathlib.Path,
-        page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
+        path: Path,
+        page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
         self.options = options
@@ -365,7 +365,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
         if path and is_relative_url(path):
-            relative_path = pathlib.Path(path)
+            relative_path = Path(path)
             if (
                 relative_path.suffix == ".svg"
                 and (self.base_path / relative_path.with_suffix(".png")).exists()
@@ -728,6 +728,8 @@ class ConfluenceQualifiedID:
 
 
 def extract_qualified_id(string: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
+    "Extracts the Confluence page ID and space key from a Markdown document."
+
     page_id, string = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", string)
 
     if page_id is None:
@@ -739,6 +741,16 @@ def extract_qualified_id(string: str) -> Tuple[Optional[ConfluenceQualifiedID], 
     )
 
     return ConfluenceQualifiedID(page_id, space_key), string
+
+
+def read_qualified_id(absolute_path: Path) -> Optional[ConfluenceQualifiedID]:
+    "Reads the Confluence page ID and space key from a Markdown document."
+
+    with open(absolute_path, "r", encoding="utf-8") as f:
+        document = f.read()
+
+    qualified_id, _ = extract_qualified_id(document)
+    return qualified_id
 
 
 @dataclass
@@ -774,9 +786,9 @@ class ConfluenceDocument:
 
     def __init__(
         self,
-        path: pathlib.Path,
+        path: Path,
         options: ConfluenceDocumentOptions,
-        page_metadata: Dict[pathlib.Path, ConfluencePageMetadata],
+        page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
         path = path.absolute()

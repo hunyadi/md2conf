@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from .converter import (
     ConfluenceDocument,
@@ -37,28 +37,14 @@ class Processor:
     def process_directory(self, local_dir: Path) -> None:
         "Recursively scans a directory hierarchy for Markdown files."
 
-        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
         LOGGER.info(f"Synchronizing directory: {local_dir}")
 
         # Step 1: build index of all page metadata
-        # NOTE: Pathlib.walk() is implemented only in Python 3.12+
-        # so sticking for old os.walk
-        for root, directories, files in os.walk(local_dir):
-            for file_name in files:
-                # Reconstitute Path object back
-                docfile = (Path(root) / file_name).absolute()
+        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        self._index_directory(local_dir, page_metadata)
+        LOGGER.info(f"indexed {len(page_metadata)} page(s)")
 
-                # Skip non-markdown files
-                if docfile.suffix.lower() != ".md":
-                    continue
-
-                metadata = self._get_page(docfile)
-                LOGGER.debug(f"indexed {docfile} with metadata: {metadata}")
-                page_metadata[docfile] = metadata
-
-        LOGGER.info(f"indexed {len(page_metadata)} pages")
-
-        # Step 2: Convert each page
+        # Step 2: convert each page
         for page_path in page_metadata.keys():
             self.process_page(page_path, page_metadata)
 
@@ -72,13 +58,41 @@ class Processor:
         with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
             f.write(content)
 
+    def _index_directory(
+        self,
+        local_dir: Path,
+        page_metadata: Dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        "Indexes Markdown files in a directory recursively."
+
+        LOGGER.info(f"Indexing directory: {local_dir}")
+
+        files: List[Path] = []
+        directories: List[Path] = []
+        for entry in os.scandir(local_dir):
+            if entry.is_file():
+                if entry.name.endswith(".md"):
+                    # skip non-markdown files
+                    files.append((Path(local_dir) / entry.name).absolute())
+            elif entry.is_dir():
+                if not entry.name.startswith("."):
+                    directories.append((Path(local_dir) / entry.name).absolute())
+
+        for doc in files:
+            metadata = self._get_page(doc)
+            LOGGER.debug(f"indexed {doc} with metadata: {metadata}")
+            page_metadata[doc] = metadata
+
+        for directory in directories:
+            self._index_directory(Path(local_dir) / directory, page_metadata)
+
     def _get_page(self, absolute_path: Path) -> ConfluencePageMetadata:
         "Extracts metadata from a Markdown file."
 
         with open(absolute_path, "r", encoding="utf-8") as f:
             document = f.read()
 
-        qualified_id, document = extract_qualified_id(document)
+        qualified_id, _ = extract_qualified_id(document)
         if qualified_id is None:
             raise ValueError("required: page ID for local output")
 
