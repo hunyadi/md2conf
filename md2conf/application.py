@@ -193,8 +193,23 @@ class Application:
         page_id: str,
         space_key: Optional[str],
     ) -> None:
+        "Writes the Confluence page ID and space key at the beginning of the Markdown file."
+
+        content: List[str] = []
+
+        # check if the file has frontmatter
+        index = 0
+        if document.startswith("---\n"):
+            index = document.find("\n---\n", 4) + 4
+
+            # insert the Confluence keys after the frontmatter
+            content.append(document[:index])
+
+        content.append(f"<!-- confluence-page-id: {page_id} -->")
+        if space_key:
+            content.append(f"<!-- confluence-space-key: {space_key} -->")
+
+        content.append(document[index:])
+
         with open(path, "w", encoding="utf-8") as file:
-            file.write(f"<!-- confluence-page-id: {page_id} -->\n")
-            if space_key:
-                file.write(f"<!-- confluence-space-key: {space_key} -->\n")
-            file.write(document)
+            file.write("\n".join(content))
