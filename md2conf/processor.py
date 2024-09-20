@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 from pathlib import Path
@@ -7,6 +8,7 @@ from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
+    ConfluenceQualifiedID,
     extract_qualified_id,
 )
 from .properties import ConfluenceProperties
@@ -92,9 +94,15 @@ class Processor:
         with open(absolute_path, "r", encoding="utf-8") as f:
             document = f.read()
 
-        qualified_id, _ = extract_qualified_id(document)
+        qualified_id, document = extract_qualified_id(document)
         if qualified_id is None:
-            raise ValueError("required: page ID for local output")
+            if self.options.root_page_id is not None:
+                hash = hashlib.md5(document.encode("utf-8"))
+                digest = "".join(f"{c:x}" for c in hash.digest())
+                LOGGER.info(f"Identifier '{digest}' assigned to page: {absolute_path}")
+                qualified_id = ConfluenceQualifiedID(digest)
+            else:
+                raise ValueError("required: page ID for local output")
 
         return ConfluencePageMetadata(
             domain=self.properties.domain,

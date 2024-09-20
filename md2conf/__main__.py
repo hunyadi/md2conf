@@ -7,6 +7,7 @@ from typing import Optional
 
 import requests
 
+from . import __version__
 from .api import ConfluenceAPI
 from .application import Application
 from .converter import ConfluenceDocumentOptions
@@ -30,6 +31,7 @@ class Arguments(argparse.Namespace):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.prog = os.path.basename(os.path.dirname(__file__))
+    parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
         "mdpath", help="Path to Markdown file or directory to convert and publish."
     )

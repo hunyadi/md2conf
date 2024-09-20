@@ -726,6 +726,10 @@ class ConfluenceQualifiedID:
     page_id: str
     space_key: Optional[str] = None
 
+    def __init__(self, page_id: str, space_key: Optional[str] = None):
+        self.page_id = page_id
+        self.space_key = space_key
+
 
 def extract_qualified_id(string: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
     "Extracts the Confluence page ID and space key from a Markdown document."
@@ -798,6 +802,13 @@ class ConfluenceDocument:
 
         # extract Confluence page ID
         qualified_id, text = extract_qualified_id(text)
+        if qualified_id is None:
+            # look up Confluence page ID in metadata
+            metadata = page_metadata.get(path)
+            if metadata is not None:
+                qualified_id = ConfluenceQualifiedID(
+                    metadata.page_id, metadata.space_key
+                )
         if qualified_id is None:
             raise ValueError("missing Confluence page ID")
         self.id = qualified_id
