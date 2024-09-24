@@ -109,7 +109,7 @@ dignissim finibus dui.
 
 ## Admonitions
 
-Markdown has no native support for admonitions. Admonitions that follow the [Python-Markdown syntax](https://python-markdown.github.io/extensions/admonition/) are converted into Confluence structured macros, which are shown as info panels.
+Markdown has no native support for admonitions. Admonitions that follow the [Python-Markdown syntax](https://python-markdown.github.io/extensions/admonition/) are converted into Confluence structured macros, which are shown as info panels. (See [Alerts](#alerts) for an alternative that has pretty output in both GitHub and Confluence.)
 
 !!! info
     This is an information panel.
@@ -127,6 +127,25 @@ Markdown has no native support for admonitions. Admonitions that follow the [Pyt
 
 !!! warning "A warning message"
     This is a structured macro panel showing a warning.
+
+## Alerts
+
+[Alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) are a Markdown extension based on the blockquote syntax that you can use to emphasize critical information. On GitHub, they are displayed with distinctive colors and icons to indicate the significance of the content. When converted to Confluence, they are represented as structured macros, which are displayed as info panels.
+
+> [!NOTE]
+> Useful information that users should know, even when skimming content.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know to achieve their goal.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention to avoid problems.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes of certain actions.
 
 ## Collapsed sections
 

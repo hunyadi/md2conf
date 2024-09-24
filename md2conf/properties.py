@@ -48,5 +48,3 @@ class ConfluenceProperties:
         self.user_name = opt_user_name
         self.api_key = opt_api_key
         self.space_key = opt_space_key
-        self.space_key = opt_space_key
-        self.space_key = opt_space_key

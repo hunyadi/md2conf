@@ -41,7 +41,7 @@ class TestProcessor(unittest.TestCase):
         )
         Processor(options, properties).process(self.sample_dir / "code.md")
 
-        self.assertTrue((self.sample_dir / "example.csf").exists())
+        self.assertTrue((self.sample_dir / "index.csf").exists())
 
     def test_process_directory(self) -> None:
         options = ConfluenceDocumentOptions(
@@ -55,7 +55,7 @@ class TestProcessor(unittest.TestCase):
         )
         Processor(options, properties).process(self.sample_dir)
 
-        self.assertTrue((self.sample_dir / "example.csf").exists())
+        self.assertTrue((self.sample_dir / "index.csf").exists())
         self.assertTrue((self.sample_dir / "sibling.csf").exists())
         self.assertTrue((self.sample_dir / "code.csf").exists())
 

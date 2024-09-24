@@ -118,7 +118,7 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
 
 ```sh
-$ python3 -m md2conf sample/example.md
+$ python3 -m md2conf sample/index.md
 ```
 
 Use the `--help` switch to get a full list of supported command-line options:

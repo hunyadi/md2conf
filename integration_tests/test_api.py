@@ -31,7 +31,7 @@ class TestAPI(unittest.TestCase):
         test_dir = Path(__file__).parent
         parent_dir = test_dir.parent
 
-        self.out_dir = test_dir / "tests" / "output"
+        self.out_dir = test_dir / "output"
         self.sample_dir = parent_dir / "sample"
         os.makedirs(self.out_dir, exist_ok=True)
 
@@ -40,7 +40,7 @@ class TestAPI(unittest.TestCase):
 
     def test_markdown(self) -> None:
         document = ConfluenceDocument(
-            self.sample_dir / "example.md",
+            self.sample_dir / "index.md",
             ConfluenceDocumentOptions(ignore_invalid_url=True),
             {},
         )
@@ -93,13 +93,13 @@ class TestAPI(unittest.TestCase):
         with ConfluenceAPI() as api:
             Application(
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize(self.sample_dir / "example.md")
+            ).synchronize(self.sample_dir / "index.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
             Application(
                 api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize_page(self.sample_dir / "example.md")
+            ).synchronize_page(self.sample_dir / "index.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
