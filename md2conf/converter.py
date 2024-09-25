@@ -6,6 +6,7 @@ import logging
 import os.path
 import re
 import sys
+import urllib
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -240,12 +241,14 @@ class ConfluenceConverterOptions:
         conversion rules for the identifier.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
+    :param web_links: When true, convert relative URLs to Confluence Web UI links.
     """
 
     ignore_invalid_url: bool = False
     heading_anchors: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
+    web_links: bool = True
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -299,7 +302,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         heading.text = None
 
     def _transform_link(self, anchor: ET._Element) -> None:
-        url = anchor.attrib["href"]
+        url = urllib.parse.unquote(anchor.attrib["href"])
         if is_absolute_url(url):
             return
 
@@ -347,10 +350,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
         self.links.append(url)
 
+        page_url = f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}" \
+            if not self.options.web_links \
+            else f"{link_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
+
         components = ParseResult(
             scheme="https",
             netloc=link_metadata.domain,
-            path=f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}",
+            path=page_url,
             params="",
             query="",
             fragment=relative_url.fragment,
@@ -770,6 +777,7 @@ class ConfluenceDocumentOptions:
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
+    :param web_links: When true, convert relative URLs to Confluence Web UI links.
     """
 
     ignore_invalid_url: bool = False
@@ -778,6 +786,7 @@ class ConfluenceDocumentOptions:
     root_page_id: Optional[str] = None
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
+    web_links: bool = False
 
 
 class ConfluenceDocument:
@@ -846,6 +855,7 @@ class ConfluenceDocument:
                 heading_anchors=self.options.heading_anchors,
                 render_mermaid=self.options.render_mermaid,
                 diagram_output_format=self.options.diagram_output_format,
+                web_links=self.options.web_links,
             ),
             path,
             page_metadata,

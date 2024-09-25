@@ -98,6 +98,10 @@ class ConfluenceAPI:
             session.headers.update(
                 {"Authorization": f"Bearer {self.properties.api_key}"}
             )
+
+        if self.properties.headers:
+            session.headers.update(self.properties.headers)
+
         self.session = ConfluenceSession(
             session,
             self.properties.domain,
