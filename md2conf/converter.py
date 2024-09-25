@@ -37,6 +37,15 @@ class ParseError(RuntimeError):
     pass
 
 
+def starts_with_any(text: str, prefixes: List[str]) -> bool:
+    "True if text starts with any of the listed prefixes."
+
+    for prefix in prefixes:
+        if text.startswith(prefix):
+            return True
+    return False
+
+
 def is_absolute_url(url: str) -> bool:
     urlparts = urlparse(url)
     return bool(urlparts.scheme) or bool(urlparts.netloc)
@@ -548,43 +557,83 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *content,
         )
 
-    def _transform_alert(self, elem: ET._Element) -> ET._Element:
-        """
-        Creates an info, tip, note or warning panel from a GitHub alert.
+    def _transform_github_alert(self, elem: ET._Element) -> ET._Element:
+        content = elem[0]
+        if content.text is None:
+            raise DocumentError("empty content")
 
-        Transforms
-        [GitHub alert](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)  # noqa: E501 # no way to make this link shorter
-        syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
-        """
+        class_name: Optional[str] = None
+        skip = 0
 
         pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
+        match = pattern.match(content.text)
+        if match:
+            skip = len(match.group(0))
+            alert = match.group(1)
+            if alert == "NOTE":
+                class_name = "note"
+            elif alert == "TIP":
+                class_name = "tip"
+            elif alert == "IMPORTANT":
+                class_name = "tip"
+            elif alert == "WARNING":
+                class_name = "warning"
+            elif alert == "CAUTION":
+                class_name = "warning"
+            else:
+                raise DocumentError(f"unsupported GitHub alert: {alert}")
+
+        return self._transform_alert(elem, class_name, skip)
+
+    def _transform_gitlab_alert(self, elem: ET._Element) -> ET._Element:
+        content = elem[0]
+        if content.text is None:
+            raise DocumentError("empty content")
+
+        class_name: Optional[str] = None
+        skip = 0
+
+        pattern = re.compile(r"^(FLAG|NOTE|WARNING|DISCLAIMER):\s*")
+        match = pattern.match(content.text)
+        if match:
+            skip = len(match.group(0))
+            alert = match.group(1)
+            if alert == "FLAG":
+                class_name = "note"
+            elif alert == "NOTE":
+                class_name = "note"
+            elif alert == "WARNING":
+                class_name = "warning"
+            elif alert == "DISCLAIMER":
+                class_name = "info"
+            else:
+                raise DocumentError(f"unsupported GitLab alert: {alert}")
+
+        return self._transform_alert(elem, class_name, skip)
+
+    def _transform_alert(
+        self, elem: ET._Element, class_name: Optional[str], skip: int
+    ) -> ET._Element:
+        """
+        Creates an info, tip, note or warning panel from a GitHub or GitLab alert.
+
+        Transforms
+        [GitHub alert](https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
+        or [GitLab alert](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
+        syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
+        """
 
         content = elem[0]
         if content.text is None:
             raise DocumentError("empty content")
 
-        match = pattern.match(content.text)
-        if match is None:
+        if class_name is None:
             raise DocumentError("not an alert")
-        alert = match.group(1)
-
-        if alert == "NOTE":
-            class_name = "note"
-        elif alert == "TIP":
-            class_name = "tip"
-        elif alert == "IMPORTANT":
-            class_name = "tip"
-        elif alert == "WARNING":
-            class_name = "warning"
-        elif alert == "CAUTION":
-            class_name = "warning"
-        else:
-            raise DocumentError(f"unsupported alert: {alert}")
 
         for e in elem:
             self.visit(e)
 
-        content.text = pattern.sub("", content.text, count=1)
+        content.text = content.text[skip:]
         return AC(
             "structured-macro",
             {
@@ -678,7 +727,22 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             and child[0].text is not None
             and child[0].text.startswith("[!")
         ):
-            return self._transform_alert(child)
+            return self._transform_github_alert(child)
+
+        # Alerts in GitLab
+        # <blockquote>
+        #   <p>DISCLAIMER: ...</p>
+        # </blockquote>
+        elif (
+            child.tag == "blockquote"
+            and len(child) > 0
+            and child[0].tag == "p"
+            and child[0].text is not None
+            and starts_with_any(
+                child[0].text, ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"]
+            )
+        ):
+            return self._transform_gitlab_alert(child)
 
         # <details markdown="1">
         # <summary>...</summary>

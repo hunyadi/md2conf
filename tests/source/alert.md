@@ -2,6 +2,8 @@
 
 ## Alerts
 
+### GitHub
+
 Note:
 
 > [!NOTE]
@@ -26,3 +28,29 @@ Caution:
 
 > [!CAUTION]
 > Advises about risks or negative outcomes of certain actions.
+
+### GitLab
+
+Flag:
+
+> FLAG:
+> The availability of this feature is controlled by a feature flag.
+> For more information, see the history.
+> This feature is available for testing, but not ready for production use.
+
+Note:
+
+> NOTE:
+> This is something to note.
+
+Warning:
+
+> WARNING:
+> This is something to be warned about.
+
+Disclaimer:
+
+> DISCLAIMER:
+> This page contains information related to upcoming products, features, and functionality.
+> It is important to note that the information presented is for informational purposes only.
+> Please do not rely on this information for purchasing or planning purposes.

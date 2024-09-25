@@ -20,7 +20,7 @@ This Python package
 * Image references (uploaded as Confluence page attachments)
 * Tables
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
-* [Admonitions](https://python-markdown.github.io/extensions/admonition/) and [alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
+* [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
 * [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
 

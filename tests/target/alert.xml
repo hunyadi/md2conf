@@ -4,6 +4,7 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Alerts</h2>
+<h3>GitHub</h3>
 <p>Note:</p>
 <ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
@@ -34,3 +35,33 @@
     <p>Advises about risks or negative outcomes of certain actions.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<h3>GitLab</h3>
+<p>Flag:</p>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>The availability of this feature is controlled by a feature flag.
+For more information, see the history.
+This feature is available for testing, but not ready for production use.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>Note:</p>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This is something to note.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>Warning:</p>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This is something to be warned about.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>Disclaimer:</p>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page contains information related to upcoming products, features, and functionality.
+It is important to note that the information presented is for informational purposes only.
+Please do not rely on this information for purchasing or planning purposes.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+
