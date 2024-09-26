@@ -2,8 +2,9 @@ import argparse
 import logging
 import os.path
 import sys
+import typing
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Sequence, Union
 
 import requests
 
@@ -31,12 +32,21 @@ class Arguments(argparse.Namespace):
 class KwargsAppendAction(argparse.Action):
     """Append key-value pairs to a dictionary"""
 
-    def __call__(self, parser, args, values, option_string=None):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Union[None, str, Sequence[Any]],
+        option_string: Optional[str] = None,
+    ) -> None:
         try:
-            d = dict(map(lambda x: x.split('='),values))
+            d = dict(map(lambda x: x.split("="), typing.cast(Sequence[str], values)))
         except ValueError:
-            raise argparse.ArgumentError(self, f"Could not parse argument \"{values}\". It should follow the format: k1=v1 k2=v2 ...")
-        setattr(args, self.dest, d)
+            raise argparse.ArgumentError(
+                self,
+                f'Could not parse argument "{values}". It should follow the format: k1=v1 k2=v2 ...',
+            )
+        setattr(namespace, self.dest, d)
 
 
 def main() -> None:
@@ -132,17 +142,19 @@ def main() -> None:
         default=False,
         help="Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.",
     )
-    parser.add_argument("--headers",
-                        nargs='*',
-                        required=False,
-                        action=KwargsAppendAction,
-                        metavar="KEY=VALUE",
-                        help="Apply custom headers to all Confluence API requests.")
+    parser.add_argument(
+        "--headers",
+        nargs="*",
+        required=False,
+        action=KwargsAppendAction,
+        metavar="KEY=VALUE",
+        help="Apply custom headers to all Confluence API requests.",
+    )
     parser.add_argument(
         "--webui-links",
         action="store_true",
         default=False,
-        help="Enable Confluence Web UI links."
+        help="Enable Confluence Web UI links.",
     )
 
     args = Arguments()
@@ -164,7 +176,7 @@ def main() -> None:
         root_page_id=args.root_page,
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
-        web_links=args.webui_links
+        web_links=args.webui_links,
     )
     properties = ConfluenceProperties(
         args.domain, args.path, args.username, args.apikey, args.space, args.headers
