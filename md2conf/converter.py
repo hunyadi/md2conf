@@ -6,7 +6,6 @@ import logging
 import os.path
 import re
 import sys
-import urllib
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -311,7 +310,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         heading.text = None
 
     def _transform_link(self, anchor: ET._Element) -> None:
-        url = urllib.parse.unquote(anchor.attrib["href"])
+        url = anchor.attrib["href"]
         if is_absolute_url(url):
             return
 
@@ -359,9 +358,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
         self.links.append(url)
 
-        page_url = f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}" \
-            if not self.options.web_links \
-            else f"{link_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
+        if self.options.web_links:
+            page_url = f"{link_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
+        else:
+            page_url = f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
 
         components = ParseResult(
             scheme="https",
