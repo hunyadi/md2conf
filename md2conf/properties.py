@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Dict, Optional
 
 
 class ConfluenceError(RuntimeError):
@@ -12,7 +12,7 @@ class ConfluenceProperties:
     space_key: str
     user_name: Optional[str]
     api_key: str
-    headers: Optional[dict]
+    headers: Optional[Dict[str, str]]
 
     def __init__(
         self,
@@ -21,7 +21,7 @@ class ConfluenceProperties:
         user_name: Optional[str] = None,
         api_key: Optional[str] = None,
         space_key: Optional[str] = None,
-        headers: Optional[dict] = None
+        headers: Optional[Dict[str, str]] = None,
     ) -> None:
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
         opt_base_path = base_path or os.getenv("CONFLUENCE_PATH")
