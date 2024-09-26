@@ -256,7 +256,7 @@ class ConfluenceConverterOptions:
     heading_anchors: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
-    web_links: bool = True
+    web_links: bool = False
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
