@@ -125,9 +125,10 @@ Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
 $ python3 -m md2conf --help
-usage: md2conf [-h] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE]
-               [--generated-by GENERATED_BY] [--no-generated-by] [--render-mermaid] [--no-render-mermaid]
-               [--render-mermaid-format {png,svg}] [--heading-anchors] [--ignore-invalid-url] [--local]
+usage: md2conf [-h] [--version] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE]
+               [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE] [--generated-by GENERATED_BY] [--no-generated-by]
+               [--render-mermaid] [--no-render-mermaid] [--render-mermaid-format {png,svg}] [--heading-anchors]
+               [--ignore-invalid-url] [--local] [--headers [KEY=VALUE ...]] [--webui-links]
                mdpath
 
 positional arguments:
@@ -135,6 +136,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  --version             show program's version number and exit
   -d DOMAIN, --domain DOMAIN
                         Confluence organization domain.
   -p PATH, --path PATH  Base path for Confluence (default: '/wiki/').
@@ -157,6 +159,9 @@ options:
   --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
+  --headers [KEY=VALUE ...]
+                        Apply custom headers to all Confluence API requests.
+  --webui-links         Enable Confluence Web UI links.
 ```
 
 ### Using the docker container

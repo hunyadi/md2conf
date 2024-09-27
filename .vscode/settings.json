@@ -21,6 +21,7 @@
         "blockquote",
         "levelname",
         "mmdc",
-        "scandir"
+        "scandir",
+        "webui"
     ]
 }

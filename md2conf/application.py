@@ -3,7 +3,7 @@ import os.path
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .api import ConfluenceSession
+from .api import ConfluencePage, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -144,18 +144,8 @@ class Application:
                     "expected: Confluence page ID to act as parent for Markdown files with no linked Confluence page"
                 )
 
-            # use file name without extension if no title is supplied
-            if title is None:
-                title = absolute_path.stem
-
-            confluence_page = self.api.get_or_create_page(
-                title, parent_id.page_id, space_key=parent_id.space_key
-            )
-            self._update_markdown(
-                absolute_path,
-                document,
-                confluence_page.id,
-                confluence_page.space_key,
+            confluence_page = self._create_page(
+                absolute_path, document, title, parent_id
             )
 
         return ConfluencePageMetadata(
@@ -166,7 +156,32 @@ class Application:
             title=confluence_page.title or "",
         )
 
+    def _create_page(
+        self,
+        absolute_path: Path,
+        document: str,
+        title: Optional[str],
+        parent_id: ConfluenceQualifiedID,
+    ) -> ConfluencePage:
+        "Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet."
+
+        # use file name without extension if no title is supplied
+        if title is None:
+            title = absolute_path.stem
+
+        confluence_page = self.api.get_or_create_page(
+            title, parent_id.page_id, space_key=parent_id.space_key
+        )
+        self._update_markdown(
+            absolute_path,
+            document,
+            confluence_page.id,
+            confluence_page.space_key,
+        )
+        return confluence_page
+
     def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
+        "Saves a new version of a Confluence document."
 
         for image in document.images:
             self.api.upload_attachment(

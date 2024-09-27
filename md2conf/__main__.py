@@ -4,7 +4,7 @@ import os.path
 import sys
 import typing
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Literal, Optional, Sequence, Union
 
 import requests
 
@@ -26,7 +26,11 @@ class Arguments(argparse.Namespace):
     loglevel: str
     ignore_invalid_url: bool
     heading_anchors: bool
+    root_page: Optional[str]
     generated_by: Optional[str]
+    render_mermaid: bool
+    diagram_output_format: Literal["png", "svg"]
+    webui_links: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -176,7 +180,7 @@ def main() -> None:
         root_page_id=args.root_page,
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
-        web_links=args.webui_links,
+        webui_links=args.webui_links,
     )
     properties = ConfluenceProperties(
         args.domain, args.path, args.username, args.apikey, args.space, args.headers

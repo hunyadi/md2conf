@@ -256,7 +256,7 @@ class ConfluenceConverterOptions:
     heading_anchors: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
-    web_links: bool = False
+    webui_links: bool = False
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -358,7 +358,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
         self.links.append(url)
 
-        if self.options.web_links:
+        if self.options.webui_links:
             page_url = f"{link_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
         else:
             page_url = f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
@@ -841,7 +841,7 @@ class ConfluenceDocumentOptions:
     :param show_generated: Whether to display a prompt "This page has been generated with a tool."
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
-    :param web_links: When true, convert relative URLs to Confluence Web UI links.
+    :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     """
 
     ignore_invalid_url: bool = False
@@ -850,7 +850,7 @@ class ConfluenceDocumentOptions:
     root_page_id: Optional[str] = None
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
-    web_links: bool = False
+    webui_links: bool = False
 
 
 class ConfluenceDocument:
@@ -919,7 +919,7 @@ class ConfluenceDocument:
                 heading_anchors=self.options.heading_anchors,
                 render_mermaid=self.options.render_mermaid,
                 diagram_output_format=self.options.diagram_output_format,
-                web_links=self.options.web_links,
+                webui_links=self.options.webui_links,
             ),
             path,
             page_metadata,
