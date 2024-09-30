@@ -12,6 +12,7 @@ from md2conf.converter import (
     elements_from_string,
     elements_to_string,
 )
+from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 
 logging.basicConfig(
@@ -50,8 +51,12 @@ class TestConversion(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_markdown(self) -> None:
+        matcher = Matcher(
+            MatcherOptions(source=".mdignore", extension="md"), self.source_dir
+        )
+
         for entry in os.scandir(self.source_dir):
-            if not entry.name.endswith(".md"):
+            if matcher.is_excluded(entry.name):
                 continue
 
             name, _ = os.path.splitext(entry.name)

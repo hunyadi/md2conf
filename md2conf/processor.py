@@ -11,6 +11,7 @@ from .converter import (
     ConfluenceQualifiedID,
     extract_qualified_id,
 )
+from .matcher import Matcher, MatcherOptions
 from .properties import ConfluenceProperties
 
 LOGGER = logging.getLogger(__name__)
@@ -69,16 +70,18 @@ class Processor:
 
         LOGGER.info(f"Indexing directory: {local_dir}")
 
+        matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
+
         files: List[Path] = []
         directories: List[Path] = []
         for entry in os.scandir(local_dir):
+            if matcher.is_excluded(entry.name):
+                continue
+
             if entry.is_file():
-                if entry.name.endswith(".md"):
-                    # skip non-markdown files
-                    files.append((Path(local_dir) / entry.name).absolute())
+                files.append((Path(local_dir) / entry.name).absolute())
             elif entry.is_dir():
-                if not entry.name.startswith("."):
-                    directories.append((Path(local_dir) / entry.name).absolute())
+                directories.append((Path(local_dir) / entry.name).absolute())
 
         for doc in files:
             metadata = self._get_page(doc)

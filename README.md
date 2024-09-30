@@ -113,6 +113,12 @@ Provide generated-by prompt text in the Markdown file with a tag:
 
 Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
 
+### Ignoring files
+
+Skip files in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
+
+Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into.
+
 ### Running the tool
 
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
