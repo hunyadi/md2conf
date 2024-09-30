@@ -141,7 +141,7 @@ class Application:
         else:
             if parent_id is None:
                 raise ValueError(
-                    "expected: Confluence page ID to act as parent for Markdown files with no linked Confluence page"
+                    f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
 
             confluence_page = self._create_page(

@@ -164,15 +164,27 @@ options:
   --webui-links         Enable Confluence Web UI links.
 ```
 
-### Using the docker container
+### Using the Docker container
 
-You can run the docker container via `docker run` or via `Dockerfile`. Either can accept the environment variables or arguments similar to the Python options.  The final argument `./` corresponds to `mdpath` in the command-line utility.
+You can run the Docker container via `docker run` or via `Dockerfile`. Either can accept the environment variables or arguments similar to the Python options. The final argument `./` corresponds to `mdpath` in the command-line utility.
+
+With `docker run`, you can pass Confluence domain, user, API and space key directly to `docker run`:
 
 ```sh
-docker run --rm --name md2conf hunyadi/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
+docker run --rm --name md2conf -v $(pwd):/data hunyadi/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
 ```
 
-Note that the entry point for the docker container's base image is `ENTRYPOINT ["python3", "-m", "md2conf"]`.
+Alternatively, you can use a separate file `.env` to pass these parameters as environment variables:
+
+```sh
+docker run --rm --env-file .env --name md2conf -v $(pwd):/data hunyadi/md2conf ./
+```
+
+In each case, `-v $(pwd):/data` maps the current directory to Docker container's `WORKDIR` such *md2conf* can scan files and directories in the local file system.
+
+Note that the entry point for the Docker container's base image is `ENTRYPOINT ["python3", "-m", "md2conf"]`.
+
+With the `Dockerfile` approach, you can extend the base image:
 
 ```Dockerfile
 FROM hunyadi/md2conf:latest

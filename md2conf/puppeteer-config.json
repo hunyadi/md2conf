@@ -1,0 +1,8 @@
+{
+    "executablePath": "/usr/bin/chromium-browser",
+    "args": [
+        "--no-sandbox",
+        "--disable-gpu",
+        "--disable-setuid-sandbox"
+    ]
+}
