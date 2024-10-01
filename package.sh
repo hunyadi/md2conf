@@ -12,8 +12,9 @@ if [ -d *.egg-info ]; then rm -rf *.egg-info; fi
 # create PyPI package for distribution
 $PYTHON -m build
 
-docker build -f Dockerfile -t md2conf-image .
-docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data md2conf-image sample/index.md --ignore-invalid-url
+VERSION=`$PYTHON -c "from md2conf import __version__; print(__version__)"`
+docker build -f Dockerfile -t leventehunyadi/md2conf:latest -t leventehunyadi/md2conf:$VERSION .
+docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest sample/index.md --ignore-invalid-url
 
 # test PyPI package with various Python versions
 # pass environment variables from the file `.env`

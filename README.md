@@ -177,13 +177,13 @@ You can run the Docker container via `docker run` or via `Dockerfile`. Either ca
 With `docker run`, you can pass Confluence domain, user, API and space key directly to `docker run`:
 
 ```sh
-docker run --rm --name md2conf -v $(pwd):/data hunyadi/md2conf -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
+docker run --rm --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
 ```
 
 Alternatively, you can use a separate file `.env` to pass these parameters as environment variables:
 
 ```sh
-docker run --rm --env-file .env --name md2conf -v $(pwd):/data hunyadi/md2conf ./
+docker run --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest ./
 ```
 
 In each case, `-v $(pwd):/data` maps the current directory to Docker container's `WORKDIR` such *md2conf* can scan files and directories in the local file system.
@@ -193,7 +193,7 @@ Note that the entry point for the Docker container's base image is `ENTRYPOINT [
 With the `Dockerfile` approach, you can extend the base image:
 
 ```Dockerfile
-FROM hunyadi/md2conf:latest
+FROM leventehunyadi/md2conf:latest
 
 ENV CONFLUENCE_DOMAIN='instructure.atlassian.net'
 ENV CONFLUENCE_PATH='/wiki/'
@@ -207,7 +207,7 @@ CMD ["./"]
 Alternatively,
 
 ```Dockerfile
-FROM hunyadi/md2conf:latest
+FROM leventehunyadi/md2conf:latest
 
 CMD ["-d", "instructure.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "DAP", "./"]
 ```
