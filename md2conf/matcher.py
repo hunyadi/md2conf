@@ -6,6 +6,14 @@ from typing import Iterable, List, Optional
 
 
 @dataclass
+class Entry:
+    "Represents a file or directory entry."
+
+    name: str
+    is_dir: bool
+
+
+@dataclass
 class MatcherOptions:
     """
     Options for checking against a list of exclude/include patterns.
@@ -42,13 +50,21 @@ class Matcher:
 
         return self.options.extension is None or name.endswith(self.options.extension)
 
-    def is_excluded(self, name: str) -> bool:
-        "True if the file or directory name matches any of the exclusion patterns."
+    def is_excluded(self, name: str, is_dir: bool) -> bool:
+        """
+        True if the file or directory name matches any of the exclusion patterns.
 
+        :param name: Name to match against the rule-set.
+        :param is_dir: Whether the name identifies a directory.
+        :returns: True if the name matches at least one of the exclusion patterns.
+        """
+
+        # skip hidden files and directories
         if name.startswith("."):
             return True
 
-        if not self.extension_matches(name):
+        # match extension for regular files
+        if not is_dir and not self.extension_matches(name):
             return True
 
         for rule in self.rules:
@@ -57,12 +73,18 @@ class Matcher:
         else:
             return False
 
-    def is_included(self, name: str) -> bool:
-        "True if the file or directory name matches none of the exclusion patterns."
+    def is_included(self, name: str, is_dir: bool) -> bool:
+        """
+        True if the file or directory name matches none of the exclusion patterns.
 
-        return not self.is_excluded(name)
+        :param name: Name to match against the rule-set.
+        :param is_dir: Whether the name identifies a directory.
+        :returns: True if the name doesn't match any of the exclusion patterns.
+        """
 
-    def filter(self, items: Iterable[str]) -> List[str]:
+        return not self.is_excluded(name, is_dir)
+
+    def filter(self, items: Iterable[Entry]) -> List[Entry]:
         """
         Returns only those elements from the input that don't match any of the exclusion rules.
 
@@ -70,9 +92,9 @@ class Matcher:
         :returns: A filtered list of names that didn't match any of the exclusion rules.
         """
 
-        return [item for item in items if self.is_included(item)]
+        return [item for item in items if self.is_included(item.name, item.is_dir)]
 
-    def scandir(self, path: Path) -> List[str]:
+    def scandir(self, path: Path) -> List[Entry]:
         """
         Returns only those entries in a directory whose name doesn't match any of the exclusion rules.
 
@@ -80,4 +102,6 @@ class Matcher:
         :returns: A filtered list of entries whose name didn't match any of the exclusion rules.
         """
 
-        return self.filter(entry.name for entry in os.scandir(path))
+        return self.filter(
+            Entry(entry.name, entry.is_dir()) for entry in os.scandir(path)
+        )

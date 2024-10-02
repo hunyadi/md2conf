@@ -4,7 +4,13 @@
 
 Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
 
-Absolute link to an [external location](http://example.com/) or relative link to a [heading in the same document](#Basic-features). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to [locations not exported](missing.md) may be skipped.
+Absolute link to an [external location](http://example.com/) with a [query string](<http://example.com/?key[]=value>).
+
+Relative link to a [heading in the same document](#Basic-features).
+
+"Naked" links: <https://example.com> and <mailto:me@example.com>.
+
+Relative URLs to [locations not exported](missing.md) may be skipped.
 
 An ordered list:
 

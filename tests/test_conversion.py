@@ -56,7 +56,7 @@ class TestConversion(unittest.TestCase):
         )
 
         for entry in os.scandir(self.source_dir):
-            if matcher.is_excluded(entry.name):
+            if matcher.is_excluded(entry.name, entry.is_dir()):
                 continue
 
             name, _ = os.path.splitext(entry.name)

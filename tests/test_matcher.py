@@ -4,7 +4,7 @@ import os.path
 import unittest
 from pathlib import Path
 
-from md2conf.matcher import Matcher, MatcherOptions
+from md2conf.matcher import Entry, Matcher, MatcherOptions
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,7 +16,9 @@ class TestMatcher(unittest.TestCase):
     def test_extension(self) -> None:
         directory = Path(os.path.dirname(__file__))
         expected = [
-            entry.name for entry in os.scandir(directory) if entry.name.endswith(".py")
+            Entry(entry.name, entry.is_dir())
+            for entry in os.scandir(directory)
+            if entry.is_dir() or entry.name.endswith(".py")
         ]
 
         options = MatcherOptions(".mdignore", ".py")
@@ -28,9 +30,11 @@ class TestMatcher(unittest.TestCase):
     def test_rules(self) -> None:
         directory = Path(os.path.dirname(__file__)) / "source"
         expected = [
-            entry.name for entry in os.scandir(directory) if entry.name.endswith(".md")
+            Entry(entry.name, entry.is_dir())
+            for entry in os.scandir(directory)
+            if entry.name.endswith(".md")
         ]
-        expected.remove("ignore.md")
+        expected.remove(Entry("ignore.md", False))
 
         options = MatcherOptions(".mdignore", ".md")
         matcher = Matcher(options, directory)
