@@ -317,6 +317,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         LOGGER.debug(f"found link {url} relative to {self.path}")
         relative_url: ParseResult = urlparse(url)
 
+        if relative_url.fragment and not relative_url.path:
+            # This is a local anchor link
+            LOGGER.debug(f"found local anchor URL: {url}")
+            anchor.attrib["href"] = f"ac:link ac:anchor='{relative_url.fragment}'"
+            return
+
         if (
             not relative_url.scheme
             and not relative_url.netloc
