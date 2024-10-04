@@ -35,6 +35,7 @@ class TestMatcher(unittest.TestCase):
             if entry.name.endswith(".md")
         ]
         expected.remove(Entry("ignore.md", False))
+        expected.remove(Entry("anchors.md", False))
 
         options = MatcherOptions(".mdignore", ".md")
         matcher = Matcher(options, directory)

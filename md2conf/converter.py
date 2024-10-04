@@ -338,10 +338,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         anchor.tail = heading.text
         heading.text = None
 
-    def _transform_link(self, anchor: ET._Element) -> None:
+    def _transform_link(self, anchor: ET._Element) -> Optional[ET._Element]:
         url = anchor.attrib["href"]
         if is_absolute_url(url):
-            return
+            return None
 
         LOGGER.debug(f"found link {url} relative to {self.path}")
         relative_url: ParseResult = urlparse(url)
@@ -354,8 +354,23 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             and not relative_url.query
         ):
             LOGGER.debug(f"found local URL: {url}")
-            anchor.attrib["href"] = url
-            return
+            if self.options.heading_anchors:
+                # <ac:link ac:anchor="anchor"><ac:link-body>...</ac:link-body></ac:link>
+                target = relative_url.fragment.lstrip("#")
+                link_body = AC("link-body", {}, *list(anchor))
+                link_body.text = anchor.text
+                link_wrapper = AC(
+                    "link",
+                    {
+                        ET.QName(namespaces["ac"], "anchor"): target,
+                    },
+                    link_body,
+                )
+                link_wrapper.tail = anchor.tail
+                return link_wrapper
+            else:
+                anchor.attrib["href"] = url
+                return None
 
         # convert the relative URL to absolute URL based on the base path value, then look up
         # the absolute path in the page metadata dictionary to discover the relative path
@@ -366,7 +381,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if self.options.ignore_invalid_url:
                 LOGGER.warning(msg)
                 anchor.attrib.pop("href")
-                return
+                return None
             else:
                 raise DocumentError(msg)
 
@@ -378,7 +393,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if self.options.ignore_invalid_url:
                 LOGGER.warning(msg)
                 anchor.attrib.pop("href")
-                return
+                return None
             else:
                 raise DocumentError(msg)
 
@@ -404,6 +419,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         LOGGER.debug(f"transformed relative URL: {url} to URL: {transformed_url}")
         anchor.attrib["href"] = transformed_url
+        return None
 
     def _transform_image(self, image: ET._Element) -> ET._Element:
         path: str = image.attrib["src"]
@@ -803,8 +819,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <a href="..."> ... </a>
         elif child.tag == "a":
-            self._transform_link(child)
-            return None
+            return self._transform_link(child)
 
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":

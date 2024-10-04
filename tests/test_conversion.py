@@ -77,8 +77,8 @@ class TestConversion(unittest.TestCase):
 
     def test_heading_anchors(self) -> None:
         actual = ConfluenceDocument(
-            self.source_dir / "sections.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True, heading_anchors=True),
+            self.source_dir / "anchors.md",
+            ConfluenceDocumentOptions(heading_anchors=True),
             {},
         ).xhtml()
         actual = standardize(actual)
