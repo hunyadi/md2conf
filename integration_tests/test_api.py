@@ -26,6 +26,7 @@ logging.basicConfig(
 
 class TestAPI(unittest.TestCase):
     out_dir: Path
+    sample_dir: Path
 
     def setUp(self) -> None:
         test_dir = Path(__file__).parent

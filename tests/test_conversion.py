@@ -2,10 +2,10 @@ import logging
 import os
 import os.path
 import re
-import shutil
 import unittest
 from pathlib import Path
 
+import md2conf.emoji as emoji
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -36,21 +36,22 @@ def standardize(content: str) -> str:
 
 
 class TestConversion(unittest.TestCase):
-    out_dir: Path
+    source_dir: Path
+    target_dir: Path
 
     def setUp(self) -> None:
         self.maxDiff = None
 
         test_dir = Path(__file__).parent
-        self.out_dir = test_dir / "output"
         self.source_dir = test_dir / "source"
         self.target_dir = test_dir / "target"
-        os.makedirs(self.out_dir, exist_ok=True)
-
-    def tearDown(self) -> None:
-        shutil.rmtree(self.out_dir)
 
     def test_markdown(self) -> None:
+        if not os.path.exists(self.source_dir / "emoji.md"):
+            emoji.generate_source(self.source_dir / "emoji.md")
+        if not os.path.exists(self.target_dir / "emoji.xml"):
+            emoji.generate_target(self.target_dir / "emoji.xml")
+
         matcher = Matcher(
             MatcherOptions(source=".mdignore", extension="md"), self.source_dir
         )

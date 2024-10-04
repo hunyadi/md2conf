@@ -29,7 +29,7 @@ class TestProcessor(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 
-    def atest_process_document(self) -> None:
+    def test_process_document(self) -> None:
         options = ConfluenceDocumentOptions(
             ignore_invalid_url=False,
             generated_by="Test Case",

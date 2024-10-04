@@ -132,17 +132,27 @@ Markdown has no native support for admonitions. Admonitions that follow the [Pyt
 
 Alerts are a Markdown extension based on the blockquote syntax that you can use to emphasize critical information. [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes) display them with distinctive colors and icons to indicate the significance of the content. When converted to Confluence, they are represented as structured macros, which are displayed as info panels.
 
+Note:
+
 > [!NOTE]
 > Useful information that users should know, even when skimming content.
+
+Tip:
 
 > [!TIP]
 > Helpful advice for doing things better or more easily.
 
+Important:
+
 > [!IMPORTANT]
 > Key information users need to know to achieve their goal.
 
+Warning:
+
 > [!WARNING]
 > Urgent info that needs immediate user attention to avoid problems.
+
+Caution:
 
 > [!CAUTION]
 > Advises about risks or negative outcomes of certain actions.

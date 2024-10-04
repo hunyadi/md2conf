@@ -7,9 +7,10 @@ import os.path
 import re
 import sys
 import uuid
+import xml.etree.ElementTree
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
@@ -55,6 +56,27 @@ def is_relative_url(url: str) -> bool:
     return not bool(urlparts.scheme) and not bool(urlparts.netloc)
 
 
+def emoji_generator(
+    index: str,
+    shortname: str,
+    alias: Optional[str],
+    uc: Optional[str],
+    alt: str,
+    title: Optional[str],
+    category: Optional[str],
+    options: Dict[str, Any],
+    md: markdown.Markdown,
+) -> xml.etree.ElementTree.Element:
+    name = (alias or shortname).strip(":")
+    span = xml.etree.ElementTree.Element("span", {"data-emoji": name})
+    if uc is not None:
+        # convert series of Unicode code point hexadecimal values into characters
+        span.text = "".join(chr(int(item, base=16)) for item in uc.split("-"))
+    else:
+        span.text = alt
+    return span
+
+
 def markdown_to_html(content: str) -> str:
     return markdown.markdown(
         content,
@@ -62,11 +84,17 @@ def markdown_to_html(content: str) -> str:
             "admonition",
             "markdown.extensions.tables",
             "markdown.extensions.fenced_code",
+            "pymdownx.emoji",
             "pymdownx.magiclink",
             "pymdownx.tilde",
             "sane_lists",
             "md_in_html",
         ],
+        extension_configs={
+            "pymdownx.emoji": {
+                "emoji_generator": emoji_generator,
+            }
+        },
     )
 
 
@@ -81,6 +109,7 @@ def _elements_from_strings(dtd_path: Path, items: List[str]) -> ET._Element:
 
     parser = ET.XMLParser(
         remove_blank_text=True,
+        remove_comments=True,
         strip_cdata=False,
         load_dtd=True,
     )
@@ -678,6 +707,23 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("rich-text-body", {}, *list(elem)),
         )
 
+    def _transform_emoji(self, elem: ET._Element) -> ET._Element:
+        shortname = elem.attrib.get("data-emoji", "")
+        alt = elem.text or ""
+
+        # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
+        # <ac:emoticon ac:name="blue-star" ac:emoji-shortname=":heavy_plus_sign:" ac:emoji-id="2795" ac:emoji-fallback="&#10133;"/>
+        # <ac:emoticon ac:name="blue-star" ac:emoji-shortname=":heavy_minus_sign:" ac:emoji-id="2796" ac:emoji-fallback="&#10134;"/>
+        return AC(
+            "emoticon",
+            {
+                # use "blue-star" as a placeholder name to ensure wiki page loads in timely manner
+                ET.QName(namespaces["ac"], "name"): "blue-star",
+                ET.QName(namespaces["ac"], "emoji-shortname"): f":{shortname}:",
+                ET.QName(namespaces["ac"], "emoji-fallback"): alt,
+            },
+        )
+
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
         # normalize line breaks to regular space in element text
         if child.text:
@@ -763,6 +809,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
+
+        elif child.tag == "span" and child.attrib.has_key("data-emoji"):
+            return self._transform_emoji(child)
 
         return None
 
@@ -963,3 +1012,39 @@ def elements_to_string(root: ET._Element) -> str:
         return m.group(1)
     else:
         raise ValueError("expected: Confluence content")
+
+
+def _content_to_string(dtd_path: Path, content: str) -> str:
+    parser = ET.XMLParser(
+        remove_blank_text=True,
+        remove_comments=True,
+        strip_cdata=False,
+        load_dtd=True,
+    )
+
+    ns_attr_list = "".join(
+        f' xmlns:{key}="{value}"' for key, value in namespaces.items()
+    )
+
+    data = [
+        '<?xml version="1.0"?>',
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path}">'
+        f"<root{ns_attr_list}>",
+    ]
+    data.append(content)
+    data.append("</root>")
+
+    tree = ET.fromstringlist(data, parser=parser)
+    return ET.tostring(tree, pretty_print=True).decode("utf-8")
+
+
+def content_to_string(content: str) -> str:
+    "Converts a Confluence Storage Format document returned by the API into a readable XML document."
+
+    if sys.version_info >= (3, 9):
+        resource_path = resources.files(__package__).joinpath("entities.dtd")
+        with resources.as_file(resource_path) as dtd_path:
+            return _content_to_string(dtd_path, content)
+    else:
+        with resources.path(__package__, "entities.dtd") as dtd_path:
+            return _content_to_string(dtd_path, content)
