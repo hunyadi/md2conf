@@ -1,8 +1,10 @@
 name: Publish Python Package
 
 on:
-  release:
-    types: [published]
+  push:
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'
 
 jobs:
   pypi-publish:
