@@ -1,8 +1,10 @@
 name: Publish Python Package
 
 on:
-  release:
-    types: [published]
+  push:
+    # Pattern matched against refs/tags
+    tags:        
+      - '*'
 
 jobs:
   pypi-publish:
@@ -14,14 +16,14 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
-          python3 -m pip install --upgrade pip
+          PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip
           pip3 install build
       - name: Build package
         run: |
-          python -m build --wheel --sdist
-      - name: Publish package distributions to PyPI
+          python3 -m build --sdist --wheel
+      - name: Publish package distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ID_TOKEN }}
