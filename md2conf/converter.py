@@ -844,16 +844,16 @@ class DocumentError(RuntimeError):
     pass
 
 
-def extract_value(pattern: str, string: str) -> Tuple[Optional[str], str]:
+def extract_value(pattern: str, text: str) -> Tuple[Optional[str], str]:
     values: List[str] = []
 
     def _repl_func(matchobj: re.Match) -> str:
         values.append(matchobj.group(1))
         return ""
 
-    string = re.sub(pattern, _repl_func, string, 1, re.ASCII)
+    text = re.sub(pattern, _repl_func, text, 1, re.ASCII)
     value = values[0] if values else None
-    return value, string
+    return value, text
 
 
 @dataclass
@@ -866,20 +866,24 @@ class ConfluenceQualifiedID:
         self.space_key = space_key
 
 
-def extract_qualified_id(string: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
+def extract_qualified_id(text: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
     "Extracts the Confluence page ID and space key from a Markdown document."
 
-    page_id, string = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", string)
+    page_id, text = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", text)
 
     if page_id is None:
-        return None, string
+        return None, text
 
     # extract Confluence space key
-    space_key, string = extract_value(
-        r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", string
-    )
+    space_key, text = extract_value(r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", text)
 
-    return ConfluenceQualifiedID(page_id, space_key), string
+    return ConfluenceQualifiedID(page_id, space_key), text
+
+
+def extract_frontmatter(text: str) -> Tuple[Optional[str], str]:
+    "Extracts the front matter from a Markdown document."
+
+    return extract_value(r"(?ms)\A---$(.+?)^---$", text)
 
 
 def read_qualified_id(absolute_path: Path) -> Optional[ConfluenceQualifiedID]:
@@ -956,7 +960,7 @@ class ConfluenceDocument:
         )
 
         # extract frontmatter
-        frontmatter, text = extract_value(r"(?ms)\A---$(.+?)^---$", text)
+        frontmatter, text = extract_frontmatter(text)
 
         # convert to HTML
         html = markdown_to_html(text)

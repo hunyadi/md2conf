@@ -4,6 +4,8 @@ types-lxml
 markdown
 types-markdown
 pymdown-extensions
+pyyaml
+types-PyYAML
 requests
 types-requests
 

@@ -3,6 +3,8 @@ import os.path
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import yaml
+
 from .api import ConfluencePage, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
@@ -10,6 +12,7 @@ from .converter import (
     ConfluencePageMetadata,
     ConfluenceQualifiedID,
     attachment_name,
+    extract_frontmatter,
     extract_qualified_id,
     read_qualified_id,
 )
@@ -137,6 +140,8 @@ class Application:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
+        frontmatter, document = extract_frontmatter(document)
+
         if qualified_id is not None:
             confluence_page = self.api.get_page(
                 qualified_id.page_id, space_key=qualified_id.space_key
@@ -146,6 +151,14 @@ class Application:
                 raise ValueError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
+
+            # assign title from frontmatter if present
+            if title is None and frontmatter is not None:
+                properties = yaml.safe_load(frontmatter)
+                if isinstance(properties, dict):
+                    property_title = properties.get("title")
+                    if isinstance(property_title, str):
+                        title = property_title
 
             confluence_page = self._create_page(
                 absolute_path, document, title, parent_id
