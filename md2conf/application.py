@@ -99,15 +99,15 @@ class Application:
                 continue
 
             if entry.is_file():
-                files.append((Path(local_dir) / entry.name).absolute())
+                files.append(Path(local_dir) / entry.name)
             elif entry.is_dir():
-                directories.append((Path(local_dir) / entry.name).absolute())
+                directories.append(Path(local_dir) / entry.name)
 
         # make page act as parent node in Confluence
         parent_id: Optional[ConfluenceQualifiedID] = None
-        if "index.md" in files:
+        if (Path(local_dir) / "index.md") in files:
             parent_id = read_qualified_id(Path(local_dir) / "index.md")
-        elif "README.md" in files:
+        elif (Path(local_dir) / "README.md") in files:
             parent_id = read_qualified_id(Path(local_dir) / "README.md")
 
         if parent_id is None:

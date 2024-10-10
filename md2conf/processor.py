@@ -79,9 +79,9 @@ class Processor:
                 continue
 
             if entry.is_file():
-                files.append((Path(local_dir) / entry.name).absolute())
+                files.append(Path(local_dir) / entry.name)
             elif entry.is_dir():
-                directories.append((Path(local_dir) / entry.name).absolute())
+                directories.append(Path(local_dir) / entry.name)
 
         for doc in files:
             metadata = self._get_page(doc)
