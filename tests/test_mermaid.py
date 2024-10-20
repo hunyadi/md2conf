@@ -1,3 +1,11 @@
+"""
+Publish Markdown files to Confluence wiki.
+
+Copyright 2022-2024, Levente Hunyadi
+
+:see: https://github.com/hunyadi/md2conf
+"""
+
 import logging
 import os
 import shutil
@@ -5,7 +13,6 @@ import unittest
 from pathlib import Path
 
 from md2conf.mermaid import has_mmdc, render
-
 
 logging.basicConfig(
     level=logging.INFO,

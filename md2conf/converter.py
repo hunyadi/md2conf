@@ -1,3 +1,11 @@
+"""
+Publish Markdown files to Confluence wiki.
+
+Copyright 2022-2024, Levente Hunyadi
+
+:see: https://github.com/hunyadi/md2conf
+"""
+
 # mypy: disable-error-code="dict-item"
 
 import hashlib

@@ -1,3 +1,11 @@
+"""
+Publish Markdown files to Confluence wiki.
+
+Copyright 2022-2024, Levente Hunyadi
+
+:see: https://github.com/hunyadi/md2conf
+"""
+
 import logging
 import os.path
 from pathlib import Path
