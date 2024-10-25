@@ -50,7 +50,7 @@ class TestAPI(unittest.TestCase):
     def test_markdown(self) -> None:
         document = ConfluenceDocument(
             self.sample_dir / "index.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True),
+            ConfluenceDocumentOptions(),
             {},
         )
         self.assertListEqual(document.links, [])
@@ -100,21 +100,21 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Application(
-                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize(self.sample_dir / "index.md")
+            Application(api, ConfluenceDocumentOptions()).synchronize(
+                self.sample_dir / "index.md"
+            )
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(
-                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize_page(self.sample_dir / "index.md")
+            Application(api, ConfluenceDocumentOptions()).synchronize_page(
+                self.sample_dir / "index.md"
+            )
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Application(
-                api, ConfluenceDocumentOptions(ignore_invalid_url=True)
-            ).synchronize_directory(self.sample_dir)
+            Application(api, ConfluenceDocumentOptions()).synchronize_directory(
+                self.sample_dir
+            )
 
     def test_synchronize_create(self) -> None:
         source_dir = self.out_dir / "markdown"
@@ -129,9 +129,7 @@ class TestAPI(unittest.TestCase):
         with ConfluenceAPI() as api:
             Application(
                 api,
-                ConfluenceDocumentOptions(
-                    ignore_invalid_url=True, root_page_id="86090481730"
-                ),
+                ConfluenceDocumentOptions(root_page_id="86090481730"),
             ).synchronize_directory(source_dir)
 
         with open(child, "r", encoding="utf-8") as f:

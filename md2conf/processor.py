@@ -97,7 +97,7 @@ class Processor:
             page_metadata[doc] = metadata
 
         for directory in directories:
-            self._index_directory(Path(local_dir) / directory, page_metadata)
+            self._index_directory(directory, page_metadata)
 
     def _get_page(self, absolute_path: Path) -> ConfluencePageMetadata:
         "Extracts metadata from a Markdown file."

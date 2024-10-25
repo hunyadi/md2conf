@@ -39,7 +39,6 @@ class TestProcessor(unittest.TestCase):
 
     def test_process_document(self) -> None:
         options = ConfluenceDocumentOptions(
-            ignore_invalid_url=False,
             generated_by="Test Case",
             root_page_id="None",
         )
@@ -53,7 +52,6 @@ class TestProcessor(unittest.TestCase):
 
     def test_process_directory(self) -> None:
         options = ConfluenceDocumentOptions(
-            ignore_invalid_url=True,
             generated_by="The Author",
             root_page_id="ROOT_PAGE_ID",
         )

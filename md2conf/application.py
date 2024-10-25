@@ -130,7 +130,7 @@ class Application:
             page_metadata[doc] = metadata
 
         for directory in directories:
-            self._index_directory(Path(local_dir) / directory, parent_id, page_metadata)
+            self._index_directory(directory, parent_id, page_metadata)
 
     def _get_or_create_page(
         self,

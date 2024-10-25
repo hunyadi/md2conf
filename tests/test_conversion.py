@@ -73,7 +73,7 @@ class TestConversion(unittest.TestCase):
             with self.subTest(name=name):
                 actual = ConfluenceDocument(
                     self.source_dir / f"{name}.md",
-                    ConfluenceDocumentOptions(ignore_invalid_url=True),
+                    ConfluenceDocumentOptions(),
                     {},
                 ).xhtml()
                 actual = standardize(actual)
@@ -101,7 +101,6 @@ class TestConversion(unittest.TestCase):
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                ignore_invalid_url=True,
                 render_mermaid=True,
                 diagram_output_format="svg",
             ),
@@ -114,7 +113,6 @@ class TestConversion(unittest.TestCase):
         document = ConfluenceDocument(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                ignore_invalid_url=True,
                 render_mermaid=True,
                 diagram_output_format="png",
             ),
