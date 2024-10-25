@@ -499,7 +499,7 @@ class ConfluenceSession:
         page_id = self.page_exists(title)
 
         if page_id is not None:
-            LOGGER.debug("Retrieving existing page: %d", page_id)
+            LOGGER.debug("Retrieving existing page: %s", page_id)
             return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
