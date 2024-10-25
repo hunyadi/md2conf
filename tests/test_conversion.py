@@ -83,6 +83,19 @@ class TestConversion(unittest.TestCase):
 
                 self.assertEqual(actual, expected)
 
+    def test_broken_links(self) -> None:
+        actual = ConfluenceDocument(
+            self.source_dir / "missing.md",
+            ConfluenceDocumentOptions(ignore_invalid_url=True),
+            {},
+        ).xhtml()
+        actual = standardize(actual)
+
+        with open(self.target_dir / "missing.xml", "r", encoding="utf-8") as f:
+            expected = canonicalize(f.read())
+
+        self.assertEqual(actual, expected)
+
     def test_heading_anchors(self) -> None:
         actual = ConfluenceDocument(
             self.source_dir / "anchors.md",

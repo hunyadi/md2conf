@@ -8,7 +8,6 @@
 <p>Absolute link to an <a href="http://example.com/">external location</a> with a <a href="http://example.com/?key[]=value">query string</a>.</p>
 <p>Relative link to a <a href="#Basic-features">heading in the same document</a>.</p>
 <p>"Naked" links: <a href="https://example.com">https://example.com</a> and <a href="mailto:me@example.com">me@example.com</a>.</p>
-<p>Relative URLs to <a>locations not exported</a> may be skipped.</p>
 <p>An ordered list:</p>
 <ol>
   <li><em>List item 1</em></li>

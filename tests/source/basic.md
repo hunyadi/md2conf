@@ -10,8 +10,6 @@ Relative link to a [heading in the same document](#Basic-features).
 
 "Naked" links: <https://example.com> and <mailto:me@example.com>.
 
-Relative URLs to [locations not exported](missing.md) may be skipped.
-
 An ordered list:
 
 1. *List item 1*
