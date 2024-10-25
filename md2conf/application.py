@@ -44,6 +44,7 @@ class Application:
     def synchronize(self, path: Path) -> None:
         "Synchronizes a single Markdown page or a directory of Markdown pages."
 
+        path = path.resolve(True)
         if path.is_dir():
             self.synchronize_directory(path)
         elif path.is_file():
@@ -54,12 +55,14 @@ class Application:
     def synchronize_page(self, page_path: Path) -> None:
         "Synchronizes a single Markdown page with Confluence."
 
+        page_path = page_path.resolve(True)
         self._synchronize_page(page_path, {})
 
     def synchronize_directory(self, local_dir: Path) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
         LOGGER.info(f"Synchronizing directory: {local_dir}")
+        local_dir = local_dir.resolve(True)
 
         # Step 1: build index of all page metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}

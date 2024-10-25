@@ -38,6 +38,7 @@ class Processor:
     def process(self, path: Path) -> None:
         "Processes a single Markdown file or a directory of Markdown files."
 
+        path = path.resolve(True)
         if path.is_dir():
             self.process_directory(path)
         elif path.is_file():
@@ -49,6 +50,7 @@ class Processor:
         "Recursively scans a directory hierarchy for Markdown files."
 
         LOGGER.info(f"Synchronizing directory: {local_dir}")
+        local_dir = local_dir.resolve(True)
 
         # Step 1: build index of all page metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}
@@ -64,6 +66,7 @@ class Processor:
     ) -> None:
         "Processes a single Markdown file."
 
+        path = path.resolve(True)
         document = ConfluenceDocument(path, self.options, page_metadata)
         content = document.xhtml()
         with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
