@@ -61,7 +61,7 @@ class Application:
     def synchronize_directory(self, local_dir: Path) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        LOGGER.info(f"Synchronizing directory: {local_dir}")
+        LOGGER.info("Synchronizing directory: %s", local_dir)
         local_dir = local_dir.resolve(True)
 
         # Step 1: build index of all page metadata
@@ -72,7 +72,7 @@ class Application:
             else None
         )
         self._index_directory(local_dir, root_id, page_metadata)
-        LOGGER.info(f"indexed {len(page_metadata)} page(s)")
+        LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
         # Step 2: convert each page
         for page_path in page_metadata.keys():
@@ -85,7 +85,7 @@ class Application:
     ) -> None:
         base_path = page_path.parent
 
-        LOGGER.info(f"Synchronizing page: {page_path}")
+        LOGGER.info("Synchronizing page: %s", page_path)
         document = ConfluenceDocument(page_path, self.options, page_metadata)
 
         if document.id.space_key:
@@ -102,7 +102,7 @@ class Application:
     ) -> None:
         "Indexes Markdown files in a directory recursively."
 
-        LOGGER.info(f"Indexing directory: {local_dir}")
+        LOGGER.info("Indexing directory: %s", local_dir)
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
@@ -118,18 +118,26 @@ class Application:
                 directories.append(Path(local_dir) / entry.name)
 
         # make page act as parent node in Confluence
-        parent_id: Optional[ConfluenceQualifiedID] = None
+        parent_doc: Optional[Path] = None
         if (Path(local_dir) / "index.md") in files:
-            parent_id = read_qualified_id(Path(local_dir) / "index.md")
+            parent_doc = Path(local_dir) / "index.md"
         elif (Path(local_dir) / "README.md") in files:
-            parent_id = read_qualified_id(Path(local_dir) / "README.md")
+            parent_doc = Path(local_dir) / "README.md"
 
-        if parent_id is None:
+        if parent_doc is not None:
+            files.remove(parent_doc)
+
+            metadata = self._get_or_create_page(parent_doc, root_id)
+            LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
+            page_metadata[parent_doc] = metadata
+
+            parent_id = read_qualified_id(parent_doc) or root_id
+        else:
             parent_id = root_id
 
         for doc in files:
             metadata = self._get_or_create_page(doc, parent_id)
-            LOGGER.debug(f"indexed {doc} with metadata: {metadata}")
+            LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
             page_metadata[doc] = metadata
 
         for directory in directories:
@@ -226,7 +234,7 @@ class Application:
             )
 
         content = document.xhtml()
-        LOGGER.debug(f"generated Confluence Storage Format document:\n{content}")
+        LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
         self.api.update_page(document.id.page_id, content)
 
     def _update_markdown(

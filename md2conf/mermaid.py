@@ -60,7 +60,7 @@ def render(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:
     root = os.path.dirname(__file__)
     if is_docker():
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
-    LOGGER.debug(f"Executing: {' '.join(cmd)}")
+    LOGGER.debug("Executing: %s", " ".join(cmd))
     try:
         proc = subprocess.Popen(
             cmd,

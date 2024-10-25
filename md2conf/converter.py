@@ -351,7 +351,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if is_absolute_url(url):
             return None
 
-        LOGGER.debug(f"found link {url} relative to {self.path}")
+        LOGGER.debug("Found link %s relative to %s", url, self.path)
         relative_url: ParseResult = urlparse(url)
 
         if (
@@ -361,7 +361,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             and not relative_url.params
             and not relative_url.query
         ):
-            LOGGER.debug(f"found local URL: {url}")
+            LOGGER.debug("Found local URL: %s", url)
             if self.options.heading_anchors:
                 # <ac:link ac:anchor="anchor"><ac:link-body>...</ac:link-body></ac:link>
                 target = relative_url.fragment.lstrip("#")
@@ -406,7 +406,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(msg)
 
         LOGGER.debug(
-            f"found link to page {relative_path} with metadata: {link_metadata}"
+            "found link to page %s with metadata: %s", relative_path, link_metadata
         )
         self.links.append(url)
 
@@ -425,7 +425,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
         transformed_url = urlunparse(components)
 
-        LOGGER.debug(f"transformed relative URL: {url} to URL: {transformed_url}")
+        LOGGER.debug("Transformed relative URL: %s to URL: %s", url, transformed_url)
         anchor.attrib["href"] = transformed_url
         return None
 

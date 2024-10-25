@@ -49,13 +49,13 @@ class Processor:
     def process_directory(self, local_dir: Path) -> None:
         "Recursively scans a directory hierarchy for Markdown files."
 
-        LOGGER.info(f"Synchronizing directory: {local_dir}")
+        LOGGER.info("Synchronizing directory: %s", local_dir)
         local_dir = local_dir.resolve(True)
 
         # Step 1: build index of all page metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}
         self._index_directory(local_dir, page_metadata)
-        LOGGER.info(f"indexed {len(page_metadata)} page(s)")
+        LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
         # Step 2: convert each page
         for page_path in page_metadata.keys():
@@ -79,7 +79,7 @@ class Processor:
     ) -> None:
         "Indexes Markdown files in a directory recursively."
 
-        LOGGER.info(f"Indexing directory: {local_dir}")
+        LOGGER.info("Indexing directory: %s", local_dir)
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
@@ -96,7 +96,7 @@ class Processor:
 
         for doc in files:
             metadata = self._get_page(doc)
-            LOGGER.debug(f"indexed {doc} with metadata: {metadata}")
+            LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
             page_metadata[doc] = metadata
 
         for directory in directories:
@@ -113,7 +113,7 @@ class Processor:
             if self.options.root_page_id is not None:
                 hash = hashlib.md5(document.encode("utf-8"))
                 digest = "".join(f"{c:x}" for c in hash.digest())
-                LOGGER.info(f"Identifier '{digest}' assigned to page: {absolute_path}")
+                LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
                 qualified_id = ConfluenceQualifiedID(digest)
             else:
                 raise ValueError("required: page ID for local output")

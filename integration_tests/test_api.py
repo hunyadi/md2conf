@@ -135,7 +135,7 @@ class TestAPI(unittest.TestCase):
         with open(child, "r", encoding="utf-8") as f:
             self.assertEqual(
                 f.read(),
-                "<!-- confluence-page-id: 86269493445 -->\n"
+                "<!-- confluence-page-id: 86971744339 -->\n"
                 f"<!-- confluence-space-key: {TEST_SPACE} -->\n"
                 "This is a document without an explicitly linked Confluence document.\n",
             )
