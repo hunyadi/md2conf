@@ -113,9 +113,17 @@ Provide generated-by prompt text in the Markdown file with a tag:
 
 Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
 
+### Publishing a single page
+
+*md2conf* has two modes of operation: *single-page mode* and *directory mode*.
+
+In single-page mode, you specify a single Markdown file as the source, which can contain absolute links to external locations (e.g. `https://example.com`) but not relative links to other pages (e.g. `local.md`). In other words, the page must be stand-alone.
+
 ### Publishing a directory
 
-*md2conf* allows you to convert and publish a directory of Markdown files rather than a single Markdown file if you pass a directory as `mdpath`. This will traverse the specified directory recursively, and synchronize each Markdown file.
+*md2conf* allows you to convert and publish a directory of Markdown files rather than a single Markdown file in *directory mode* if you pass a directory as the source. This will traverse the specified directory recursively, and synchronize each Markdown file.
+
+First, *md2conf* builds an index of pages in the directory hierarchy. The index maps each Markdown file path to a Confluence page ID. Whenever a relative link is encountered in a Markdown file, the relative link is replaced with a Confluence URL to the referenced page with the help of the index. All relative links must point to Markdown files that are located in the directory hierarchy.
 
 If a Markdown file doesn't yet pair up with a Confluence page, *md2conf* creates a new page and assigns a parent. Parent-child relationships are reflected in the navigation panel in Confluence. You can set a root page ID with the command-line option `-r`, which constitutes the topmost parent. (This could correspond to the landing page of your Confluence space. The Confluence page ID is always revealed when you edit a page.) Whenever a directory contains the file `index.md` or `README.md`, this page becomes the future parent page, and all Markdown files in this directory (and possibly nested directories) become its child pages (unless they already have a page ID). However, if an `index.md` or `README.md` file is subsequently found in one of the nested directories, it becomes the parent page of that directory, and any of its subdirectories.
 
