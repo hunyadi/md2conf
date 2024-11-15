@@ -395,7 +395,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         relative_path = os.path.relpath(absolute_path, self.base_path)
 
-        link_metadata = self.page_metadata.get(absolute_path)
+        link_metadata = self.page_metadata.get(absolute_path.resolve())
         if link_metadata is None:
             msg = f"unable to find matching page for URL: {url}"
             if self.options.ignore_invalid_url:
