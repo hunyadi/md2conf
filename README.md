@@ -42,11 +42,11 @@ npm install -g @mermaid-js/mermaid-cli
 
 In order to get started, you will need
 
-* your organization domain name (e.g. `instructure.atlassian.net`),
+* your organization domain name (e.g. `example.atlassian.net`),
 * base path for Confluence wiki (typically `/wiki/` for managed Confluence, `/` for on-premise)
 * your Confluence username (e.g. `levente.hunyadi@instructure.com`) (only if required by your deployment),
 * a Confluence API token (a string of alphanumeric characters), and
-* the space key in Confluence (e.g. `DAP`) you are publishing content to.
+* the space key in Confluence (e.g. `SPACE`) you are publishing content to.
 
 ### Obtaining an API token
 
@@ -60,11 +60,11 @@ In order to get started, you will need
 Confluence organization domain, base path, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
 
 ```bash
-export CONFLUENCE_DOMAIN='instructure.atlassian.net'
+export CONFLUENCE_DOMAIN='example.atlassian.net'
 export CONFLUENCE_PATH='/wiki/'
 export CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
 export CONFLUENCE_API_KEY='0123456789abcdef'
-export CONFLUENCE_SPACE_KEY='DAP'
+export CONFLUENCE_SPACE_KEY='SPACE'
 ```
 
 On Windows, these can be set via system properties.
@@ -96,7 +96,7 @@ The above tells the tool to synchronize the Markdown file with the given Conflue
 If you work in an environment where there are multiple Confluence spaces, and some Markdown pages may go into one space, whereas other pages may go into another, you can set the target space on a per-document basis:
 
 ```markdown
-<!-- confluence-space-key: DAP -->
+<!-- confluence-space-key: SPACE -->
 ```
 
 This overrides the default space set via command-line arguments or environment variables.
@@ -191,7 +191,7 @@ You can run the Docker container via `docker run` or via `Dockerfile`. Either ca
 With `docker run`, you can pass Confluence domain, user, API and space key directly to `docker run`:
 
 ```sh
-docker run --rm --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest -d instructure.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s DAP ./
+docker run --rm --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest -d example.atlassian.net -u levente.hunyadi@instructure.com -a 0123456789abcdef -s SPACE ./
 ```
 
 Alternatively, you can use a separate file `.env` to pass these parameters as environment variables:
@@ -209,11 +209,11 @@ With the `Dockerfile` approach, you can extend the base image:
 ```Dockerfile
 FROM leventehunyadi/md2conf:latest
 
-ENV CONFLUENCE_DOMAIN='instructure.atlassian.net'
+ENV CONFLUENCE_DOMAIN='example.atlassian.net'
 ENV CONFLUENCE_PATH='/wiki/'
 ENV CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
 ENV CONFLUENCE_API_KEY='0123456789abcdef'
-ENV CONFLUENCE_SPACE_KEY='DAP'
+ENV CONFLUENCE_SPACE_KEY='SPACE'
 
 CMD ["./"]
 ```
@@ -223,5 +223,5 @@ Alternatively,
 ```Dockerfile
 FROM leventehunyadi/md2conf:latest
 
-CMD ["-d", "instructure.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "DAP", "./"]
+CMD ["-d", "example.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "SPACE", "./"]
 ```
