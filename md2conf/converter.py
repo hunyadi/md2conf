@@ -757,6 +757,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             tail: str = child.tail
             child.tail = tail.replace("\n", " ")
 
+        if not isinstance(child.tag, str):
+            return None
+
         if self.options.heading_anchors:
             # <h1>...</h1>
             # <h2>...</h2> ...
