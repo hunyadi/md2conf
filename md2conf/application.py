@@ -52,17 +52,31 @@ class Application:
         else:
             raise ValueError(f"expected: valid file or directory path; got: {path}")
 
-    def synchronize_page(self, page_path: Path) -> None:
+    def synchronize_page(
+        self, page_path: Path, root_dir: Optional[Path] = None
+    ) -> None:
         "Synchronizes a single Markdown page with Confluence."
 
         page_path = page_path.resolve(True)
-        self._synchronize_page(page_path, {})
+        if root_dir is None:
+            root_dir = page_path.parent
+        else:
+            root_dir = root_dir.resolve(True)
 
-    def synchronize_directory(self, local_dir: Path) -> None:
+        self._synchronize_page(page_path, root_dir, {})
+
+    def synchronize_directory(
+        self, local_dir: Path, root_dir: Optional[Path] = None
+    ) -> None:
         "Synchronizes a directory of Markdown pages with Confluence."
 
-        LOGGER.info("Synchronizing directory: %s", local_dir)
         local_dir = local_dir.resolve(True)
+        if root_dir is None:
+            root_dir = local_dir
+        else:
+            root_dir = root_dir.resolve(True)
+
+        LOGGER.info("Synchronizing directory: %s", local_dir)
 
         # Step 1: build index of all page metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}
@@ -76,17 +90,18 @@ class Application:
 
         # Step 2: convert each page
         for page_path in page_metadata.keys():
-            self._synchronize_page(page_path, page_metadata)
+            self._synchronize_page(page_path, root_dir, page_metadata)
 
     def _synchronize_page(
         self,
         page_path: Path,
+        root_dir: Path,
         page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         base_path = page_path.parent
 
         LOGGER.info("Synchronizing page: %s", page_path)
-        document = ConfluenceDocument(page_path, self.options, page_metadata)
+        document = ConfluenceDocument(page_path, self.options, root_dir, page_metadata)
 
         if document.id.space_key:
             with self.api.switch_space(document.id.space_key):

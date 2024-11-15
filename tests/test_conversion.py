@@ -74,6 +74,7 @@ class TestConversion(unittest.TestCase):
                 actual = ConfluenceDocument(
                     self.source_dir / f"{name}.md",
                     ConfluenceDocumentOptions(),
+                    self.source_dir,
                     {},
                 ).xhtml()
                 actual = standardize(actual)
@@ -87,6 +88,7 @@ class TestConversion(unittest.TestCase):
         actual = ConfluenceDocument(
             self.source_dir / "missing.md",
             ConfluenceDocumentOptions(ignore_invalid_url=True),
+            self.source_dir,
             {},
         ).xhtml()
         actual = standardize(actual)
@@ -100,6 +102,7 @@ class TestConversion(unittest.TestCase):
         actual = ConfluenceDocument(
             self.source_dir / "anchors.md",
             ConfluenceDocumentOptions(heading_anchors=True),
+            self.source_dir,
             {},
         ).xhtml()
         actual = standardize(actual)
@@ -117,6 +120,7 @@ class TestConversion(unittest.TestCase):
                 render_mermaid=True,
                 diagram_output_format="svg",
             ),
+            self.source_dir,
             {},
         )
         self.assertEqual(len(document.embedded_images), 6)
@@ -129,6 +133,7 @@ class TestConversion(unittest.TestCase):
                 render_mermaid=True,
                 diagram_output_format="png",
             ),
+            self.source_dir,
             {},
         )
         self.assertEqual(len(document.embedded_images), 6)

@@ -301,7 +301,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
     options: ConfluenceConverterOptions
     path: Path
-    base_path: Path
+    base_dir: Path
+    root_dir: Path
     links: List[str]
     images: List[str]
     embedded_images: Dict[str, bytes]
@@ -311,12 +312,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self,
         options: ConfluenceConverterOptions,
         path: Path,
+        root_dir: Path,
         page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
         self.options = options
         self.path = path
-        self.base_path = path.parent
+        self.base_dir = path.parent
+        self.root_dir = root_dir
         self.links = []
         self.images = []
         self.embedded_images = {}
@@ -383,9 +386,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # convert the relative URL to absolute URL based on the base path value, then look up
         # the absolute path in the page metadata dictionary to discover the relative path
         # within Confluence that should be used
-        absolute_path = (self.base_path / relative_url.path).absolute()
-        if not str(absolute_path).startswith(str(self.base_path)):
-            msg = f"relative URL {url} points to outside base path: {self.base_path}"
+        absolute_path = (self.base_dir / relative_url.path).resolve(True)
+        if not str(absolute_path).startswith(str(self.root_dir)):
+            msg = f"relative URL {url} points to outside root path: {self.root_dir}"
             if self.options.ignore_invalid_url:
                 LOGGER.warning(msg)
                 anchor.attrib.pop("href")
@@ -393,9 +396,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 raise DocumentError(msg)
 
-        relative_path = os.path.relpath(absolute_path, self.base_path)
-
-        link_metadata = self.page_metadata.get(absolute_path.resolve())
+        link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
             msg = f"unable to find matching page for URL: {url}"
             if self.options.ignore_invalid_url:
@@ -405,6 +406,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 raise DocumentError(msg)
 
+        relative_path = os.path.relpath(absolute_path, self.base_dir)
         LOGGER.debug(
             "found link to page %s with metadata: %s", relative_path, link_metadata
         )
@@ -437,7 +439,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             relative_path = Path(path)
             if (
                 relative_path.suffix == ".svg"
-                and (self.base_path / relative_path.with_suffix(".png")).exists()
+                and (self.base_dir / relative_path.with_suffix(".png")).exists()
             ):
                 path = str(relative_path.with_suffix(".png"))
 
@@ -944,10 +946,11 @@ class ConfluenceDocument:
         self,
         path: Path,
         options: ConfluenceDocumentOptions,
+        root_dir: Path,
         page_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
-        path = path.absolute()
+        path = path.resolve(True)
 
         with open(path, "r", encoding="utf-8") as f:
             text = f.read()
@@ -1001,6 +1004,7 @@ class ConfluenceDocument:
                 webui_links=self.options.webui_links,
             ),
             path,
+            root_dir,
             page_metadata,
         )
         converter.visit(self.root)
