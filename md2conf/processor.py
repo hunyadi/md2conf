@@ -10,7 +10,7 @@ import hashlib
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .converter import (
     ConfluenceDocument,
@@ -42,15 +42,22 @@ class Processor:
         if path.is_dir():
             self.process_directory(path)
         elif path.is_file():
-            self.process_page(path, {})
+            self.process_page(path)
         else:
             raise ValueError(f"expected: valid file or directory path; got: {path}")
 
-    def process_directory(self, local_dir: Path) -> None:
+    def process_directory(
+        self, local_dir: Path, root_dir: Optional[Path] = None
+    ) -> None:
         "Recursively scans a directory hierarchy for Markdown files."
 
-        LOGGER.info("Synchronizing directory: %s", local_dir)
         local_dir = local_dir.resolve(True)
+        if root_dir is None:
+            root_dir = local_dir
+        else:
+            root_dir = root_dir.resolve(True)
+
+        LOGGER.info("Synchronizing directory: %s", local_dir)
 
         # Step 1: build index of all page metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}
@@ -59,15 +66,28 @@ class Processor:
 
         # Step 2: convert each page
         for page_path in page_metadata.keys():
-            self.process_page(page_path, page_metadata)
+            self._process_page(page_path, root_dir, page_metadata)
 
-    def process_page(
-        self, path: Path, page_metadata: Dict[Path, ConfluencePageMetadata]
-    ) -> None:
+    def process_page(self, path: Path, root_dir: Optional[Path] = None) -> None:
         "Processes a single Markdown file."
 
         path = path.resolve(True)
-        document = ConfluenceDocument(path, self.options, page_metadata)
+        if root_dir is None:
+            root_dir = path.parent
+        else:
+            root_dir = root_dir.resolve(True)
+
+        self._process_page(path, root_dir, {})
+
+    def _process_page(
+        self,
+        path: Path,
+        root_dir: Path,
+        page_metadata: Dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        "Processes a single Markdown file."
+
+        document = ConfluenceDocument(path, self.options, root_dir, page_metadata)
         content = document.xhtml()
         with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
             f.write(content)

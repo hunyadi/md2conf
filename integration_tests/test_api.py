@@ -51,6 +51,7 @@ class TestAPI(unittest.TestCase):
         document = ConfluenceDocument(
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
+            self.sample_dir,
             {},
         )
         self.assertListEqual(document.links, [])
