@@ -18,7 +18,7 @@ import uuid
 import xml.etree.ElementTree
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
@@ -304,7 +304,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     base_dir: Path
     root_dir: Path
     links: List[str]
-    images: List[str]
+    images: List[Path]
     embedded_images: Dict[str, bytes]
     page_metadata: Dict[Path, ConfluencePageMetadata]
 
@@ -434,17 +434,24 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_image(self, image: ET._Element) -> ET._Element:
         path: str = image.attrib["src"]
 
-        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        if path and is_relative_url(path):
-            relative_path = Path(path)
-            if (
-                relative_path.suffix == ".svg"
-                and (self.base_dir / relative_path.with_suffix(".png")).exists()
-            ):
-                path = str(relative_path.with_suffix(".png"))
+        if not path:
+            raise DocumentError("image lacks `src` attribute")
 
-        self.images.append(path)
+        if is_absolute_url(path):
+            # images whose `src` attribute is an absolute URL cannot be converted into an `ac:image`;
+            # Confluence images are expected to refer to an uploaded attachment
+            raise DocumentError("image has a `src` attribute that is an absolute URL")
+
+        relative_path = Path(path)
+
+        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
+        png_file = relative_path.with_suffix(".png")
+        if relative_path.suffix == ".svg" and (self.base_dir / png_file).exists():
+            relative_path = png_file
+
+        self.images.append(relative_path)
         caption = image.attrib["alt"]
+        image_name = attachment_name(relative_path)
         return AC(
             "image",
             {
@@ -453,7 +460,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
             RI(
                 "attachment",
-                {ET.QName(namespaces["ri"], "filename"): attachment_name(path)},
+                # refers to an attachment uploaded alongside the page
+                {ET.QName(namespaces["ri"], "filename"): image_name},
             ),
             AC("caption", HTML.p(caption)),
         )
@@ -937,7 +945,7 @@ class ConfluenceDocumentOptions:
 class ConfluenceDocument:
     id: ConfluenceQualifiedID
     links: List[str]
-    images: List[str]
+    images: List[Path]
 
     options: ConfluenceDocumentOptions
     root: ET._Element
@@ -1016,7 +1024,7 @@ class ConfluenceDocument:
         return elements_to_string(self.root)
 
 
-def attachment_name(name: str) -> str:
+def attachment_name(name: Union[Path, str]) -> str:
     """
     Safe name for use with attachment uploads.
 
@@ -1025,7 +1033,7 @@ def attachment_name(name: str) -> str:
     * Special characters: hyphen (-), underscore (_), period (.)
     """
 
-    return re.sub(r"[^\-0-9A-Za-z_.]", "_", name)
+    return re.sub(r"[^\-0-9A-Za-z_.]", "_", str(name))
 
 
 def sanitize_confluence(html: str) -> str:

@@ -240,11 +240,11 @@ class Application:
                 attachment_name(image),
             )
 
-        for image, data in document.embedded_images.items():
+        for name, data in document.embedded_images.items():
             self.api.upload_attachment(
                 document.id.page_id,
-                Path("EMB") / image,
-                attachment_name(image),
+                Path("EMB") / name,
+                name,
                 raw_data=data,
             )
 

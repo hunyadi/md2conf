@@ -57,7 +57,7 @@ class TestAPI(unittest.TestCase):
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
-            ["figure/interoperability.png", "figure/interoperability.png"],
+            [Path("figure/interoperability.png"), Path("figure/interoperability.png")],
         )
 
         with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
