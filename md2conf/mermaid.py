@@ -56,6 +56,10 @@ def render(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:
         filename,
         "--outputFormat",
         output_format,
+        "--backgroundColor",
+        "transparent",
+        "--scale",
+        "2",
     ]
     root = os.path.dirname(__file__)
     if is_docker():

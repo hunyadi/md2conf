@@ -236,14 +236,13 @@ class Application:
         for image in document.images:
             self.api.upload_attachment(
                 document.id.page_id,
-                base_path / image,
                 attachment_name(image),
+                attachment_path=base_path / image,
             )
 
         for name, data in document.embedded_images.items():
             self.api.upload_attachment(
                 document.id.page_id,
-                Path("EMB") / name,
                 name,
                 raw_data=data,
             )

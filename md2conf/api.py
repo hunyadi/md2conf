@@ -178,17 +178,30 @@ class ConfluenceSession:
     def upload_attachment(
         self,
         page_id: str,
-        attachment_path: Path,
         attachment_name: str,
-        raw_data: Optional[bytes] = None,
-        comment: Optional[str] = None,
         *,
+        attachment_path: Optional[Path] = None,
+        raw_data: Optional[bytes] = None,
+        content_type: Optional[str] = None,
+        comment: Optional[str] = None,
         space_key: Optional[str] = None,
         force: bool = False,
     ) -> None:
-        content_type = mimetypes.guess_type(attachment_path, strict=True)[0]
 
-        if not raw_data and not attachment_path.is_file():
+        if attachment_path is None and raw_data is None:
+            raise ConfluenceError("required: `attachment_path` or `raw_data`")
+
+        if attachment_path is not None and raw_data is not None:
+            raise ConfluenceError("expected: either `attachment_path` or `raw_data`")
+
+        if content_type is None:
+            if attachment_path is not None:
+                name = str(attachment_path)
+            else:
+                name = attachment_name
+            content_type, _ = mimetypes.guess_type(name, strict=True)
+
+        if attachment_path is not None and not attachment_path.is_file():
             raise ConfluenceError(f"file not found: {attachment_path}")
 
         try:
@@ -196,14 +209,16 @@ class ConfluenceSession:
                 page_id, attachment_name, space_key=space_key
             )
 
-            if not raw_data:
+            if attachment_path is not None:
                 if not force and attachment.file_size == attachment_path.stat().st_size:
                     LOGGER.info("Up-to-date attachment: %s", attachment_name)
                     return
-            else:
+            elif raw_data is not None:
                 if not force and attachment.file_size == len(raw_data):
                     LOGGER.info("Up-to-date embedded image: %s", attachment_name)
                     return
+            else:
+                raise NotImplementedError("never occurs")
 
             id = removeprefix(attachment.id, "att")
             path = f"/content/{page_id}/child/attachment/{id}/data"
@@ -213,7 +228,7 @@ class ConfluenceSession:
 
         url = self._build_url(path)
 
-        if not raw_data:
+        if attachment_path is not None:
             with open(attachment_path, "rb") as attachment_file:
                 file_to_upload = {
                     "comment": comment,
@@ -230,24 +245,27 @@ class ConfluenceSession:
                     files=file_to_upload,  # type: ignore
                     headers={"X-Atlassian-Token": "no-check"},
                 )
-        else:
+        elif raw_data is not None:
             LOGGER.info("Uploading raw data: %s", attachment_name)
 
+            raw_file = io.BytesIO(raw_data)
+            raw_file.name = attachment_name
             file_to_upload = {
                 "comment": comment,
                 "file": (
                     attachment_name,  # will truncate path component
-                    io.BytesIO(raw_data),  # type: ignore
+                    raw_file,  # type: ignore
                     content_type,
                     {"Expires": "0"},
                 ),
             }
-
             response = self.session.post(
                 url,
                 files=file_to_upload,  # type: ignore
                 headers={"X-Atlassian-Token": "no-check"},
             )
+        else:
+            raise NotImplementedError("never occurs")
 
         response.raise_for_status()
         data = response.json()
