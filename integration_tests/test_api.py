@@ -93,8 +93,8 @@ class TestAPI(unittest.TestCase):
         with ConfluenceAPI() as api:
             api.upload_attachment(
                 TEST_PAGE_ID,
-                self.sample_dir / "figure" / "interoperability.png",
                 "figure_interoperability.png",
+                attachment_path=self.sample_dir / "figure" / "interoperability.png",
                 comment="A sample figure",
                 force=True,
             )

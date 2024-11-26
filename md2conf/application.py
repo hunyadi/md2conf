@@ -11,8 +11,6 @@ import os.path
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import yaml
-
 from .api import ConfluencePage, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
@@ -20,7 +18,7 @@ from .converter import (
     ConfluencePageMetadata,
     ConfluenceQualifiedID,
     attachment_name,
-    extract_frontmatter,
+    extract_frontmatter_title,
     extract_qualified_id,
     read_qualified_id,
 )
@@ -174,7 +172,7 @@ class Application:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
-        frontmatter, document = extract_frontmatter(document)
+        frontmatter_title, _ = extract_frontmatter_title(document)
 
         if qualified_id is not None:
             confluence_page = self.api.get_page(
@@ -187,15 +185,8 @@ class Application:
                 )
 
             # assign title from frontmatter if present
-            if title is None and frontmatter is not None:
-                properties = yaml.safe_load(frontmatter)
-                if isinstance(properties, dict):
-                    property_title = properties.get("title")
-                    if isinstance(property_title, str):
-                        title = property_title
-
             confluence_page = self._create_page(
-                absolute_path, document, title, parent_id
+                absolute_path, document, title or frontmatter_title, parent_id
             )
 
         return ConfluencePageMetadata(
@@ -230,7 +221,13 @@ class Application:
         )
         return confluence_page
 
-    def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
+    def _update_document(
+        self,
+        document: ConfluenceDocument,
+        base_path: Path,
+        *,
+        title: Optional[str] = None,
+    ) -> None:
         "Saves a new version of a Confluence document."
 
         for image in document.images:
@@ -249,7 +246,7 @@ class Application:
 
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
-        self.api.update_page(document.id.page_id, content)
+        self.api.update_page(document.id.page_id, content, title=title)
 
     def _update_markdown(
         self,

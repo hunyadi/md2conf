@@ -420,7 +420,17 @@ class ConfluenceSession:
         new_content: str,
         *,
         space_key: Optional[str] = None,
+        title: Optional[str] = None,
     ) -> None:
+        """
+        Update a page via the Confluence API.
+
+        :param page_id: The Confluence page ID.
+        :param new_content: Confluence Storage Format XHTML.
+        :param space_key: The Confluence space key (unless the default space is to be used).
+        :param title: New title to assign to the page. Needs to be unique within a space.
+        """
+
         page = self.get_page(page_id, space_key=space_key)
 
         try:
@@ -435,7 +445,7 @@ class ConfluenceSession:
         data = {
             "id": page_id,
             "type": "page",
-            "title": page.title,  # title needs to be unique within a space so the original title is maintained
+            "title": title or page.title,
             "space": {"key": space_key or self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
             "version": {"minorEdit": True, "number": page.version + 1},

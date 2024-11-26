@@ -23,6 +23,7 @@ from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
 import markdown
+import yaml
 from lxml.builder import ElementMaker
 
 from . import mermaid
@@ -905,6 +906,20 @@ def extract_frontmatter(text: str) -> Tuple[Optional[str], str]:
     "Extracts the front matter from a Markdown document."
 
     return extract_value(r"(?ms)\A---$(.+?)^---$", text)
+
+
+def extract_frontmatter_title(text: str) -> Tuple[Optional[str], str]:
+    frontmatter, text = extract_frontmatter(text)
+
+    title: Optional[str] = None
+    if frontmatter is not None:
+        properties = yaml.safe_load(frontmatter)
+        if isinstance(properties, dict):
+            property_title = properties.get("title")
+            if isinstance(property_title, str):
+                title = property_title
+
+    return title, text
 
 
 def read_qualified_id(absolute_path: Path) -> Optional[ConfluenceQualifiedID]:
