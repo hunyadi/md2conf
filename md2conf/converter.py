@@ -959,6 +959,7 @@ class ConfluenceDocumentOptions:
 
 class ConfluenceDocument:
     id: ConfluenceQualifiedID
+    title: Optional[str]
     links: List[str]
     images: List[Path]
 
@@ -997,7 +998,7 @@ class ConfluenceDocument:
         )
 
         # extract frontmatter
-        frontmatter, text = extract_frontmatter(text)
+        self.title, text = extract_frontmatter_title(text)
 
         # convert to HTML
         html = markdown_to_html(text)

@@ -221,13 +221,7 @@ class Application:
         )
         return confluence_page
 
-    def _update_document(
-        self,
-        document: ConfluenceDocument,
-        base_path: Path,
-        *,
-        title: Optional[str] = None,
-    ) -> None:
+    def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
         "Saves a new version of a Confluence document."
 
         for image in document.images:
@@ -246,7 +240,7 @@ class Application:
 
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
-        self.api.update_page(document.id.page_id, content, title=title)
+        self.api.update_page(document.id.page_id, content, title=document.title)
 
     def _update_markdown(
         self,

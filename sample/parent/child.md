@@ -1,3 +1,7 @@
+---
+title: "Markdown child page"
+---
+
 <!-- confluence-page-id: 86971744339 -->
 <!-- confluence-space-key: DAP -->
 

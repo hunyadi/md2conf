@@ -432,10 +432,11 @@ class ConfluenceSession:
         """
 
         page = self.get_page(page_id, space_key=space_key)
+        new_title = title or page.title
 
         try:
             old_content = sanitize_confluence(page.content)
-            if old_content == new_content:
+            if page.title == new_title and old_content == new_content:
                 LOGGER.info("Up-to-date page: %s", page_id)
                 return
         except ParseError as exc:
@@ -445,7 +446,7 @@ class ConfluenceSession:
         data = {
             "id": page_id,
             "type": "page",
-            "title": title or page.title,
+            "title": new_title,
             "space": {"key": space_key or self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
             "version": {"minorEdit": True, "number": page.version + 1},
