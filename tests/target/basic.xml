@@ -60,4 +60,14 @@
     <p>SVG image with caption</p>
   </ac:caption>
 </ac:image>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
+  <ac:caption>
+    <p>External image</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center" ac:width="24" ac:height="24">
+  <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
+</ac:image>
+
 <p>UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.</p>

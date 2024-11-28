@@ -351,8 +351,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         heading.text = None
 
     def _transform_link(self, anchor: ET._Element) -> Optional[ET._Element]:
-        url = anchor.attrib["href"]
-        if is_absolute_url(url):
+        url = anchor.attrib.get("href")
+        if url is None or is_absolute_url(url):
             return None
 
         LOGGER.debug("Found link %s relative to %s", url, self.path)
@@ -433,39 +433,72 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return None
 
     def _transform_image(self, image: ET._Element) -> ET._Element:
-        path: str = image.attrib["src"]
+        src = image.attrib.get("src")
 
-        if not path:
+        if not src:
             raise DocumentError("image lacks `src` attribute")
 
-        if is_absolute_url(path):
-            # images whose `src` attribute is an absolute URL cannot be converted into an `ac:image`;
-            # Confluence images are expected to refer to an uploaded attachment
-            raise DocumentError("image has a `src` attribute that is an absolute URL")
+        attributes: Dict[str, Any] = {
+            ET.QName(namespaces["ac"], "align"): "center",
+            ET.QName(namespaces["ac"], "layout"): "center",
+        }
+        width = image.attrib.get("width")
+        if width is not None:
+            attributes.update({ET.QName(namespaces["ac"], "width"): width})
+        height = image.attrib.get("height")
+        if height is not None:
+            attributes.update({ET.QName(namespaces["ac"], "height"): height})
 
-        relative_path = Path(path)
+        caption = image.attrib.get("alt")
+
+        if is_absolute_url(src):
+            return self._transform_external_image(src, caption, attributes)
+        else:
+            return self._transform_attached_image(Path(src), caption, attributes)
+
+    def _transform_external_image(
+        self, url: str, caption: Optional[str], attributes: Dict[str, Any]
+    ) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for an external image."
+
+        elements: List[ET._Element] = []
+        elements.append(
+            RI(
+                "url",
+                # refers to an external image
+                {ET.QName(namespaces["ri"], "value"): url},
+            )
+        )
+        if caption is not None:
+            elements.append(AC("caption", HTML.p(caption)))
+
+        return AC("image", attributes, *elements)
+
+    def _transform_attached_image(
+        self, path: Path, caption: Optional[str], attributes: Dict[str, Any]
+    ) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for an attached image."
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        png_file = relative_path.with_suffix(".png")
-        if relative_path.suffix == ".svg" and (self.base_dir / png_file).exists():
-            relative_path = png_file
+        png_file = path.with_suffix(".png")
+        if path.suffix == ".svg" and (self.base_dir / png_file).exists():
+            path = png_file
 
-        self.images.append(relative_path)
-        caption = image.attrib["alt"]
-        image_name = attachment_name(relative_path)
-        return AC(
-            "image",
-            {
-                ET.QName(namespaces["ac"], "align"): "center",
-                ET.QName(namespaces["ac"], "layout"): "center",
-            },
+        self.images.append(path)
+        image_name = attachment_name(path)
+
+        elements: List[ET._Element] = []
+        elements.append(
             RI(
                 "attachment",
                 # refers to an attachment uploaded alongside the page
                 {ET.QName(namespaces["ri"], "filename"): image_name},
-            ),
-            AC("caption", HTML.p(caption)),
+            )
         )
+        if caption is not None:
+            elements.append(AC("caption", HTML.p(caption)))
+
+        return AC("image", attributes, *elements)
 
     def _transform_block(self, code: ET._Element) -> ET._Element:
         language = code.attrib.get("class")

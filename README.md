@@ -17,7 +17,7 @@ This Python package
 * Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
 * Ordered and unordered lists
 * Code blocks (e.g. Python, JSON, XML)
-* Image references (uploaded as Confluence page attachments)
+* Images (uploaded as Confluence page attachments or hosted externally)
 * Tables
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
 * [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
