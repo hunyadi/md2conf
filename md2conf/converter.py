@@ -525,7 +525,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC(
                 "parameter",
                 {ET.QName(namespaces["ac"], "name"): "theme"},
-                "Midnight",
+                "Default",
             ),
             AC(
                 "parameter",

@@ -169,7 +169,7 @@ def main() -> None:
         "--webui-links",
         action="store_true",
         default=False,
-        help="Enable Confluence Web UI links.",
+        help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
     )
 
     args = Arguments()

@@ -31,6 +31,17 @@ int main()
 }
 ```
 
+C#:
+```csharp
+class Program
+{
+    static void Main()
+    {
+        System.Console.WriteLine("Hello World");
+    }
+}
+```
+
 CSS:
 ```css
 body {
@@ -70,6 +81,11 @@ class Simple {
 }
 ```
 
+JavaScript:
+```javascript
+alert('Hello World');
+```
+
 JSON:
 ```json
 {
@@ -105,6 +121,11 @@ int main(int argc, const char * argv[]) {
 }
 ```
 
+PHP:
+```php
+<?= "Hello world\n" ?>
+```
+
 Python:
 ```python
 def func(n: int) -> str:
@@ -126,6 +147,13 @@ Rust:
 fn main() {
     // Print text to the console.
     println!("Hello World!");
+}
+```
+
+Scala:
+```scala
+object HelloWorld extends App {
+   println("Hello World")
 }
 ```
 

@@ -181,7 +181,7 @@ options:
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers [KEY=VALUE ...]
                         Apply custom headers to all Confluence API requests.
-  --webui-links         Enable Confluence Web UI links.
+  --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
 ```
 
 ### Using the Docker container
