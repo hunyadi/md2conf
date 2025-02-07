@@ -1073,6 +1073,78 @@ class ConfluenceDocument:
         return elements_to_string(self.root)
 
 
+class ConfluenceFolder:
+    id: ConfluenceQualifiedID
+    title: Optional[str]
+    options: ConfluenceDocumentOptions
+    root: ET._Element
+
+    def __init__(
+        self,
+        path: Path,
+        options: ConfluenceDocumentOptions,
+        root_dir: Path,
+        folder_metadata: Dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        self.options = options
+        path = path.resolve(True)
+
+        # extract Confluence page ID
+        data_file = os.path.join(path, ".md2conf_folder")
+        with open(data_file, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        qualified_id, _ = extract_qualified_id(text)
+
+        if qualified_id is None:
+            # look up Confluence page ID in metadata
+            metadata = folder_metadata.get(path)
+            if metadata is not None:
+                qualified_id = ConfluenceQualifiedID(
+                    metadata.page_id, metadata.space_key
+                )
+        if qualified_id is None:
+            raise ValueError("missing Confluence page ID")
+
+        self.id = qualified_id
+        self.title = path.stem
+
+        content = []
+        if self.options.generated_by is not None:
+            generated_by = self.options.generated_by
+
+            content = [
+                '<ac:structured-macro ac:name="info" ac:schema-version="1">',
+                f"<ac:rich-text-body><p>{generated_by}</p></ac:rich-text-body>",
+                "</ac:structured-macro>",
+            ]
+
+        content.extend([
+            '<ac:structured-macro ac:name="children" ac:schema-version="2" data-layout="default">',
+            '<ac:parameter ac:name="allChildren">true</ac:parameter>',
+            '</ac:structured-macro>'
+        ])
+
+        self.root = elements_from_strings(content)
+
+        converter = ConfluenceStorageFormatConverter(
+            ConfluenceConverterOptions(
+                ignore_invalid_url=self.options.ignore_invalid_url,
+                heading_anchors=self.options.heading_anchors,
+                render_mermaid=self.options.render_mermaid,
+                diagram_output_format=self.options.diagram_output_format,
+                webui_links=self.options.webui_links,
+            ),
+            path,
+            root_dir,
+            folder_metadata,
+        )
+        converter.visit(self.root)
+
+    def xhtml(self) -> str:
+        return elements_to_string(self.root)
+
+
 def attachment_name(name: Union[Path, str]) -> str:
     """
     Safe name for use with attachment uploads.

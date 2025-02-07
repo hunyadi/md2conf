@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 from .api import ConfluencePage, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
+    ConfluenceFolder,
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
     ConfluenceQualifiedID,
@@ -76,19 +77,24 @@ class Application:
 
         LOGGER.info("Synchronizing directory: %s", local_dir)
 
-        # Step 1: build index of all page metadata
+        # Step 1: build index of all page and folder metadata
         page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        folder_metadata: Dict[Path, ConfluencePageMetadata] = {}
         root_id = (
             ConfluenceQualifiedID(self.options.root_page_id, self.api.space_key)
             if self.options.root_page_id
             else None
         )
-        self._index_directory(local_dir, root_id, page_metadata)
+        self._index_directory(local_dir, root_id, page_metadata, folder_metadata)
         LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
         # Step 2: convert each page
         for page_path in page_metadata.keys():
             self._synchronize_page(page_path, root_dir, page_metadata)
+
+        # Step 3: synchronize the "folders" as well
+        for folder_path in folder_metadata.keys():
+            self._synchronize_folder(folder_path, root_dir, folder_metadata)
 
     def _synchronize_page(
         self,
@@ -100,6 +106,8 @@ class Application:
 
         LOGGER.info("Synchronizing page: %s", page_path)
         document = ConfluenceDocument(page_path, self.options, root_dir, page_metadata)
+        if not document.title:
+            document.title = page_path.stem
 
         if document.id.space_key:
             with self.api.switch_space(document.id.space_key):
@@ -107,11 +115,27 @@ class Application:
         else:
             self._update_document(document, base_path)
 
+    def _synchronize_folder(
+        self,
+        folder_path: Path,
+        root_dir: Path,
+        folder_metadata: Dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        LOGGER.info("Synchronizing folder: %s", folder_path)
+        folder = ConfluenceFolder(folder_path, self.options, root_dir, folder_metadata)
+
+        if folder.id.space_key:
+            with self.api.switch_space(folder.id.space_key):
+                self._update_folder(folder)
+        else:
+            self._update_folder(folder)
+
     def _index_directory(
         self,
         local_dir: Path,
         root_id: Optional[ConfluenceQualifiedID],
         page_metadata: Dict[Path, ConfluencePageMetadata],
+        folder_metadata: Dict[Path, ConfluencePageMetadata],
     ) -> None:
         "Indexes Markdown files in a directory recursively."
 
@@ -130,23 +154,7 @@ class Application:
             elif entry.is_dir():
                 directories.append(Path(local_dir) / entry.name)
 
-        # make page act as parent node in Confluence
-        parent_doc: Optional[Path] = None
-        if (Path(local_dir) / "index.md") in files:
-            parent_doc = Path(local_dir) / "index.md"
-        elif (Path(local_dir) / "README.md") in files:
-            parent_doc = Path(local_dir) / "README.md"
-
-        if parent_doc is not None:
-            files.remove(parent_doc)
-
-            metadata = self._get_or_create_page(parent_doc, root_id)
-            LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
-            page_metadata[parent_doc] = metadata
-
-            parent_id = read_qualified_id(parent_doc) or root_id
-        else:
-            parent_id = root_id
+        parent_id = root_id
 
         for doc in files:
             metadata = self._get_or_create_page(doc, parent_id)
@@ -154,7 +162,12 @@ class Application:
             page_metadata[doc] = metadata
 
         for directory in directories:
-            self._index_directory(directory, parent_id, page_metadata)
+            # Make en empty page that acts like a folder
+            metadata = self._get_or_create_folder(directory, parent_id)
+            new_id = ConfluenceQualifiedID(metadata.page_id, metadata.space_key)
+            folder_metadata[directory] = metadata
+
+            self._index_directory(directory, new_id, page_metadata, folder_metadata)
 
     def _get_or_create_page(
         self,
@@ -197,6 +210,52 @@ class Application:
             title=confluence_page.title or "",
         )
 
+    def _get_or_create_folder(
+        self,
+        absolute_path: Path,
+        parent_id: Optional[ConfluenceQualifiedID],
+        *,
+        title: Optional[str] = None,
+    ) -> ConfluencePageMetadata:
+        """Creates a new Confluence page if no page is linked in the .md2conf_folder
+        file (or if the file does not exist).
+
+        Note:
+            We are not using actual Confluence folders for this because the API is
+            currently too limited (unable to PUT, so cannot rename).
+        """
+        # parse file
+        data_file = os.path.join(absolute_path, ".md2conf_folder")
+
+        if os.path.exists(data_file):
+            with open(data_file, "r", encoding="utf-8") as f:
+                text = f.read()
+            qualified_id, _ = extract_qualified_id(text)
+        else:
+            qualified_id = None
+
+        if qualified_id is not None:
+            LOGGER.debug("Found qualified ID in %s", data_file)
+            confluence_page = self.api.get_page(
+                qualified_id.page_id, space_key=qualified_id.space_key
+            )
+        else:
+            if parent_id is None:
+                raise ValueError(
+                    f"expected: parent page ID for folder with no linked Confluence page: {absolute_path}"
+                )
+
+            LOGGER.debug("Creating folder 'page' %s", title)
+            confluence_page = self._create_folder(absolute_path, title, parent_id)
+
+        return ConfluencePageMetadata(
+            domain=self.api.domain,
+            base_path=self.api.base_path,
+            page_id=confluence_page.id,
+            space_key=confluence_page.space_key or self.api.space_key,
+            title=confluence_page.title or "",
+        )
+
     def _create_page(
         self,
         absolute_path: Path,
@@ -221,6 +280,35 @@ class Application:
         )
         return confluence_page
 
+    def _create_folder(
+        self,
+        absolute_path: Path,
+        title: Optional[str],
+        parent_id: ConfluenceQualifiedID,
+    ) -> ConfluencePage:
+        """Creates a new Confluence page when .md2conf_folder file doesn't have an
+        embedded page ID yet.
+
+        Note:
+            We are not using actual Confluence folders for this because the API is
+            currently too limited (unable to PUT, so cannot rename).
+        """
+        # use file name without extension if no title is supplied
+        if title is None:
+            title = absolute_path.stem
+
+        confluence_folder = self.api.get_or_create_page(
+            title, parent_id.page_id, space_key=parent_id.space_key
+        )
+
+        self._update_folder_data(
+            absolute_path,
+            confluence_folder.id,
+            confluence_folder.space_key,
+        )
+
+        return confluence_folder
+
     def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
         "Saves a new version of a Confluence document."
 
@@ -241,6 +329,9 @@ class Application:
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
         self.api.update_page(document.id.page_id, content, title=document.title)
+
+    def _update_folder(self, folder: ConfluenceFolder) -> None:
+        self.api.update_page(folder.id.page_id, folder.xhtml(), title=folder.title)
 
     def _update_markdown(
         self,
@@ -269,3 +360,21 @@ class Application:
 
         with open(path, "w", encoding="utf-8") as file:
             file.write("\n".join(content))
+
+    def _update_folder_data(
+        self,
+        path: Path,
+        folder_id: str,
+        space_key: Optional[str],
+    ) -> None:
+        """Adds/updates the .md2conf_folder file in the directory. This file importantly
+        stores the ID of the 'folder' page in Confluence, so that if we rename a folder
+        on the file system, it can be reflected in Confluence.
+        """
+        data_file = os.path.join(path, ".md2conf_folder")
+
+        with open(data_file, "w", encoding="utf-8") as file:
+            file.write(f"<!-- confluence-page-id: {folder_id} -->\n")
+
+            if space_key:
+                file.write(f"<!-- confluence-space-key: {space_key} -->")
