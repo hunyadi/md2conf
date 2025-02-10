@@ -96,6 +96,28 @@ class Application:
         for folder_path in folder_metadata.keys():
             self._synchronize_folder(folder_path, root_dir, folder_metadata)
 
+        # Step 4: delete pages in Confluence that no longer have a corresponding name
+        # in the directory
+        valid_names = set()
+        for page_path in page_metadata.keys():
+            valid_names.update(page_path.parts)
+            valid_names.add(page_path.stem)
+
+        LOGGER.debug("Valid names in directory: %s", valid_names)
+
+        all_child_pages = []
+        for _, metadata in folder_metadata.items():
+            if metadata.parent_id == self.options.root_page_id:
+                # Get all children of this top-level page
+                self._index_confluence_directory(metadata.page_id, all_child_pages)
+
+        LOGGER.debug("Relevant Confluence pages: %s", all_child_pages)
+
+        for child_page in all_child_pages:
+            if child_page["title"] not in valid_names:
+                self.api.delete_page(child_page["id"])
+                LOGGER.info("Delete page: %s (%s)", child_page["title"], child_page["id"])
+
     def _synchronize_page(
         self,
         page_path: Path,
@@ -159,15 +181,46 @@ class Application:
         for doc in files:
             metadata = self._get_or_create_page(doc, parent_id)
             LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
+
+            # Make sure the file metadata is pointing towards the expected parent
+            # This handles moved files
+            if parent_id.page_id != self.options.root_page_id:
+                if not self._has_expected_parent(doc, metadata.parent_id):
+                    metadata.parent_id = self.api.get_page_id_by_title(doc.parent.stem)
+
             page_metadata[doc] = metadata
 
         for directory in directories:
             # Make en empty page that acts like a folder
             metadata = self._get_or_create_folder(directory, parent_id)
             new_id = ConfluenceQualifiedID(metadata.page_id, metadata.space_key)
+
+            # Make sure the file metadata is pointing towards the expected parent
+            # This handles moved folders
+            if parent_id.page_id != self.options.root_page_id:
+                if not self._has_expected_parent(directory, metadata.parent_id):
+                    metadata.parent_id = self.api.get_page_id_by_title(
+                        directory.parent.stem
+                    )
+
             folder_metadata[directory] = metadata
 
             self._index_directory(directory, new_id, page_metadata, folder_metadata)
+
+    def _index_confluence_directory(self, page_id: str, child_pages: list):
+        """Index child pages of a Confluence page recursively."""
+        pages = self.api.get_page_children(page_id)
+        for p in pages:
+            child_pages.append(p)
+            self._index_confluence_directory(p["id"], child_pages)
+
+    def _has_expected_parent(self, absolute_path: Path, current_parent_id: str) -> bool:
+        expected_parent_name = absolute_path.parent.stem
+        current_parent_name = self.api.get_page(current_parent_id).title
+        if expected_parent_name != current_parent_name:
+            return False
+
+        return True
 
     def _get_or_create_page(
         self,
@@ -208,6 +261,7 @@ class Application:
             page_id=confluence_page.id,
             space_key=confluence_page.space_key or self.api.space_key,
             title=confluence_page.title or "",
+            parent_id=confluence_page.parent_id,
         )
 
     def _get_or_create_folder(
@@ -254,6 +308,7 @@ class Application:
             page_id=confluence_page.id,
             space_key=confluence_page.space_key or self.api.space_key,
             title=confluence_page.title or "",
+            parent_id=confluence_page.parent_id,
         )
 
     def _create_page(
@@ -272,12 +327,7 @@ class Application:
         confluence_page = self.api.get_or_create_page(
             title, parent_id.page_id, space_key=parent_id.space_key
         )
-        self._update_markdown(
-            absolute_path,
-            document,
-            confluence_page.id,
-            confluence_page.space_key,
-        )
+
         return confluence_page
 
     def _create_folder(
@@ -301,12 +351,6 @@ class Application:
             title, parent_id.page_id, space_key=parent_id.space_key
         )
 
-        self._update_folder_data(
-            absolute_path,
-            confluence_folder.id,
-            confluence_folder.space_key,
-        )
-
         return confluence_folder
 
     def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
@@ -328,10 +372,20 @@ class Application:
 
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
-        self.api.update_page(document.id.page_id, content, title=document.title)
+        self.api.update_page(
+            document.id.page_id,
+            content,
+            parent_id=document.parent_id,
+            title=document.title,
+        )
 
     def _update_folder(self, folder: ConfluenceFolder) -> None:
-        self.api.update_page(folder.id.page_id, folder.xhtml(), title=folder.title)
+        self.api.update_page(
+            folder.id.page_id,
+            folder.xhtml(),
+            parent_id=folder.parent_id,
+            title=folder.title,
+        )
 
     def _update_markdown(
         self,
@@ -340,7 +394,14 @@ class Application:
         page_id: str,
         space_key: Optional[str],
     ) -> None:
-        "Writes the Confluence page ID and space key at the beginning of the Markdown file."
+        """Writes the Confluence page ID and space key at the beginning of the
+        Markdown file.
+
+        Note:
+            Currently not used in our version of the tool, since running the tool
+            via GitHub actions means these tags don't make it into the repository
+            anyway.
+        """
 
         content: List[str] = []
 
@@ -370,6 +431,11 @@ class Application:
         """Adds/updates the .md2conf_folder file in the directory. This file importantly
         stores the ID of the 'folder' page in Confluence, so that if we rename a folder
         on the file system, it can be reflected in Confluence.
+
+        Note:
+            Currently not used in our version of the tool, since running the tool
+            via GitHub actions means these tags don't make it into the repository
+            anyway.
         """
         data_file = os.path.join(path, ".md2conf_folder")
 

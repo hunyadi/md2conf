@@ -144,4 +144,5 @@ class Processor:
             page_id=qualified_id.page_id,
             space_key=qualified_id.space_key or self.properties.space_key,
             title="",
+            parent_id="",
         )

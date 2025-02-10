@@ -246,6 +246,7 @@ class ConfluencePageMetadata:
     page_id: str
     space_key: str
     title: str
+    parent_id: str
 
 
 class NodeVisitor:
@@ -1024,6 +1025,7 @@ class ConfluenceDocument:
         if qualified_id is None:
             raise ValueError("missing Confluence page ID")
         self.id = qualified_id
+        self.parent_id = page_metadata[path].parent_id
 
         # extract 'generated-by' tag text
         generated_by_tag, text = extract_value(
@@ -1090,11 +1092,13 @@ class ConfluenceFolder:
         path = path.resolve(True)
 
         # extract Confluence page ID
+        qualified_id = None
         data_file = os.path.join(path, ".md2conf_folder")
-        with open(data_file, "r", encoding="utf-8") as f:
-            text = f.read()
+        if os.path.exists(data_file):
+            with open(data_file, "r", encoding="utf-8") as f:
+                text = f.read()
 
-        qualified_id, _ = extract_qualified_id(text)
+            qualified_id, _ = extract_qualified_id(text)
 
         if qualified_id is None:
             # look up Confluence page ID in metadata
@@ -1107,6 +1111,7 @@ class ConfluenceFolder:
             raise ValueError("missing Confluence page ID")
 
         self.id = qualified_id
+        self.parent_id = folder_metadata[path].parent_id
         self.title = path.stem
 
         content = []

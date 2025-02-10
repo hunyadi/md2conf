@@ -70,6 +70,7 @@ class ConfluencePage:
     title: str
     version: int
     content: str
+    parent_id: str
 
 
 class ConfluenceAPI:
@@ -140,8 +141,20 @@ class ConfluenceSession:
         base_url = f"https://{self.domain}{self.base_path}rest/api{path}"
         return build_url(base_url, query)
 
+    def _build_url_v2(self, path: str, query: Optional[Dict[str, str]] = None) -> str:
+        """Build URL using v2 of the Confluence API."""
+        base_url = f"https://{self.domain}{self.base_path}/api/v2{path}"
+        return build_url(base_url, query)
+
     def _invoke(self, path: str, query: Dict[str, str]) -> JsonType:
         url = self._build_url(path, query)
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    def _invoke_v2(self, path: str, query: Dict[str, str]) -> JsonType:
+        """Invoke using v2 of the Confluence API."""
+        url = self._build_url_v2(path, query)
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -343,17 +356,17 @@ class ConfluenceSession:
         :param space_key: The Confluence space key (unless the default space is to be used).
         :returns: Confluence page info.
         """
-
-        path = f"/content/{page_id}"
+        path = f"/pages/{page_id}"
         query = {
             "spaceKey": space_key or self.space_key,
-            "expand": "body.storage,version",
+            "body-format": "storage",
         }
 
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        data = typing.cast(Dict[str, JsonType], self._invoke_v2(path, query))
         version = typing.cast(Dict[str, JsonType], data["version"])
         body = typing.cast(Dict[str, JsonType], data["body"])
         storage = typing.cast(Dict[str, JsonType], body["storage"])
+        parent_id = typing.cast(str, data["parentId"])
 
         return ConfluencePage(
             id=page_id,
@@ -361,6 +374,7 @@ class ConfluenceSession:
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
+            parent_id=parent_id
         )
 
     def get_page_ancestors(
@@ -390,6 +404,22 @@ class ConfluenceSession:
             title = typing.cast(str, ancestor["title"])
             results[id] = title
         return results
+
+    def get_page_children(self, page_id: str) -> List[dict]:
+        """
+        Retrieve Confluence wiki page immediate children.
+
+        :param page_id: The Confluence page ID.
+        :returns: Dictionary of children pages data.
+        """
+        path = f"/pages/{page_id}/children"
+        query = {
+            "limit": 250,
+        }
+
+        data = typing.cast(Dict[str, JsonType], self._invoke_v2(path, query))
+
+        return data["results"]
 
     def get_page_version(
         self,
@@ -421,6 +451,7 @@ class ConfluenceSession:
         *,
         space_key: Optional[str] = None,
         title: Optional[str] = None,
+        parent_id: Optional[str] = None,
     ) -> None:
         """
         Update a page via the Confluence API.
@@ -429,14 +460,16 @@ class ConfluenceSession:
         :param new_content: Confluence Storage Format XHTML.
         :param space_key: The Confluence space key (unless the default space is to be used).
         :param title: New title to assign to the page. Needs to be unique within a space.
+        :param parent_id: ID of parent page the page should be a child of.
         """
 
         page = self.get_page(page_id, space_key=space_key)
         new_title = title or page.title
+        new_parent_id = parent_id or page.parent_id
 
         try:
             old_content = sanitize_confluence(page.content)
-            if page.title == new_title and old_content == new_content:
+            if page.title == new_title and old_content == new_content and page.parent_id == new_parent_id:
                 LOGGER.info("Up-to-date page: %s", page_id)
                 return
         except ParseError as exc:
@@ -450,6 +483,7 @@ class ConfluenceSession:
             "space": {"key": space_key or self.space_key},
             "body": {"storage": {"value": new_content, "representation": "storage"}},
             "version": {"minorEdit": True, "number": page.version + 1},
+            "ancestors": [{"id": parent_id}],
         }
 
         LOGGER.info("Updating page: %s", page_id)
@@ -493,6 +527,7 @@ class ConfluenceSession:
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
+            parent_id=parent_page_id,
         )
 
     def page_exists(
@@ -533,3 +568,12 @@ class ConfluenceSession:
         else:
             LOGGER.debug("Creating new page with title: %s", title)
             return self.create_page(parent_id, title, "", space_key=space_key)
+
+    def delete_page(self, page_id: str) -> None:
+        path = f"/pages/{page_id}"
+
+        url = self._build_url_v2(path)
+        response = self.session.delete(
+            url, headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
