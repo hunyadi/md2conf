@@ -20,7 +20,6 @@ from md2conf.converter import (
     ConfluenceDocumentOptions,
     sanitize_confluence,
 )
-from md2conf.properties import ConfluenceProperties
 
 TEST_PAGE_TITLE = "Publish to Confluence"
 TEST_SPACE = "DAP"
@@ -67,12 +66,6 @@ class TestAPI(unittest.TestCase):
         with ConfluenceAPI() as api:
             page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
             self.assertEqual(page_id, "%s" % TEST_PAGE_ID)
-
-    def test_switch_space(self) -> None:
-        with ConfluenceAPI(ConfluenceProperties(space_key="PLAT")) as api:
-            with api.switch_space(TEST_SPACE):
-                page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-                self.assertEqual(page_id, TEST_PAGE_ID)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:

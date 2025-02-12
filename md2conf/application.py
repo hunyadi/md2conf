@@ -100,12 +100,7 @@ class Application:
 
         LOGGER.info("Synchronizing page: %s", page_path)
         document = ConfluenceDocument(page_path, self.options, root_dir, page_metadata)
-
-        if document.id.space_key:
-            with self.api.switch_space(document.id.space_key):
-                self._update_document(document, base_path)
-        else:
-            self._update_document(document, base_path)
+        self._update_document(document, base_path)
 
     def _index_directory(
         self,
@@ -175,9 +170,7 @@ class Application:
         frontmatter_title, _ = extract_frontmatter_title(document)
 
         if qualified_id is not None:
-            confluence_page = self.api.get_page(
-                qualified_id.page_id, space_key=qualified_id.space_key
-            )
+            confluence_page = self.api.get_page(qualified_id.page_id)
         else:
             if parent_id is None:
                 raise ValueError(
@@ -189,11 +182,17 @@ class Application:
                 absolute_path, document, title or frontmatter_title, parent_id
             )
 
+        space_key = (
+            self.api.space_id_to_key[confluence_page.space_id]
+            if confluence_page.space_id
+            else self.api.space_key
+        )
+
         return ConfluencePageMetadata(
             domain=self.api.domain,
             base_path=self.api.base_path,
             page_id=confluence_page.id,
-            space_key=confluence_page.space_key or self.api.space_key,
+            space_key=space_key,
             title=confluence_page.title or "",
         )
 
@@ -217,7 +216,7 @@ class Application:
             absolute_path,
             document,
             confluence_page.id,
-            confluence_page.space_key,
+            self.api.space_id_to_key[confluence_page.space_id],
         )
         return confluence_page
 

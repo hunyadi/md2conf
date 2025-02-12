@@ -27,7 +27,7 @@ class TestConfluenceStorageFormat(unittest.TestCase):
 
     def test_markdown(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(TEST_PAGE_ID, space_key=TEST_SPACE)
+            page = api.get_page(TEST_PAGE_ID)
 
         with open(self.test_dir / "example.csf", "w") as f:
             f.write(content_to_string(page.content))

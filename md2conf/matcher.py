@@ -15,7 +15,12 @@ from typing import Iterable, Optional
 
 @dataclass
 class Entry:
-    "Represents a file or directory entry."
+    """
+    Represents a file or directory entry.
+
+    :param name: Name of the file-system entry.
+    :param is_dir: True if the entry is a directory.
+    """
 
     name: str
     is_dir: bool

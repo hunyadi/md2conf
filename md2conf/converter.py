@@ -287,7 +287,7 @@ class ConfluenceConverterOptions:
         conversion rules for the identifier.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
-    :param web_links: When true, convert relative URLs to Confluence Web UI links.
+    :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     """
 
     ignore_invalid_url: bool = False
@@ -974,8 +974,8 @@ class ConfluenceDocumentOptions:
         plain text; when false, raise an exception.
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
-    :param generated_by: Text to use as the generated-by prompt.
-    :param show_generated: Whether to display a prompt "This page has been generated with a tool."
+    :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
+    :param root_page_id: Confluence page to assume root page role for publishing a directory of Markdown files.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
