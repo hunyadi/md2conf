@@ -4,7 +4,7 @@ Publish Markdown files to Confluence wiki.
 Parses Markdown files, converts Markdown content into the Confluence Storage Format (XHTML), and invokes
 Confluence API endpoints to upload images and content.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """

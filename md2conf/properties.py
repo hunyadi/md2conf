@@ -1,13 +1,13 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
 
 import os
-from typing import Dict, Optional
+from typing import Optional
 
 
 class ConfluenceError(RuntimeError):
@@ -20,7 +20,7 @@ class ConfluenceProperties:
     space_key: str
     user_name: Optional[str]
     api_key: str
-    headers: Optional[Dict[str, str]]
+    headers: Optional[dict[str, str]]
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class ConfluenceProperties:
         user_name: Optional[str] = None,
         api_key: Optional[str] = None,
         space_key: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
     ) -> None:
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
         opt_base_path = base_path or os.getenv("CONFLUENCE_PATH")

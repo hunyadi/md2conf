@@ -1,7 +1,7 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
@@ -9,7 +9,7 @@ Copyright 2022-2024, Levente Hunyadi
 import logging
 import os.path
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .api import ConfluencePage, ConfluenceSession
 from .converter import (
@@ -77,7 +77,7 @@ class Application:
         LOGGER.info("Synchronizing directory: %s", local_dir)
 
         # Step 1: build index of all page metadata
-        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        page_metadata: dict[Path, ConfluencePageMetadata] = {}
         root_id = (
             ConfluenceQualifiedID(self.options.root_page_id, self.api.space_key)
             if self.options.root_page_id
@@ -94,7 +94,7 @@ class Application:
         self,
         page_path: Path,
         root_dir: Path,
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         base_path = page_path.parent
 
@@ -111,7 +111,7 @@ class Application:
         self,
         local_dir: Path,
         root_id: Optional[ConfluenceQualifiedID],
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         "Indexes Markdown files in a directory recursively."
 
@@ -119,8 +119,8 @@ class Application:
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
-        files: List[Path] = []
-        directories: List[Path] = []
+        files: list[Path] = []
+        directories: list[Path] = []
         for entry in os.scandir(local_dir):
             if matcher.is_excluded(entry.name, entry.is_dir()):
                 continue
@@ -251,7 +251,7 @@ class Application:
     ) -> None:
         "Writes the Confluence page ID and space key at the beginning of the Markdown file."
 
-        content: List[str] = []
+        content: list[str] = []
 
         # check if the file has frontmatter
         index = 0

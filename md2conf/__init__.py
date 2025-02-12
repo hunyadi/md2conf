@@ -7,7 +7,7 @@ Confluence API endpoints to upload images and content.
 
 __version__ = "0.2.7"
 __author__ = "Levente Hunyadi"
-__copyright__ = "Copyright 2022-2024, Levente Hunyadi"
+__copyright__ = "Copyright 2022-2025, Levente Hunyadi"
 __license__ = "MIT"
 __maintainer__ = "Levente Hunyadi"
 __status__ = "Production"

@@ -1,7 +1,7 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Generator, List, Optional, Type, Union
+from typing import Generator, Optional, Union
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -31,12 +31,12 @@ JsonType = Union[
     int,
     float,
     str,
-    Dict[str, "JsonType"],
-    List["JsonType"],
+    dict[str, "JsonType"],
+    list["JsonType"],
 ]
 
 
-def build_url(base_url: str, query: Optional[Dict[str, str]] = None) -> str:
+def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
 
     scheme, netloc, path, params, query_str, fragment = urlparse(base_url)
@@ -101,7 +101,7 @@ class ConfluenceAPI:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
@@ -136,11 +136,11 @@ class ConfluenceSession:
         finally:
             self.space_key = old_space_key
 
-    def _build_url(self, path: str, query: Optional[Dict[str, str]] = None) -> str:
+    def _build_url(self, path: str, query: Optional[dict[str, str]] = None) -> str:
         base_url = f"https://{self.domain}{self.base_path}rest/api{path}"
         return build_url(base_url, query)
 
-    def _invoke(self, path: str, query: Dict[str, str]) -> JsonType:
+    def _invoke(self, path: str, query: dict[str, str]) -> JsonType:
         url = self._build_url(path, query)
         response = self.session.get(url)
         response.raise_for_status()
@@ -160,15 +160,15 @@ class ConfluenceSession:
     ) -> ConfluenceAttachment:
         path = f"/content/{page_id}/child/attachment"
         query = {"spaceKey": space_key or self.space_key, "filename": filename}
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        data = typing.cast(dict[str, JsonType], self._invoke(path, query))
 
-        results = typing.cast(List[JsonType], data["results"])
+        results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
-        result = typing.cast(Dict[str, JsonType], results[0])
+        result = typing.cast(dict[str, JsonType], results[0])
 
         id = typing.cast(str, result["id"])
-        extensions = typing.cast(Dict[str, JsonType], result["extensions"])
+        extensions = typing.cast(dict[str, JsonType], result["extensions"])
         media_type = typing.cast(str, extensions["mediaType"])
         file_size = typing.cast(int, extensions["fileSize"])
         comment = extensions.get("comment", "")
@@ -323,13 +323,13 @@ class ConfluenceSession:
         LOGGER.info("Looking up page with title: %s", title)
         path = "/content"
         query = {"title": title, "spaceKey": space_key or self.space_key}
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
+        data = typing.cast(dict[str, JsonType], self._invoke(path, query))
 
-        results = typing.cast(List[JsonType], data["results"])
+        results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"page not found with title: {title}")
 
-        result = typing.cast(Dict[str, JsonType], results[0])
+        result = typing.cast(dict[str, JsonType], results[0])
         id = typing.cast(str, result["id"])
         return id
 
@@ -350,10 +350,10 @@ class ConfluenceSession:
             "expand": "body.storage,version",
         }
 
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
-        version = typing.cast(Dict[str, JsonType], data["version"])
-        body = typing.cast(Dict[str, JsonType], data["body"])
-        storage = typing.cast(Dict[str, JsonType], body["storage"])
+        data = typing.cast(dict[str, JsonType], self._invoke(path, query))
+        version = typing.cast(dict[str, JsonType], data["version"])
+        body = typing.cast(dict[str, JsonType], data["body"])
+        storage = typing.cast(dict[str, JsonType], body["storage"])
 
         return ConfluencePage(
             id=page_id,
@@ -365,7 +365,7 @@ class ConfluenceSession:
 
     def get_page_ancestors(
         self, page_id: str, *, space_key: Optional[str] = None
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Retrieve Confluence wiki page ancestors.
 
@@ -379,13 +379,13 @@ class ConfluenceSession:
             "spaceKey": space_key or self.space_key,
             "expand": "ancestors",
         }
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
-        ancestors = typing.cast(List[JsonType], data["ancestors"])
+        data = typing.cast(dict[str, JsonType], self._invoke(path, query))
+        ancestors = typing.cast(list[JsonType], data["ancestors"])
 
         # from the JSON array of ancestors, extract the "id" and "title"
-        results: Dict[str, str] = {}
+        results: dict[str, str] = {}
         for node in ancestors:
-            ancestor = typing.cast(Dict[str, JsonType], node)
+            ancestor = typing.cast(dict[str, JsonType], node)
             id = typing.cast(str, ancestor["id"])
             title = typing.cast(str, ancestor["title"])
             results[id] = title
@@ -410,8 +410,8 @@ class ConfluenceSession:
             "spaceKey": space_key or self.space_key,
             "expand": "version",
         }
-        data = typing.cast(Dict[str, JsonType], self._invoke(path, query))
-        version = typing.cast(Dict[str, JsonType], data["version"])
+        data = typing.cast(dict[str, JsonType], self._invoke(path, query))
+        version = typing.cast(dict[str, JsonType], data["version"])
         return typing.cast(int, version["number"])
 
     def update_page(
@@ -482,10 +482,10 @@ class ConfluenceSession:
         )
         response.raise_for_status()
 
-        data = typing.cast(Dict[str, JsonType], response.json())
-        version = typing.cast(Dict[str, JsonType], data["version"])
-        body = typing.cast(Dict[str, JsonType], data["body"])
-        storage = typing.cast(Dict[str, JsonType], body["storage"])
+        data = typing.cast(dict[str, JsonType], response.json())
+        version = typing.cast(dict[str, JsonType], data["version"])
+        body = typing.cast(dict[str, JsonType], data["body"])
+        storage = typing.cast(dict[str, JsonType], body["storage"])
 
         return ConfluencePage(
             id=typing.cast(str, data["id"]),
@@ -513,11 +513,11 @@ class ConfluenceSession:
         )
         response.raise_for_status()
 
-        data = typing.cast(Dict[str, JsonType], response.json())
-        results = typing.cast(List, data["results"])
+        data = typing.cast(dict[str, JsonType], response.json())
+        results = typing.cast(list, data["results"])
 
         if len(results) == 1:
-            page_info = typing.cast(Dict[str, JsonType], results[0])
+            page_info = typing.cast(dict[str, JsonType], results[0])
             return typing.cast(str, page_info["id"])
         else:
             return None

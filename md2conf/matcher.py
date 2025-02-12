@@ -1,7 +1,7 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
@@ -10,7 +10,7 @@ import os.path
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, Optional
 
 
 @dataclass
@@ -42,7 +42,7 @@ class Matcher:
     "Compares file and directory names against a list of exclude/include patterns."
 
     options: MatcherOptions
-    rules: List[str]
+    rules: list[str]
 
     def __init__(self, options: MatcherOptions, directory: Path) -> None:
         self.options = options
@@ -92,7 +92,7 @@ class Matcher:
 
         return not self.is_excluded(name, is_dir)
 
-    def filter(self, items: Iterable[Entry]) -> List[Entry]:
+    def filter(self, items: Iterable[Entry]) -> list[Entry]:
         """
         Returns only those elements from the input that don't match any of the exclusion rules.
 
@@ -102,7 +102,7 @@ class Matcher:
 
         return [item for item in items if self.is_included(item.name, item.is_dir)]
 
-    def scandir(self, path: Path) -> List[Entry]:
+    def scandir(self, path: Path) -> list[Entry]:
         """
         Returns only those entries in a directory whose name doesn't match any of the exclusion rules.
 

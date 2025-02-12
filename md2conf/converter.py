@@ -1,7 +1,7 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
@@ -18,7 +18,7 @@ import uuid
 import xml.etree.ElementTree
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Literal, Optional, Union
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
@@ -46,7 +46,7 @@ class ParseError(RuntimeError):
     pass
 
 
-def starts_with_any(text: str, prefixes: List[str]) -> bool:
+def starts_with_any(text: str, prefixes: list[str]) -> bool:
     "True if text starts with any of the listed prefixes."
 
     for prefix in prefixes:
@@ -73,7 +73,7 @@ def emoji_generator(
     alt: str,
     title: Optional[str],
     category: Optional[str],
-    options: Dict[str, Any],
+    options: dict[str, Any],
     md: markdown.Markdown,
 ) -> xml.etree.ElementTree.Element:
     name = (alias or shortname).strip(":")
@@ -107,7 +107,7 @@ def markdown_to_html(content: str) -> str:
     )
 
 
-def _elements_from_strings(dtd_path: Path, items: List[str]) -> ET._Element:
+def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
     """
     Creates a fragment of several XML nodes from their string representation wrapped in a root element.
 
@@ -141,7 +141,7 @@ def _elements_from_strings(dtd_path: Path, items: List[str]) -> ET._Element:
         raise ParseError(e)
 
 
-def elements_from_strings(items: List[str]) -> ET._Element:
+def elements_from_strings(items: list[str]) -> ET._Element:
     "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
 
     if sys.version_info >= (3, 9):
@@ -304,17 +304,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     path: Path
     base_dir: Path
     root_dir: Path
-    links: List[str]
-    images: List[Path]
-    embedded_images: Dict[str, bytes]
-    page_metadata: Dict[Path, ConfluencePageMetadata]
+    links: list[str]
+    images: list[Path]
+    embedded_images: dict[str, bytes]
+    page_metadata: dict[Path, ConfluencePageMetadata]
 
     def __init__(
         self,
         options: ConfluenceConverterOptions,
         path: Path,
         root_dir: Path,
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
         self.options = options
@@ -438,7 +438,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not src:
             raise DocumentError("image lacks `src` attribute")
 
-        attributes: Dict[str, Any] = {
+        attributes: dict[str, Any] = {
             ET.QName(namespaces["ac"], "align"): "center",
             ET.QName(namespaces["ac"], "layout"): "center",
         }
@@ -457,11 +457,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             return self._transform_attached_image(Path(src), caption, attributes)
 
     def _transform_external_image(
-        self, url: str, caption: Optional[str], attributes: Dict[str, Any]
+        self, url: str, caption: Optional[str], attributes: dict[str, Any]
     ) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an external image."
 
-        elements: List[ET._Element] = []
+        elements: list[ET._Element] = []
         elements.append(
             RI(
                 "url",
@@ -475,7 +475,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return AC("image", attributes, *elements)
 
     def _transform_attached_image(
-        self, path: Path, caption: Optional[str], attributes: Dict[str, Any]
+        self, path: Path, caption: Optional[str], attributes: dict[str, Any]
     ) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an attached image."
 
@@ -487,7 +487,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.images.append(path)
         image_name = attachment_name(path)
 
-        elements: List[ET._Element] = []
+        elements: list[ET._Element] = []
         elements.append(
             RI(
                 "attachment",
@@ -899,8 +899,8 @@ class DocumentError(RuntimeError):
     pass
 
 
-def extract_value(pattern: str, text: str) -> Tuple[Optional[str], str]:
-    values: List[str] = []
+def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
+    values: list[str] = []
 
     def _repl_func(matchobj: re.Match) -> str:
         values.append(matchobj.group(1))
@@ -921,7 +921,7 @@ class ConfluenceQualifiedID:
         self.space_key = space_key
 
 
-def extract_qualified_id(text: str) -> Tuple[Optional[ConfluenceQualifiedID], str]:
+def extract_qualified_id(text: str) -> tuple[Optional[ConfluenceQualifiedID], str]:
     "Extracts the Confluence page ID and space key from a Markdown document."
 
     page_id, text = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", text)
@@ -935,13 +935,13 @@ def extract_qualified_id(text: str) -> Tuple[Optional[ConfluenceQualifiedID], st
     return ConfluenceQualifiedID(page_id, space_key), text
 
 
-def extract_frontmatter(text: str) -> Tuple[Optional[str], str]:
+def extract_frontmatter(text: str) -> tuple[Optional[str], str]:
     "Extracts the front matter from a Markdown document."
 
     return extract_value(r"(?ms)\A---$(.+?)^---$", text)
 
 
-def extract_frontmatter_title(text: str) -> Tuple[Optional[str], str]:
+def extract_frontmatter_title(text: str) -> tuple[Optional[str], str]:
     frontmatter, text = extract_frontmatter(text)
 
     title: Optional[str] = None
@@ -993,8 +993,8 @@ class ConfluenceDocumentOptions:
 class ConfluenceDocument:
     id: ConfluenceQualifiedID
     title: Optional[str]
-    links: List[str]
-    images: List[Path]
+    links: list[str]
+    images: list[Path]
 
     options: ConfluenceDocumentOptions
     root: ET._Element
@@ -1004,7 +1004,7 @@ class ConfluenceDocument:
         path: Path,
         options: ConfluenceDocumentOptions,
         root_dir: Path,
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
         path = path.resolve(True)

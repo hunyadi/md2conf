@@ -1,7 +1,7 @@
 """
 Publish Markdown files to Confluence wiki.
 
-Copyright 2022-2024, Levente Hunyadi
+Copyright 2022-2025, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
@@ -10,7 +10,7 @@ import hashlib
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .converter import (
     ConfluenceDocument,
@@ -60,7 +60,7 @@ class Processor:
         LOGGER.info("Synchronizing directory: %s", local_dir)
 
         # Step 1: build index of all page metadata
-        page_metadata: Dict[Path, ConfluencePageMetadata] = {}
+        page_metadata: dict[Path, ConfluencePageMetadata] = {}
         self._index_directory(local_dir, page_metadata)
         LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
@@ -83,7 +83,7 @@ class Processor:
         self,
         path: Path,
         root_dir: Path,
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         "Processes a single Markdown file."
 
@@ -95,7 +95,7 @@ class Processor:
     def _index_directory(
         self,
         local_dir: Path,
-        page_metadata: Dict[Path, ConfluencePageMetadata],
+        page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         "Indexes Markdown files in a directory recursively."
 
@@ -103,8 +103,8 @@ class Processor:
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
-        files: List[Path] = []
-        directories: List[Path] = []
+        files: list[Path] = []
+        directories: list[Path] = []
         for entry in os.scandir(local_dir):
             if matcher.is_excluded(entry.name, entry.is_dir()):
                 continue

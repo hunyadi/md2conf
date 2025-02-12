@@ -9,7 +9,7 @@ or a single feature.
 
 ### Prerequisites
 
-Python is installed. Minimum version we support is Python 3.8.
+Python is installed. Minimum version we support is Python 3.9.
 
 ### Helping you get set up
 
