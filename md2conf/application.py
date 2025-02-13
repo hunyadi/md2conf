@@ -183,7 +183,7 @@ class Application:
             )
 
         space_key = (
-            self.api.space_id_to_key[confluence_page.space_id]
+            self.api.space_id_to_key(confluence_page.space_id)
             if confluence_page.space_id
             else self.api.space_key
         )
@@ -216,7 +216,7 @@ class Application:
             absolute_path,
             document,
             confluence_page.id,
-            self.api.space_id_to_key[confluence_page.space_id],
+            self.api.space_id_to_key(confluence_page.space_id),
         )
         return confluence_page
 

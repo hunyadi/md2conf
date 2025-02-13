@@ -121,8 +121,8 @@ class ConfluenceSession:
     base_path: str
     space_key: str
 
-    space_id_to_key: dict[str, str]
-    space_key_to_id: dict[str, str]
+    _space_id_to_key: dict[str, str]
+    _space_key_to_id: dict[str, str]
 
     def __init__(
         self, session: requests.Session, domain: str, base_path: str, space_key: str
@@ -131,7 +131,9 @@ class ConfluenceSession:
         self.domain = domain
         self.base_path = base_path
         self.space_key = space_key
-        self._get_spaces()
+
+        self._space_id_to_key = {}
+        self._space_key_to_id = {}
 
     def close(self) -> None:
         self.session.close()
@@ -153,11 +155,6 @@ class ConfluenceSession:
 
         base_url = f"https://{self.domain}{self.base_path}{version.value}{path}"
         return build_url(base_url, query)
-
-    def _build_pagination_url(self, path: str) -> str:
-        "Builds a full URL to retrieve the next set of results in a result-set with pagination."
-
-        return f"https://{self.domain}{path}"
 
     def _invoke(
         self,
@@ -181,36 +178,49 @@ class ConfluenceSession:
         )
         response.raise_for_status()
 
-    def _get_spaces(self) -> None:
-        "Creates a mapping between Confluence space key and space ID."
+    def space_id_to_key(self, id: str) -> str:
+        "Finds the Confluence space key for a space ID."
 
-        self.space_id_to_key = {}
-        self.space_key_to_id = {}
-
-        url = self._build_url(
-            ConfluenceVersion.VERSION_2,
-            "/spaces",
-            {"type": "global", "status": "current", "limit": "250"},
-        )
-        while url:
-            response = self.session.get(url)
-            response.raise_for_status()
-
-            payload = typing.cast(dict[str, JsonType], response.json())
+        key = self._space_id_to_key.get(id)
+        if key is None:
+            payload = self._invoke(
+                ConfluenceVersion.VERSION_2,
+                "/spaces",
+                {"ids": id, "type": "global", "status": "current"},
+            )
+            payload = typing.cast(dict[str, JsonType], payload)
             results = typing.cast(list[JsonType], payload["results"])
-            for r in results:
-                result = typing.cast(dict[str, JsonType], r)
-                space_id = typing.cast(str, result["id"])
-                space_key = typing.cast(str, result["key"])
-                self.space_id_to_key[space_id] = space_key
-                self.space_key_to_id[space_key] = space_id
+            if len(results) != 1:
+                raise ConfluenceError(f"unique space not found with id: {id}")
 
-            links = typing.cast(dict[str, JsonType], payload.get("_links", {}))
-            link = typing.cast(str, links.get("next", ""))
-            if link:
-                url = self._build_pagination_url(link)
-            else:
-                break
+            result = typing.cast(dict[str, JsonType], results[0])
+            key = typing.cast(str, result["key"])
+
+            self._space_id_to_key[id] = key
+
+        return key
+
+    def space_key_to_id(self, key: str) -> str:
+        "Finds the Confluence space ID for a space key."
+
+        id = self._space_key_to_id.get(key)
+        if id is None:
+            payload = self._invoke(
+                ConfluenceVersion.VERSION_2,
+                "/spaces",
+                {"keys": key, "type": "global", "status": "current"},
+            )
+            payload = typing.cast(dict[str, JsonType], payload)
+            results = typing.cast(list[JsonType], payload["results"])
+            if len(results) != 1:
+                raise ConfluenceError(f"unique space not found with key: {key}")
+
+            result = typing.cast(dict[str, JsonType], results[0])
+            id = typing.cast(str, result["id"])
+
+            self._space_key_to_id[key] = id
+
+        return id
 
     def get_attachment_by_name(
         self, page_id: str, filename: str
@@ -378,7 +388,7 @@ class ConfluenceSession:
         LOGGER.info("Looking up page with title: %s", title)
         path = "/pages"
         query = {
-            "space-id": self.space_key_to_id[space_key or self.space_key],
+            "space-id": self.space_key_to_id(space_key or self.space_key),
             "title": title,
         }
         payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
@@ -480,7 +490,7 @@ class ConfluenceSession:
     ) -> ConfluencePage:
         path = "/pages/"
         query = {
-            "spaceId": self.space_key_to_id[space_key or self.space_key],
+            "spaceId": self.space_key_to_id(space_key or self.space_key),
             "status": "current",
             "title": title,
             "parentId": parent_page_id,
@@ -516,7 +526,7 @@ class ConfluenceSession:
         path = "/pages"
         query = {
             "title": title,
-            "space-id": self.space_key_to_id[space_key or self.space_key],
+            "space-id": self.space_key_to_id(space_key or self.space_key),
         }
 
         LOGGER.info("Checking if page exists with title: %s", title)

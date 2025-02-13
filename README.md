@@ -24,6 +24,8 @@ This Python package
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
 * [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
 
+Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
+
 ## Installation
 
 Install the core package from PyPI:
