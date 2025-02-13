@@ -41,6 +41,8 @@ class Arguments(argparse.Namespace):
     generated_by: Optional[str]
     render_mermaid: bool
     diagram_output_format: Literal["png", "svg"]
+    local: bool
+    headers: dict[str, str]
     webui_links: bool
 
 
@@ -175,8 +177,6 @@ def main() -> None:
     args = Arguments()
     parser.parse_args(namespace=args)
 
-    # NOTE:  If we switch to modern type aware CLI tool like typer
-    #  the following line won't be necessary
     args.mdpath = Path(args.mdpath)
 
     logging.basicConfig(
