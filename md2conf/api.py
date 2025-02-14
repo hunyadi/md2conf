@@ -137,6 +137,7 @@ class ConfluenceSession:
 
     def close(self) -> None:
         self.session.close()
+        self.session = requests.Session()
 
     def _build_url(
         self,
@@ -488,6 +489,10 @@ class ConfluenceSession:
         *,
         space_key: Optional[str] = None,
     ) -> ConfluencePage:
+        """
+        Create a new page via Confluence API.
+        """
+
         path = "/pages/"
         query = {
             "spaceId": self.space_key_to_id(space_key or self.space_key),
@@ -519,6 +524,30 @@ class ConfluenceSession:
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
         )
+
+    def delete_page(self, page_id: str, *, purge: bool = False) -> None:
+        """
+        Delete a page via Confluence API.
+
+        :param page_id: The Confluence page ID.
+        :param purge: True to completely purge the page, False to move to trash only.
+        """
+
+        path = f"/pages/{page_id}"
+
+        # move to trash
+        url = self._build_url(ConfluenceVersion.VERSION_2, path)
+        LOGGER.info("Moving page to trash: %s", page_id)
+        response = self.session.delete(url)
+        response.raise_for_status()
+
+        if purge:
+            # purge from trash
+            query = {"purge": "true"}
+            url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
+            LOGGER.info("Permanently deleting page: %s", page_id)
+            response = self.session.delete(url)
+            response.raise_for_status()
 
     def page_exists(
         self, title: str, *, space_key: Optional[str] = None

@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import hashlib
 import logging
 import os
 import os.path
@@ -18,6 +19,7 @@ from md2conf.application import Application
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
+    read_qualified_id,
     sanitize_confluence,
 )
 
@@ -65,7 +67,7 @@ class TestAPI(unittest.TestCase):
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
             page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-            self.assertEqual(page_id, "%s" % TEST_PAGE_ID)
+            self.assertEqual(page_id, TEST_PAGE_ID)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
@@ -111,28 +113,51 @@ class TestAPI(unittest.TestCase):
             )
 
     def test_synchronize_create(self) -> None:
-        source_dir = self.out_dir / "markdown"
-        os.makedirs(source_dir, exist_ok=True)
+        "Creates a Confluence page hierarchy from a set of Markdown files."
 
-        child = source_dir / "child.md"
-        with open(child, "w", encoding="utf-8") as f:
-            f.write(
-                "This is a document without an explicitly linked Confluence document.\n"
-            )
+        source_dir = self.out_dir / "markdown"
+
+        documents: list[Path] = [
+            source_dir / "index.md",
+            source_dir / "doc1.md",
+            source_dir / "doc2.md",
+            source_dir / "nested" / "index.md",
+            source_dir / "nested" / "doc3.md",
+        ]
+
+        for absolute_path in documents:
+            os.makedirs(absolute_path.parent, exist_ok=True)
+            relative_path = absolute_path.relative_to(source_dir).as_posix()
+            unique_string = f"md2conf/{relative_path}"
+            document_title = hashlib.sha1(unique_string.encode("ascii")).hexdigest()
+            with open(absolute_path, "w", encoding="utf-8") as f:
+                f.write(
+                    "\n".join(
+                        [
+                            "---",
+                            f'title: "{document_title}"',
+                            "---",
+                            "",
+                            f"# {absolute_path.name}: A sample document",
+                            "",
+                            "This is a document without an explicitly assigned Confluence page ID or space key.",
+                        ]
+                    )
+                )
 
         with ConfluenceAPI() as api:
             Application(
                 api,
-                ConfluenceDocumentOptions(root_page_id="86090481730"),
+                ConfluenceDocumentOptions(root_page_id=TEST_PAGE_ID),
             ).synchronize_directory(source_dir)
 
-        with open(child, "r", encoding="utf-8") as f:
-            self.assertEqual(
-                f.read(),
-                "<!-- confluence-page-id: 87081713751 -->\n"
-                f"<!-- confluence-space-key: {TEST_SPACE} -->\n"
-                "This is a document without an explicitly linked Confluence document.\n",
-            )
+        with ConfluenceAPI() as api:
+            for absolute_path in reversed(documents):
+                id = read_qualified_id(absolute_path)
+                self.assertIsNotNone(id)
+                if id is None:
+                    continue
+                api.delete_page(id.page_id)
 
 
 if __name__ == "__main__":
