@@ -28,7 +28,7 @@ TEST_SPACE = "DAP"
 TEST_PAGE_ID = "85668266616"
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
