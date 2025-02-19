@@ -246,7 +246,7 @@ class ConfluencePageMetadata:
     page_id: str
     space_key: str
     title: str
-
+    ignore: Optional[bool] = False
 
 class NodeVisitor:
     def visit(self, node: ET._Element) -> None:
@@ -988,6 +988,7 @@ class ConfluenceDocumentOptions:
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
+    preserve_structure: bool = False
 
 
 class ConfluenceDocument:
