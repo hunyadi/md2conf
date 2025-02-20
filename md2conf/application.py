@@ -131,6 +131,15 @@ class Application:
             parent_doc = Path(local_dir) / "index.md"
         elif (Path(local_dir) / "README.md") in files:
             parent_doc = Path(local_dir) / "README.md"
+        elif (Path(local_dir) / f"{local_dir.name}.md") in files:
+            parent_doc = Path(local_dir) / f"{local_dir.name}.md"
+
+        if parent_doc is None and self.options.keep_hierarchy:
+            parent_doc = Path(local_dir) / "index.md"
+
+            # create a blank page in Confluence for the directory entry
+            with open(parent_doc, "w"):
+                pass
 
         if parent_doc is not None:
             files.remove(parent_doc)
