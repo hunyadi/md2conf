@@ -142,8 +142,9 @@ class Application:
             convert_to_filename = local_dir.name + ".md"
             parent_doc = Path(local_dir) / convert_to_filename
             is_folder = True
-            with open(parent_doc, "w") as f:
-                pass
+            if not os.path.exists(parent_doc):
+                with open(parent_doc, "w") as f:
+                    pass
 
         if parent_doc is not None:
             if parent_doc in files:
