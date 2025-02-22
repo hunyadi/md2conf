@@ -247,7 +247,6 @@ class ConfluencePageMetadata:
     space_key: str
     title: str
 
-
 class NodeVisitor:
     def visit(self, node: ET._Element) -> None:
         "Recursively visits all descendants of this node."
