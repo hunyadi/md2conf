@@ -45,7 +45,6 @@ class Arguments(argparse.Namespace):
     local: bool
     headers: dict[str, str]
     webui_links: bool
-    preserve_structure: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -181,12 +180,6 @@ def main() -> None:
         default=False,
         help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
     )
-    parser.add_argument(
-        "--preserve-structure",
-        action="store_true",
-        default=False,
-        help="Preserve folder structure in Confluence hierarchy.",
-    )
 
     args = Arguments()
     parser.parse_args(namespace=args)
@@ -207,7 +200,6 @@ def main() -> None:
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
-        preserve_structure=args.preserve_structure,
     )
     properties = ConfluenceProperties(
         args.domain, args.path, args.username, args.apikey, args.space, args.headers
