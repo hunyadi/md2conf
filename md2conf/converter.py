@@ -13,7 +13,6 @@ import importlib.resources as resources
 import logging
 import os.path
 import re
-import sys
 import uuid
 import xml.etree.ElementTree
 from dataclasses import dataclass
@@ -129,7 +128,7 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
 
     data = [
         '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path}">'
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}">'
         f"<root{ns_attr_list}>",
     ]
     data.extend(items)
@@ -144,13 +143,9 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
 def elements_from_strings(items: list[str]) -> ET._Element:
     "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
 
-    if sys.version_info >= (3, 9):
-        resource_path = resources.files(__package__).joinpath("entities.dtd")
-        with resources.as_file(resource_path) as dtd_path:
-            return _elements_from_strings(dtd_path, items)
-    else:
-        with resources.path(__package__, "entities.dtd") as dtd_path:
-            return _elements_from_strings(dtd_path, items)
+    resource_path = resources.files(__package__).joinpath("entities.dtd")
+    with resources.as_file(resource_path) as dtd_path:
+        return _elements_from_strings(dtd_path, items)
 
 
 def elements_from_string(content: str) -> ET._Element:
@@ -246,6 +241,7 @@ class ConfluencePageMetadata:
     page_id: str
     space_key: str
     title: str
+
 
 class NodeVisitor:
     def visit(self, node: ET._Element) -> None:
@@ -1133,10 +1129,6 @@ def _content_to_string(dtd_path: Path, content: str) -> str:
 def content_to_string(content: str) -> str:
     "Converts a Confluence Storage Format document returned by the API into a readable XML document."
 
-    if sys.version_info >= (3, 9):
-        resource_path = resources.files(__package__).joinpath("entities.dtd")
-        with resources.as_file(resource_path) as dtd_path:
-            return _content_to_string(dtd_path, content)
-    else:
-        with resources.path(__package__, "entities.dtd") as dtd_path:
-            return _content_to_string(dtd_path, content)
+    resource_path = resources.files(__package__).joinpath("entities.dtd")
+    with resources.as_file(resource_path) as dtd_path:
+        return _content_to_string(dtd_path, content)

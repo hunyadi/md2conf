@@ -71,3 +71,4 @@
 </ac:image>
 
 <p>UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.</p>
+<p>Some HTML entities are supported, e.g. © or ¶.</p>

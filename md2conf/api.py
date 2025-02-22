@@ -22,7 +22,6 @@ import requests
 
 from .converter import ParseError, sanitize_confluence
 from .properties import ConfluenceError, ConfluenceProperties
-from .util import removeprefix
 
 # a JSON type with possible `null` values
 JsonType = Union[
@@ -290,7 +289,7 @@ class ConfluenceSession:
             else:
                 raise NotImplementedError("never occurs")
 
-            id = removeprefix(attachment.id, "att")
+            id = attachment.id.removeprefix("att")
             path = f"/content/{page_id}/child/attachment/{id}/data"
 
         except ConfluenceError:
@@ -362,7 +361,7 @@ class ConfluenceSession:
         *,
         space_key: Optional[str] = None,
     ) -> None:
-        id = removeprefix(attachment_id, "att")
+        id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
         data = {
             "id": attachment_id,
