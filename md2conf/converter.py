@@ -976,6 +976,7 @@ class ConfluenceDocumentOptions:
         conversion rules for the identifier.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param root_page_id: Confluence page to assume root page role for publishing a directory of Markdown files.
+    :param keep_hierarchy: Whether to maintain source directory structure when exporting to Confluence.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -985,6 +986,7 @@ class ConfluenceDocumentOptions:
     heading_anchors: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
     root_page_id: Optional[str] = None
+    keep_hierarchy: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False

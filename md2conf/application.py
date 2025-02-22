@@ -23,7 +23,6 @@ from .converter import (
     read_qualified_id,
 )
 from .matcher import Matcher, MatcherOptions
-from pathlib import Path
 
 LOGGER = logging.getLogger(__name__)
 
@@ -87,12 +86,9 @@ class Application:
         self._index_directory(local_dir, root_id, page_metadata)
         LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
-        # filter ignored pages from map
-        filtered_page_metadata = {key: value for key, value in page_metadata.items() if not value.ignore}
-
         # Step 2: convert each page
-        for page_path in filtered_page_metadata.keys():
-            self._synchronize_page(page_path, root_dir, filtered_page_metadata)
+        for page_path in page_metadata.keys():
+            self._synchronize_page(page_path, root_dir, page_metadata)
 
     def _synchronize_page(
         self,
@@ -135,26 +131,21 @@ class Application:
             parent_doc = Path(local_dir) / "index.md"
         elif (Path(local_dir) / "README.md") in files:
             parent_doc = Path(local_dir) / "README.md"
-        
-        is_folder = False
-        if self.options.preserve_structure:
-            # current dirname converted to filename
-            convert_to_filename = local_dir.name + ".md"
-            parent_doc = Path(local_dir) / convert_to_filename
-            is_folder = True
-            if not os.path.exists(parent_doc):
-                with open(parent_doc, "w") as f:
-                    pass
+        elif (Path(local_dir) / f"{local_dir.name}.md") in files:
+            parent_doc = Path(local_dir) / f"{local_dir.name}.md"
+
+        if parent_doc is None and self.options.keep_hierarchy:
+            parent_doc = Path(local_dir) / "index.md"
+
+            # create a blank page in Confluence for the directory entry
+            with open(parent_doc, "w"):
+                pass
 
         if parent_doc is not None:
-            if parent_doc in files:
-                files.remove(parent_doc)
+            files.remove(parent_doc)
 
             metadata = self._get_or_create_page(parent_doc, root_id)
             LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
-            
-            # folders should be ignored
-            metadata.ignore = is_folder
             page_metadata[parent_doc] = metadata
 
             parent_id = read_qualified_id(parent_doc) or root_id

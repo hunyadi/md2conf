@@ -38,6 +38,7 @@ class Arguments(argparse.Namespace):
     ignore_invalid_url: bool
     heading_anchors: bool
     root_page: Optional[str]
+    keep_hierarchy: bool
     generated_by: Optional[str]
     render_mermaid: bool
     diagram_output_format: Literal["png", "svg"]
@@ -109,6 +110,12 @@ def main() -> None:
         "-r",
         dest="root_page",
         help="Root Confluence page to create new pages. If omitted, will raise exception when creating new pages.",
+    )
+    parser.add_argument(
+        "--keep-hierarchy",
+        action="store_true",
+        default=False,
+        help="Maintain source directory structure when exporting to Confluence.",
     )
     parser.add_argument(
         "--generated-by",
@@ -196,6 +203,7 @@ def main() -> None:
         ignore_invalid_url=args.ignore_invalid_url,
         generated_by=args.generated_by,
         root_page_id=args.root_page,
+        keep_hierarchy=args.keep_hierarchy,
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
