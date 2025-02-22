@@ -29,7 +29,12 @@ def get_mmdc() -> str:
     "Path to the Mermaid diagram converter."
 
     if is_docker():
-        return "/home/md2conf/node_modules/.bin/mmdc"
+        # used to workaround known issue:
+        # https://github.com/mermaid-js/mermaid-cli/blob/master/docs/linux-sandbox-issue.md
+        if os.environ.get("MD2CONF_USE_ROOT_MMDC", "false") == "true":
+            return "mmdc"
+        else:
+            return "/home/md2conf/node_modules/.bin/mmdc"
     elif os.name == "nt":
         return "mmdc.cmd"
     else:
