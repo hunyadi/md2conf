@@ -29,7 +29,11 @@ def get_mmdc() -> str:
     "Path to the Mermaid diagram converter."
 
     if is_docker():
-        return "/home/md2conf/node_modules/.bin/mmdc"
+        full_path = "/home/md2conf/node_modules/.bin/mmdc"
+        if os.path.exists(full_path):
+            return full_path
+        else:
+            return "mmdc"
     elif os.name == "nt":
         return "mmdc.cmd"
     else:
