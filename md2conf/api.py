@@ -118,13 +118,17 @@ class ConfluenceSession:
     session: requests.Session
     domain: str
     base_path: str
-    space_key: str
+    space_key: Optional[str]
 
     _space_id_to_key: dict[str, str]
     _space_key_to_id: dict[str, str]
 
     def __init__(
-        self, session: requests.Session, domain: str, base_path: str, space_key: str
+        self,
+        session: requests.Session,
+        domain: str,
+        base_path: str,
+        space_key: Optional[str],
     ) -> None:
         self.session = session
         self.domain = domain
@@ -255,7 +259,6 @@ class ConfluenceSession:
         raw_data: Optional[bytes] = None,
         content_type: Optional[str] = None,
         comment: Optional[str] = None,
-        space_key: Optional[str] = None,
         force: bool = False,
     ) -> None:
 
@@ -348,18 +351,10 @@ class ConfluenceSession:
         version = result["version"]["number"] + 1
 
         # ensure path component is retained in attachment name
-        self._update_attachment(
-            page_id, attachment_id, version, attachment_name, space_key=space_key
-        )
+        self._update_attachment(page_id, attachment_id, version, attachment_name)
 
     def _update_attachment(
-        self,
-        page_id: str,
-        attachment_id: str,
-        version: int,
-        attachment_title: str,
-        *,
-        space_key: Optional[str] = None,
+        self, page_id: str, attachment_id: str, version: int, attachment_title: str
     ) -> None:
         id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
@@ -368,7 +363,6 @@ class ConfluenceSession:
             "type": "attachment",
             "status": "current",
             "title": attachment_title,
-            "space": {"key": space_key or self.space_key},
             "version": {"minorEdit": True, "number": version},
         }
 
@@ -392,9 +386,12 @@ class ConfluenceSession:
         LOGGER.info("Looking up page with title: %s", title)
         path = "/pages"
         query = {
-            "space-id": self.space_key_to_id(space_key or self.space_key),
             "title": title,
         }
+        coalesced_space_key = space_key or self.space_key
+        if coalesced_space_key is not None:
+            query["space-id"] = self.space_key_to_id(coalesced_space_key)
+
         payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
         payload = typing.cast(dict[str, JsonType], payload)
 
@@ -435,7 +432,6 @@ class ConfluenceSession:
         Retrieve a Confluence wiki page version.
 
         :param page_id: The Confluence page ID.
-        :param space_key: The Confluence space key (unless the default space is to be used).
         :returns: Confluence page version.
         """
 
@@ -457,7 +453,6 @@ class ConfluenceSession:
 
         :param page_id: The Confluence page ID.
         :param new_content: Confluence Storage Format XHTML.
-        :param space_key: The Confluence space key (unless the default space is to be used).
         :param title: New title to assign to the page. Needs to be unique within a space.
         """
 
@@ -496,9 +491,15 @@ class ConfluenceSession:
         Create a new page via Confluence API.
         """
 
+        coalesced_space_key = space_key or self.space_key
+        if coalesced_space_key is None:
+            raise ConfluenceError(
+                "Confluence space key required for creating a new page"
+            )
+
         path = "/pages/"
         query = {
-            "spaceId": self.space_key_to_id(space_key or self.space_key),
+            "spaceId": self.space_key_to_id(coalesced_space_key),
             "status": "current",
             "title": title,
             "parentId": parent_page_id,
@@ -556,10 +557,10 @@ class ConfluenceSession:
         self, title: str, *, space_key: Optional[str] = None
     ) -> Optional[str]:
         path = "/pages"
-        query = {
-            "title": title,
-            "space-id": self.space_key_to_id(space_key or self.space_key),
-        }
+        coalesced_space_key = space_key or self.space_key
+        query = {"title": title}
+        if coalesced_space_key is not None:
+            query["space-id"] = self.space_key_to_id(coalesced_space_key)
 
         LOGGER.info("Checking if page exists with title: %s", title)
 

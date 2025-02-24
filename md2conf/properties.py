@@ -17,7 +17,7 @@ class ConfluenceError(RuntimeError):
 class ConfluenceProperties:
     domain: str
     base_path: str
-    space_key: str
+    space_key: Optional[str]
     user_name: Optional[str]
     api_key: str
     headers: Optional[dict[str, str]]
@@ -43,8 +43,6 @@ class ConfluenceProperties:
             opt_base_path = "/wiki/"
         if not opt_api_key:
             raise ConfluenceError("Confluence API key not specified")
-        if not opt_space_key:
-            raise ConfluenceError("Confluence space key not specified")
 
         if opt_domain.startswith(("http://", "https://")) or opt_domain.endswith("/"):
             raise ConfluenceError(

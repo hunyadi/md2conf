@@ -239,7 +239,7 @@ class ConfluencePageMetadata:
     domain: str
     base_path: str
     page_id: str
-    space_key: str
+    space_key: Optional[str]
     title: str
 
 
