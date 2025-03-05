@@ -194,7 +194,7 @@ class ConfluenceSession:
             payload = self._invoke(
                 ConfluenceVersion.VERSION_2,
                 "/spaces",
-                {"ids": id, "type": "global", "status": "current"},
+                {"ids": id, "type": "knowledge_base", "status": "current"},
             )
             payload = typing.cast(dict[str, JsonType], payload)
             results = typing.cast(list[JsonType], payload["results"])
@@ -261,7 +261,6 @@ class ConfluenceSession:
         comment: Optional[str] = None,
         force: bool = False,
     ) -> None:
-
         if attachment_path is None and raw_data is None:
             raise ConfluenceError("required: `attachment_path` or `raw_data`")
 
