@@ -40,6 +40,17 @@ class ConfluenceVersion(enum.Enum):
     VERSION_2 = "api/v2"
 
 
+class ConfluencePageParentContentType(enum.Enum):
+    """
+    Content types that can be a parent to a Confluence page
+    """
+    PAGE = "page"
+    WHITEBOARD = "whiteboard"
+    DATABASE = "database"
+    EMBED = "embed"
+    FOLDER = "folder"
+
+
 def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
 
@@ -72,7 +83,7 @@ class ConfluencePage:
     id: str
     space_id: str
     parent_id: str
-    parent_type: str
+    parent_type: ConfluencePageParentContentType
     title: str
     version: int
     content: str
@@ -424,7 +435,7 @@ class ConfluenceSession:
             id=page_id,
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
-            parent_type=typing.cast(str, data["parentType"]),
+            parent_type=ConfluencePageParentContentType(typing.cast(str, data["parentType"])),
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
@@ -528,7 +539,7 @@ class ConfluenceSession:
             id=typing.cast(str, data["id"]),
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
-            parent_type=typing.cast(str, data["parentType"]),
+            parent_type=ConfluencePageParentContentType(typing.cast(str, data["parentType"])),
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
