@@ -164,6 +164,14 @@ root
         └── Mean vs. median
 ```
 
+### Publishing images
+
+Local images referenced in a Markdown file are automatically published to Confluence as attachments to the page.
+
+Unfortunately, Confluence struggles with SVG images, e.g. they may only show in *edit* mode, display in a wrong size or text labels in the image may be truncated. In order to mitigate the issue, whenever *md2conf* encounters a reference to an SVG image in a Markdown file, it checks whether a corresponding PNG image also exists in the same directory, and if a PNG image is found, it is published instead.
+
+External images referenced with an absolute URL retain the original URL.
+
 ### Ignoring files
 
 Skip files in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
