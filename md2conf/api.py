@@ -83,7 +83,7 @@ class ConfluencePage:
     id: str
     space_id: str
     parent_id: str
-    parent_type: ConfluencePageParentContentType
+    parent_type: Optional[ConfluencePageParentContentType]
     title: str
     version: int
     content: str
@@ -435,7 +435,11 @@ class ConfluenceSession:
             id=page_id,
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
-            parent_type=ConfluencePageParentContentType(typing.cast(str, data["parentType"])),
+            parent_type=(
+                ConfluencePageParentContentType(typing.cast(str, data["parentType"]))
+                if data["parentType"] is not None
+                else None
+            ),
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
@@ -539,7 +543,11 @@ class ConfluenceSession:
             id=typing.cast(str, data["id"]),
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
-            parent_type=ConfluencePageParentContentType(typing.cast(str, data["parentType"])),
+            parent_type=(
+                ConfluencePageParentContentType(typing.cast(str, data["parentType"]))
+                if data["parentType"] is not None
+                else None
+            ),
             title=typing.cast(str, data["title"]),
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
