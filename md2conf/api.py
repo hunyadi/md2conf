@@ -44,6 +44,7 @@ class ConfluencePageParentContentType(enum.Enum):
     """
     Content types that can be a parent to a Confluence page
     """
+
     PAGE = "page"
     WHITEBOARD = "whiteboard"
     DATABASE = "database"

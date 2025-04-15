@@ -3,18 +3,21 @@
 ## Code blocks
 
 A language-neutral code block:
+
 ```
 func:
     preformatted text
 ```
 
 A code block in Python:
+
 ```python
 def func(n: int) -> str:
     return str(n)
 ```
 
 A code block in Java:
+
 ```java
 class Simple {
     public static void main(String args[]) {
@@ -24,6 +27,7 @@ class Simple {
 ```
 
 A code block in JSON:
+
 ```json
 {
     "boolean": true,

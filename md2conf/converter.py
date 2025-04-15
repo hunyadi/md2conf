@@ -93,7 +93,9 @@ def markdown_to_html(content: str) -> str:
             "markdown.extensions.tables",
             "markdown.extensions.fenced_code",
             "pymdownx.emoji",
+            # "pymdownx.highlight",  # required by `pymdownx.superfences`
             "pymdownx.magiclink",
+            # "pymdownx.superfences",
             "pymdownx.tilde",
             "sane_lists",
             "md_in_html",
@@ -101,7 +103,10 @@ def markdown_to_html(content: str) -> str:
         extension_configs={
             "pymdownx.emoji": {
                 "emoji_generator": emoji_generator,
-            }
+            },
+            "pymdownx.highlight": {
+                "use_pygments": False,
+            },
         },
     )
 
