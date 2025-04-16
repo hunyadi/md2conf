@@ -9,7 +9,6 @@ Copyright 2022-2025, Levente Hunyadi
 import hashlib
 import logging
 import os
-import os.path
 import shutil
 import unittest
 from pathlib import Path

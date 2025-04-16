@@ -91,11 +91,11 @@ def markdown_to_html(content: str) -> str:
         extensions=[
             "admonition",
             "markdown.extensions.tables",
-            "markdown.extensions.fenced_code",
+            # "markdown.extensions.fenced_code",
             "pymdownx.emoji",
-            # "pymdownx.highlight",  # required by `pymdownx.superfences`
+            "pymdownx.highlight",  # required by `pymdownx.superfences`
             "pymdownx.magiclink",
-            # "pymdownx.superfences",
+            "pymdownx.superfences",
             "pymdownx.tilde",
             "sane_lists",
             "md_in_html",
