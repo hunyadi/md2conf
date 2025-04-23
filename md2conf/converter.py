@@ -954,6 +954,11 @@ def extract_frontmatter_title(text: str) -> tuple[Optional[str], str]:
 
     return title, text
 
+def extract_first_heading_title(text: str) -> tuple[Optional[str], str]:
+    "Extracts heading title from a Markdown document. Match first line starting with `#`."
+
+    return extract_value(r'(?m)^#\s+(.*)$', text)
+
 
 def read_qualified_id(absolute_path: Path) -> Optional[ConfluenceQualifiedID]:
     "Reads the Confluence page ID and space key from a Markdown document."
@@ -1034,6 +1039,10 @@ class ConfluenceDocument:
 
         # extract frontmatter
         self.title, text = extract_frontmatter_title(text)
+
+        # extract first heading
+        if self.title is None:
+            self.title, text = extract_first_heading_title(text)
 
         # convert to HTML
         html = markdown_to_html(text)

@@ -176,7 +176,12 @@ class Application:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
-        frontmatter_title, _ = extract_frontmatter_title(document)
+
+        if title is None:
+            title, doc_no_frontmatter = extract_frontmatter_title(document)
+
+            if title is None:
+                title, _ = extract_first_heading_title(doc_no_frontmatter)
 
         if qualified_id is not None:
             confluence_page = self.api.get_page(qualified_id.page_id)
@@ -188,7 +193,7 @@ class Application:
 
             # assign title from frontmatter if present
             confluence_page = self._create_page(
-                absolute_path, document, title or frontmatter_title, parent_id
+                absolute_path, document, title, parent_id
             )
 
         space_key = (
