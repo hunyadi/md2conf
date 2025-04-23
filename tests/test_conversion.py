@@ -17,6 +17,7 @@ import md2conf.emoji as emoji
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
+    ConfluenceSiteMetadata,
     elements_from_string,
     elements_to_string,
 )
@@ -46,6 +47,7 @@ def standardize(content: str) -> str:
 class TestConversion(unittest.TestCase):
     source_dir: Path
     target_dir: Path
+    site_metadata: ConfluenceSiteMetadata
 
     def setUp(self) -> None:
         self.maxDiff = None
@@ -53,6 +55,9 @@ class TestConversion(unittest.TestCase):
         test_dir = Path(__file__).parent
         self.source_dir = test_dir / "source"
         self.target_dir = test_dir / "target"
+        self.site_metadata = ConfluenceSiteMetadata(
+            "example.com", "/wiki/", "SPACE_KEY"
+        )
 
     def test_markdown(self) -> None:
         if not os.path.exists(self.source_dir / "emoji.md"):
@@ -75,6 +80,7 @@ class TestConversion(unittest.TestCase):
                     self.source_dir / f"{name}.md",
                     ConfluenceDocumentOptions(),
                     self.source_dir,
+                    self.site_metadata,
                     {},
                 ).xhtml()
                 actual = standardize(actual)
@@ -85,13 +91,17 @@ class TestConversion(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
     def test_broken_links(self) -> None:
-        actual = ConfluenceDocument(
-            self.source_dir / "missing.md",
-            ConfluenceDocumentOptions(ignore_invalid_url=True),
-            self.source_dir,
-            {},
-        ).xhtml()
-        actual = standardize(actual)
+        with self.assertLogs(level=logging.WARNING) as cm:
+            actual = ConfluenceDocument(
+                self.source_dir / "missing.md",
+                ConfluenceDocumentOptions(ignore_invalid_url=True),
+                self.source_dir,
+                self.site_metadata,
+                {},
+            ).xhtml()
+            actual = standardize(actual)
+
+        self.assertEqual(len(cm.records), 1)
 
         with open(self.target_dir / "missing.xml", "r", encoding="utf-8") as f:
             expected = canonicalize(f.read())
@@ -103,6 +113,7 @@ class TestConversion(unittest.TestCase):
             self.source_dir / "anchors.md",
             ConfluenceDocumentOptions(heading_anchors=True),
             self.source_dir,
+            self.site_metadata,
             {},
         ).xhtml()
         actual = standardize(actual)
@@ -121,6 +132,7 @@ class TestConversion(unittest.TestCase):
                 diagram_output_format="svg",
             ),
             self.source_dir,
+            self.site_metadata,
             {},
         )
         self.assertEqual(len(document.embedded_images), 6)
@@ -134,6 +146,7 @@ class TestConversion(unittest.TestCase):
                 diagram_output_format="png",
             ),
             self.source_dir,
+            self.site_metadata,
             {},
         )
         self.assertEqual(len(document.embedded_images), 6)

@@ -22,9 +22,9 @@ import requests
 from . import __version__
 from .api import ConfluenceAPI
 from .application import Application
-from .converter import ConfluenceDocumentOptions
+from .converter import ConfluenceDocumentOptions, ConfluenceSiteMetadata
 from .processor import Processor
-from .properties import ConfluenceProperties
+from .properties import ConfluenceConnectionProperties, ConfluenceSiteProperties
 
 
 class Arguments(argparse.Namespace):
@@ -201,12 +201,22 @@ def main() -> None:
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
     )
-    properties = ConfluenceProperties(
-        args.domain, args.path, args.username, args.apikey, args.space, args.headers
-    )
     if args.local:
-        Processor(options, properties).process(args.mdpath)
+        site_properties = ConfluenceSiteProperties(
+            domain=args.domain,
+            base_path=args.path,
+            space_key=args.space,
+        )
+        site_metadata = ConfluenceSiteMetadata(
+            domain=site_properties.domain,
+            base_path=site_properties.base_path,
+            space_key=site_properties.space_key,
+        )
+        Processor(options, site_metadata).process(args.mdpath)
     else:
+        properties = ConfluenceConnectionProperties(
+            args.domain, args.path, args.username, args.apikey, args.space, args.headers
+        )
         try:
             with ConfluenceAPI(properties) as api:
                 Application(

@@ -240,9 +240,14 @@ _languages = [
 
 
 @dataclass
-class ConfluencePageMetadata:
+class ConfluenceSiteMetadata:
     domain: str
     base_path: str
+    space_key: Optional[str]
+
+
+@dataclass
+class ConfluencePageMetadata:
     page_id: str
     space_key: Optional[str]
     title: str
@@ -307,6 +312,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     links: list[str]
     images: list[Path]
     embedded_images: dict[str, bytes]
+    site_metadata: ConfluenceSiteMetadata
     page_metadata: dict[Path, ConfluencePageMetadata]
 
     def __init__(
@@ -314,6 +320,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         options: ConfluenceConverterOptions,
         path: Path,
         root_dir: Path,
+        site_metadata: ConfluenceSiteMetadata,
         page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         super().__init__()
@@ -324,6 +331,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.links = []
         self.images = []
         self.embedded_images = {}
+        self.site_metadata = site_metadata
         self.page_metadata = page_metadata
 
     def _transform_heading(self, heading: ET._Element) -> None:
@@ -414,13 +422,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.links.append(url)
 
         if self.options.webui_links:
-            page_url = f"{link_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
+            page_url = f"{self.site_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
         else:
-            page_url = f"{link_metadata.base_path}spaces/{link_metadata.space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
+            space_key = link_metadata.space_key or self.site_metadata.space_key
+            page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
 
         components = ParseResult(
             scheme="https",
-            netloc=link_metadata.domain,
+            netloc=self.site_metadata.domain,
             path=page_url,
             params="",
             query="",
@@ -1006,6 +1015,7 @@ class ConfluenceDocument:
         path: Path,
         options: ConfluenceDocumentOptions,
         root_dir: Path,
+        site_metadata: ConfluenceSiteMetadata,
         page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
@@ -1064,6 +1074,7 @@ class ConfluenceDocument:
             ),
             path,
             root_dir,
+            site_metadata,
             page_metadata,
         )
         converter.visit(self.root)

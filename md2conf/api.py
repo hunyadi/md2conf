@@ -21,7 +21,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 
 from .converter import ParseError, sanitize_confluence
-from .properties import ConfluenceError, ConfluenceProperties
+from .properties import ConfluenceConnectionProperties, ConfluenceError
 
 # a JSON type with possible `null` values
 JsonType = Union[
@@ -91,11 +91,13 @@ class ConfluencePage:
 
 
 class ConfluenceAPI:
-    properties: ConfluenceProperties
+    properties: ConfluenceConnectionProperties
     session: Optional["ConfluenceSession"] = None
 
-    def __init__(self, properties: Optional[ConfluenceProperties] = None) -> None:
-        self.properties = properties or ConfluenceProperties()
+    def __init__(
+        self, properties: Optional[ConfluenceConnectionProperties] = None
+    ) -> None:
+        self.properties = properties or ConfluenceConnectionProperties()
 
     def __enter__(self) -> "ConfluenceSession":
         session = requests.Session()
@@ -142,7 +144,7 @@ class ConfluenceSession:
         session: requests.Session,
         domain: str,
         base_path: str,
-        space_key: Optional[str],
+        space_key: Optional[str] = None,
     ) -> None:
         self.session = session
         self.domain = domain

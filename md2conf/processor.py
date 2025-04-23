@@ -17,23 +17,23 @@ from .converter import (
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
     ConfluenceQualifiedID,
+    ConfluenceSiteMetadata,
     extract_qualified_id,
 )
 from .matcher import Matcher, MatcherOptions
-from .properties import ConfluenceProperties
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Processor:
     options: ConfluenceDocumentOptions
-    properties: ConfluenceProperties
+    site_metadata: ConfluenceSiteMetadata
 
     def __init__(
-        self, options: ConfluenceDocumentOptions, properties: ConfluenceProperties
+        self, options: ConfluenceDocumentOptions, site_metadata: ConfluenceSiteMetadata
     ) -> None:
         self.options = options
-        self.properties = properties
+        self.site_metadata = site_metadata
 
     def process(self, path: Path) -> None:
         "Processes a single Markdown file or a directory of Markdown files."
@@ -87,7 +87,9 @@ class Processor:
     ) -> None:
         "Processes a single Markdown file."
 
-        document = ConfluenceDocument(path, self.options, root_dir, page_metadata)
+        document = ConfluenceDocument(
+            path, self.options, root_dir, self.site_metadata, page_metadata
+        )
         content = document.xhtml()
         with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
             f.write(content)
@@ -139,9 +141,7 @@ class Processor:
                 raise ValueError("required: page ID for local output")
 
         return ConfluencePageMetadata(
-            domain=self.properties.domain,
-            base_path=self.properties.base_path,
             page_id=qualified_id.page_id,
-            space_key=qualified_id.space_key or self.properties.space_key,
+            space_key=qualified_id.space_key,
             title="",
         )

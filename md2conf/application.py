@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import logging
-import os.path
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +17,7 @@ from .converter import (
     ConfluenceDocumentOptions,
     ConfluencePageMetadata,
     ConfluenceQualifiedID,
+    ConfluenceSiteMetadata,
     attachment_name,
     extract_frontmatter_title,
     extract_qualified_id,
@@ -99,7 +100,14 @@ class Application:
         base_path = page_path.parent
 
         LOGGER.info("Synchronizing page: %s", page_path)
-        document = ConfluenceDocument(page_path, self.options, root_dir, page_metadata)
+        site_metadata = ConfluenceSiteMetadata(
+            domain=self.api.domain,
+            base_path=self.api.base_path,
+            space_key=self.api.space_key,
+        )
+        document = ConfluenceDocument(
+            page_path, self.options, root_dir, site_metadata, page_metadata
+        )
         self._update_document(document, base_path)
 
     def _index_directory(
@@ -198,8 +206,6 @@ class Application:
         )
 
         return ConfluencePageMetadata(
-            domain=self.api.domain,
-            base_path=self.api.base_path,
             page_id=confluence_page.id,
             space_key=space_key,
             title=confluence_page.title or "",
