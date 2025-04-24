@@ -18,13 +18,14 @@ from md2conf.application import Application
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
+    ConfluenceSiteMetadata,
     read_qualified_id,
     sanitize_confluence,
 )
 
 TEST_PAGE_TITLE = "Publish to Confluence"
-TEST_SPACE = "DAP"
-TEST_PAGE_ID = "85668266616"
+TEST_SPACE = "~hunyadi"
+TEST_PAGE_ID = "1933314"
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -52,6 +53,7 @@ class TestAPI(unittest.TestCase):
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
             self.sample_dir,
+            ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY"),
             {},
         )
         self.assertListEqual(document.links, [])

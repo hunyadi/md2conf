@@ -9,13 +9,11 @@
   <li>a list item:    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="theme">Default</ac:parameter>
       <ac:parameter ac:name="language">none</ac:parameter>
-      <ac:parameter ac:name="linenumbers">true</ac:parameter>
       <ac:plain-text-body><![CDATA[alice@example.com]]></ac:plain-text-body>
     </ac:structured-macro></li>
   <li>another list item:    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="theme">Default</ac:parameter>
       <ac:parameter ac:name="language">none</ac:parameter>
-      <ac:parameter ac:name="linenumbers">true</ac:parameter>
       <ac:plain-text-body><![CDATA[bob@example.com]]></ac:plain-text-body>
     </ac:structured-macro></li>
 </ol>
@@ -24,13 +22,11 @@
   <li>a list item:   <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="theme">Default</ac:parameter>
       <ac:parameter ac:name="language">none</ac:parameter>
-      <ac:parameter ac:name="linenumbers">true</ac:parameter>
       <ac:plain-text-body><![CDATA[alice@example.com]]></ac:plain-text-body>
     </ac:structured-macro></li>
   <li>another list item:   <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="theme">Default</ac:parameter>
       <ac:parameter ac:name="language">none</ac:parameter>
-      <ac:parameter ac:name="linenumbers">true</ac:parameter>
       <ac:plain-text-body><![CDATA[bob@example.com]]></ac:plain-text-body>
     </ac:structured-macro></li>
 </ul>

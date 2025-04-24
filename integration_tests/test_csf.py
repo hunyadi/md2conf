@@ -12,8 +12,8 @@ from pathlib import Path
 from md2conf.api import ConfluenceAPI
 from md2conf.converter import content_to_string
 
-TEST_SPACE = "DAP"
-TEST_PAGE_ID = "86918529216"
+TEST_SPACE = "~hunyadi"
+TEST_PAGE_ID = "65713"
 
 
 class TestConfluenceStorageFormat(unittest.TestCase):

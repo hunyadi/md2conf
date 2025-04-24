@@ -541,11 +541,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {ET.QName(namespaces["ac"], "name"): "language"},
                 language,
             ),
-            AC(
-                "parameter",
-                {ET.QName(namespaces["ac"], "name"): "linenumbers"},
-                "true",
-            ),
             AC("plain-text-body", ET.CDATA(content)),
         )
 

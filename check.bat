@@ -9,6 +9,10 @@ python -m mypy tests
 if errorlevel 1 goto error
 python -m flake8 tests
 if errorlevel 1 goto error
+python -m mypy integration_tests
+if errorlevel 1 goto error
+python -m flake8 integration_tests
+if errorlevel 1 goto error
 goto :EOF
 
 :error
