@@ -76,14 +76,14 @@ class TestConversion(unittest.TestCase):
             name, _ = os.path.splitext(entry.name)
 
             with self.subTest(name=name):
-                actual = ConfluenceDocument(
+                doc = ConfluenceDocument(
                     self.source_dir / f"{name}.md",
                     ConfluenceDocumentOptions(),
                     self.source_dir,
                     self.site_metadata,
                     {},
-                ).xhtml()
-                actual = standardize(actual)
+                )
+                actual = standardize(doc.xhtml())
 
                 with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
                     expected = canonicalize(f.read())
@@ -92,14 +92,15 @@ class TestConversion(unittest.TestCase):
 
     def test_broken_links(self) -> None:
         with self.assertLogs(level=logging.WARNING) as cm:
-            actual = ConfluenceDocument(
+            doc = ConfluenceDocument(
                 self.source_dir / "missing.md",
                 ConfluenceDocumentOptions(ignore_invalid_url=True),
                 self.source_dir,
                 self.site_metadata,
                 {},
-            ).xhtml()
-            actual = standardize(actual)
+            )
+            self.assertEqual(doc.title, "Broken links")
+            actual = standardize(doc.xhtml())
 
         self.assertEqual(len(cm.records), 1)
 
@@ -109,19 +110,40 @@ class TestConversion(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_heading_anchors(self) -> None:
-        actual = ConfluenceDocument(
+        doc = ConfluenceDocument(
             self.source_dir / "anchors.md",
             ConfluenceDocumentOptions(heading_anchors=True),
             self.source_dir,
             self.site_metadata,
             {},
-        ).xhtml()
-        actual = standardize(actual)
+        )
+        self.assertEqual(doc.title, "Anchors")
+        actual = standardize(doc.xhtml())
 
         with open(self.target_dir / "anchors.xml", "r", encoding="utf-8") as f:
             expected = canonicalize(f.read())
 
         self.assertEqual(actual, expected)
+
+    def test_missing_title(self) -> None:
+        doc = ConfluenceDocument(
+            self.source_dir / "title.md",
+            ConfluenceDocumentOptions(),
+            self.source_dir,
+            self.site_metadata,
+            {},
+        )
+        self.assertIsNone(doc.title)
+
+    def test_unique_title(self) -> None:
+        doc = ConfluenceDocument(
+            self.source_dir / "sections.md",
+            ConfluenceDocumentOptions(),
+            self.source_dir,
+            self.site_metadata,
+            {},
+        )
+        self.assertEqual(doc.title, "Sections")
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_svg(self) -> None:

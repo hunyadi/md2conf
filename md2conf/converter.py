@@ -281,6 +281,53 @@ def title_to_identifier(title: str) -> str:
     return s
 
 
+def element_to_text(node: ET._Element) -> str:
+    "Returns all text contained in an element as a concatenated string."
+
+    return "".join(node.itertext()).strip()
+
+
+@dataclass
+class TableOfContentsEntry:
+    level: int
+    text: str
+
+
+class TableOfContents:
+    "Builds a table of contents from Markdown headings."
+
+    headings: list[TableOfContentsEntry]
+
+    def __init__(self) -> None:
+        self.headings = []
+
+    def add(self, level: int, text: str) -> None:
+        """
+        Adds a heading to the table of contents.
+
+        :param level: Markdown heading level (e.g. `1` for first-level heading).
+        :param text: Markdown heading text.
+        """
+
+        self.headings.append(TableOfContentsEntry(level, text))
+
+    def get_title(self) -> Optional[str]:
+        """
+        Returns a proposed document title (if unique).
+
+        :returns: Title text, or `None` if no unique title can be inferred.
+        """
+
+        for level in range(1, 7):
+            try:
+                (title,) = (item.text for item in self.headings if item.level == level)
+                return title
+            except ValueError:
+                pass
+
+        return None
+
+
 @dataclass
 class ConfluenceConverterOptions:
     """
@@ -309,6 +356,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     path: Path
     base_dir: Path
     root_dir: Path
+    toc: TableOfContents
     links: list[str]
     images: list[Path]
     embedded_images: dict[str, bytes]
@@ -328,6 +376,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.path = path
         self.base_dir = path.parent
         self.root_dir = root_dir
+        self.toc = TableOfContents()
         self.links = []
         self.images = []
         self.embedded_images = {}
@@ -335,8 +384,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.page_metadata = page_metadata
 
     def _transform_heading(self, heading: ET._Element) -> None:
-        title = "".join(heading.itertext()).strip()
-
         for e in heading:
             self.visit(e)
 
@@ -349,7 +396,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC(
                 "parameter",
                 {ET.QName(namespaces["ac"], "name"): ""},
-                title_to_identifier(title),
+                title_to_identifier(element_to_text(heading)),
             ),
         )
 
@@ -808,10 +855,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not isinstance(child.tag, str):
             return None
 
-        if self.options.heading_anchors:
-            # <h1>...</h1>
-            # <h2>...</h2> ...
-            if re.match(r"^h[1-6]$", child.tag, flags=re.IGNORECASE) is not None:
+        # <h1>...</h1>
+        # <h2>...</h2> ...
+        m = re.match(r"^h([1-6])$", child.tag, flags=re.IGNORECASE)
+        if m is not None:
+            level = int(m.group(1))
+            title = element_to_text(child)
+            self.toc.add(level, title)
+
+            if self.options.heading_anchors:
                 self._transform_heading(child)
                 return None
 
@@ -1076,6 +1128,9 @@ class ConfluenceDocument:
         self.links = converter.links
         self.images = converter.images
         self.embedded_images = converter.embedded_images
+
+        if self.title is None:
+            self.title = converter.toc.get_title()
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)

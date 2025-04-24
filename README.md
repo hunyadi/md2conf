@@ -133,7 +133,7 @@ The concepts above are illustrated in the following sections.
 
 #### File-system directory hierarchy
 
-The title of each Markdown file (either the text of the first heading (`#`), or the title specified in front-matter) is shown next to the file name.
+The title of each Markdown file (either the text of the topmost unique heading (`#`), or the title specified in front-matter) is shown next to the file name.
 
 ```
 .
@@ -177,6 +177,16 @@ External images referenced with an absolute URL retain the original URL.
 Skip files in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
 
 Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into.
+
+### Page title
+
+*md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following are probed in this order:
+
+1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Currently, only YAML syntax is supported.
+2. The text of the topmost unique Markdown heading (`#`). For example, if a document has a single first-level heading (e.g. `# My document`), its text is used. However, if there are multiple first-level headings, this step is skipped.
+3. The file name (without the extension `.md`).
+
+If a matching Confluence page already exists for a Markdown file, the page title in Confluence is left unchanged.
 
 ### Running the tool
 
