@@ -25,7 +25,8 @@ import markdown
 import yaml
 from lxml.builder import ElementMaker
 
-from . import mermaid
+from .mermaid import render_diagram
+from .properties import PageError
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -595,7 +596,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Transforms a Mermaid diagram code block."
 
         if self.options.render_mermaid:
-            image_data = mermaid.render(content, self.options.diagram_output_format)
+            image_data = render_diagram(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(
                 f"embedded_{image_hash}.{self.options.diagram_output_format}"
@@ -952,7 +953,7 @@ class ConfluenceStorageFormatCleaner(NodeVisitor):
 
 
 class DocumentError(RuntimeError):
-    pass
+    "Raised when a converted Markdown document has an unexpected element or attribute."
 
 
 def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
@@ -1081,7 +1082,7 @@ class ConfluenceDocument:
                     metadata.page_id, metadata.space_key
                 )
         if qualified_id is None:
-            raise ValueError("missing Confluence page ID")
+            raise PageError("missing Confluence page ID")
         self.id = qualified_id
 
         # extract 'generated-by' tag text

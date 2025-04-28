@@ -47,7 +47,7 @@ def has_mmdc() -> bool:
     return shutil.which(executable) is not None
 
 
-def render(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:
+def render_diagram(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:
     "Generates a PNG or SVG image from a Mermaid diagram source."
 
     filename = f"tmp_mermaid.{output_format}"

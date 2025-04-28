@@ -21,6 +21,7 @@ from .converter import (
     extract_qualified_id,
 )
 from .matcher import Matcher, MatcherOptions
+from .properties import ArgumentError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class Processor:
         elif path.is_file():
             self.process_page(path)
         else:
-            raise ValueError(f"expected: valid file or directory path; got: {path}")
+            raise ArgumentError(f"expected: valid file or directory path; got: {path}")
 
     def process_directory(
         self, local_dir: Path, root_dir: Optional[Path] = None
@@ -138,7 +139,7 @@ class Processor:
                 LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
                 qualified_id = ConfluenceQualifiedID(digest)
             else:
-                raise ValueError("required: page ID for local output")
+                raise ArgumentError("required: page ID for local output")
 
         return ConfluencePageMetadata(
             page_id=qualified_id.page_id,

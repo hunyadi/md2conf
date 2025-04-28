@@ -21,7 +21,12 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 
 from .converter import ParseError, sanitize_confluence
-from .properties import ConfluenceConnectionProperties, ConfluenceError
+from .properties import (
+    ArgumentError,
+    ConfluenceConnectionProperties,
+    ConfluenceError,
+    PageError,
+)
 
 # a JSON type with possible `null` values
 JsonType = Union[
@@ -275,10 +280,10 @@ class ConfluenceSession:
         force: bool = False,
     ) -> None:
         if attachment_path is None and raw_data is None:
-            raise ConfluenceError("required: `attachment_path` or `raw_data`")
+            raise ArgumentError("required: `attachment_path` or `raw_data`")
 
         if attachment_path is not None and raw_data is not None:
-            raise ConfluenceError("expected: either `attachment_path` or `raw_data`")
+            raise ArgumentError("expected: either `attachment_path` or `raw_data`")
 
         if content_type is None:
             if attachment_path is not None:
@@ -288,7 +293,7 @@ class ConfluenceSession:
             content_type, _ = mimetypes.guess_type(name, strict=True)
 
         if attachment_path is not None and not attachment_path.is_file():
-            raise ConfluenceError(f"file not found: {attachment_path}")
+            raise PageError(f"file not found: {attachment_path}")
 
         try:
             attachment = self.get_attachment_by_name(page_id, attachment_name)
@@ -511,9 +516,7 @@ class ConfluenceSession:
 
         coalesced_space_key = space_key or self.space_key
         if coalesced_space_key is None:
-            raise ConfluenceError(
-                "Confluence space key required for creating a new page"
-            )
+            raise ArgumentError("Confluence space key required for creating a new page")
 
         path = "/pages/"
         query = {

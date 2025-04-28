@@ -24,6 +24,7 @@ from .converter import (
     read_qualified_id,
 )
 from .matcher import Matcher, MatcherOptions
+from .properties import ArgumentError, PageError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class Application:
         elif path.is_file():
             self.synchronize_page(path)
         else:
-            raise ValueError(f"expected: valid file or directory path; got: {path}")
+            raise ArgumentError(f"expected: valid file or directory path; got: {path}")
 
     def synchronize_page(
         self, page_path: Path, root_dir: Optional[Path] = None
@@ -190,7 +191,7 @@ class Application:
             confluence_page = self.api.get_page(qualified_id.page_id)
         else:
             if parent_id is None:
-                raise ValueError(
+                raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
 
