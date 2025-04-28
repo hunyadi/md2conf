@@ -187,10 +187,7 @@ class ConfluenceSession:
         url = self._build_url(version, path, query)
         response = self.session.get(url)
         response.raise_for_status()
-        if len(response.text) > 240:
-            LOGGER.debug("Received HTTP payload (truncated):\n%.240s...", response.text)
-        else:
-            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        LOGGER.debug("Received HTTP payload:\n%s", response.text)
         return response.json()
 
     def _save(self, version: ConfluenceVersion, path: str, data: dict) -> None:
