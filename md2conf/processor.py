@@ -88,7 +88,7 @@ class Processor:
     ) -> None:
         "Processes a single Markdown file."
 
-        document = ConfluenceDocument(
+        document = ConfluenceDocument.create(
             path, self.options, root_dir, self.site_metadata, page_metadata
         )
         content = document.xhtml()

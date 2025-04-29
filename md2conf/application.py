@@ -106,7 +106,8 @@ class Application:
             base_path=self.api.base_path,
             space_key=self.api.space_key,
         )
-        document = ConfluenceDocument(
+
+        document = ConfluenceDocument.create(
             page_path, self.options, root_dir, site_metadata, page_metadata
         )
         self._update_document(document, base_path)
@@ -185,7 +186,10 @@ class Application:
             document = f.read()
 
         qualified_id, document = extract_qualified_id(document)
-        frontmatter_title, _ = extract_frontmatter_title(document)
+
+        # assign title from front-matter if present
+        if title is None:
+            title, _ = extract_frontmatter_title(document)
 
         if qualified_id is not None:
             confluence_page = self.api.get_page(qualified_id.page_id)
@@ -195,9 +199,8 @@ class Application:
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
 
-            # assign title from frontmatter if present
             confluence_page = self._create_page(
-                absolute_path, document, title or frontmatter_title, parent_id
+                absolute_path, document, title, parent_id
             )
 
         space_key = (

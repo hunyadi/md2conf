@@ -1058,15 +1058,15 @@ class ConfluenceDocument:
     options: ConfluenceDocumentOptions
     root: ET._Element
 
-    def __init__(
-        self,
+    @classmethod
+    def create(
+        cls,
         path: Path,
         options: ConfluenceDocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: dict[Path, ConfluencePageMetadata],
-    ) -> None:
-        self.options = options
+    ) -> "ConfluenceDocument":
         path = path.resolve(True)
 
         with open(path, "r", encoding="utf-8") as f:
@@ -1083,6 +1083,22 @@ class ConfluenceDocument:
                 )
         if qualified_id is None:
             raise PageError("missing Confluence page ID")
+
+        return ConfluenceDocument(
+            path, text, qualified_id, options, root_dir, site_metadata, page_metadata
+        )
+
+    def __init__(
+        self,
+        path: Path,
+        text: str,
+        qualified_id: ConfluenceQualifiedID,
+        options: ConfluenceDocumentOptions,
+        root_dir: Path,
+        site_metadata: ConfluenceSiteMetadata,
+        page_metadata: dict[Path, ConfluencePageMetadata],
+    ) -> None:
+        self.options = options
         self.id = qualified_id
 
         # extract 'generated-by' tag text

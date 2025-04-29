@@ -44,7 +44,7 @@ class TestAPI(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_markdown(self) -> None:
-        document = ConfluenceDocument(
+        document = ConfluenceDocument.create(
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
             self.sample_dir,
