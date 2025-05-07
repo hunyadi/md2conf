@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 from urllib.parse import ParseResult, urlparse, urlunparse
+from xml.sax.saxutils import escape
 
 import lxml.etree as ET
 import markdown
@@ -143,8 +144,8 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
 
     try:
         return ET.fromstringlist(data, parser=parser)
-    except ET.XMLSyntaxError as e:
-        raise ParseError(e)
+    except ET.XMLSyntaxError as ex:
+        raise ParseError() from ex
 
 
 def elements_from_strings(items: list[str]) -> ET._Element:
@@ -1050,6 +1051,10 @@ class ConfluenceDocumentOptions:
     webui_links: bool = False
 
 
+class ConversionError(RuntimeError):
+    "Raised when a Markdown document cannot be converted to Confluence Storage Format."
+
+
 class ConfluenceDocument:
     id: ConfluenceQualifiedID
     title: Optional[str]
@@ -1121,13 +1126,17 @@ class ConfluenceDocument:
 
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                f"<ac:rich-text-body><p>{generated_by}</p></ac:rich-text-body>",
+                f"<ac:rich-text-body><p>{escape(generated_by)}</p></ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]
         else:
             content = [html]
-        self.root = elements_from_strings(content)
+
+        try:
+            self.root = elements_from_strings(content)
+        except ParseError as ex:
+            raise ConversionError(path) from ex
 
         converter = ConfluenceStorageFormatConverter(
             ConfluenceConverterOptions(

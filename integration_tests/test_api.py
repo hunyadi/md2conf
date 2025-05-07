@@ -123,8 +123,9 @@ class TestAPI(unittest.TestCase):
             source_dir / "index.md",
             source_dir / "doc1.md",
             source_dir / "doc2.md",
-            source_dir / "nested" / "index.md",
-            source_dir / "nested" / "doc3.md",
+            source_dir / "skip" / "nested" / "index.md",
+            source_dir / "skip" / "nested" / "doc3.md",
+            source_dir / "skip" / "nested" / "deep" / "index.md",
         ]
 
         for absolute_path in documents:

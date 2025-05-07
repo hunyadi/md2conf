@@ -8,6 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import hashlib
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -26,6 +27,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LocalProcessor(Processor):
+    def __init__(
+        self,
+        options: ConfluenceDocumentOptions,
+        site: ConfluenceSiteMetadata,
+        *,
+        out_dir: Optional[Path],
+        root_dir: Path,
+    ) -> None:
+        super().__init__(options, site, root_dir)
+        self.out_dir = out_dir or root_dir
+
     def _get_or_create_page(
         self,
         absolute_path: Path,
@@ -66,16 +78,28 @@ class LocalProcessor(Processor):
         """
 
         content = document.xhtml()
-        with open(path.with_suffix(".csf"), "w", encoding="utf-8") as f:
+        out_path = self.out_dir / path.relative_to(self.root_dir).with_suffix(".csf")
+        os.makedirs(out_path.parent, exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
             f.write(content)
 
 
 class LocalProcessorFactory(ProcessorFactory):
-    options: ConfluenceDocumentOptions
-    site: ConfluenceSiteMetadata
+    out_dir: Optional[Path]
+
+    def __init__(
+        self,
+        options: ConfluenceDocumentOptions,
+        site: ConfluenceSiteMetadata,
+        out_dir: Optional[Path] = None,
+    ) -> None:
+        super().__init__(options, site)
+        self.out_dir = out_dir
 
     def create(self, root_dir: Path) -> Processor:
-        return LocalProcessor(self.options, self.site, root_dir)
+        return LocalProcessor(
+            self.options, self.site, out_dir=self.out_dir, root_dir=root_dir
+        )
 
 
 class LocalConverter(Converter):
@@ -84,6 +108,9 @@ class LocalConverter(Converter):
     """
 
     def __init__(
-        self, options: ConfluenceDocumentOptions, site: ConfluenceSiteMetadata
+        self,
+        options: ConfluenceDocumentOptions,
+        site: ConfluenceSiteMetadata,
+        out_dir: Optional[Path] = None,
     ) -> None:
-        super().__init__(LocalProcessorFactory(options, site))
+        super().__init__(LocalProcessorFactory(options, site, out_dir))
