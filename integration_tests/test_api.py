@@ -109,7 +109,12 @@ class TestAPI(unittest.TestCase):
             )
 
     def test_synchronize_create(self) -> None:
-        "Creates a Confluence page hierarchy from a set of Markdown files."
+        """
+        Creates a Confluence page hierarchy from a set of Markdown files.
+
+        Some documents have front-matter to test whether the title is extracted from front-matter when a Confluence page is about to be created.
+        `index.md` documents don't have front-matter to verify if the implementation tackles the use case with no explicit title and duplicate file names.
+        """
 
         source_dir = self.out_dir / "markdown"
 
@@ -124,22 +129,27 @@ class TestAPI(unittest.TestCase):
         for absolute_path in documents:
             os.makedirs(absolute_path.parent, exist_ok=True)
             relative_path = absolute_path.relative_to(source_dir).as_posix()
-            unique_string = f"md2conf/{relative_path}"
-            document_title = hashlib.sha1(unique_string.encode("ascii")).hexdigest()
+
             with open(absolute_path, "w", encoding="utf-8") as f:
-                f.write(
-                    "\n".join(
+                content = [
+                    f"# {relative_path}: A sample document",
+                    "",
+                    "This is a document without an explicitly assigned Confluence page ID or space key.",
+                ]
+
+                frontmatter = []
+                if absolute_path.name != "index.md":
+                    unique_string = f"md2conf/{relative_path}"
+                    digest = hashlib.sha1(unique_string.encode("utf-8")).hexdigest()
+                    frontmatter.extend(
                         [
                             "---",
-                            f'title: "{document_title}"',
+                            f'title: "{relative_path}: {digest}"',
                             "---",
                             "",
-                            f"# {absolute_path.name}: A sample document",
-                            "",
-                            "This is a document without an explicitly assigned Confluence page ID or space key.",
                         ]
                     )
-                )
+                f.write("\n".join(frontmatter + content))
 
         with ConfluenceAPI() as api:
             Application(

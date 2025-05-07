@@ -191,8 +191,9 @@ class ConfluenceSession:
 
         url = self._build_url(version, path, query)
         response = self.session.get(url)
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
-        LOGGER.debug("Received HTTP payload:\n%s", response.text)
         return response.json()
 
     def _save(self, version: ConfluenceVersion, path: str, data: dict) -> None:
@@ -202,6 +203,8 @@ class ConfluenceSession:
             data=json.dumps(data),
             headers={"Content-Type": "application/json"},
         )
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
 
     def space_id_to_key(self, id: str) -> str:

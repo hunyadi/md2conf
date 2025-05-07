@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import hashlib
 import logging
 import os
 from pathlib import Path
@@ -85,7 +86,7 @@ class Application:
             if self.options.root_page_id
             else None
         )
-        self._index_directory(local_dir, root_id, page_metadata)
+        self._index_directory(local_dir, root_dir, root_id, page_metadata)
         LOGGER.info("Indexed %d page(s)", len(page_metadata))
 
         # Step 2: convert each page
@@ -115,6 +116,7 @@ class Application:
     def _index_directory(
         self,
         local_dir: Path,
+        root_dir: Path,
         root_id: Optional[ConfluenceQualifiedID],
         page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
@@ -154,7 +156,7 @@ class Application:
         if parent_doc is not None:
             files.remove(parent_doc)
 
-            metadata = self._get_or_create_page(parent_doc, root_id)
+            metadata = self._get_or_create_page(parent_doc, root_dir, root_id)
             LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
             page_metadata[parent_doc] = metadata
 
@@ -163,16 +165,17 @@ class Application:
             parent_id = root_id
 
         for doc in files:
-            metadata = self._get_or_create_page(doc, parent_id)
+            metadata = self._get_or_create_page(doc, root_dir, parent_id)
             LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
             page_metadata[doc] = metadata
 
         for directory in directories:
-            self._index_directory(directory, parent_id, page_metadata)
+            self._index_directory(directory, root_dir, parent_id, page_metadata)
 
     def _get_or_create_page(
         self,
         absolute_path: Path,
+        root_dir: Path,
         parent_id: Optional[ConfluenceQualifiedID],
         *,
         title: Optional[str] = None,
@@ -187,10 +190,6 @@ class Application:
 
         qualified_id, document = extract_qualified_id(document)
 
-        # assign title from front-matter if present
-        if title is None:
-            title, _ = extract_frontmatter_title(document)
-
         if qualified_id is not None:
             confluence_page = self.api.get_page(qualified_id.page_id)
         else:
@@ -198,6 +197,17 @@ class Application:
                 raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
+
+            # assign title from front-matter if present
+            if title is None:
+                title, _ = extract_frontmatter_title(document)
+
+            # use file name (without extension) and path hash if no title is supplied
+            if title is None:
+                relative_path = absolute_path.relative_to(root_dir)
+                hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
+                digest = "".join(f"{c:x}" for c in hash.digest())
+                title = f"{absolute_path.stem} [{digest}]"
 
             confluence_page = self._create_page(
                 absolute_path, document, title, parent_id
@@ -219,14 +229,10 @@ class Application:
         self,
         absolute_path: Path,
         document: str,
-        title: Optional[str],
+        title: str,
         parent_id: ConfluenceQualifiedID,
     ) -> ConfluencePage:
         "Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet."
-
-        # use file name without extension if no title is supplied
-        if title is None:
-            title = absolute_path.stem
 
         confluence_page = self.api.get_or_create_page(
             title, parent_id.page_id, space_key=parent_id.space_key
