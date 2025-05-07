@@ -473,6 +473,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             page_url = f"{self.site_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
         else:
             space_key = link_metadata.space_key or self.site_metadata.space_key
+
+            if space_key is None:
+                raise DocumentError(
+                    "Confluence space key required for building full web URLs"
+                )
+
             page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
 
         components = ParseResult(

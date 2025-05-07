@@ -24,16 +24,20 @@ from .api import ConfluenceAPI
 from .application import Application
 from .converter import ConfluenceDocumentOptions, ConfluenceSiteMetadata
 from .processor import Processor
-from .properties import ConfluenceConnectionProperties, ConfluenceSiteProperties
+from .properties import (
+    ArgumentError,
+    ConfluenceConnectionProperties,
+    ConfluenceSiteProperties,
+)
 
 
 class Arguments(argparse.Namespace):
     mdpath: Path
-    domain: str
-    path: str
-    username: str
-    apikey: str
-    space: str
+    domain: Optional[str]
+    path: Optional[str]
+    username: Optional[str]
+    apikey: Optional[str]
+    space: Optional[str]
     loglevel: str
     ignore_invalid_url: bool
     heading_anchors: bool
@@ -202,11 +206,14 @@ def main() -> None:
         webui_links=args.webui_links,
     )
     if args.local:
-        site_properties = ConfluenceSiteProperties(
-            domain=args.domain,
-            base_path=args.path,
-            space_key=args.space,
-        )
+        try:
+            site_properties = ConfluenceSiteProperties(
+                domain=args.domain,
+                base_path=args.path,
+                space_key=args.space,
+            )
+        except ArgumentError as e:
+            parser.error(str(e))
         site_metadata = ConfluenceSiteMetadata(
             domain=site_properties.domain,
             base_path=site_properties.base_path,
@@ -214,9 +221,17 @@ def main() -> None:
         )
         Processor(options, site_metadata).process(args.mdpath)
     else:
-        properties = ConfluenceConnectionProperties(
-            args.domain, args.path, args.username, args.apikey, args.space, args.headers
-        )
+        try:
+            properties = ConfluenceConnectionProperties(
+                args.domain,
+                args.path,
+                args.username,
+                args.apikey,
+                args.space,
+                args.headers,
+            )
+        except ArgumentError as e:
+            parser.error(str(e))
         try:
             with ConfluenceAPI(properties) as api:
                 Application(
