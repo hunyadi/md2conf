@@ -8,7 +8,6 @@ Copyright 2022-2025, Levente Hunyadi
 
 import hashlib
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -16,167 +15,35 @@ from .api import ConfluencePage, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
-    ConfluencePageMetadata,
-    ConfluenceQualifiedID,
-    ConfluenceSiteMetadata,
+    ConfluencePageID,
     attachment_name,
     extract_frontmatter_title,
     extract_qualified_id,
-    read_qualified_id,
 )
-from .matcher import Matcher, MatcherOptions
-from .properties import ArgumentError, PageError
+from .metadata import ConfluencePageMetadata
+from .processor import Converter, Processor, ProcessorFactory
+from .properties import PageError
 
 LOGGER = logging.getLogger(__name__)
 
 
-class Application:
-    "The entry point for Markdown to Confluence conversion."
+class SynchronizingProcessor(Processor):
+    """
+    Synchronizes a single Markdown page or a directory of Markdown pages with Confluence.
+    """
 
     api: ConfluenceSession
-    options: ConfluenceDocumentOptions
 
     def __init__(
-        self, api: ConfluenceSession, options: ConfluenceDocumentOptions
+        self, api: ConfluenceSession, options: ConfluenceDocumentOptions, root_dir: Path
     ) -> None:
+        super().__init__(options, api.site, root_dir)
         self.api = api
-        self.options = options
-
-    def synchronize(self, path: Path) -> None:
-        "Synchronizes a single Markdown page or a directory of Markdown pages."
-
-        path = path.resolve(True)
-        if path.is_dir():
-            self.synchronize_directory(path)
-        elif path.is_file():
-            self.synchronize_page(path)
-        else:
-            raise ArgumentError(f"expected: valid file or directory path; got: {path}")
-
-    def synchronize_page(
-        self, page_path: Path, root_dir: Optional[Path] = None
-    ) -> None:
-        "Synchronizes a single Markdown page with Confluence."
-
-        page_path = page_path.resolve(True)
-        if root_dir is None:
-            root_dir = page_path.parent
-        else:
-            root_dir = root_dir.resolve(True)
-
-        self._synchronize_page(page_path, root_dir, {})
-
-    def synchronize_directory(
-        self, local_dir: Path, root_dir: Optional[Path] = None
-    ) -> None:
-        "Synchronizes a directory of Markdown pages with Confluence."
-
-        local_dir = local_dir.resolve(True)
-        if root_dir is None:
-            root_dir = local_dir
-        else:
-            root_dir = root_dir.resolve(True)
-
-        LOGGER.info("Synchronizing directory: %s", local_dir)
-
-        # Step 1: build index of all page metadata
-        page_metadata: dict[Path, ConfluencePageMetadata] = {}
-        root_id = (
-            ConfluenceQualifiedID(self.options.root_page_id, self.api.space_key)
-            if self.options.root_page_id
-            else None
-        )
-        self._index_directory(local_dir, root_dir, root_id, page_metadata)
-        LOGGER.info("Indexed %d page(s)", len(page_metadata))
-
-        # Step 2: convert each page
-        for page_path in page_metadata.keys():
-            self._synchronize_page(page_path, root_dir, page_metadata)
-
-    def _synchronize_page(
-        self,
-        page_path: Path,
-        root_dir: Path,
-        page_metadata: dict[Path, ConfluencePageMetadata],
-    ) -> None:
-        base_path = page_path.parent
-
-        LOGGER.info("Synchronizing page: %s", page_path)
-        site_metadata = ConfluenceSiteMetadata(
-            domain=self.api.domain,
-            base_path=self.api.base_path,
-            space_key=self.api.space_key,
-        )
-
-        document = ConfluenceDocument.create(
-            page_path, self.options, root_dir, site_metadata, page_metadata
-        )
-        self._update_document(document, base_path)
-
-    def _index_directory(
-        self,
-        local_dir: Path,
-        root_dir: Path,
-        root_id: Optional[ConfluenceQualifiedID],
-        page_metadata: dict[Path, ConfluencePageMetadata],
-    ) -> None:
-        "Indexes Markdown files in a directory recursively."
-
-        LOGGER.info("Indexing directory: %s", local_dir)
-
-        matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
-
-        files: list[Path] = []
-        directories: list[Path] = []
-        for entry in os.scandir(local_dir):
-            if matcher.is_excluded(entry.name, entry.is_dir()):
-                continue
-
-            if entry.is_file():
-                files.append(Path(local_dir) / entry.name)
-            elif entry.is_dir():
-                directories.append(Path(local_dir) / entry.name)
-
-        # make page act as parent node in Confluence
-        parent_doc: Optional[Path] = None
-        if (Path(local_dir) / "index.md") in files:
-            parent_doc = Path(local_dir) / "index.md"
-        elif (Path(local_dir) / "README.md") in files:
-            parent_doc = Path(local_dir) / "README.md"
-        elif (Path(local_dir) / f"{local_dir.name}.md") in files:
-            parent_doc = Path(local_dir) / f"{local_dir.name}.md"
-
-        if parent_doc is None and self.options.keep_hierarchy:
-            parent_doc = Path(local_dir) / "index.md"
-
-            # create a blank page in Confluence for the directory entry
-            with open(parent_doc, "w"):
-                pass
-
-        if parent_doc is not None:
-            files.remove(parent_doc)
-
-            metadata = self._get_or_create_page(parent_doc, root_dir, root_id)
-            LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
-            page_metadata[parent_doc] = metadata
-
-            parent_id = read_qualified_id(parent_doc) or root_id
-        else:
-            parent_id = root_id
-
-        for doc in files:
-            metadata = self._get_or_create_page(doc, root_dir, parent_id)
-            LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
-            page_metadata[doc] = metadata
-
-        for directory in directories:
-            self._index_directory(directory, root_dir, parent_id, page_metadata)
 
     def _get_or_create_page(
         self,
         absolute_path: Path,
-        root_dir: Path,
-        parent_id: Optional[ConfluenceQualifiedID],
+        parent_id: Optional[ConfluencePageID],
         *,
         title: Optional[str] = None,
     ) -> ConfluencePageMetadata:
@@ -204,7 +71,7 @@ class Application:
 
             # use file name (without extension) and path hash if no title is supplied
             if title is None:
-                relative_path = absolute_path.relative_to(root_dir)
+                relative_path = absolute_path.relative_to(self.root_dir)
                 hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
                 digest = "".join(f"{c:x}" for c in hash.digest())
                 title = f"{absolute_path.stem} [{digest}]"
@@ -216,7 +83,7 @@ class Application:
         space_key = (
             self.api.space_id_to_key(confluence_page.space_id)
             if confluence_page.space_id
-            else self.api.space_key
+            else self.site.space_key
         )
 
         return ConfluencePageMetadata(
@@ -230,12 +97,14 @@ class Application:
         absolute_path: Path,
         document: str,
         title: str,
-        parent_id: ConfluenceQualifiedID,
+        parent_id: ConfluencePageID,
     ) -> ConfluencePage:
-        "Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet."
+        """
+        Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet.
+        """
 
         confluence_page = self.api.get_or_create_page(
-            title, parent_id.page_id, space_key=parent_id.space_key
+            title, parent_id.page_id, space_key=self.site.space_key
         )
         self._update_markdown(
             absolute_path,
@@ -245,9 +114,14 @@ class Application:
         )
         return confluence_page
 
-    def _update_document(self, document: ConfluenceDocument, base_path: Path) -> None:
-        "Saves a new version of a Confluence document."
+    def _save_document(self, document: ConfluenceDocument, path: Path) -> None:
+        """
+        Saves a new version of a Confluence document.
 
+        Invokes Confluence REST API to persist the new version.
+        """
+
+        base_path = path.parent
         for image in document.images:
             self.api.upload_attachment(
                 document.id.page_id,
@@ -273,7 +147,9 @@ class Application:
         page_id: str,
         space_key: Optional[str],
     ) -> None:
-        "Writes the Confluence page ID and space key at the beginning of the Markdown file."
+        """
+        Writes the Confluence page ID and space key at the beginning of the Markdown file.
+        """
 
         content: list[str] = []
 
@@ -293,3 +169,27 @@ class Application:
 
         with open(path, "w", encoding="utf-8") as file:
             file.write("\n".join(content))
+
+
+class SynchronizingProcessorFactory(ProcessorFactory):
+    api: ConfluenceSession
+
+    def __init__(
+        self, api: ConfluenceSession, options: ConfluenceDocumentOptions
+    ) -> None:
+        super().__init__(options, api.site)
+        self.api = api
+
+    def create(self, root_dir: Path) -> Processor:
+        return SynchronizingProcessor(self.api, self.options, root_dir)
+
+
+class Application(Converter):
+    """
+    The entry point for Markdown to Confluence conversion.
+    """
+
+    def __init__(
+        self, api: ConfluenceSession, options: ConfluenceDocumentOptions
+    ) -> None:
+        super().__init__(SynchronizingProcessorFactory(api, options))

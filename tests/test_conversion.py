@@ -17,12 +17,12 @@ import md2conf.emoji as emoji
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
-    ConfluenceSiteMetadata,
     elements_from_string,
     elements_to_string,
 )
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
+from md2conf.metadata import ConfluenceSiteMetadata
 
 logging.basicConfig(
     level=logging.INFO,

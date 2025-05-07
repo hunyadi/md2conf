@@ -21,6 +21,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 
 from .converter import ParseError, sanitize_confluence
+from .metadata import ConfluenceSiteMetadata
 from .properties import (
     ArgumentError,
     ConfluenceConnectionProperties,
@@ -137,9 +138,7 @@ class ConfluenceAPI:
 
 class ConfluenceSession:
     session: requests.Session
-    domain: str
-    base_path: str
-    space_key: Optional[str]
+    site: ConfluenceSiteMetadata
 
     _space_id_to_key: dict[str, str]
     _space_key_to_id: dict[str, str]
@@ -152,9 +151,7 @@ class ConfluenceSession:
         space_key: Optional[str] = None,
     ) -> None:
         self.session = session
-        self.domain = domain
-        self.base_path = base_path
-        self.space_key = space_key
+        self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
 
         self._space_id_to_key = {}
         self._space_key_to_id = {}
@@ -178,7 +175,9 @@ class ConfluenceSession:
         :returns: A full URL.
         """
 
-        base_url = f"https://{self.domain}{self.base_path}{version.value}{path}"
+        base_url = (
+            f"https://{self.site.domain}{self.site.base_path}{version.value}{path}"
+        )
         return build_url(base_url, query)
 
     def _invoke(
@@ -408,7 +407,7 @@ class ConfluenceSession:
         query = {
             "title": title,
         }
-        coalesced_space_key = space_key or self.space_key
+        coalesced_space_key = space_key or self.site.space_key
         if coalesced_space_key is not None:
             query["space-id"] = self.space_key_to_id(coalesced_space_key)
 
@@ -517,7 +516,7 @@ class ConfluenceSession:
         Create a new page via Confluence API.
         """
 
-        coalesced_space_key = space_key or self.space_key
+        coalesced_space_key = space_key or self.site.space_key
         if coalesced_space_key is None:
             raise ArgumentError("Confluence space key required for creating a new page")
 
@@ -587,7 +586,7 @@ class ConfluenceSession:
         self, title: str, *, space_key: Optional[str] = None
     ) -> Optional[str]:
         path = "/pages"
-        coalesced_space_key = space_key or self.space_key
+        coalesced_space_key = space_key or self.site.space_key
         query = {"title": title}
         if coalesced_space_key is not None:
             query["space-id"] = self.space_key_to_id(coalesced_space_key)
@@ -619,4 +618,6 @@ class ConfluenceSession:
             return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(parent_id, title, "", space_key=space_key)
+            return self.create_page(
+                parent_id, title, "", space_key=space_key or self.site.space_key
+            )

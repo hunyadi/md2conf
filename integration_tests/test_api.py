@@ -18,14 +18,15 @@ from md2conf.application import Application
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
-    ConfluenceSiteMetadata,
+    ConfluencePageID,
     read_qualified_id,
     sanitize_confluence,
 )
+from md2conf.metadata import ConfluenceSiteMetadata
 
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
-TEST_PAGE_ID = "1933314"
+TEST_PAGE_ID = ConfluencePageID("1933314")
 
 
 class TestAPI(unittest.TestCase):
@@ -63,11 +64,11 @@ class TestAPI(unittest.TestCase):
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
             page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-            self.assertEqual(page_id, TEST_PAGE_ID)
+            self.assertEqual(page_id, TEST_PAGE_ID.page_id)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(TEST_PAGE_ID)
+            page = api.get_page(TEST_PAGE_ID.page_id)
             self.assertIsInstance(page, ConfluencePage)
 
         with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
@@ -76,14 +77,14 @@ class TestAPI(unittest.TestCase):
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
             data = api.get_attachment_by_name(
-                TEST_PAGE_ID, "figure_interoperability.png"
+                TEST_PAGE_ID.page_id, "figure_interoperability.png"
             )
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
-                TEST_PAGE_ID,
+                TEST_PAGE_ID.page_id,
                 "figure_interoperability.png",
                 attachment_path=self.sample_dir / "figure" / "interoperability.png",
                 comment="A sample figure",
@@ -92,19 +93,19 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize(
+            Application(api, ConfluenceDocumentOptions()).process(
                 self.sample_dir / "index.md"
             )
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize_page(
+            Application(api, ConfluenceDocumentOptions()).process_page(
                 self.sample_dir / "index.md"
             )
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).synchronize_directory(
+            Application(api, ConfluenceDocumentOptions()).process_directory(
                 self.sample_dir
             )
 
@@ -155,7 +156,7 @@ class TestAPI(unittest.TestCase):
             Application(
                 api,
                 ConfluenceDocumentOptions(root_page_id=TEST_PAGE_ID),
-            ).synchronize_directory(source_dir)
+            ).process_directory(source_dir)
 
         with ConfluenceAPI() as api:
             for absolute_path in reversed(documents):

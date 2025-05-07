@@ -11,8 +11,9 @@ import shutil
 import unittest
 from pathlib import Path
 
-from md2conf.converter import ConfluenceDocumentOptions, ConfluenceSiteMetadata
-from md2conf.processor import Processor
+from md2conf.converter import ConfluenceDocumentOptions, ConfluencePageID
+from md2conf.local import LocalConverter
+from md2conf.metadata import ConfluenceSiteMetadata
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,22 +40,22 @@ class TestProcessor(unittest.TestCase):
     def test_process_document(self) -> None:
         options = ConfluenceDocumentOptions(
             generated_by="Test Case",
-            root_page_id="None",
+            root_page_id=ConfluencePageID("None"),
         )
 
         site_metadata = ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY")
-        Processor(options, site_metadata).process(self.sample_dir / "code.md")
+        LocalConverter(options, site_metadata).process(self.sample_dir / "code.md")
 
         self.assertTrue((self.sample_dir / "index.csf").exists())
 
     def test_process_directory(self) -> None:
         options = ConfluenceDocumentOptions(
             generated_by="The Author",
-            root_page_id="ROOT_PAGE_ID",
+            root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
         )
 
         site_metadata = ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY")
-        Processor(options, site_metadata).process(self.sample_dir)
+        LocalConverter(options, site_metadata).process(self.sample_dir)
 
         self.assertTrue((self.sample_dir / "index.csf").exists())
         self.assertTrue((self.sample_dir / "sibling.csf").exists())

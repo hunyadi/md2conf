@@ -22,8 +22,9 @@ import requests
 from . import __version__
 from .api import ConfluenceAPI
 from .application import Application
-from .converter import ConfluenceDocumentOptions, ConfluenceSiteMetadata
-from .processor import Processor
+from .converter import ConfluenceDocumentOptions, ConfluencePageID
+from .local import LocalConverter
+from .metadata import ConfluenceSiteMetadata
 from .properties import (
     ArgumentError,
     ConfluenceConnectionProperties,
@@ -199,7 +200,7 @@ def main() -> None:
         heading_anchors=args.heading_anchors,
         ignore_invalid_url=args.ignore_invalid_url,
         generated_by=args.generated_by,
-        root_page_id=args.root_page,
+        root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
         keep_hierarchy=args.keep_hierarchy,
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
@@ -219,7 +220,7 @@ def main() -> None:
             base_path=site_properties.base_path,
             space_key=site_properties.space_key,
         )
-        Processor(options, site_metadata).process(args.mdpath)
+        LocalConverter(options, site_metadata).process(args.mdpath)
     else:
         try:
             properties = ConfluenceConnectionProperties(
@@ -237,7 +238,7 @@ def main() -> None:
                 Application(
                     api,
                     options,
-                ).synchronize(args.mdpath)
+                ).process(args.mdpath)
         except requests.exceptions.HTTPError as err:
             logging.error(err)
 

@@ -26,6 +26,7 @@ import yaml
 from lxml.builder import ElementMaker
 
 from .mermaid import render_diagram
+from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .properties import PageError
 
 namespaces = {
@@ -238,20 +239,6 @@ _languages = [
     "xquery",
     "yaml",
 ]
-
-
-@dataclass
-class ConfluenceSiteMetadata:
-    domain: str
-    base_path: str
-    space_key: Optional[str]
-
-
-@dataclass
-class ConfluencePageMetadata:
-    page_id: str
-    space_key: Optional[str]
-    title: str
 
 
 class NodeVisitor:
@@ -975,6 +962,14 @@ def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
 
 
 @dataclass
+class ConfluencePageID:
+    page_id: str
+
+    def __init__(self, page_id: str):
+        self.page_id = page_id
+
+
+@dataclass
 class ConfluenceQualifiedID:
     page_id: str
     space_key: Optional[str] = None
@@ -1048,7 +1043,7 @@ class ConfluenceDocumentOptions:
     ignore_invalid_url: bool = False
     heading_anchors: bool = False
     generated_by: Optional[str] = "This page has been generated with a tool."
-    root_page_id: Optional[str] = None
+    root_page_id: Optional[ConfluencePageID] = None
     keep_hierarchy: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
