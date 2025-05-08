@@ -57,7 +57,7 @@ class Processor:
 
         # Step 2: convert each page
         for page_path in self.page_metadata.keys():
-            self.process_page(page_path)
+            self._process_page(page_path)
 
     def process_page(self, path: Path) -> None:
         """
@@ -65,6 +65,10 @@ class Processor:
         """
 
         LOGGER.info("Processing page: %s", path)
+        self._index_page(path, self.options.root_page_id)
+        self._process_page(path)
+
+    def _process_page(self, path: Path) -> None:
         document = ConfluenceDocument.create(
             path, self.options, self.root_dir, self.site, self.page_metadata
         )
@@ -133,12 +137,19 @@ class Processor:
             parent_id = ConfluencePageID(metadata.page_id)
 
         for doc in files:
-            metadata = self._get_or_create_page(doc, parent_id)
-            LOGGER.debug("Indexed %s with metadata: %s", doc, metadata)
-            self.page_metadata[doc] = metadata
+            self._index_page(doc, parent_id)
 
         for directory in directories:
             self._index_directory(directory, parent_id)
+
+    def _index_page(self, path: Path, parent_id: Optional[ConfluencePageID]) -> None:
+        """
+        Indexes a single Markdown file.
+        """
+
+        metadata = self._get_or_create_page(path, parent_id)
+        LOGGER.debug("Indexed %s with metadata: %s", path, metadata)
+        self.page_metadata[path] = metadata
 
 
 class ProcessorFactory:

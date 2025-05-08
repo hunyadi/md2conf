@@ -53,10 +53,11 @@ class SynchronizingProcessor(Processor):
 
         # parse file
         with open(absolute_path, "r", encoding="utf-8") as f:
-            document = f.read()
+            text = f.read()
 
-        qualified_id, document = extract_qualified_id(document)
+        qualified_id, text = extract_qualified_id(text)
 
+        overwrite = False
         if qualified_id is not None:
             confluence_page = self.api.get_page(qualified_id.page_id)
         else:
@@ -67,18 +68,17 @@ class SynchronizingProcessor(Processor):
 
             # assign title from front-matter if present
             if title is None:
-                title, _ = extract_frontmatter_title(document)
+                title, _ = extract_frontmatter_title(text)
 
             # use file name (without extension) and path hash if no title is supplied
             if title is None:
+                overwrite = True
                 relative_path = absolute_path.relative_to(self.root_dir)
                 hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
                 digest = "".join(f"{c:x}" for c in hash.digest())
                 title = f"{absolute_path.stem} [{digest}]"
 
-            confluence_page = self._create_page(
-                absolute_path, document, title, parent_id
-            )
+            confluence_page = self._create_page(absolute_path, text, title, parent_id)
 
         space_key = (
             self.api.space_id_to_key(confluence_page.space_id)
@@ -89,7 +89,8 @@ class SynchronizingProcessor(Processor):
         return ConfluencePageMetadata(
             page_id=confluence_page.id,
             space_key=space_key,
-            title=confluence_page.title or "",
+            title=confluence_page.title,
+            overwrite=overwrite,
         )
 
     def _create_page(
@@ -137,8 +138,12 @@ class SynchronizingProcessor(Processor):
             )
 
         content = document.xhtml()
+
+        # leave title as it is for existing pages, update title for pages with randomly assigned title
+        title = document.title if self.page_metadata[path].overwrite else None
+
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
-        self.api.update_page(document.id.page_id, content, title=document.title)
+        self.api.update_page(document.id.page_id, content, title=title)
 
     def _update_markdown(
         self,

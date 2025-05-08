@@ -12,6 +12,10 @@ from typing import Optional
 
 @dataclass
 class ConfluenceSiteMetadata:
+    """
+    Data associated with a Confluence wiki site.
+    """
+
     domain: str
     base_path: str
     space_key: Optional[str]
@@ -19,6 +23,16 @@ class ConfluenceSiteMetadata:
 
 @dataclass
 class ConfluencePageMetadata:
+    """
+    Data associated with a Confluence page.
+
+    :param page_id: Confluence page ID.
+    :param space_key: Confluence space key.
+    :param title: Document title.
+    :param overwrite: True if operations are allowed to update document properties (e.g. title).
+    """
+
     page_id: str
     space_key: Optional[str]
     title: str
+    overwrite: bool

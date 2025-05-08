@@ -68,6 +68,7 @@ class LocalProcessor(Processor):
             page_id=qualified_id.page_id,
             space_key=qualified_id.space_key,
             title="",
+            overwrite=True,
         )
 
     def _save_document(self, document: ConfluenceDocument, path: Path) -> None:
