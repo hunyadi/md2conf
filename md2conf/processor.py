@@ -81,7 +81,11 @@ class Processor:
         parent_id: Optional[ConfluencePageID],
         *,
         title: Optional[str] = None,
-    ) -> ConfluencePageMetadata: ...
+    ) -> ConfluencePageMetadata:
+        """
+        Creates a new Confluence page if no page is linked in the Markdown document.
+        """
+        ...
 
     @abstractmethod
     def _save_document(self, document: ConfluenceDocument, path: Path) -> None: ...

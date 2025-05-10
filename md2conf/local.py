@@ -21,12 +21,16 @@ from .converter import (
 )
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .processor import Converter, Processor, ProcessorFactory
-from .properties import ArgumentError
+from .properties import PageError
 
 LOGGER = logging.getLogger(__name__)
 
 
 class LocalProcessor(Processor):
+    """
+    Transforms a single Markdown page or a directory of Markdown pages into Confluence Storage Format (CSF) documents.
+    """
+
     def __init__(
         self,
         options: ConfluenceDocumentOptions,
@@ -35,6 +39,15 @@ class LocalProcessor(Processor):
         out_dir: Optional[Path],
         root_dir: Path,
     ) -> None:
+        """
+        Initializes a new processor instance.
+
+        :param options: Options that control the generated page content.
+        :param site: Data associated with a Confluence wiki site.
+        :param out_dir: File system directory to write generated CSF documents to.
+        :param root_dir: File system directory that acts as topmost root node.
+        """
+
         super().__init__(options, site, root_dir)
         self.out_dir = out_dir or root_dir
 
@@ -47,22 +60,24 @@ class LocalProcessor(Processor):
     ) -> ConfluencePageMetadata:
         """
         Extracts metadata from a Markdown file.
-
-        A derived class may create a new Confluence page if no page is linked in the Markdown document.
         """
 
+        # parse file
         with open(absolute_path, "r", encoding="utf-8") as f:
-            document = f.read()
+            text = f.read()
 
-        qualified_id, document = extract_qualified_id(document)
+        qualified_id, text = extract_qualified_id(text)
+
         if qualified_id is None:
-            if self.options.root_page_id is not None:
-                hash = hashlib.md5(document.encode("utf-8"))
-                digest = "".join(f"{c:x}" for c in hash.digest())
-                LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
-                qualified_id = ConfluenceQualifiedID(digest)
-            else:
-                raise ArgumentError("required: page ID for local output")
+            if parent_id is None:
+                raise PageError(
+                    f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
+                )
+
+            hash = hashlib.md5(text.encode("utf-8"))
+            digest = "".join(f"{c:x}" for c in hash.digest())
+            LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
+            qualified_id = ConfluenceQualifiedID(digest)
 
         return ConfluencePageMetadata(
             page_id=qualified_id.page_id,

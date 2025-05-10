@@ -137,6 +137,10 @@ class ConfluenceAPI:
 
 
 class ConfluenceSession:
+    """
+    Information about an open session to a Confluence server.
+    """
+
     session: requests.Session
     site: ConfluenceSiteMetadata
 

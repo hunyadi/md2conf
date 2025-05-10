@@ -28,13 +28,13 @@ Whenever possible, the implementation uses [Confluence REST API v2](https://deve
 
 ## Installation
 
-Install the core package from PyPI:
+**Required.** Install the core package from [PyPI](https://pypi.org/project/markdown-to-confluence/):
 
 ```sh
 pip install markdown-to-confluence
 ```
 
-Converting code blocks of Mermaid diagrams into Confluence image attachments requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli):
+**Optional.** Converting code blocks of Mermaid diagrams into Confluence image attachments requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli):
 
 ```sh
 npm install -g @mermaid-js/mermaid-cli
@@ -187,6 +187,13 @@ Files that don't have the extension `*.md` are skipped automatically. Hidden dir
 3. The file name (without the extension `.md`).
 
 If a matching Confluence page already exists for a Markdown file, the page title in Confluence is left unchanged.
+
+### Converting diagrams
+
+You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown documents to create visual representations of systems, processes, and relationships. When a Markdown document contains a code block with the language specifier `mermaid`, *md2conf* offers two options to publish the diagram:
+
+1. Pre-render into an image. The code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
+2. Render on demand. The code block is transformed into a [diagram macro](https://atlasauthority.atlassian.net/wiki/spaces/MARKDOWNCLOUD/pages/2946826241/Diagram+Macro), which is processed by Confluence. You need a [Confluence plugin](https://marketplace.atlassian.com/apps/1211438/markdown-html-plantuml-latex-diagrams-open-api-mermaid) to turn macro definitions into images when a Confluence page is visited. This is a contributed feature. As authors of *md2conf*, we don't endorse or support any particular Confluence plugin.
 
 ### Running the tool
 

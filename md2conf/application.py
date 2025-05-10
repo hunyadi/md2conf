@@ -37,6 +37,14 @@ class SynchronizingProcessor(Processor):
     def __init__(
         self, api: ConfluenceSession, options: ConfluenceDocumentOptions, root_dir: Path
     ) -> None:
+        """
+        Initializes a new processor instance.
+
+        :param api: Holds information about an open session to a Confluence server.
+        :param options: Options that control the generated page content.
+        :param root_dir: File system directory that acts as topmost root node.
+        """
+
         super().__init__(options, api.site, root_dir)
         self.api = api
 
@@ -58,9 +66,8 @@ class SynchronizingProcessor(Processor):
         qualified_id, text = extract_qualified_id(text)
 
         overwrite = False
-        if qualified_id is not None:
-            confluence_page = self.api.get_page(qualified_id.page_id)
-        else:
+        if qualified_id is None:
+            # create new Confluence page
             if parent_id is None:
                 raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
@@ -79,6 +86,9 @@ class SynchronizingProcessor(Processor):
                 title = f"{absolute_path.stem} [{digest}]"
 
             confluence_page = self._create_page(absolute_path, text, title, parent_id)
+        else:
+            # look up existing Confluence page
+            confluence_page = self.api.get_page(qualified_id.page_id)
 
         space_key = (
             self.api.space_id_to_key(confluence_page.space_id)
