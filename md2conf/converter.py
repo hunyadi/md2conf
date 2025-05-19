@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 from urllib.parse import ParseResult, urlparse, urlunparse
-from xml.sax.saxutils import escape
 
 import lxml.etree as ET
 import markdown
@@ -1107,26 +1106,32 @@ class ConfluenceDocument:
         self.options = options
         self.id = qualified_id
 
+        # extract frontmatter
+        self.title, text = extract_frontmatter_title(text)
+
         # extract 'generated-by' tag text
         generated_by_tag, text = extract_value(
             r"<!--\s+generated-by:\s*(.*)\s+-->", text
         )
-
-        # extract frontmatter
-        self.title, text = extract_frontmatter_title(text)
 
         # convert to HTML
         html = markdown_to_html(text)
 
         # parse Markdown document
         if self.options.generated_by is not None:
-            generated_by = self.options.generated_by
             if generated_by_tag is not None:
-                generated_by = generated_by_tag
+                generated_by_text = generated_by_tag
+            else:
+                generated_by_text = self.options.generated_by
+        else:
+            generated_by_text = None
+
+        if generated_by_text is not None:
+            generated_by_html = markdown_to_html(generated_by_text)
 
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
-                f"<ac:rich-text-body><p>{escape(generated_by)}</p></ac:rich-text-body>",
+                f"<ac:rich-text-body>{generated_by_html}</ac:rich-text-body>",
                 "</ac:structured-macro>",
                 html,
             ]

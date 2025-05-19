@@ -10,6 +10,8 @@ import logging
 import shutil
 import unittest
 from pathlib import Path
+from typing import Optional
+from unittest.util import safe_repr
 
 from md2conf.converter import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.local import LocalConverter
@@ -23,6 +25,18 @@ logging.basicConfig(
 
 class TestProcessor(unittest.TestCase):
     out_dir: Path
+
+    def assertStartsWith(
+        self, text: str, prefix: str, msg: Optional[str] = None
+    ) -> None:
+        """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
+
+        if not text.startswith(prefix):
+            standardMsg = "%s does not start with %s" % (
+                safe_repr(text),
+                safe_repr(prefix),
+            )
+            self.fail(self._formatMessage(msg, standardMsg))
 
     def setUp(self) -> None:
         self.maxDiff = 1024
@@ -65,12 +79,25 @@ class TestProcessor(unittest.TestCase):
 
     def test_generated_by(self) -> None:
         options = ConfluenceDocumentOptions(
-            generated_by="<&>",
+            generated_by="<&> This page has been **generated** with [md2conf](https://github.com/hunyadi/md2conf)",
             root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
         )
         self.create_converter(options).process(self.sample_dir / "index.md")
 
-        self.assertTrue((self.out_dir / "index.csf").exists())
+        csf_path = self.out_dir / "index.csf"
+        self.assertTrue(csf_path.exists())
+
+        with open(csf_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        generated_by_html = (
+            '<ac:structured-macro ac:name="info" ac:schema-version="1">'
+            "<ac:rich-text-body>"
+            '<p>&lt;&amp;&gt; This page has been <strong>generated</strong> with <a href="https://github.com/hunyadi/md2conf">md2conf</a></p>'
+            "</ac:rich-text-body>"
+            "</ac:structured-macro>"
+        )
+        self.assertStartsWith(content, generated_by_html)
 
 
 if __name__ == "__main__":
