@@ -589,11 +589,19 @@ class ConfluenceSession:
     def page_exists(
         self, title: str, *, space_key: Optional[str] = None
     ) -> Optional[str]:
+        """
+        Check if a Confluence page exists with the given title.
+
+        :param title: Page title. Pages in the same Confluence space must have a unique title.
+        :param space_key: Identifies the Confluence space.
+        """
+
+        space_key = space_key or self.site.space_key
+
         path = "/pages"
-        coalesced_space_key = space_key or self.site.space_key
         query = {"title": title}
-        if coalesced_space_key is not None:
-            query["space-id"] = self.space_key_to_id(coalesced_space_key)
+        if space_key is not None:
+            query["space-id"] = self.space_key_to_id(space_key)
 
         LOGGER.info("Checking if page exists with title: %s", title)
 
@@ -615,13 +623,21 @@ class ConfluenceSession:
     def get_or_create_page(
         self, title: str, parent_id: str, *, space_key: Optional[str] = None
     ) -> ConfluencePage:
-        page_id = self.page_exists(title)
+        """
+        Find a page with the given title, or create a new page if no such page exists.
+
+        :param title: Page title. Pages in the same Confluence space must have a unique title.
+        :param parent_id: Identifies the parent page for a new child page.
+        :param space_key: Identifies the Confluence space.
+        """
+
+        space_key = space_key or self.site.space_key
+
+        page_id = self.page_exists(title, space_key=space_key)
 
         if page_id is not None:
             LOGGER.debug("Retrieving existing page: %s", page_id)
             return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(
-                parent_id, title, "", space_key=space_key or self.site.space_key
-            )
+            return self.create_page(parent_id, title, "", space_key=space_key)
