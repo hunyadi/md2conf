@@ -114,9 +114,7 @@ class SynchronizingProcessor(Processor):
         Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet.
         """
 
-        confluence_page = self.api.get_or_create_page(
-            title, parent_id.page_id, space_key=self.site.space_key
-        )
+        confluence_page = self.api.get_or_create_page(title, parent_id.page_id)
         self._update_markdown(
             absolute_path,
             document,
