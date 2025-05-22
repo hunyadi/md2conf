@@ -35,6 +35,12 @@ class TestMatcher(unittest.TestCase):
 
         self.assertCountEqual(expected, actual)
 
+    def test_nested(self) -> None:
+        directory = Path(os.path.dirname(__file__))
+        options = MatcherOptions("relative.txt")
+        with self.assertRaises(ValueError):
+            Matcher(options, directory)
+
     def test_rules(self) -> None:
         directory = Path(os.path.dirname(__file__)) / "source"
         expected = [

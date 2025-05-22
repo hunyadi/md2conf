@@ -1,0 +1,2 @@
+# relative paths to nested entries
+source/emoji.md

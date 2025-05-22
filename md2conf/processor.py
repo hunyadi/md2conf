@@ -104,7 +104,7 @@ class Processor:
         files: list[Path] = []
         directories: list[Path] = []
         for entry in os.scandir(local_dir):
-            if matcher.is_excluded(entry.name, entry.is_dir()):
+            if matcher.is_excluded(entry):
                 continue
 
             if entry.is_file():
