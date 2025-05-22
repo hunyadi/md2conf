@@ -76,11 +76,7 @@ class Processor:
 
     @abstractmethod
     def _get_or_create_page(
-        self,
-        absolute_path: Path,
-        parent_id: Optional[ConfluencePageID],
-        *,
-        title: Optional[str] = None,
+        self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """
         Creates a new Confluence page if no page is linked in the Markdown document.

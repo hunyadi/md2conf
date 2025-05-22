@@ -25,6 +25,7 @@ logging.basicConfig(
 
 class TestProcessor(unittest.TestCase):
     out_dir: Path
+    sample_dir: Path
 
     def assertStartsWith(
         self, text: str, prefix: str, msg: Optional[str] = None

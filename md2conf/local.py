@@ -12,15 +12,11 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .converter import (
-    ConfluenceDocument,
-    ConfluenceDocumentOptions,
-    ConfluencePageID,
-    extract_extended_id,
-)
+from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .processor import Converter, Processor, ProcessorFactory
 from .properties import PageError
+from .scanner import Scanner
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,31 +47,24 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     def _get_or_create_page(
-        self,
-        absolute_path: Path,
-        parent_id: Optional[ConfluencePageID],
-        *,
-        title: Optional[str] = None,
+        self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """
         Extracts metadata from a Markdown file.
         """
 
         # parse file
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            text = f.read()
-
-        extended_id, text = extract_extended_id(text)
-        if extended_id is not None:
-            page_id = extended_id.page_id
-            space_key = extended_id.space_key or self.site.space_key or "HOME"
+        document = Scanner().read(absolute_path)
+        if document.page_id is not None:
+            page_id = document.page_id
+            space_key = document.space_key or self.site.space_key or "HOME"
         else:
             if parent_id is None:
                 raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
 
-            hash = hashlib.md5(text.encode("utf-8"))
+            hash = hashlib.md5(document.text.encode("utf-8"))
             digest = "".join(f"{c:x}" for c in hash.digest())
             LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
             page_id = digest

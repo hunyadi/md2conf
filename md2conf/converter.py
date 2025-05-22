@@ -22,12 +22,12 @@ from urllib.parse import ParseResult, urlparse, urlunparse
 
 import lxml.etree as ET
 import markdown
-import yaml
 from lxml.builder import ElementMaker
 
 from .mermaid import render_diagram
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .properties import PageError
+from .scanner import ScannedDocument, Scanner
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -949,77 +949,15 @@ class DocumentError(RuntimeError):
     "Raised when a converted Markdown document has an unexpected element or attribute."
 
 
-def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
-    values: list[str] = []
-
-    def _repl_func(matchobj: re.Match) -> str:
-        values.append(matchobj.group(1))
-        return ""
-
-    text = re.sub(pattern, _repl_func, text, 1, re.ASCII)
-    value = values[0] if values else None
-    return value, text
-
-
 @dataclass
 class ConfluencePageID:
     page_id: str
 
 
 @dataclass
-class ConfluenceExtendedPageID:
-    page_id: str
-    space_key: Optional[str]
-
-
-@dataclass
 class ConfluenceQualifiedID:
     page_id: str
     space_key: str
-
-
-def extract_extended_id(text: str) -> tuple[Optional[ConfluenceExtendedPageID], str]:
-    "Extracts the Confluence page ID and space key from a Markdown document."
-
-    page_id, text = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", text)
-
-    if page_id is None:
-        return None, text
-
-    # extract Confluence space key
-    space_key, text = extract_value(r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", text)
-
-    return ConfluenceExtendedPageID(page_id, space_key), text
-
-
-def extract_frontmatter(text: str) -> tuple[Optional[str], str]:
-    "Extracts the front matter from a Markdown document."
-
-    return extract_value(r"(?ms)\A---$(.+?)^---$", text)
-
-
-def extract_frontmatter_title(text: str) -> tuple[Optional[str], str]:
-    frontmatter, text = extract_frontmatter(text)
-
-    title: Optional[str] = None
-    if frontmatter is not None:
-        properties = yaml.safe_load(frontmatter)
-        if isinstance(properties, dict):
-            property_title = properties.get("title")
-            if isinstance(property_title, str):
-                title = property_title
-
-    return title, text
-
-
-def read_extended_id(absolute_path: Path) -> Optional[ConfluenceExtendedPageID]:
-    "Reads the Confluence page ID and space key from a Markdown document."
-
-    with open(absolute_path, "r", encoding="utf-8") as f:
-        document = f.read()
-
-    qualified_id, _ = extract_extended_id(document)
-    return qualified_id
 
 
 @dataclass
@@ -1072,13 +1010,10 @@ class ConfluenceDocument:
     ) -> tuple[ConfluencePageID, "ConfluenceDocument"]:
         path = path.resolve(True)
 
-        with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
+        document = Scanner().read(path)
 
-        # extract Confluence page ID
-        extended_id, text = extract_extended_id(text)
-        if extended_id is not None:
-            page_id = ConfluencePageID(extended_id.page_id)
+        if document.page_id is not None:
+            page_id = ConfluencePageID(document.page_id)
         else:
             # look up Confluence page ID in metadata
             metadata = page_metadata.get(path)
@@ -1088,13 +1023,13 @@ class ConfluenceDocument:
                 raise PageError("missing Confluence page ID")
 
         return page_id, ConfluenceDocument(
-            path, text, options, root_dir, site_metadata, page_metadata
+            path, document, options, root_dir, site_metadata, page_metadata
         )
 
     def __init__(
         self,
         path: Path,
-        text: str,
+        document: ScannedDocument,
         options: ConfluenceDocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
@@ -1102,28 +1037,17 @@ class ConfluenceDocument:
     ) -> None:
         self.options = options
 
-        # extract frontmatter
-        self.title, text = extract_frontmatter_title(text)
-
-        # extract 'generated-by' tag text
-        generated_by_tag, text = extract_value(
-            r"<!--\s+generated-by:\s*(.*)\s+-->", text
-        )
-
         # convert to HTML
-        html = markdown_to_html(text)
+        html = markdown_to_html(document.text)
 
         # parse Markdown document
         if self.options.generated_by is not None:
-            if generated_by_tag is not None:
-                generated_by_text = generated_by_tag
-            else:
-                generated_by_text = self.options.generated_by
+            generated_by = document.generated_by or self.options.generated_by
         else:
-            generated_by_text = None
+            generated_by = None
 
-        if generated_by_text is not None:
-            generated_by_html = markdown_to_html(generated_by_text)
+        if generated_by is not None:
+            generated_by_html = markdown_to_html(generated_by)
 
             content = [
                 '<ac:structured-macro ac:name="info" ac:schema-version="1">',
@@ -1157,8 +1081,7 @@ class ConfluenceDocument:
         self.images = converter.images
         self.embedded_images = converter.embedded_images
 
-        if self.title is None:
-            self.title = converter.toc.get_title()
+        self.title = document.title or converter.toc.get_title()
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)

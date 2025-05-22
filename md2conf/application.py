@@ -17,12 +17,11 @@ from .converter import (
     ConfluenceDocumentOptions,
     ConfluencePageID,
     attachment_name,
-    extract_extended_id,
-    extract_frontmatter_title,
 )
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, Processor, ProcessorFactory
 from .properties import PageError
+from .scanner import Scanner
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,46 +48,39 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     def _get_or_create_page(
-        self,
-        absolute_path: Path,
-        parent_id: Optional[ConfluencePageID],
-        *,
-        title: Optional[str] = None,
+        self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """
         Creates a new Confluence page if no page is linked in the Markdown document.
         """
 
         # parse file
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            text = f.read()
-
-        extended_id, text = extract_extended_id(text)
+        document = Scanner().read(absolute_path)
 
         overwrite = False
-        if extended_id is None:
+        if document.page_id is None:
             # create new Confluence page
             if parent_id is None:
                 raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
                 )
 
-            # assign title from front-matter if present
-            if title is None:
-                title, _ = extract_frontmatter_title(text)
-
             # use file name (without extension) and path hash if no title is supplied
-            if title is None:
+            if document.title is not None:
+                title = document.title
+            else:
                 overwrite = True
                 relative_path = absolute_path.relative_to(self.root_dir)
                 hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
                 digest = "".join(f"{c:x}" for c in hash.digest())
                 title = f"{absolute_path.stem} [{digest}]"
 
-            confluence_page = self._create_page(absolute_path, text, title, parent_id)
+            confluence_page = self._create_page(
+                absolute_path, document.text, title, parent_id
+            )
         else:
             # look up existing Confluence page
-            confluence_page = self.api.get_page(extended_id.page_id)
+            confluence_page = self.api.get_page(document.page_id)
 
         return ConfluencePageMetadata(
             page_id=confluence_page.id,

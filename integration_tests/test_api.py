@@ -19,10 +19,10 @@ from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageID,
-    read_extended_id,
     sanitize_confluence,
 )
 from md2conf.metadata import ConfluenceSiteMetadata
+from md2conf.scanner import Scanner
 
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
@@ -161,11 +161,11 @@ class TestAPI(unittest.TestCase):
 
         with ConfluenceAPI() as api:
             for absolute_path in reversed(documents):
-                id = read_extended_id(absolute_path)
-                self.assertIsNotNone(id)
-                if id is None:
+                document = Scanner().read(absolute_path)
+                self.assertIsNotNone(document.page_id)
+                if document.page_id is None:
                     continue
-                api.delete_page(id.page_id)
+                api.delete_page(document.page_id)
 
 
 if __name__ == "__main__":
