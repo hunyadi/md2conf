@@ -87,7 +87,7 @@ class ConfluenceAttachment:
 
 
 @dataclass(frozen=True)
-class ConfluencePageMetadata:
+class ConfluencePageProperties:
     id: str
     space_id: str
     parent_id: str
@@ -97,7 +97,7 @@ class ConfluencePageMetadata:
 
 
 @dataclass(frozen=True)
-class ConfluencePage(ConfluencePageMetadata):
+class ConfluencePage(ConfluencePageProperties):
     content: str
 
 
@@ -486,7 +486,7 @@ class ConfluenceSession:
         )
 
     @functools.cache
-    def get_page_metadata(self, page_id: str) -> ConfluencePageMetadata:
+    def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
         """
         Retrieve Confluence wiki page details.
 
@@ -499,7 +499,7 @@ class ConfluenceSession:
         data = typing.cast(dict[str, JsonType], payload)
         version = typing.cast(dict[str, JsonType], data["version"])
 
-        return ConfluencePageMetadata(
+        return ConfluencePageProperties(
             id=page_id,
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
@@ -574,7 +574,7 @@ class ConfluenceSession:
         Create a new page via Confluence API.
         """
 
-        parent_page = self.get_page_metadata(parent_id)
+        parent_page = self.get_page_properties(parent_id)
         path = "/pages/"
         query = {
             "spaceId": parent_page.space_id,
@@ -649,6 +649,8 @@ class ConfluenceSession:
 
         :param title: Page title. Pages in the same Confluence space must have a unique title.
         :param space_key: Identifies the Confluence space.
+
+        :returns: Confluence page ID of a matching page (if found), or `None`.
         """
 
         space_id = self.get_space_id(space_id=space_id, space_key=space_key)
@@ -682,7 +684,7 @@ class ConfluenceSession:
         :param parent_id: Identifies the parent page for a new child page.
         """
 
-        parent_page = self.get_page_metadata(parent_id)
+        parent_page = self.get_page_properties(parent_id)
         page_id = self.page_exists(title, space_id=parent_page.space_id)
 
         if page_id is not None:

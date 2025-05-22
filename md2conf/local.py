@@ -16,8 +16,7 @@ from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageID,
-    ConfluenceQualifiedID,
-    extract_qualified_id,
+    extract_extended_id,
 )
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .processor import Converter, Processor, ProcessorFactory
@@ -66,9 +65,11 @@ class LocalProcessor(Processor):
         with open(absolute_path, "r", encoding="utf-8") as f:
             text = f.read()
 
-        qualified_id, text = extract_qualified_id(text)
-
-        if qualified_id is None:
+        extended_id, text = extract_extended_id(text)
+        if extended_id is not None:
+            page_id = extended_id.page_id
+            space_key = extended_id.space_key or self.site.space_key or "HOME"
+        else:
             if parent_id is None:
                 raise PageError(
                     f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
@@ -77,16 +78,19 @@ class LocalProcessor(Processor):
             hash = hashlib.md5(text.encode("utf-8"))
             digest = "".join(f"{c:x}" for c in hash.digest())
             LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
-            qualified_id = ConfluenceQualifiedID(digest)
+            page_id = digest
+            space_key = self.site.space_key or "HOME"
 
         return ConfluencePageMetadata(
-            page_id=qualified_id.page_id,
-            space_key=qualified_id.space_key,
+            page_id=page_id,
+            space_key=space_key,
             title="",
             overwrite=True,
         )
 
-    def _save_document(self, document: ConfluenceDocument, path: Path) -> None:
+    def _save_document(
+        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
+    ) -> None:
         """
         Saves a new version of a Confluence document.
 

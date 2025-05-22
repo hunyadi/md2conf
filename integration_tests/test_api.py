@@ -19,7 +19,7 @@ from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
     ConfluencePageID,
-    read_qualified_id,
+    read_extended_id,
     sanitize_confluence,
 )
 from md2conf.metadata import ConfluenceSiteMetadata
@@ -45,7 +45,7 @@ class TestAPI(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def test_markdown(self) -> None:
-        document = ConfluenceDocument.create(
+        _, document = ConfluenceDocument.create(
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
             self.sample_dir,
@@ -161,7 +161,7 @@ class TestAPI(unittest.TestCase):
 
         with ConfluenceAPI() as api:
             for absolute_path in reversed(documents):
-                id = read_qualified_id(absolute_path)
+                id = read_extended_id(absolute_path)
                 self.assertIsNotNone(id)
                 if id is None:
                     continue

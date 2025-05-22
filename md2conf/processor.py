@@ -69,10 +69,10 @@ class Processor:
         self._process_page(path)
 
     def _process_page(self, path: Path) -> None:
-        document = ConfluenceDocument.create(
+        page_id, document = ConfluenceDocument.create(
             path, self.options, self.root_dir, self.site, self.page_metadata
         )
-        self._save_document(document, path)
+        self._save_document(page_id, document, path)
 
     @abstractmethod
     def _get_or_create_page(
@@ -88,7 +88,9 @@ class Processor:
         ...
 
     @abstractmethod
-    def _save_document(self, document: ConfluenceDocument, path: Path) -> None: ...
+    def _save_document(
+        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
+    ) -> None: ...
 
     def _index_directory(
         self, local_dir: Path, parent_id: Optional[ConfluencePageID]

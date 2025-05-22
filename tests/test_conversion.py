@@ -76,7 +76,7 @@ class TestConversion(unittest.TestCase):
             name, _ = os.path.splitext(entry.name)
 
             with self.subTest(name=name):
-                doc = ConfluenceDocument.create(
+                _, doc = ConfluenceDocument.create(
                     self.source_dir / f"{name}.md",
                     ConfluenceDocumentOptions(),
                     self.source_dir,
@@ -92,7 +92,7 @@ class TestConversion(unittest.TestCase):
 
     def test_broken_links(self) -> None:
         with self.assertLogs(level=logging.WARNING) as cm:
-            doc = ConfluenceDocument.create(
+            _, doc = ConfluenceDocument.create(
                 self.source_dir / "missing.md",
                 ConfluenceDocumentOptions(ignore_invalid_url=True),
                 self.source_dir,
@@ -110,7 +110,7 @@ class TestConversion(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_heading_anchors(self) -> None:
-        doc = ConfluenceDocument.create(
+        _, doc = ConfluenceDocument.create(
             self.source_dir / "anchors.md",
             ConfluenceDocumentOptions(heading_anchors=True),
             self.source_dir,
@@ -126,7 +126,7 @@ class TestConversion(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_missing_title(self) -> None:
-        doc = ConfluenceDocument.create(
+        _, doc = ConfluenceDocument.create(
             self.source_dir / "title.md",
             ConfluenceDocumentOptions(),
             self.source_dir,
@@ -136,7 +136,7 @@ class TestConversion(unittest.TestCase):
         self.assertIsNone(doc.title)
 
     def test_unique_title(self) -> None:
-        doc = ConfluenceDocument.create(
+        _, doc = ConfluenceDocument.create(
             self.source_dir / "sections.md",
             ConfluenceDocumentOptions(),
             self.source_dir,
@@ -147,7 +147,7 @@ class TestConversion(unittest.TestCase):
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_svg(self) -> None:
-        document = ConfluenceDocument.create(
+        _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
                 render_mermaid=True,
@@ -161,7 +161,7 @@ class TestConversion(unittest.TestCase):
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_png(self) -> None:
-        document = ConfluenceDocument.create(
+        _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
                 render_mermaid=True,

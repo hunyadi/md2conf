@@ -37,6 +37,6 @@ class ConfluencePageMetadata:
     """
 
     page_id: str
-    space_key: Optional[str]
+    space_key: str
     title: str
     overwrite: bool

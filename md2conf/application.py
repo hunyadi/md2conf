@@ -17,8 +17,8 @@ from .converter import (
     ConfluenceDocumentOptions,
     ConfluencePageID,
     attachment_name,
+    extract_extended_id,
     extract_frontmatter_title,
-    extract_qualified_id,
 )
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, Processor, ProcessorFactory
@@ -63,10 +63,10 @@ class SynchronizingProcessor(Processor):
         with open(absolute_path, "r", encoding="utf-8") as f:
             text = f.read()
 
-        qualified_id, text = extract_qualified_id(text)
+        extended_id, text = extract_extended_id(text)
 
         overwrite = False
-        if qualified_id is None:
+        if extended_id is None:
             # create new Confluence page
             if parent_id is None:
                 raise PageError(
@@ -88,17 +88,11 @@ class SynchronizingProcessor(Processor):
             confluence_page = self._create_page(absolute_path, text, title, parent_id)
         else:
             # look up existing Confluence page
-            confluence_page = self.api.get_page(qualified_id.page_id)
-
-        space_key = (
-            self.api.space_id_to_key(confluence_page.space_id)
-            if confluence_page.space_id
-            else self.site.space_key
-        )
+            confluence_page = self.api.get_page(extended_id.page_id)
 
         return ConfluencePageMetadata(
             page_id=confluence_page.id,
-            space_key=space_key,
+            space_key=self.api.space_id_to_key(confluence_page.space_id),
             title=confluence_page.title,
             overwrite=overwrite,
         )
@@ -123,7 +117,9 @@ class SynchronizingProcessor(Processor):
         )
         return confluence_page
 
-    def _save_document(self, document: ConfluenceDocument, path: Path) -> None:
+    def _save_document(
+        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
+    ) -> None:
         """
         Saves a new version of a Confluence document.
 
@@ -133,25 +129,40 @@ class SynchronizingProcessor(Processor):
         base_path = path.parent
         for image in document.images:
             self.api.upload_attachment(
-                document.id.page_id,
+                page_id.page_id,
                 attachment_name(image),
                 attachment_path=base_path / image,
             )
 
         for name, data in document.embedded_images.items():
             self.api.upload_attachment(
-                document.id.page_id,
+                page_id.page_id,
                 name,
                 raw_data=data,
             )
 
         content = document.xhtml()
-
-        # leave title as it is for existing pages, update title for pages with randomly assigned title
-        title = document.title if self.page_metadata[path].overwrite else None
-
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
-        self.api.update_page(document.id.page_id, content, title=title)
+
+        title = None
+        if document.title is not None:
+            meta = self.page_metadata[path]
+
+            # update title only for pages with randomly assigned title
+            if meta.overwrite:
+                conflicting_page_id = self.api.page_exists(
+                    document.title, space_id=self.api.space_key_to_id(meta.space_key)
+                )
+                if conflicting_page_id is None:
+                    title = document.title
+                else:
+                    LOGGER.info(
+                        "Document title of %s conflicts with Confluence page title of %s",
+                        path,
+                        conflicting_page_id,
+                    )
+
+        self.api.update_page(page_id.page_id, content, title=title)
 
     def _update_markdown(
         self,

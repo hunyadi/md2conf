@@ -965,21 +965,20 @@ def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
 class ConfluencePageID:
     page_id: str
 
-    def __init__(self, page_id: str):
-        self.page_id = page_id
+
+@dataclass
+class ConfluenceExtendedPageID:
+    page_id: str
+    space_key: Optional[str]
 
 
 @dataclass
 class ConfluenceQualifiedID:
     page_id: str
-    space_key: Optional[str] = None
-
-    def __init__(self, page_id: str, space_key: Optional[str] = None):
-        self.page_id = page_id
-        self.space_key = space_key
+    space_key: str
 
 
-def extract_qualified_id(text: str) -> tuple[Optional[ConfluenceQualifiedID], str]:
+def extract_extended_id(text: str) -> tuple[Optional[ConfluenceExtendedPageID], str]:
     "Extracts the Confluence page ID and space key from a Markdown document."
 
     page_id, text = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", text)
@@ -990,7 +989,7 @@ def extract_qualified_id(text: str) -> tuple[Optional[ConfluenceQualifiedID], st
     # extract Confluence space key
     space_key, text = extract_value(r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", text)
 
-    return ConfluenceQualifiedID(page_id, space_key), text
+    return ConfluenceExtendedPageID(page_id, space_key), text
 
 
 def extract_frontmatter(text: str) -> tuple[Optional[str], str]:
@@ -1013,13 +1012,13 @@ def extract_frontmatter_title(text: str) -> tuple[Optional[str], str]:
     return title, text
 
 
-def read_qualified_id(absolute_path: Path) -> Optional[ConfluenceQualifiedID]:
+def read_extended_id(absolute_path: Path) -> Optional[ConfluenceExtendedPageID]:
     "Reads the Confluence page ID and space key from a Markdown document."
 
     with open(absolute_path, "r", encoding="utf-8") as f:
         document = f.read()
 
-    qualified_id, _ = extract_qualified_id(document)
+    qualified_id, _ = extract_extended_id(document)
     return qualified_id
 
 
@@ -1055,7 +1054,6 @@ class ConversionError(RuntimeError):
 
 
 class ConfluenceDocument:
-    id: ConfluenceQualifiedID
     title: Optional[str]
     links: list[str]
     images: list[Path]
@@ -1071,40 +1069,38 @@ class ConfluenceDocument:
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: dict[Path, ConfluencePageMetadata],
-    ) -> "ConfluenceDocument":
+    ) -> tuple[ConfluencePageID, "ConfluenceDocument"]:
         path = path.resolve(True)
 
         with open(path, "r", encoding="utf-8") as f:
             text = f.read()
 
         # extract Confluence page ID
-        qualified_id, text = extract_qualified_id(text)
-        if qualified_id is None:
+        extended_id, text = extract_extended_id(text)
+        if extended_id is not None:
+            page_id = ConfluencePageID(extended_id.page_id)
+        else:
             # look up Confluence page ID in metadata
             metadata = page_metadata.get(path)
             if metadata is not None:
-                qualified_id = ConfluenceQualifiedID(
-                    metadata.page_id, metadata.space_key
-                )
-        if qualified_id is None:
-            raise PageError("missing Confluence page ID")
+                page_id = ConfluencePageID(metadata.page_id)
+            else:
+                raise PageError("missing Confluence page ID")
 
-        return ConfluenceDocument(
-            path, text, qualified_id, options, root_dir, site_metadata, page_metadata
+        return page_id, ConfluenceDocument(
+            path, text, options, root_dir, site_metadata, page_metadata
         )
 
     def __init__(
         self,
         path: Path,
         text: str,
-        qualified_id: ConfluenceQualifiedID,
         options: ConfluenceDocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: dict[Path, ConfluencePageMetadata],
     ) -> None:
         self.options = options
-        self.id = qualified_id
 
         # extract frontmatter
         self.title, text = extract_frontmatter_title(text)
