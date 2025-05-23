@@ -25,7 +25,7 @@ Python is installed. Minimum version we support is Python 3.9.
    ```
 
 4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
-   Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against. 
+   Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against.
 
 ### Running unit tests
 
@@ -45,7 +45,7 @@ CONFLUENCE_API_KEY='0123456789abcdef'
 CONFLUENCE_SPACE_KEY='<your space key>'
 ```
 
-Runing the tests:
+Running the tests:
 ```
 python -m unittest discover -s integration_tests
 ```
@@ -54,3 +54,10 @@ python -m unittest discover -s integration_tests
 
 Verify that all code you have added passes static code checks. Depending on your OS, there is a script for you to use. If using Windows, run `check.bat`, otherwise run `./check.sh`.
 
+### Generating documentation
+
+Verify that newly contributed classes, data-classes and functions have a doc-string, including public members, parameters, return values and exceptions raised. You can generate human-readable Markdown documentation with [markdown_doc](https://github.com/hunyadi/markdown_doc):
+
+```
+python -m markdown_doc -d md2conf
+```

@@ -9,7 +9,7 @@ Copyright 2022-2025, Levente Hunyadi
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -32,12 +32,12 @@ def extract_frontmatter_block(text: str) -> tuple[Optional[str], str]:
     return extract_value(r"(?ms)\A---$(.+?)^---$", text)
 
 
-def extract_frontmatter_properties(text: str) -> tuple[Optional[dict], str]:
+def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, Any]], str]:
     "Extracts the front-matter from a Markdown document as a dictionary."
 
     block, text = extract_frontmatter_block(text)
 
-    properties: Optional[dict] = None
+    properties: Optional[dict[str, Any]] = None
     if block is not None:
         data = yaml.safe_load(block)
         if isinstance(data, dict):
@@ -46,7 +46,7 @@ def extract_frontmatter_properties(text: str) -> tuple[Optional[dict], str]:
     return properties, text
 
 
-def get_string(properties: dict, key: str) -> Optional[str]:
+def get_string(properties: dict[str, Any], key: str) -> Optional[str]:
     value = properties.get(key)
     if value is None:
         return None

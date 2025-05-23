@@ -203,6 +203,8 @@ class SynchronizingProcessorFactory(ProcessorFactory):
 class Application(Converter):
     """
     The entry point for Markdown to Confluence conversion.
+
+    This is the class instantiated by the command-line application.
     """
 
     def __init__(
