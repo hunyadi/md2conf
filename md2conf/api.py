@@ -8,6 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import enum
 import functools
+import hashlib
 import io
 import json
 import logging
@@ -20,6 +21,7 @@ from typing import Optional, Union
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+from requests import RequestException
 
 from .converter import ParseError, sanitize_confluence
 from .metadata import ConfluenceSiteMetadata
@@ -618,7 +620,7 @@ class ConfluenceSession:
             "version": {"minorEdit": True, "number": page.version + 1},
         }
 
-        LOGGER.info("Updating page: %s", page_id)
+        LOGGER.info("Updating page: %s title: %s", page_id, new_title)
         self._save(ConfluenceVersion.VERSION_2, path, data)
 
     def create_page(
@@ -626,6 +628,8 @@ class ConfluenceSession:
         parent_id: str,
         title: str,
         new_content: str,
+        root_dir: Path,
+        absolute_path: Path,
     ) -> ConfluencePage:
         """
         Creates a new page via Confluence API.
@@ -652,12 +656,15 @@ class ConfluenceSession:
         response.raise_for_status()
 
         data = typing.cast(dict[str, JsonType], response.json())
+        page_id = typing.cast(str, data["id"])
         version = typing.cast(dict[str, JsonType], data["version"])
         body = typing.cast(dict[str, JsonType], data["body"])
         storage = typing.cast(dict[str, JsonType], body["storage"])
 
+        self._add_metadata(page_id, root_dir, absolute_path)
+
         return ConfluencePage(
-            id=typing.cast(str, data["id"]),
+            id=page_id,
             space_id=typing.cast(str, data["spaceId"]),
             parent_id=typing.cast(str, data["parentId"]),
             parent_type=(
@@ -669,6 +676,28 @@ class ConfluenceSession:
             version=typing.cast(int, version["number"]),
             content=typing.cast(str, storage["value"]),
         )
+
+    def get_path_digest(self, root_dir: Path, absolute_path: Path) -> str:
+        """
+        Calculate a digest for the relative path of a file under the root directory.
+        This is used to uniquely identify the file in Confluence metadata.
+        """
+        relative_path = absolute_path.relative_to(root_dir.parent)
+        filepath_hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
+        return "".join(f"{c:x}" for c in filepath_hash.digest())
+
+    def _add_metadata(self, page_id: str, root_dir: Path, absolute_path: Path):
+        """Add metadata to Confluence page"""
+
+        digest = self.get_path_digest(root_dir, absolute_path)
+
+        metadata = {"key": "md2conf", "value": {
+            "digest": digest,
+        }}
+        url = self._build_url(ConfluenceVersion.VERSION_1, f"/content/{page_id}/property")
+        response = self.session.post(url, data=json.dumps(metadata), headers={"Content-Type": "application/json"})
+        response.raise_for_status()
+        LOGGER.info("Added metadata: %s", absolute_path)
 
     def delete_page(self, page_id: str, *, purge: bool = False) -> None:
         """
@@ -733,20 +762,70 @@ class ConfluenceSession:
         else:
             return None
 
-    def get_or_create_page(self, title: str, parent_id: str) -> ConfluencePage:
-        """
-        Finds a page with the given title, or creates a new page if no such page exists.
+    def get_existing_pages(self, parent_page_id: str) -> dict[str, str]:
+        """Get all existing pages under a parent page"""
 
-        :param title: Page title. Pages in the same Confluence space must have a unique title.
-        :param parent_id: Identifies the parent page for a new child page.
-        """
+        all_data = []
+        start = 0
+        limit = 25
 
-        parent_page = self.get_page_properties(parent_id)
-        page_id = self.page_exists(title, space_id=parent_page.space_id)
+        LOGGER.info("Retrieving metadata for existing pages under parent page: %s", parent_page_id)
 
-        if page_id is not None:
-            LOGGER.debug("Retrieving existing page: %s", page_id)
-            return self.get_page(page_id)
-        else:
-            LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(parent_id, title, "")
+        while True:
+            try:
+                query = {
+                    'start': start,
+                    'limit': limit,
+                    'expand': 'metadata.properties.md2conf'
+                }
+
+                url = self._build_url(ConfluenceVersion.VERSION_1, f"/content/{parent_page_id}/child/page")
+                response = self.session.get(
+                    url, params=query, headers={"Content-Type": "application/json"}
+                )
+
+                response.raise_for_status()
+
+                json_response = response.json()
+                json_results = json_response.get('results', [])
+
+                filtered = [
+                    result for result in json_results
+                    if result.get('metadata', {}).get('properties', {}).get('md2conf', {}).get('value', {}).get('digest') is not None
+                ]
+
+                all_data.extend(filtered)
+
+                if json_response['_links'].get('next') is None:
+                    break  # No more pages
+
+                start += limit
+
+            except RequestException as e:
+                print(f"Error during API request: {e}")
+                return []
+
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON response: {e}")
+                return []
+
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+                return []
+
+        # Process the results
+        results = {
+            item['metadata']['properties']['md2conf']['value']['digest']: item['id'] for item in all_data
+        }
+
+        child_items = {}
+        for page_id in results.values():
+            pages = self.get_existing_pages(page_id)
+            for page in pages:
+                child_items[page] = pages[page]
+
+        # Add child items to the results
+        for key in child_items:
+            results[key] = child_items[key]
+
+        return results

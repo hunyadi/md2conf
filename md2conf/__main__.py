@@ -185,6 +185,12 @@ def main() -> None:
         default=False,
         help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
     )
+    parser.add_argument(
+        "--remove-orphans",
+        action="store_true",
+        default=False,
+        help="Remove orphaned pages in Confluence that are not linked from the Markdown files. Only pages created by this tool will be removed.",
+    )
 
     args = Arguments()
     parser.parse_args(namespace=args)
@@ -205,6 +211,7 @@ def main() -> None:
         render_mermaid=args.render_mermaid,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
+        remove_orphans=args.remove_orphans,
     )
     if args.local:
         try:

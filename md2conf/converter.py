@@ -441,6 +441,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(msg)
 
         link_metadata = self.page_metadata.get(absolute_path)
+
+        if link_metadata is None:
+            link_metadata = self.page_metadata.get(absolute_path.joinpath("index.md"))
+        if link_metadata is None:
+            link_metadata = self.page_metadata.get(absolute_path.joinpath("README.md"))
+
         if link_metadata is None:
             msg = f"unable to find matching page for URL: {url}"
             if self.options.ignore_invalid_url:
@@ -985,6 +991,7 @@ class ConfluenceDocumentOptions:
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
+    remove_orphans: bool = False
 
 
 class ConversionError(RuntimeError):

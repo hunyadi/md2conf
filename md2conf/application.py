@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .api import ConfluencePage, ConfluenceSession
+from .api import ConfluencePage, ConfluenceSession, LOGGER
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -56,6 +56,7 @@ class SynchronizingProcessor(Processor):
 
         # parse file
         document = Scanner().read(absolute_path)
+        document.page_id = self.get_existing_page_id(self.root_dir, absolute_path)
 
         overwrite = False
         if document.page_id is None:
@@ -92,7 +93,7 @@ class SynchronizingProcessor(Processor):
     def _create_page(
         self,
         absolute_path: Path,
-        document: str,
+        content: str,
         title: str,
         parent_id: ConfluencePageID,
     ) -> ConfluencePage:
@@ -100,13 +101,15 @@ class SynchronizingProcessor(Processor):
         Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet.
         """
 
-        confluence_page = self.api.get_or_create_page(title, parent_id.page_id)
-        self._update_markdown(
-            absolute_path,
-            document,
-            confluence_page.id,
-            self.api.space_id_to_key(confluence_page.space_id),
-        )
+        page_id = self.get_existing_page_id(self.root_dir, absolute_path)
+
+        if page_id is not None:
+            LOGGER.debug("Retrieving existing page: %s", page_id)
+            confluence_page = self.api.get_page(page_id)
+        else:
+            LOGGER.debug("Creating new page with title: %s", title)
+            confluence_page = self.api.create_page(parent_id.page_id, title, content, self.root_dir, absolute_path)
+
         return confluence_page
 
     def _save_document(
@@ -155,36 +158,24 @@ class SynchronizingProcessor(Processor):
                     )
 
         self.api.update_page(page_id.page_id, content, title=title)
+        self.remove_existing_page_from_dict(self.root_dir, path)
 
-    def _update_markdown(
-        self,
-        path: Path,
-        document: str,
-        page_id: str,
-        space_key: Optional[str],
-    ) -> None:
-        """
-        Writes the Confluence page ID and space key at the beginning of the Markdown file.
-        """
+    def _fetch_existing_pages(self):
+        self.existing_pages = self.api.get_existing_pages(self.options.root_page_id.page_id)
 
-        content: list[str] = []
+    def get_existing_page_id(self, root_dir, absolute_path) -> str | None:
+        path_digest = self.api.get_path_digest(root_dir, absolute_path)
+        page_id = self.existing_pages.get(path_digest)
+        return page_id
 
-        # check if the file has frontmatter
-        index = 0
-        if document.startswith("---\n"):
-            index = document.find("\n---\n", 4) + 4
+    def remove_existing_page_from_dict(self, root_dir, absolute_path):
+        path_digest = self.api.get_path_digest(root_dir, absolute_path)
+        if path_digest in self.existing_pages:
+            LOGGER.debug("Removing existing page from dictionary: %s", path_digest)
+            del self.existing_pages[path_digest]
 
-            # insert the Confluence keys after the frontmatter
-            content.append(document[:index])
-
-        content.append(f"<!-- confluence-page-id: {page_id} -->")
-        if space_key:
-            content.append(f"<!-- confluence-space-key: {space_key} -->")
-
-        content.append(document[index:])
-
-        with open(path, "w", encoding="utf-8") as file:
-            file.write("\n".join(content))
+    def _delete_page(self, page_id):
+        self.api.delete_page(page_id)
 
 
 class SynchronizingProcessorFactory(ProcessorFactory):

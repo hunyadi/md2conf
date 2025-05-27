@@ -77,6 +77,10 @@ class LocalProcessor(Processor):
             overwrite=True,
         )
 
+    def _fetch_existing_pages(self): ...
+
+    def _delete_page(self, page_id): ...
+
     def _save_document(
         self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
     ) -> None:
