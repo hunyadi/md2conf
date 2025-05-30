@@ -79,10 +79,16 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png") ->
         )
         stdout, stderr = proc.communicate(input=source.encode("utf-8"))
         if proc.returncode:
-            raise RuntimeError(
-                f"failed to convert Mermaid diagram; exit code: {proc.returncode}, "
-                f"output:\n{stdout.decode('utf-8')}\n{stderr.decode('utf-8')}"
-            )
+            messages = [
+                f"failed to convert Mermaid diagram; exit code: {proc.returncode}"
+            ]
+            console_output = stdout.decode("utf-8")
+            if console_output:
+                messages.append(f"output:\n{console_output}")
+            console_error = stderr.decode("utf-8")
+            if console_error:
+                messages.append(f"error:\n{console_error}")
+            raise RuntimeError("\n".join(messages))
         with open(filename, "rb") as image:
             return image.read()
 

@@ -21,7 +21,7 @@ def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
         values.append(matchobj.group(1))
         return ""
 
-    text = re.sub(pattern, _repl_func, text, 1, re.ASCII)
+    text = re.sub(pattern, _repl_func, text, count=1, flags=re.ASCII)
     value = values[0] if values else None
     return value, text
 

@@ -18,7 +18,7 @@ import xml.etree.ElementTree
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
-from urllib.parse import ParseResult, urlparse, urlunparse
+from urllib.parse import ParseResult, quote_plus, urlparse, urlunparse
 
 import lxml.etree as ET
 import markdown
@@ -64,6 +64,19 @@ def is_absolute_url(url: str) -> bool:
 def is_relative_url(url: str) -> bool:
     urlparts = urlparse(url)
     return not bool(urlparts.scheme) and not bool(urlparts.netloc)
+
+
+def encode_title(text: str) -> str:
+    "Converts a title string such that it is safe to embed into a Confluence URL."
+
+    # replace unsafe characters with space
+    text = re.sub(r"[^A-Za-z0-9._~()'!*:@,;+?-]+", " ", text)
+
+    # replace multiple consecutive spaces with single space
+    text = re.sub(r"\s\s+", " ", text)
+
+    # URL-encode
+    return quote_plus(text.strip())
 
 
 def emoji_generator(
@@ -472,7 +485,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     "Confluence space key required for building full web URLs"
                 )
 
-            page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{link_metadata.title}"
+            page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{encode_title(link_metadata.title)}"
 
         components = ParseResult(
             scheme="https",
