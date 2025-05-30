@@ -137,6 +137,21 @@ class ConfluencePage(ConfluencePageProperties):
     content: str
 
 
+@dataclass(frozen=True)
+class ConfluenceLabel:
+    """
+    Holds information about a single label.
+
+    :param id: ID of the label.
+    :param name: Name of the label.
+    :param prefix: Prefix of the label.
+    """
+
+    id: str
+    name: str
+    prefix: str
+
+
 class ConfluenceAPI:
     """
     Represents an active connection to a Confluence server.
@@ -244,7 +259,33 @@ class ConfluenceSession:
         response.raise_for_status()
         return response.json()
 
-    def _save(self, version: ConfluenceVersion, path: str, data: dict) -> None:
+    def _fetch(
+        self, path: str, query: Optional[dict[str, str]] = None
+    ) -> list[JsonType]:
+        "Retrieves all results of a REST API v2 paginated result-set."
+
+        items: list[JsonType] = []
+        url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
+        while True:
+            response = self.session.get(url)
+            response.raise_for_status()
+
+            payload = typing.cast(dict[str, JsonType], response.json())
+            results = typing.cast(list[JsonType], payload["results"])
+            items.extend(results)
+
+            links = typing.cast(dict[str, JsonType], payload.get("_links", {}))
+            link = typing.cast(str, links.get("next", ""))
+            if link:
+                url = f"https://{self.site.domain}{link}"
+            else:
+                break
+
+        return items
+
+    def _save(self, version: ConfluenceVersion, path: str, data: JsonType) -> None:
+        "Persists data via Confluence REST API."
+
         url = self._build_url(version, path)
         response = self.session.put(
             url,
@@ -465,7 +506,7 @@ class ConfluenceSession:
     ) -> None:
         id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
-        data = {
+        data: JsonType = {
             "id": attachment_id,
             "type": "attachment",
             "status": "current",
@@ -610,7 +651,7 @@ class ConfluenceSession:
             LOGGER.warning(exc)
 
         path = f"/pages/{page_id}"
-        data = {
+        data: JsonType = {
             "id": page_id,
             "status": "current",
             "title": new_title,
@@ -750,3 +791,22 @@ class ConfluenceSession:
         else:
             LOGGER.debug("Creating new page with title: %s", title)
             return self.create_page(parent_id, title, "")
+
+    def get_labels(self, page_id: str) -> list[ConfluenceLabel]:
+        """
+        Retrieves labels for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :returns: A list of page labels.
+        """
+
+        items: list[ConfluenceLabel] = []
+        path = f"/pages/{page_id}/labels"
+        results = self._fetch(path)
+        for r in results:
+            result = typing.cast(dict[str, JsonType], r)
+            id = typing.cast(str, result["id"])
+            name = typing.cast(str, result["name"])
+            prefix = typing.cast(str, result["prefix"])
+            items.append(ConfluenceLabel(id, name, prefix))
+        return items

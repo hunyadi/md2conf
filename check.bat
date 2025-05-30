@@ -13,6 +13,7 @@ python -m mypy integration_tests
 if errorlevel 1 goto error
 python -m flake8 integration_tests
 if errorlevel 1 goto error
+
 goto :EOF
 
 :error
