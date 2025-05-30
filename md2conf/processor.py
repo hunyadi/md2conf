@@ -30,6 +30,7 @@ class Processor:
     root_dir: Path
 
     page_metadata: dict[Path, ConfluencePageMetadata]
+    existing_pages: dict[str, str]
 
     def __init__(
         self,
@@ -42,6 +43,7 @@ class Processor:
         self.root_dir = root_dir
 
         self.page_metadata = {}
+        self.existing_pages = {}
 
     def process_directory(self, local_dir: Path) -> None:
         """
@@ -51,6 +53,8 @@ class Processor:
         local_dir = local_dir.resolve(True)
         LOGGER.info("Processing directory: %s", local_dir)
 
+        self._fetch_existing_pages()
+
         # Step 1: build index of all page metadata
         self._index_directory(local_dir, self.options.root_page_id)
         LOGGER.info("Indexed %d page(s)", len(self.page_metadata))
@@ -59,14 +63,20 @@ class Processor:
         for page_path in self.page_metadata.keys():
             self._process_page(page_path)
 
+        self.remove_orphaned_pages()
+
     def process_page(self, path: Path) -> None:
         """
         Processes a single Markdown file.
         """
-
         LOGGER.info("Processing page: %s", path)
+
+        self._fetch_existing_pages()
+
         self._index_page(path, self.options.root_page_id)
         self._process_page(path)
+
+        self.remove_orphaned_pages()
 
     def _process_page(self, path: Path) -> None:
         page_id, document = ConfluenceDocument.create(
@@ -152,6 +162,20 @@ class Processor:
         metadata = self._get_or_create_page(path, parent_id)
         LOGGER.debug("Indexed %s with metadata: %s", path, metadata)
         self.page_metadata[path] = metadata
+
+    @abstractmethod
+    def _fetch_existing_pages(self): ...
+
+    def remove_orphaned_pages(self):
+        if self.options.remove_orphans:
+            LOGGER.info("Removing %s orphaned pages in Confluence...", len(self.existing_pages))
+            for digest in self.existing_pages:
+                page_id = self.existing_pages[digest]
+                LOGGER.info("Removing orphaned page with ID: %s", page_id)
+                self._delete_page(page_id)
+
+    @abstractmethod
+    def _delete_page(self, page_id): ...
 
 
 class ProcessorFactory:
