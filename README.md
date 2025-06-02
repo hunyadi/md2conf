@@ -201,6 +201,14 @@ You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown doc
 1. Pre-render into an image. The code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
 2. Render on demand. The code block is transformed into a [diagram macro](https://atlasauthority.atlassian.net/wiki/spaces/MARKDOWNCLOUD/pages/2946826241/Diagram+Macro), which is processed by Confluence. You need a [Confluence plugin](https://marketplace.atlassian.com/apps/1211438/markdown-html-plantuml-latex-diagrams-open-api-mermaid) to turn macro definitions into images when a Confluence page is visited. This is a contributed feature. As authors of *md2conf*, we don't endorse or support any particular Confluence plugin.
 
+If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
+
+```sh
+mmdc -i sample.mmd -o sample.png -b transparent --scale 2
+```
+
+Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
+
 ### Running the tool
 
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:

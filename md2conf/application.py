@@ -84,7 +84,7 @@ class SynchronizingProcessor(Processor):
 
         return ConfluencePageMetadata(
             page_id=confluence_page.id,
-            space_key=self.api.space_id_to_key(confluence_page.space_id),
+            space_key=self.api.space_id_to_key(confluence_page.spaceId),
             title=confluence_page.title,
             overwrite=overwrite,
         )
@@ -105,7 +105,7 @@ class SynchronizingProcessor(Processor):
             absolute_path,
             document,
             confluence_page.id,
-            self.api.space_id_to_key(confluence_page.space_id),
+            self.api.space_id_to_key(confluence_page.spaceId),
         )
         return confluence_page
 
