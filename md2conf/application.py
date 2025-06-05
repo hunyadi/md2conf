@@ -47,7 +47,7 @@ class SynchronizingProcessor(Processor):
         super().__init__(options, api.site, root_dir)
         self.api = api
 
-    def _get_or_create_page(
+    def _synchronize_page(
         self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """
@@ -138,10 +138,10 @@ class SynchronizingProcessor(Processor):
 
         title = None
         if document.title is not None:
-            meta = self.page_metadata[path]
+            meta = self.page_metadata.get(path)
 
             # update title only for pages with randomly assigned title
-            if meta.overwrite:
+            if meta is not None and meta.overwrite:
                 conflicting_page_id = self.api.page_exists(
                     document.title, space_id=self.api.space_key_to_id(meta.space_key)
                 )

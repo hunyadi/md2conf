@@ -46,7 +46,7 @@ class LocalProcessor(Processor):
         super().__init__(options, site, root_dir)
         self.out_dir = out_dir or root_dir
 
-    def _get_or_create_page(
+    def _synchronize_page(
         self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """

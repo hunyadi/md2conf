@@ -15,6 +15,7 @@ from pathlib import Path
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
+from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -50,7 +51,7 @@ class TestAPI(unittest.TestCase):
             ConfluenceDocumentOptions(),
             self.sample_dir,
             ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY"),
-            {},
+            ConfluencePageCollection(),
         )
         self.assertListEqual(document.links, [])
         self.assertListEqual(

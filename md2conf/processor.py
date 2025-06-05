@@ -12,6 +12,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Optional
 
+from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
 from .matcher import Matcher, MatcherOptions
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
@@ -29,7 +30,7 @@ class Processor:
     site: ConfluenceSiteMetadata
     root_dir: Path
 
-    page_metadata: dict[Path, ConfluencePageMetadata]
+    page_metadata: ConfluencePageCollection
 
     def __init__(
         self,
@@ -40,8 +41,7 @@ class Processor:
         self.options = options
         self.site = site
         self.root_dir = root_dir
-
-        self.page_metadata = {}
+        self.page_metadata = ConfluencePageCollection()
 
     def process_directory(self, local_dir: Path) -> None:
         """
@@ -56,7 +56,7 @@ class Processor:
         LOGGER.info("Indexed %d page(s)", len(self.page_metadata))
 
         # Step 2: convert each page
-        for page_path in self.page_metadata.keys():
+        for page_path in self.page_metadata.paths():
             self._process_page(page_path)
 
     def process_page(self, path: Path) -> None:
@@ -75,7 +75,7 @@ class Processor:
         self._save_document(page_id, document, path)
 
     @abstractmethod
-    def _get_or_create_page(
+    def _synchronize_page(
         self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
     ) -> ConfluencePageMetadata:
         """
@@ -131,9 +131,9 @@ class Processor:
                 files.remove(parent_doc)
 
             # use latest parent as parent for index page
-            metadata = self._get_or_create_page(parent_doc, parent_id)
+            metadata = self._synchronize_page(parent_doc, parent_id)
             LOGGER.debug("Indexed parent %s with metadata: %s", parent_doc, metadata)
-            self.page_metadata[parent_doc] = metadata
+            self.page_metadata.add(parent_doc, metadata)
 
             # assign new index page as new parent
             parent_id = ConfluencePageID(metadata.page_id)
@@ -149,9 +149,9 @@ class Processor:
         Indexes a single Markdown file.
         """
 
-        metadata = self._get_or_create_page(path, parent_id)
+        metadata = self._synchronize_page(path, parent_id)
         LOGGER.debug("Indexed %s with metadata: %s", path, metadata)
-        self.page_metadata[path] = metadata
+        self.page_metadata.add(path, metadata)
 
 
 class ProcessorFactory:

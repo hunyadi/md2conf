@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 
 import md2conf.emoji as emoji
+from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -58,6 +59,7 @@ class TestConversion(unittest.TestCase):
         self.site_metadata = ConfluenceSiteMetadata(
             "example.com", "/wiki/", "SPACE_KEY"
         )
+        self.page_metadata = ConfluencePageCollection()
 
     def test_markdown(self) -> None:
         if not os.path.exists(self.source_dir / "emoji.md"):
@@ -81,7 +83,7 @@ class TestConversion(unittest.TestCase):
                     ConfluenceDocumentOptions(),
                     self.source_dir,
                     self.site_metadata,
-                    {},
+                    self.page_metadata,
                 )
                 actual = standardize(doc.xhtml())
 
@@ -97,7 +99,7 @@ class TestConversion(unittest.TestCase):
                 ConfluenceDocumentOptions(ignore_invalid_url=True),
                 self.source_dir,
                 self.site_metadata,
-                {},
+                self.page_metadata,
             )
             self.assertEqual(doc.title, "Broken links")
             actual = standardize(doc.xhtml())
@@ -115,7 +117,7 @@ class TestConversion(unittest.TestCase):
             ConfluenceDocumentOptions(heading_anchors=True),
             self.source_dir,
             self.site_metadata,
-            {},
+            self.page_metadata,
         )
         self.assertEqual(doc.title, "Anchors")
         actual = standardize(doc.xhtml())
@@ -131,7 +133,7 @@ class TestConversion(unittest.TestCase):
             ConfluenceDocumentOptions(),
             self.source_dir,
             self.site_metadata,
-            {},
+            self.page_metadata,
         )
         self.assertIsNone(doc.title)
 
@@ -141,7 +143,7 @@ class TestConversion(unittest.TestCase):
             ConfluenceDocumentOptions(),
             self.source_dir,
             self.site_metadata,
-            {},
+            self.page_metadata,
         )
         self.assertEqual(doc.title, "Sections")
 
@@ -155,7 +157,7 @@ class TestConversion(unittest.TestCase):
             ),
             self.source_dir,
             self.site_metadata,
-            {},
+            self.page_metadata,
         )
         self.assertEqual(len(document.embedded_images), 6)
 
@@ -169,7 +171,7 @@ class TestConversion(unittest.TestCase):
             ),
             self.source_dir,
             self.site_metadata,
-            {},
+            self.page_metadata,
         )
         self.assertEqual(len(document.embedded_images), 6)
 

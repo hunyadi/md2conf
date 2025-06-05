@@ -24,8 +24,9 @@ import lxml.etree as ET
 import markdown
 from lxml.builder import ElementMaker
 
+from .collection import ConfluencePageCollection
 from .mermaid import render_diagram
-from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
+from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
 
@@ -362,7 +363,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     images: list[Path]
     embedded_images: dict[str, bytes]
     site_metadata: ConfluenceSiteMetadata
-    page_metadata: dict[Path, ConfluencePageMetadata]
+    page_metadata: ConfluencePageCollection
 
     def __init__(
         self,
@@ -370,7 +371,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         path: Path,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
-        page_metadata: dict[Path, ConfluencePageMetadata],
+        page_metadata: ConfluencePageCollection,
     ) -> None:
         super().__init__()
         self.options = options
@@ -1019,7 +1020,7 @@ class ConfluenceDocument:
         options: ConfluenceDocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
-        page_metadata: dict[Path, ConfluencePageMetadata],
+        page_metadata: ConfluencePageCollection,
     ) -> tuple[ConfluencePageID, "ConfluenceDocument"]:
         path = path.resolve(True)
 
@@ -1046,7 +1047,7 @@ class ConfluenceDocument:
         options: ConfluenceDocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
-        page_metadata: dict[Path, ConfluencePageMetadata],
+        page_metadata: ConfluencePageCollection,
     ) -> None:
         self.options = options
 
