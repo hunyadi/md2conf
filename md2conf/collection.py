@@ -27,5 +27,5 @@ class ConfluencePageCollection:
     def get(self, path: Path) -> Optional[ConfluencePageMetadata]:
         return self._metadata.get(path)
 
-    def paths(self) -> Iterable[Path]:
-        return self._metadata.keys()
+    def items(self) -> Iterable[tuple[Path, ConfluencePageMetadata]]:
+        return self._metadata.items()

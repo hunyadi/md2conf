@@ -33,10 +33,8 @@ class ConfluencePageMetadata:
     :param page_id: Confluence page ID.
     :param space_key: Confluence space key.
     :param title: Document title.
-    :param overwrite: True if operations are allowed to update document properties (e.g. title).
     """
 
     page_id: str
     space_key: str
     title: str
-    overwrite: bool

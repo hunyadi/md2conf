@@ -150,9 +150,18 @@ class ConfluenceAttachment:
     Holds data for an object uploaded to Confluence as a page attachment.
 
     :param id: Unique ID for the attachment.
-    :param media_type: MIME type for the attachment.
-    :param file_size: Size in bytes.
+    :param status: Attachment status.
+    :param title: Attachment title.
+    :param createdAt: Date and time when the attachment was created.
+    :param pageId: The Confluence page that the attachment is coupled with.
+    :param mediaType: MIME type for the attachment.
+    :param mediaTypeDescription: Media type description for the attachment.
     :param comment: Description for the attachment.
+    :param fileId: File ID of the attachment, distinct from the attachment ID.
+    :param fileSize: Size in bytes.
+    :param webuiLink: WebUI link of the attachment.
+    :param downloadLink: Download link of the attachment.
+    :param version: Version information for the attachment.
     """
 
     id: str
@@ -176,10 +185,16 @@ class ConfluencePageProperties:
     Holds Confluence page properties used for page synchronization.
 
     :param id: Confluence page ID.
-    :param space_id: Confluence space ID.
-    :param parent_id: Confluence page ID of the immediate parent.
-    :param parent_type: Identifies the content type of the parent.
+    :param status: Page status.
     :param title: Page title.
+    :param spaceId: Confluence space ID.
+    :param parentId: Confluence page ID of the immediate parent.
+    :param parentType: Identifies the content type of the parent.
+    :param position: Position of child page within the given parent page tree.
+    :param authorId: The account ID of the user who created this page originally.
+    :param ownerId: The account ID of the user who owns this page.
+    :param lastOwnerId: The account ID of the user who owned this page previously, or `None` if there is no previous owner.
+    :param createdAt: Date and time when the page was created.
     :param version: Page version. Incremented when the page is updated.
     """
 
@@ -199,12 +214,25 @@ class ConfluencePageProperties:
 
 @dataclass(frozen=True)
 class ConfluencePageStorage:
+    """
+    Holds Confluence page content.
+
+    :param representation: Type of content representation used (e.g. Confluence Storage Format).
+    :param value: Body of the content, in the format found in the representation field.
+    """
+
     representation: ConfluenceRepresentation
     value: str
 
 
 @dataclass(frozen=True)
 class ConfluencePageBody:
+    """
+    Holds Confluence page content.
+
+    :param storage: Encapsulates content with meta-information about its representation.
+    """
+
     storage: ConfluencePageStorage
 
 
@@ -213,7 +241,7 @@ class ConfluencePage(ConfluencePageProperties):
     """
     Holds Confluence page data used for page synchronization.
 
-    :param content: Page content in Confluence Storage Format.
+    :param body: Page content.
     """
 
     body: ConfluencePageBody
@@ -545,7 +573,7 @@ class ConfluenceSession:
                     LOGGER.info("Up-to-date embedded image: %s", attachment_name)
                     return
             else:
-                raise NotImplementedError("never occurs")
+                raise NotImplementedError("parameter match not exhaustive")
 
             id = attachment.id.removeprefix("att")
             path = f"/content/{page_id}/child/attachment/{id}/data"
@@ -592,7 +620,7 @@ class ConfluenceSession:
                 headers={"X-Atlassian-Token": "no-check"},
             )
         else:
-            raise NotImplementedError("never occurs")
+            raise NotImplementedError("parameter match not exhaustive")
 
         response.raise_for_status()
         data = response.json()

@@ -6,12 +6,11 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import hashlib
 import logging
 from pathlib import Path
 from typing import Optional
 
-from .api import ConfluencePage, ConfluenceSession
+from .api import ConfluenceSession
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -19,9 +18,8 @@ from .converter import (
     attachment_name,
 )
 from .metadata import ConfluencePageMetadata
-from .processor import Converter, Processor, ProcessorFactory
+from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .properties import PageError
-from .scanner import Scanner
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,69 +45,74 @@ class SynchronizingProcessor(Processor):
         super().__init__(options, api.site, root_dir)
         self.api = api
 
-    def _synchronize_page(
-        self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
-    ) -> ConfluencePageMetadata:
+    def _synchronize_tree(
+        self, root: DocumentNode, root_id: Optional[ConfluencePageID]
+    ) -> None:
         """
-        Creates a new Confluence page if no page is linked in the Markdown document.
+        Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
+
+        Creates new Confluence pages as necessary, e.g. if no page is linked in the Markdown document, or no page is found with lookup by page title.
+
+        Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        # parse file
-        document = Scanner().read(absolute_path)
-
-        overwrite = False
-        if document.page_id is None:
-            # create new Confluence page
-            if parent_id is None:
+        if root.page_id is None and root_id is None:
+            raise PageError(
+                f"expected: root page ID in options, or explicit page ID in {root.absolute_path}"
+            )
+        elif root.page_id is not None and root_id is not None:
+            if root.page_id != root_id:
                 raise PageError(
-                    f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
+                    f"mismatched inferred page ID of {root_id.page_id} and explicit page ID in {root.absolute_path}"
                 )
 
-            # use file name (without extension) and path hash if no title is supplied
-            if document.title is not None:
-                title = document.title
-            else:
-                overwrite = True
-                relative_path = absolute_path.relative_to(self.root_dir)
-                hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
-                digest = "".join(f"{c:x}" for c in hash.digest())
-                title = f"{absolute_path.stem} [{digest}]"
-
-            confluence_page = self._create_page(
-                absolute_path, document.text, title, parent_id
-            )
+            real_id = root_id
+        elif root_id is not None:
+            real_id = root_id
+        elif root.page_id is not None:
+            real_id = ConfluencePageID(root.page_id)
         else:
-            # look up existing Confluence page
-            confluence_page = self.api.get_page(document.page_id)
+            raise NotImplementedError("condition not exhaustive")
 
-        return ConfluencePageMetadata(
-            page_id=confluence_page.id,
-            space_key=self.api.space_id_to_key(confluence_page.spaceId),
-            title=confluence_page.title,
-            overwrite=overwrite,
+        self._synchronize_subtree(root, real_id)
+
+    def _synchronize_subtree(
+        self, node: DocumentNode, parent_id: ConfluencePageID
+    ) -> None:
+        if node.page_id is not None:
+            # verify if page exists
+            page = self.api.get_page_properties(parent_id.page_id)
+            update = False
+        elif node.title is not None:
+            # look up page by title
+            page = self.api.get_or_create_page(node.title, parent_id.page_id)
+            update = True
+        else:
+            # always create a new page
+            digest = self._generate_hash(node.absolute_path)
+            title = f"{node.absolute_path.stem} [{digest}]"
+            page = self.api.create_page(parent_id.page_id, title, "")
+            update = True
+
+        space_key = self.api.space_id_to_key(page.spaceId)
+        if update:
+            self._update_markdown(
+                node.absolute_path,
+                page_id=page.id,
+                space_key=space_key,
+            )
+
+        data = ConfluencePageMetadata(
+            page_id=page.id,
+            space_key=space_key,
+            title=page.title,
         )
+        self.page_metadata.add(node.absolute_path, data)
 
-    def _create_page(
-        self,
-        absolute_path: Path,
-        document: str,
-        title: str,
-        parent_id: ConfluencePageID,
-    ) -> ConfluencePage:
-        """
-        Creates a new Confluence page when Markdown file doesn't have an embedded page ID yet.
-        """
+        for child_node in node.children():
+            self._synchronize_subtree(child_node, ConfluencePageID(page.id))
 
-        confluence_page = self.api.get_or_create_page(title, parent_id.page_id)
-        self._update_markdown(
-            absolute_path,
-            document,
-            confluence_page.id,
-            self.api.space_id_to_key(confluence_page.spaceId),
-        )
-        return confluence_page
-
-    def _save_document(
+    def _update_page(
         self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
     ) -> None:
         """
@@ -139,9 +142,11 @@ class SynchronizingProcessor(Processor):
         title = None
         if document.title is not None:
             meta = self.page_metadata.get(path)
-
-            # update title only for pages with randomly assigned title
-            if meta is not None and meta.overwrite:
+            if (
+                meta is not None
+                and meta.space_key is not None
+                and meta.title != document.title
+            ):
                 conflicting_page_id = self.api.page_exists(
                     document.title, space_id=self.api.space_key_to_id(meta.space_key)
                 )
@@ -156,16 +161,13 @@ class SynchronizingProcessor(Processor):
 
         self.api.update_page(page_id.page_id, content, title=title)
 
-    def _update_markdown(
-        self,
-        path: Path,
-        document: str,
-        page_id: str,
-        space_key: Optional[str],
-    ) -> None:
+    def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
         """
         Writes the Confluence page ID and space key at the beginning of the Markdown file.
         """
+
+        with open(path, "r", encoding="utf-8") as file:
+            document = file.read()
 
         content: list[str] = []
 
@@ -178,9 +180,7 @@ class SynchronizingProcessor(Processor):
             content.append(document[:index])
 
         content.append(f"<!-- confluence-page-id: {page_id} -->")
-        if space_key:
-            content.append(f"<!-- confluence-space-key: {space_key} -->")
-
+        content.append(f"<!-- confluence-space-key: {space_key} -->")
         content.append(document[index:])
 
         with open(path, "w", encoding="utf-8") as file:

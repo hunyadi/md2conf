@@ -6,7 +6,6 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import hashlib
 import logging
 import os
 from pathlib import Path
@@ -14,9 +13,7 @@ from typing import Optional
 
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
-from .processor import Converter, Processor, ProcessorFactory
-from .properties import PageError
-from .scanner import Scanner
+from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,44 +43,39 @@ class LocalProcessor(Processor):
         super().__init__(options, site, root_dir)
         self.out_dir = out_dir or root_dir
 
-    def _synchronize_page(
-        self, absolute_path: Path, parent_id: Optional[ConfluencePageID]
-    ) -> ConfluencePageMetadata:
+    def _synchronize_tree(
+        self, root: DocumentNode, root_id: Optional[ConfluencePageID]
+    ) -> None:
         """
-        Extracts metadata from a Markdown file.
+        Creates the cross-reference index.
+
+        Does not change Markdown files.
         """
 
-        # parse file
-        document = Scanner().read(absolute_path)
-        if document.page_id is not None:
-            page_id = document.page_id
-            space_key = document.space_key or self.site.space_key or "HOME"
-        else:
-            if parent_id is None:
-                raise PageError(
-                    f"expected: parent page ID for Markdown file with no linked Confluence page: {absolute_path}"
+        for node in root.all():
+            if node.page_id is not None:
+                page_id = node.page_id
+            else:
+                digest = self._generate_hash(node.absolute_path)
+                LOGGER.info(
+                    "Identifier %s assigned to page: %s", digest, node.absolute_path
                 )
+                page_id = digest
 
-            hash = hashlib.md5(document.text.encode("utf-8"))
-            digest = "".join(f"{c:x}" for c in hash.digest())
-            LOGGER.info("Identifier %s assigned to page: %s", digest, absolute_path)
-            page_id = digest
-            space_key = self.site.space_key or "HOME"
+            self.page_metadata.add(
+                node.absolute_path,
+                ConfluencePageMetadata(
+                    page_id=page_id,
+                    space_key=node.space_key or self.site.space_key or "HOME",
+                    title=node.title or "",
+                ),
+            )
 
-        return ConfluencePageMetadata(
-            page_id=page_id,
-            space_key=space_key,
-            title="",
-            overwrite=True,
-        )
-
-    def _save_document(
+    def _update_page(
         self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
     ) -> None:
         """
-        Saves a new version of a Confluence document.
-
-        A derived class may invoke Confluence REST API to persist the new version.
+        Saves the document as Confluence Storage Format XHTML to the local disk.
         """
 
         content = document.xhtml()
