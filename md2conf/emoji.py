@@ -10,7 +10,24 @@ import pathlib
 
 import pymdownx.emoji1_db as emoji_db
 
-EMOJI_PAGE_ID = "86918529216"
+EMOJI_PAGE_ID = "13500452"
+
+
+def to_html(cp: int) -> str:
+    """
+    Returns the safe HTML representation for a Unicode code point.
+
+    Converts non-ASCII and non-printable characters into HTML entities with decimal notation.
+
+    :param cp: Unicode code point.
+    :returns: An HTML representation of the Unicode character.
+    """
+
+    ch = chr(cp)
+    if ch.isascii() and ch.isalnum():
+        return ch
+    else:
+        return f"&#{cp};"
 
 
 def generate_source(path: pathlib.Path) -> None:
@@ -47,11 +64,19 @@ def generate_target(path: pathlib.Path) -> None:
         print("<thead><tr><th>Icon</th><th>Emoji code</th></tr></thead>", file=f)
         print("<tbody>", file=f)
         for key, data in emojis.items():
+            unicode = data["unicode"]
             key = key.strip(":")
-            unicode = "".join(f"&#x{item};" for item in data["unicode"].split("-"))
+            html = "".join(to_html(int(item, base=16)) for item in unicode.split("-"))
 
             print(
-                f'<tr><td><ac:emoticon ac:name="blue-star" ac:emoji-shortname=":{key}:" ac:emoji-fallback="{unicode}"/></td><td><code>:{key}:</code></td></tr>',
+                f"<tr>\n"
+                f"  <td>\n"
+                f'    <ac:emoticon ac:name="{key}" ac:emoji-shortname=":{key}:" ac:emoji-id="{unicode}" ac:emoji-fallback="{html}"/>\n'
+                f"  </td>\n"
+                f"  <td>\n"
+                f"    <code>:{key}:</code>\n"
+                f"  </td>\n"
+                f"</tr>",
                 file=f,
             )
         print("</tbody>", file=f)

@@ -92,8 +92,10 @@ def emoji_generator(
     md: markdown.Markdown,
 ) -> xml.etree.ElementTree.Element:
     name = (alias or shortname).strip(":")
-    span = xml.etree.ElementTree.Element("span", {"data-emoji": name})
+    span = xml.etree.ElementTree.Element("span", {"data-emoji-shortname": name})
     if uc is not None:
+        span.attrib["data-emoji-unicode"] = uc
+
         # convert series of Unicode code point hexadecimal values into characters
         span.text = "".join(chr(int(item, base=16)) for item in uc.split("-"))
     else:
@@ -835,7 +837,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
 
     def _transform_emoji(self, elem: ET._Element) -> ET._Element:
-        shortname = elem.attrib.get("data-emoji", "")
+        shortname = elem.attrib.get("data-emoji-shortname", "")
+        unicode = elem.attrib.get("data-emoji-unicode", None)
         alt = elem.text or ""
 
         # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
@@ -845,8 +848,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             "emoticon",
             {
                 # use "blue-star" as a placeholder name to ensure wiki page loads in timely manner
-                ET.QName(namespaces["ac"], "name"): "blue-star",
+                ET.QName(namespaces["ac"], "name"): shortname,
                 ET.QName(namespaces["ac"], "emoji-shortname"): f":{shortname}:",
+                ET.QName(namespaces["ac"], "emoji-id"): unicode,
                 ET.QName(namespaces["ac"], "emoji-fallback"): alt,
             },
         )
@@ -944,7 +948,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
 
-        elif child.tag == "span" and child.attrib.has_key("data-emoji"):
+        elif child.tag == "span" and child.attrib.has_key("data-emoji-shortname"):
             return self._transform_emoji(child)
 
         return None
@@ -1147,7 +1151,7 @@ def _content_to_string(dtd_path: Path, content: str) -> str:
 
     data = [
         '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path}">'
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}">'
         f"<root{ns_attr_list}>",
     ]
     data.append(content)

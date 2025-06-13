@@ -15,7 +15,10 @@ This Python package
 * Sections and subsections
 * Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~
 * Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
+* Subscript and superscript (with HTML tags `<sub>` and `<sup>`)
+* Emoji
 * Ordered and unordered lists
+* Block quotes
 * Code blocks (e.g. Python, JSON, XML)
 * Images (uploaded as Confluence page attachments or hosted externally)
 * Tables
@@ -163,6 +166,65 @@ root
     └── Introduction to statistics
         └── Mean vs. median
 ```
+
+### Emoji
+
+The short name notation `:smile:` in a Markdown document is converted into the corresponding emoji 😄 when publishing to Confluence.
+
+*md2conf* relies on the [Emoji extension](https://facelessuser.github.io/pymdown-extensions/extensions/emoji/) of [PyMdown Extensions](https://facelessuser.github.io/pymdown-extensions/) to parse the short name notation with colons, and generate Confluence Storage Format output such as
+
+```xml
+<ac:emoticon ac:name="smile" ac:emoji-shortname=":smile:" ac:emoji-id="1f604" ac:emoji-fallback="&#128516;"/>
+```
+
+### Colors
+
+Confluence allows setting text color and highlight color. Even though Markdown doesn't directly support colors, it is possible to set text and highlight color via the HTML element `<span>` and the CSS attributes `color` and `background-color`, respectively:
+
+Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>:
+
+```markdown
+Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.
+```
+
+Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>:
+
+```markdown
+Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.
+```
+
+The following table shows standard text colors (CSS `color`) that are available via Confluence UI:
+
+| Color name    | CSS attribute value |
+| ------------- | ------------------- |
+| bold blue     | rgb(7,71,166)       |
+| blue          | rgb(76,154,255)     |
+| subtle blue   | rgb(179,212,255)    |
+| bold teal     | rgb(0,141,166)      |
+| teal          | rgb(0,184,217)      |
+| subtle teal   | rgb(179,245,255)    |
+| bold green    | rgb(0,102,68)       |
+| green         | rgb(54,179,126)     |
+| subtle green  | rgb(171,245,209)    |
+| bold orange   | rgb(255,153,31)     |
+| yellow        | rgb(255,196,0)      |
+| subtle yellow | rgb(255,240,179)    |
+| bold red      | rgb(191,38,0)       |
+| red           | rgb(255,86,48)      |
+| subtle red    | rgb(255,189,173)    |
+| bold purple   | rgb(64,50,148)      |
+| purple        | rgb(101,84,192)     |
+| subtle purple | rgb(234,230,255)    |
+
+The following table shows standard highlight colors (CSS `background-color`) that are available via Confluence UI:
+
+| Color name    | CSS attribute value |
+| ------------- | ------------------- |
+| teal          | rgb(198,237,251)    |
+| lime          | rgb(211,241,167)    |
+| yellow        | rgb(254,222,200)    |
+| magenta       | rgb(253,208,236)    |
+| purple        | rgb(223,216,253)    |
 
 ### Lists and tables
 

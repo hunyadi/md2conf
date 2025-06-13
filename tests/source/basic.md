@@ -2,7 +2,13 @@
 
 ## Basic features
 
-Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
+Text formatted with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
+
+Text with subscript (H<sub>2</sub>O) and superscript (X<sup>2</sup>).
+
+Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.
+
+Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.
 
 Absolute link to an [external location](http://example.com/) with a [query string](<http://example.com/?key[]=value>).
 
@@ -48,6 +54,13 @@ A nested list:
 * List item 2
     1. Nested item 3
     2. Nested item 4
+
+A block quote:
+
+> Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+> sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+Images:
 
 ![PNG image with caption](figure/interoperability.png)
 

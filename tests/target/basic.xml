@@ -4,7 +4,10 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Basic features</h2>
-<p>Text with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <ins>underline</ins> and <del>strikethrough</del>.</p>
+<p>Text formatted with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <ins>underline</ins> and <del>strikethrough</del>.</p>
+<p>Text with subscript (H<sub>2</sub>O) and superscript (X<sup>2</sup>).</p>
+<p>Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.</p>
+<p>Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.</p>
 <p>Absolute link to an <a href="http://example.com/">external location</a> with a <a href="http://example.com/?key[]=value">query string</a>.</p>
 <p>Relative link to a <a href="#Basic-features">heading in the same document</a>.</p>
 <p>"Naked" links: <a href="https://example.com">https://example.com</a> and <a href="mailto:me@example.com">me@example.com</a>.</p>
@@ -48,6 +51,11 @@
       <li>Nested item 4</li>
     </ol> </li>
 </ul>
+<p>A block quote:</p>
+<blockquote>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+</blockquote>
+<p>Images:</p>
 <ac:image ac:align="center" ac:layout="center">
   <ri:attachment ri:filename="figure_interoperability.png"/>
   <ac:caption>
