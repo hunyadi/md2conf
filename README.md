@@ -256,6 +256,21 @@ Relative paths to items in a nested directory are not supported. You must put `.
 
 If a matching Confluence page already exists for a Markdown file, the page title in Confluence is left unchanged.
 
+### Labels
+
+If a Markdown document has the front-matter attribute `tags`, *md2conf* assigns the specified tags to the Confluence page as labels.
+
+```yaml
+---
+title: "Example document"
+tags: ["markdown", "md", "wiki"]
+---
+```
+
+Any previously assigned labels are discarded. As per Confluence terminology, new labels have the `prefix` of `global`.
+
+If a document has no `tags` attribute, existing Confluence labels are left intact.
+
 ### Converting diagrams
 
 You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown documents to create visual representations of systems, processes, and relationships. When a Markdown document contains a code block with the language specifier `mermaid`, *md2conf* offers two options to publish the diagram:

@@ -11,7 +11,7 @@ import os.path
 import unittest
 from pathlib import Path
 
-from md2conf.api import ConfluenceAPI
+from md2conf.api import ConfluenceAPI, ConfluenceLabel
 from md2conf.converter import content_to_string
 
 TEST_SPACE = "~hunyadi"
@@ -33,6 +33,22 @@ class TestConfluenceStorageFormat(unittest.TestCase):
 
         with open(self.test_dir / "example.csf", "w") as f:
             f.write(content_to_string(page.content))
+
+    def test_labels(self) -> None:
+        with ConfluenceAPI() as api:
+            expected_labels = [
+                ConfluenceLabel(name="advanced", prefix="global"),
+                ConfluenceLabel(name="code", prefix="global"),
+            ]
+            api.update_labels(
+                TEST_PAGE_ID,
+                expected_labels,
+            )
+            assigned_labels = sorted(
+                ConfluenceLabel(name=label.name, prefix=label.prefix)
+                for label in api.get_labels(TEST_PAGE_ID)
+            )
+            self.assertListEqual(assigned_labels, expected_labels)
 
 
 if __name__ == "__main__":

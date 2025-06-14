@@ -1011,6 +1011,7 @@ class ConversionError(RuntimeError):
 
 class ConfluenceDocument:
     title: Optional[str]
+    labels: Optional[list[str]]
     links: list[str]
     images: list[Path]
 
@@ -1100,6 +1101,7 @@ class ConfluenceDocument:
         self.embedded_images = converter.embedded_images
 
         self.title = document.title or converter.toc.get_title()
+        self.labels = document.tags
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)

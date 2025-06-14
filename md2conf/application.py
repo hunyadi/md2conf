@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .api import ConfluenceSession
+from .api import ConfluenceLabel, ConfluenceSession
 from .converter import (
     ConfluenceDocument,
     ConfluenceDocumentOptions,
@@ -160,6 +160,15 @@ class SynchronizingProcessor(Processor):
                     )
 
         self.api.update_page(page_id.page_id, content, title=title)
+
+        if document.labels is not None:
+            self.api.update_labels(
+                page_id.page_id,
+                [
+                    ConfluenceLabel(name=label, prefix="global")
+                    for label in document.labels
+                ],
+            )
 
     def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
         """

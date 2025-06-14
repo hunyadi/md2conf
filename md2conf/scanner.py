@@ -58,6 +58,23 @@ def get_string(properties: dict[str, Any], key: str) -> Optional[str]:
         return value
 
 
+def get_string_list(properties: dict[str, Any], key: str) -> Optional[list[str]]:
+    value = properties.get(key)
+    if value is None:
+        return None
+    elif not isinstance(value, list):
+        raise ValueError(
+            f"expected dictionary value type of `list` for key `{key}`; got value of type `{type(value).__name__}`"
+        )
+    else:
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError(
+                    f"expected dictionary value type of `list[str]` for key `{key}`; got list item of type `{type(item).__name__}`"
+                )
+        return value
+
+
 @dataclass
 class ScannedDocument:
     """
@@ -67,6 +84,7 @@ class ScannedDocument:
     :param space_key: Confluence space key.
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
+    :param tags: A list of tags (content labels) extracted from front-matter.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
@@ -74,6 +92,7 @@ class ScannedDocument:
     space_key: Optional[str]
     generated_by: Optional[str]
     title: Optional[str]
+    tags: Optional[list[str]]
     text: str
 
 
@@ -99,6 +118,7 @@ class Scanner:
         generated_by, text = extract_value(r"<!--\s+generated-by:\s*(.*)\s+-->", text)
 
         title: Optional[str] = None
+        tags: Optional[list[str]] = None
 
         # extract front-matter
         properties, text = extract_frontmatter_properties(text)
@@ -107,11 +127,13 @@ class Scanner:
             space_key = space_key or get_string(properties, "confluence-space-key")
             generated_by = generated_by or get_string(properties, "generated-by")
             title = get_string(properties, "title")
+            tags = get_string_list(properties, "tags")
 
         return ScannedDocument(
             page_id=page_id,
             space_key=space_key,
             generated_by=generated_by,
             title=title,
+            tags=tags,
             text=text,
         )

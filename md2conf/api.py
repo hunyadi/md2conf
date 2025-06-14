@@ -251,19 +251,28 @@ class ConfluencePage(ConfluencePageProperties):
         return self.body.storage.value
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True, order=True)
 class ConfluenceLabel:
     """
     Holds information about a single label.
 
-    :param id: ID of the label.
     :param name: Name of the label.
     :param prefix: Prefix of the label.
     """
 
-    id: str
     name: str
     prefix: str
+
+
+@dataclass(frozen=True, eq=True, order=True)
+class ConfluenceIdentifiedLabel(ConfluenceLabel):
+    """
+    Holds information about a single label.
+
+    :param id: ID of the label.
+    """
+
+    id: str
 
 
 @dataclass(frozen=True)
@@ -881,7 +890,7 @@ class ConfluenceSession:
             LOGGER.debug("Creating new page with title: %s", title)
             return self.create_page(parent_id, title, "")
 
-    def get_labels(self, page_id: str) -> list[ConfluenceLabel]:
+    def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
         """
         Retrieves labels for a Confluence page.
 
@@ -891,4 +900,66 @@ class ConfluenceSession:
 
         path = f"/pages/{page_id}/labels"
         results = self._fetch(path)
-        return _json_to_object(list[ConfluenceLabel], results)
+        return _json_to_object(list[ConfluenceIdentifiedLabel], results)
+
+    def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+        """
+        Adds labels to a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to add.
+        """
+
+        path = f"/content/{page_id}/label"
+
+        url = self._build_url(ConfluenceVersion.VERSION_1, path)
+        response = self.session.post(
+            url,
+            data=json_dump_string(object_to_json(labels)),
+            headers={"Content-Type": "application/json"},
+        )
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
+
+    def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+        """
+        Removes labels from a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to remove.
+        """
+
+        path = f"/content/{page_id}/label"
+        for label in labels:
+            query = {"name": label.name}
+
+            url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
+            response = self.session.delete(url)
+            if response.text:
+                LOGGER.debug("Received HTTP payload:\n%s", response.text)
+            response.raise_for_status()
+
+    def update_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+        """
+        Assigns the specified labels to a Confluence page. Existing labels are removed.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to assign.
+        """
+
+        new_labels = set(labels)
+        old_labels = set(
+            ConfluenceLabel(name=label.name, prefix=label.prefix)
+            for label in self.get_labels(page_id)
+        )
+
+        add_labels = list(new_labels - old_labels)
+        remove_labels = list(old_labels - new_labels)
+
+        if add_labels:
+            add_labels.sort()
+            self.add_labels(page_id, add_labels)
+        if remove_labels:
+            remove_labels.sort()
+            self.remove_labels(page_id, remove_labels)
