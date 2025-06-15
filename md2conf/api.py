@@ -16,10 +16,11 @@ import typing
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, TypeVar, Union
+from typing import Optional, TypeVar
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+from strong_typing.core import JsonType
 from strong_typing.serialization import (
     DeserializerOptions,
     json_dump_string,
@@ -35,17 +36,6 @@ from .properties import (
     ConfluenceError,
     PageError,
 )
-
-# a JSON type with possible `null` values
-JsonType = Union[
-    None,
-    bool,
-    int,
-    float,
-    str,
-    dict[str, "JsonType"],
-    list["JsonType"],
-]
 
 T = TypeVar("T")
 

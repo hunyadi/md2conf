@@ -39,7 +39,11 @@ class TestScanner(unittest.TestCase):
         document = Scanner().read(self.sample_dir / "sibling.md")
         self.assertIsNotNone(document.page_id)
         self.assertIsNone(document.space_key)
+        self.assertEqual(
+            document.generated_by, "This page has been generated with md2conf."
+        )
         self.assertEqual(document.title, "Markdown example document")
+        self.assertEqual(document.tags, ["markdown", "confluence", "md", "wiki"])
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
 ---
 title: "Markdown example document"
-tags: ["Markdown", "Confluence", "md", "wiki"]
+tags: ["markdown", "confluence", "md", "wiki"]
 description: >
     this is
     a multiline string
-confluence-page-id: "1998850"
+page_id: "1998850"
 ---
+
+<!-- generated-by: This page has been generated with md2conf. -->
 
 If you are a user who wants to publish pages to Confluence, you should install the package [markdown-to-confluence](https://pypi.org/project/markdown-to-confluence/) from PyPI. If you are a developer who wants to contribute, you should clone the repository [md2conf](https://github.com/hunyadi/md2conf) from GitHub.
 

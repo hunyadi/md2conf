@@ -9,9 +9,20 @@ Copyright 2022-2025, Levente Hunyadi
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar
 
 import yaml
+from strong_typing.core import JsonType
+from strong_typing.serialization import DeserializerOptions, json_to_object
+
+T = TypeVar("T")
+
+
+def _json_to_object(
+    typ: type[T],
+    data: JsonType,
+) -> T:
+    return json_to_object(typ, data, options=DeserializerOptions(skip_unassigned=True))
 
 
 def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
@@ -46,46 +57,16 @@ def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, Any]],
     return properties, text
 
 
-def get_string(properties: dict[str, Any], key: str) -> Optional[str]:
-    value = properties.get(key)
-    if value is None:
-        return None
-    elif not isinstance(value, str):
-        raise ValueError(
-            f"expected dictionary value type of `str` for key `{key}`; got value of type `{type(value).__name__}`"
-        )
-    else:
-        return value
-
-
-def get_string_list(properties: dict[str, Any], key: str) -> Optional[list[str]]:
-    value = properties.get(key)
-    if value is None:
-        return None
-    elif not isinstance(value, list):
-        raise ValueError(
-            f"expected dictionary value type of `list` for key `{key}`; got value of type `{type(value).__name__}`"
-        )
-    else:
-        for item in value:
-            if not isinstance(item, str):
-                raise ValueError(
-                    f"expected dictionary value type of `list[str]` for key `{key}`; got list item of type `{type(item).__name__}`"
-                )
-        return value
-
-
 @dataclass
-class ScannedDocument:
+class DocumentProperties:
     """
-    An object that holds properties extracted from a Markdown document, including remaining source text.
+    An object that holds properties extracted from a Markdown document.
 
     :param page_id: Confluence page ID.
     :param space_key: Confluence space key.
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
-    :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
     page_id: Optional[str]
@@ -93,6 +74,16 @@ class ScannedDocument:
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
+
+
+@dataclass
+class ScannedDocument(DocumentProperties):
+    """
+    An object that holds properties extracted from a Markdown document, including remaining source text.
+
+    :param text: Text that remains after front-matter and inline properties have been extracted.
+    """
+
     text: str
 
 
@@ -121,13 +112,14 @@ class Scanner:
         tags: Optional[list[str]] = None
 
         # extract front-matter
-        properties, text = extract_frontmatter_properties(text)
-        if properties is not None:
-            page_id = page_id or get_string(properties, "confluence-page-id")
-            space_key = space_key or get_string(properties, "confluence-space-key")
-            generated_by = generated_by or get_string(properties, "generated-by")
-            title = get_string(properties, "title")
-            tags = get_string_list(properties, "tags")
+        data, text = extract_frontmatter_properties(text)
+        if data is not None:
+            properties = _json_to_object(DocumentProperties, data)
+            page_id = page_id or properties.page_id
+            space_key = space_key or properties.space_key
+            generated_by = generated_by or properties.generated_by
+            title = properties.title
+            tags = properties.tags
 
         return ScannedDocument(
             page_id=page_id,
