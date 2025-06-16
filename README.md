@@ -250,7 +250,7 @@ Relative paths to items in a nested directory are not supported. You must put `.
 
 *md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following are probed in this order:
 
-1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Currently, only YAML syntax is supported.
+1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Both JSON and YAML syntax are supported.
 2. The text of the topmost unique Markdown heading (`#`). For example, if a document has a single first-level heading (e.g. `# My document`), its text is used. However, if there are multiple first-level headings, this step is skipped.
 3. The file name (without the extension `.md`).
 

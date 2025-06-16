@@ -1,5 +1,5 @@
 ---
-title: "🏠 Markdown parent page"
+{ "title": "🏠 Markdown parent page" }
 ---
 
 <!-- confluence-page-id: 1966122 -->

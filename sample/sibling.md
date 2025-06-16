@@ -1,6 +1,10 @@
 ---
 title: "Markdown example document"
-tags: ["markdown", "confluence", "md", "wiki"]
+tags:
+  - markdown
+  - confluence
+  - md
+  - wiki
 description: >
     this is
     a multiline string

@@ -60,10 +60,12 @@ def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, Any]],
 @dataclass
 class DocumentProperties:
     """
-    An object that holds properties extracted from a Markdown document.
+    An object that holds properties extracted from the front-matter of a Markdown document.
 
     :param page_id: Confluence page ID.
     :param space_key: Confluence space key.
+    :param confluence_page_id: Confluence page ID. (Alternative name for JSON de-serialization.)
+    :param confluence_space_key: Confluence space key. (Alternative name for JSON de-serialization.)
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
@@ -71,19 +73,31 @@ class DocumentProperties:
 
     page_id: Optional[str]
     space_key: Optional[str]
+    confluence_page_id: Optional[str]
+    confluence_space_key: Optional[str]
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
 
 
 @dataclass
-class ScannedDocument(DocumentProperties):
+class ScannedDocument:
     """
     An object that holds properties extracted from a Markdown document, including remaining source text.
 
+    :param page_id: Confluence page ID.
+    :param space_key: Confluence space key.
+    :param generated_by: Text identifying the tool that generated the document.
+    :param title: The title extracted from front-matter.
+    :param tags: A list of tags (content labels) extracted from front-matter.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
+    page_id: Optional[str]
+    space_key: Optional[str]
+    generated_by: Optional[str]
+    title: Optional[str]
+    tags: Optional[list[str]]
     text: str
 
 
@@ -98,15 +112,19 @@ class Scanner:
             text = f.read()
 
         # extract Confluence page ID
-        page_id, text = extract_value(r"<!--\s+confluence-page-id:\s*(\d+)\s+-->", text)
+        page_id, text = extract_value(
+            r"<!--\s+confluence[-_]page[-_]id:\s*(\d+)\s+-->", text
+        )
 
         # extract Confluence space key
         space_key, text = extract_value(
-            r"<!--\s+confluence-space-key:\s*(\S+)\s+-->", text
+            r"<!--\s+confluence[-_]space[-_]key:\s*(\S+)\s+-->", text
         )
 
         # extract 'generated-by' tag text
-        generated_by, text = extract_value(r"<!--\s+generated-by:\s*(.*)\s+-->", text)
+        generated_by, text = extract_value(
+            r"<!--\s+generated[-_]by:\s*(.*)\s+-->", text
+        )
 
         title: Optional[str] = None
         tags: Optional[list[str]] = None
@@ -114,12 +132,12 @@ class Scanner:
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
         if data is not None:
-            properties = _json_to_object(DocumentProperties, data)
-            page_id = page_id or properties.page_id
-            space_key = space_key or properties.space_key
-            generated_by = generated_by or properties.generated_by
-            title = properties.title
-            tags = properties.tags
+            p = _json_to_object(DocumentProperties, data)
+            page_id = page_id or p.confluence_page_id or p.page_id
+            space_key = space_key or p.confluence_space_key or p.space_key
+            generated_by = generated_by or p.generated_by
+            title = p.title
+            tags = p.tags
 
         return ScannedDocument(
             page_id=page_id,

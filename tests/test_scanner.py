@@ -35,7 +35,13 @@ class TestScanner(unittest.TestCase):
         self.assertIsNone(document.space_key)
         self.assertIsNone(document.title)
 
-    def test_frontmatter(self) -> None:
+    def test_json_frontmatter(self) -> None:
+        document = Scanner().read(self.sample_dir / "parent" / "index.md")
+        self.assertEqual(document.page_id, "1966122")
+        self.assertEqual(document.space_key, "~hunyadi")
+        self.assertEqual(document.title, "🏠 Markdown parent page")
+
+    def test_yaml_frontmatter(self) -> None:
         document = Scanner().read(self.sample_dir / "sibling.md")
         self.assertIsNotNone(document.page_id)
         self.assertIsNone(document.space_key)
