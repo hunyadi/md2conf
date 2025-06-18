@@ -23,6 +23,7 @@ from . import __version__
 from .api import ConfluenceAPI
 from .application import Application
 from .converter import ConfluenceDocumentOptions, ConfluencePageID
+from .extra import override
 from .local import LocalConverter
 from .metadata import ConfluenceSiteMetadata
 from .properties import (
@@ -55,6 +56,7 @@ class Arguments(argparse.Namespace):
 class KwargsAppendAction(argparse.Action):
     """Append key-value pairs to a dictionary"""
 
+    @override
     def __call__(
         self,
         parser: argparse.ArgumentParser,

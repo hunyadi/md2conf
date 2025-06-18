@@ -13,6 +13,7 @@ from pathlib import Path
 
 from md2conf.api import ConfluenceAPI, ConfluenceLabel
 from md2conf.converter import content_to_string
+from md2conf.extra import override
 
 TEST_SPACE = "~hunyadi"
 TEST_PAGE_ID = "65713"
@@ -21,6 +22,7 @@ TEST_PAGE_ID = "65713"
 class TestConfluenceStorageFormat(unittest.TestCase):
     test_dir: Path
 
+    @override
     def setUp(self) -> None:
         self.test_dir = Path(__file__).parent
         parent_dir = self.test_dir.parent

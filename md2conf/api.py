@@ -397,7 +397,7 @@ class ConfluenceSession:
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
-        return response.json()
+        return typing.cast(JsonType, response.json())
 
     def _fetch(
         self, path: str, query: Optional[dict[str, str]] = None
@@ -596,7 +596,7 @@ class ConfluenceSession:
                 LOGGER.info("Uploading attachment: %s", attachment_name)
                 response = self.session.post(
                     url,
-                    files=file_to_upload,  # type: ignore
+                    files=file_to_upload,  # type: ignore[arg-type]
                     headers={"X-Atlassian-Token": "no-check"},
                 )
         elif raw_data is not None:
@@ -608,14 +608,14 @@ class ConfluenceSession:
                 "comment": comment,
                 "file": (
                     attachment_name,  # will truncate path component
-                    raw_file,  # type: ignore
+                    raw_file,  # type: ignore[dict-item]
                     content_type,
                     {"Expires": "0"},
                 ),
             }
             response = self.session.post(
                 url,
-                files=file_to_upload,  # type: ignore
+                files=file_to_upload,  # type: ignore[arg-type]
                 headers={"X-Atlassian-Token": "no-check"},
             )
         else:
@@ -651,13 +651,13 @@ class ConfluenceSession:
         LOGGER.info("Updating attachment: %s", attachment_id)
         self._save(ConfluenceVersion.VERSION_1, path, object_to_json(request))
 
-    def get_page_id_by_title(
+    def get_page_properties_by_title(
         self,
         title: str,
         *,
         space_id: Optional[str] = None,
         space_key: Optional[str] = None,
-    ) -> str:
+    ) -> ConfluencePageProperties:
         """
         Looks up a Confluence wiki page ID by title.
 
@@ -683,7 +683,7 @@ class ConfluenceSession:
             raise ConfluenceError(f"unique page not found with title: {title}")
 
         page = _json_to_object(ConfluencePageProperties, results[0])
-        return page.id
+        return page
 
     def get_page(self, page_id: str) -> ConfluencePage:
         """

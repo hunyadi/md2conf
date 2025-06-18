@@ -28,7 +28,7 @@ def _json_to_object(
 def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
     values: list[str] = []
 
-    def _repl_func(matchobj: re.Match) -> str:
+    def _repl_func(matchobj: re.Match[str]) -> str:
         values.append(matchobj.group(1))
         return ""
 

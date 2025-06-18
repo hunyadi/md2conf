@@ -17,6 +17,7 @@ from .converter import (
     ConfluencePageID,
     attachment_name,
 )
+from .extra import override
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .properties import PageError
@@ -45,6 +46,7 @@ class SynchronizingProcessor(Processor):
         super().__init__(options, api.site, root_dir)
         self.api = api
 
+    @override
     def _synchronize_tree(
         self, root: DocumentNode, root_id: Optional[ConfluencePageID]
     ) -> None:
@@ -61,7 +63,7 @@ class SynchronizingProcessor(Processor):
                 f"expected: root page ID in options, or explicit page ID in {root.absolute_path}"
             )
         elif root.page_id is not None and root_id is not None:
-            if root.page_id != root_id:
+            if root.page_id != root_id.page_id:
                 raise PageError(
                     f"mismatched inferred page ID of {root_id.page_id} and explicit page ID in {root.absolute_path}"
                 )
@@ -81,7 +83,7 @@ class SynchronizingProcessor(Processor):
     ) -> None:
         if node.page_id is not None:
             # verify if page exists
-            page = self.api.get_page_properties(parent_id.page_id)
+            page = self.api.get_page_properties(node.page_id)
             update = False
         elif node.title is not None:
             # look up page by title
@@ -112,6 +114,7 @@ class SynchronizingProcessor(Processor):
         for child_node in node.children():
             self._synchronize_subtree(child_node, ConfluencePageID(page.id))
 
+    @override
     def _update_page(
         self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
     ) -> None:

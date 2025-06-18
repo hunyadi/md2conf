@@ -14,6 +14,7 @@ from typing import Optional
 from unittest.util import safe_repr
 
 from md2conf.converter import ConfluenceDocumentOptions, ConfluencePageID
+from md2conf.extra import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
 
@@ -39,6 +40,7 @@ class TestProcessor(unittest.TestCase):
             )
             self.fail(self._formatMessage(msg, standardMsg))
 
+    @override
     def setUp(self) -> None:
         self.maxDiff = 1024
 
@@ -49,6 +51,7 @@ class TestProcessor(unittest.TestCase):
         self.sample_dir = parent_dir / "sample"
         self.out_dir.mkdir(exist_ok=True, parents=True)
 
+    @override
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 

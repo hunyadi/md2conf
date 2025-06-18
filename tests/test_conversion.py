@@ -21,6 +21,7 @@ from md2conf.converter import (
     elements_from_string,
     elements_to_string,
 )
+from md2conf.extra import override
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
@@ -50,6 +51,7 @@ class TestConversion(unittest.TestCase):
     target_dir: Path
     site_metadata: ConfluenceSiteMetadata
 
+    @override
     def setUp(self) -> None:
         self.maxDiff = None
 

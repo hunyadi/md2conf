@@ -22,6 +22,7 @@ from md2conf.converter import (
     ConfluencePageID,
     sanitize_confluence,
 )
+from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.scanner import Scanner
 
@@ -34,6 +35,7 @@ class TestAPI(unittest.TestCase):
     out_dir: Path
     sample_dir: Path
 
+    @override
     def setUp(self) -> None:
         test_dir = Path(__file__).parent
         parent_dir = test_dir.parent
@@ -42,6 +44,7 @@ class TestAPI(unittest.TestCase):
         self.sample_dir = parent_dir / "sample"
         os.makedirs(self.out_dir, exist_ok=True)
 
+    @override
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 
@@ -64,8 +67,8 @@ class TestAPI(unittest.TestCase):
 
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
-            page_id = api.get_page_id_by_title(TEST_PAGE_TITLE)
-            self.assertEqual(page_id, TEST_PAGE_ID.page_id)
+            page = api.get_page_properties_by_title(TEST_PAGE_TITLE)
+            self.assertEqual(page.id, TEST_PAGE_ID.page_id)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:

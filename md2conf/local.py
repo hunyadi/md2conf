@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
+from .extra import override
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 
@@ -43,6 +44,7 @@ class LocalProcessor(Processor):
         super().__init__(options, site, root_dir)
         self.out_dir = out_dir or root_dir
 
+    @override
     def _synchronize_tree(
         self, root: DocumentNode, root_id: Optional[ConfluencePageID]
     ) -> None:
@@ -71,6 +73,7 @@ class LocalProcessor(Processor):
                 ),
             )
 
+    @override
     def _update_page(
         self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
     ) -> None:

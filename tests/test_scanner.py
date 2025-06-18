@@ -10,6 +10,7 @@ import logging
 import unittest
 from pathlib import Path
 
+from md2conf.extra import override
 from md2conf.scanner import Scanner
 
 logging.basicConfig(
@@ -21,6 +22,7 @@ logging.basicConfig(
 class TestScanner(unittest.TestCase):
     sample_dir: Path
 
+    @override
     def setUp(self) -> None:
         self.maxDiff = 1024
 
