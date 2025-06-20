@@ -59,7 +59,7 @@ class TestConversion(unittest.TestCase):
         self.source_dir = test_dir / "source"
         self.target_dir = test_dir / "target"
         self.site_metadata = ConfluenceSiteMetadata(
-            "example.com", "/wiki/", "SPACE_KEY"
+            domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
         )
         self.page_metadata = ConfluencePageCollection()
 

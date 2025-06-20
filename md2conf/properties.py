@@ -55,14 +55,24 @@ class ConfluenceSiteProperties:
 
 
 class ConfluenceConnectionProperties(ConfluenceSiteProperties):
-    "Properties related to connecting to Confluence."
+    """
+    Properties related to connecting to Confluence.
 
+    :param api_url: Confluence API URL. Required for scoped tokens.
+    :param user_name: Confluence user name.
+    :param api_key: Confluence API key.
+    :param headers: Additional HTTP headers to pass to Confluence REST API calls.
+    """
+
+    api_url: Optional[str]
     user_name: Optional[str]
     api_key: str
     headers: Optional[dict[str, str]]
 
     def __init__(
         self,
+        *,
+        api_url: Optional[str] = None,
         domain: Optional[str] = None,
         base_path: Optional[str] = None,
         user_name: Optional[str] = None,
@@ -72,12 +82,14 @@ class ConfluenceConnectionProperties(ConfluenceSiteProperties):
     ) -> None:
         super().__init__(domain, base_path, space_key)
 
+        opt_api_url = api_url or os.getenv("CONFLUENCE_API_URL")
         opt_user_name = user_name or os.getenv("CONFLUENCE_USER_NAME")
         opt_api_key = api_key or os.getenv("CONFLUENCE_API_KEY")
 
         if not opt_api_key:
             raise ArgumentError("Confluence API key not specified")
 
+        self.api_url = opt_api_url
         self.user_name = opt_user_name
         self.api_key = opt_api_key
         self.headers = headers

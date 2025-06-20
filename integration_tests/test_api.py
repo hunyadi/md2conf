@@ -53,7 +53,9 @@ class TestAPI(unittest.TestCase):
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
             self.sample_dir,
-            ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY"),
+            ConfluenceSiteMetadata(
+                domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
+            ),
             ConfluencePageCollection(),
         )
         self.assertListEqual(document.links, [])

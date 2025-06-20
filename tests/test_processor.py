@@ -56,7 +56,9 @@ class TestProcessor(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def create_converter(self, options: ConfluenceDocumentOptions) -> LocalConverter:
-        site_metadata = ConfluenceSiteMetadata("example.com", "/wiki/", "SPACE_KEY")
+        site_metadata = ConfluenceSiteMetadata(
+            domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
+        )
         return LocalConverter(options, site_metadata, self.out_dir)
 
     def test_process_document(self) -> None:

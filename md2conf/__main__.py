@@ -37,8 +37,9 @@ class Arguments(argparse.Namespace):
     mdpath: Path
     domain: Optional[str]
     path: Optional[str]
+    api_url: Optional[str]
     username: Optional[str]
-    apikey: Optional[str]
+    api_key: Optional[str]
     space: Optional[str]
     loglevel: str
     ignore_invalid_url: bool
@@ -85,10 +86,17 @@ def main() -> None:
     parser.add_argument(
         "-p", "--path", help="Base path for Confluence (default: '/wiki/')."
     )
+    parser.add_argument(
+        "--api-url",
+        dest="api_url",
+        help="Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.",
+    )
     parser.add_argument("-u", "--username", help="Confluence user name.")
     parser.add_argument(
         "-a",
         "--apikey",
+        "--api-key",
+        dest="api_key",
         help="Confluence API key. Refer to documentation how to obtain one.",
     )
     parser.add_argument(
@@ -226,12 +234,13 @@ def main() -> None:
     else:
         try:
             properties = ConfluenceConnectionProperties(
-                args.domain,
-                args.path,
-                args.username,
-                args.apikey,
-                args.space,
-                args.headers,
+                api_url=args.api_url,
+                domain=args.domain,
+                base_path=args.path,
+                user_name=args.username,
+                api_key=args.api_key,
+                space_key=args.space,
+                headers=args.headers,
             )
         except ArgumentError as e:
             parser.error(str(e))

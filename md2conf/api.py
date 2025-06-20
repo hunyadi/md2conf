@@ -317,12 +317,12 @@ class ConfluenceAPI:
         if self.properties.headers:
             session.headers.update(self.properties.headers)
 
-        self.session = ConfluenceSession(
-            session,
-            self.properties.domain,
-            self.properties.base_path,
-            self.properties.space_key,
+        site = ConfluenceSiteMetadata(
+            domain=self.properties.domain,
+            base_path=self.properties.base_path,
+            space_key=self.properties.space_key,
         )
+        self.session = ConfluenceSession(session, self.properties.api_url, site)
         return self.session
 
     def __exit__(
@@ -342,6 +342,7 @@ class ConfluenceSession:
     """
 
     session: requests.Session
+    api_url: Optional[str]
     site: ConfluenceSiteMetadata
 
     _space_id_to_key: dict[str, str]
@@ -350,12 +351,12 @@ class ConfluenceSession:
     def __init__(
         self,
         session: requests.Session,
-        domain: str,
-        base_path: str,
-        space_key: Optional[str] = None,
+        api_url: Optional[str],
+        site: ConfluenceSiteMetadata,
     ) -> None:
         self.session = session
-        self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
+        self.api_url = api_url
+        self.site = site
 
         self._space_id_to_key = {}
         self._space_key_to_id = {}
@@ -379,9 +380,12 @@ class ConfluenceSession:
         :returns: A full URL.
         """
 
-        base_url = (
-            f"https://{self.site.domain}{self.site.base_path}{version.value}{path}"
-        )
+        if self.api_url:
+            api_url = self.api_url
+        else:
+            api_url = f"https://{self.site.domain}{self.site.base_path}"
+
+        base_url = f"{api_url}{version.value}{path}"
         return build_url(base_url, query)
 
     def _invoke(
