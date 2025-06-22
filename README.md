@@ -305,6 +305,10 @@ mmdc -i sample.mmd -o sample.png -b transparent --scale 2
 
 Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
 
+### Local output
+
+*md2conf* supports local output, in which the tool doesn't communicate with the Confluence REST API. Instead, it reads a single Markdown file or a directory of Markdown files, and writes Confluence Storage Format (`*.csf`) output for each document. (Confluence Storage Format is a derivative of XHTML with Confluence-specific tags for complex elements such as images with captions, code blocks, info panels, collapsed sections, etc.) You can push the generated output to Confluence by invoking the API (e.g. with `curl`).
+
 ### Running the tool
 
 You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
@@ -317,8 +321,8 @@ Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
 $ python3 -m md2conf --help
-usage: md2conf [-h] [--version] [-d DOMAIN] [-p PATH] [-u USERNAME] [-a APIKEY] [-s SPACE] [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE] [--keep-hierarchy] [--generated-by GENERATED_BY] [--no-generated-by]
-               [--render-mermaid] [--no-render-mermaid] [--render-mermaid-format {png,svg}] [--heading-anchors] [--ignore-invalid-url] [--local] [--headers [KEY=VALUE ...]] [--webui-links]
+usage: md2conf [-h] [--version] [-d DOMAIN] [-p PATH] [--api-url API_URL] [-u USERNAME] [-a API_KEY] [-s SPACE] [-l {debug,info,warning,error,critical}] [-r ROOT_PAGE] [--keep-hierarchy] [--generated-by GENERATED_BY]
+               [--no-generated-by] [--render-mermaid] [--no-render-mermaid] [--render-mermaid-format {png,svg}] [--heading-anchors] [--ignore-invalid-url] [--local] [--headers [KEY=VALUE ...]] [--webui-links]
                mdpath
 
 positional arguments:
@@ -330,9 +334,10 @@ options:
   -d DOMAIN, --domain DOMAIN
                         Confluence organization domain.
   -p PATH, --path PATH  Base path for Confluence (default: '/wiki/').
+  --api-url API_URL     Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.
   -u USERNAME, --username USERNAME
                         Confluence user name.
-  -a APIKEY, --apikey APIKEY
+  -a API_KEY, --apikey API_KEY, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s SPACE, --space SPACE
                         Confluence space key for pages to be published. If omitted, will default to user space.
