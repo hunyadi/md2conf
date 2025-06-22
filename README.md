@@ -64,7 +64,7 @@ In order to get started, you will need
 
 Confluence organization domain, base path, username, API token and space key can be specified at runtime or set as Confluence environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS):
 
-```bash
+```sh
 export CONFLUENCE_DOMAIN='example.atlassian.net'
 export CONFLUENCE_PATH='/wiki/'
 export CONFLUENCE_USER_NAME='levente.hunyadi@instructure.com'
@@ -74,9 +74,28 @@ export CONFLUENCE_SPACE_KEY='SPACE'
 
 On Windows, these can be set via system properties.
 
+If you use Atlassian scoped API tokens, you should set API URL, substituting `CLOUD_ID` with your own Cloud ID:
+
+```sh
+export CONFLUENCE_API_URL='https://api.atlassian.com/ex/confluence/CLOUD_ID/'
+```
+
+In this case, *md2conf* can automatically determine `CONFLUENCE_DOMAIN` and `CONFLUENCE_PATH`.
+
 ### Permissions
 
 The tool requires appropriate permissions in Confluence in order to invoke endpoints.
+
+Required scopes for scoped API tokens are as follows:
+
+* `read:page:confluence`
+* `write:page:confluence`
+* `read:space:confluence`
+* `write:space:confluence`
+* `read:attachment:confluence`
+* `write:attachment:confluence`
+* `read:label:confluence`
+* `write:label:confluence`
 
 If a Confluence username is set, the tool uses HTTP *Basic* authentication to pass the username and the API key to Confluence REST API endpoints. If no username is provided, the tool authenticates with HTTP *Bearer*, and passes the API key as the bearer token.
 

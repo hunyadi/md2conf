@@ -114,7 +114,7 @@ class ConfluenceLegacyType(enum.Enum):
 
 
 @dataclass(frozen=True)
-class ConfluenceResultSetLinks:
+class ConfluenceLinks:
     next: str
     base: str
 
@@ -122,7 +122,7 @@ class ConfluenceResultSetLinks:
 @dataclass(frozen=True)
 class ConfluenceResultSet:
     results: list[JsonType]
-    _links: ConfluenceResultSetLinks
+    _links: ConfluenceLinks
 
 
 @dataclass(frozen=True)
@@ -317,12 +317,13 @@ class ConfluenceAPI:
         if self.properties.headers:
             session.headers.update(self.properties.headers)
 
-        site = ConfluenceSiteMetadata(
+        self.session = ConfluenceSession(
+            session,
+            api_url=self.properties.api_url,
             domain=self.properties.domain,
             base_path=self.properties.base_path,
             space_key=self.properties.space_key,
         )
-        self.session = ConfluenceSession(session, self.properties.api_url, site)
         return self.session
 
     def __exit__(
@@ -342,7 +343,7 @@ class ConfluenceSession:
     """
 
     session: requests.Session
-    api_url: Optional[str]
+    api_url: str
     site: ConfluenceSiteMetadata
 
     _space_id_to_key: dict[str, str]
@@ -351,15 +352,41 @@ class ConfluenceSession:
     def __init__(
         self,
         session: requests.Session,
+        *,
         api_url: Optional[str],
-        site: ConfluenceSiteMetadata,
+        domain: Optional[str],
+        base_path: Optional[str],
+        space_key: Optional[str],
     ) -> None:
         self.session = session
-        self.api_url = api_url
-        self.site = site
-
         self._space_id_to_key = {}
         self._space_key_to_id = {}
+
+        if api_url:
+            self.api_url = api_url
+
+            if not domain or not base_path:
+                payload = self._invoke(
+                    ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"}
+                )
+                data = json_to_object(ConfluenceResultSet, payload)
+                base_url = data._links.base
+
+                _, domain, base_path, _, _, _ = urlparse(base_url)
+                if not base_path.endswith("/"):
+                    base_path = f"{base_path}/"
+
+        if not domain:
+            raise ArgumentError(
+                "Confluence domain not specified and cannot be inferred"
+            )
+        if not base_path:
+            raise ArgumentError(
+                "Confluence base path not specified and cannot be inferred"
+            )
+        self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
+        if not api_url:
+            self.api_url = f"https://{self.site.domain}{self.site.base_path}"
 
     def close(self) -> None:
         self.session.close()
@@ -380,12 +407,7 @@ class ConfluenceSession:
         :returns: A full URL.
         """
 
-        if self.api_url:
-            api_url = self.api_url
-        else:
-            api_url = f"https://{self.site.domain}{self.site.base_path}"
-
-        base_url = f"{api_url}{version.value}{path}"
+        base_url = f"{self.api_url}{version.value}{path}"
         return build_url(base_url, query)
 
     def _invoke(
@@ -397,7 +419,7 @@ class ConfluenceSession:
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
-        response = self.session.get(url)
+        response = self.session.get(url, headers={"Accept": "application/json"})
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
@@ -411,7 +433,7 @@ class ConfluenceSession:
         items: list[JsonType] = []
         url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
         while True:
-            response = self.session.get(url)
+            response = self.session.get(url, headers={"Accept": "application/json"})
             response.raise_for_status()
 
             payload = typing.cast(dict[str, JsonType], response.json())
@@ -450,8 +472,8 @@ class ConfluenceSession:
                 "/spaces",
                 {"ids": id, "status": "current"},
             )
-            payload = typing.cast(dict[str, JsonType], payload)
-            results = typing.cast(list[JsonType], payload["results"])
+            data = typing.cast(dict[str, JsonType], payload)
+            results = typing.cast(list[JsonType], data["results"])
             if len(results) != 1:
                 raise ConfluenceError(f"unique space not found with id: {id}")
 
@@ -601,7 +623,10 @@ class ConfluenceSession:
                 response = self.session.post(
                     url,
                     files=file_to_upload,  # type: ignore[arg-type]
-                    headers={"X-Atlassian-Token": "no-check"},
+                    headers={
+                        "X-Atlassian-Token": "no-check",
+                        "Accept": "application/json",
+                    },
                 )
         elif raw_data is not None:
             LOGGER.info("Uploading raw data: %s", attachment_name)
@@ -620,7 +645,10 @@ class ConfluenceSession:
             response = self.session.post(
                 url,
                 files=file_to_upload,  # type: ignore[arg-type]
-                headers={"X-Atlassian-Token": "no-check"},
+                headers={
+                    "X-Atlassian-Token": "no-check",
+                    "Accept": "application/json",
+                },
             )
         else:
             raise NotImplementedError("parameter match not exhaustive")
@@ -800,7 +828,10 @@ class ConfluenceSession:
         response = self.session.post(
             url,
             data=json_dump_string(object_to_json(request)),
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
         )
         response.raise_for_status()
         return _json_to_object(ConfluencePage, response.json())
@@ -855,7 +886,12 @@ class ConfluenceSession:
 
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         response = self.session.get(
-            url, params=query, headers={"Content-Type": "application/json"}
+            url,
+            params=query,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
         )
         response.raise_for_status()
         data = typing.cast(dict[str, JsonType], response.json())
@@ -910,7 +946,10 @@ class ConfluenceSession:
         response = self.session.post(
             url,
             data=json_dump_string(object_to_json(labels)),
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
         )
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
