@@ -43,9 +43,7 @@ class ConfluenceSiteProperties:
             opt_base_path = "/wiki/"
 
         if opt_domain.startswith(("http://", "https://")) or opt_domain.endswith("/"):
-            raise ArgumentError(
-                "Confluence domain looks like a URL; only host name required"
-            )
+            raise ArgumentError("Confluence domain looks like a URL; only host name required")
         if not opt_base_path.startswith("/") or not opt_base_path.endswith("/"):
             raise ArgumentError("Confluence base path must start and end with a '/'")
 

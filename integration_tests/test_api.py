@@ -53,9 +53,7 @@ class TestAPI(unittest.TestCase):
             self.sample_dir / "index.md",
             ConfluenceDocumentOptions(),
             self.sample_dir,
-            ConfluenceSiteMetadata(
-                domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
-            ),
+            ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             ConfluencePageCollection(),
         )
         self.assertListEqual(document.links, [])
@@ -82,9 +80,7 @@ class TestAPI(unittest.TestCase):
 
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(
-                TEST_PAGE_ID.page_id, "figure_interoperability.png"
-            )
+            data = api.get_attachment_by_name(TEST_PAGE_ID.page_id, "figure_interoperability.png")
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
@@ -99,21 +95,15 @@ class TestAPI(unittest.TestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process(
-                self.sample_dir / "index.md"
-            )
+            Application(api, ConfluenceDocumentOptions()).process(self.sample_dir / "index.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process_page(
-                self.sample_dir / "index.md"
-            )
+            Application(api, ConfluenceDocumentOptions()).process_page(self.sample_dir / "index.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process_directory(
-                self.sample_dir
-            )
+            Application(api, ConfluenceDocumentOptions()).process_directory(self.sample_dir)
 
     def test_synchronize_create(self) -> None:
         """
@@ -180,14 +170,10 @@ if __name__ == "__main__":
         format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
     )
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s")
 
     (name, _) = os.path.splitext(os.path.basename(__file__))
-    handler = logging.FileHandler(
-        os.path.join(os.path.dirname(__file__), f"{name}.log"), "w", "utf-8"
-    )
+    handler = logging.FileHandler(os.path.join(os.path.dirname(__file__), f"{name}.log"), "w", "utf-8")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
 

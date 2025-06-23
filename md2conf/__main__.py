@@ -26,11 +26,7 @@ from .converter import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override
 from .local import LocalConverter
 from .metadata import ConfluenceSiteMetadata
-from .properties import (
-    ArgumentError,
-    ConfluenceConnectionProperties,
-    ConfluenceSiteProperties,
-)
+from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
 
 
 class Arguments(argparse.Namespace):
@@ -71,7 +67,7 @@ class KwargsAppendAction(argparse.Action):
             raise argparse.ArgumentError(
                 self,
                 f'Could not parse argument "{values}". It should follow the format: k1=v1 k2=v2 ...',
-            )
+            ) from None
         setattr(namespace, self.dest, d)
 
 
@@ -79,13 +75,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
-    parser.add_argument(
-        "mdpath", help="Path to Markdown file or directory to convert and publish."
-    )
+    parser.add_argument("mdpath", help="Path to Markdown file or directory to convert and publish.")
     parser.add_argument("-d", "--domain", help="Confluence organization domain.")
-    parser.add_argument(
-        "-p", "--path", help="Base path for Confluence (default: '/wiki/')."
-    )
+    parser.add_argument("-p", "--path", help="Base path for Confluence (default: '/wiki/').")
     parser.add_argument(
         "--api-url",
         dest="api_url",

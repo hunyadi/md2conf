@@ -156,6 +156,4 @@ class Matcher:
         :returns: A filtered list of entries whose name didn't match any of the exclusion rules.
         """
 
-        return self.filter(
-            Entry(entry.name, entry.is_dir()) for entry in os.scandir(path)
-        )
+        return self.filter(Entry(entry.name, entry.is_dir()) for entry in os.scandir(path))

@@ -1,3 +1,69 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=80.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "markdown-to-confluence"
+description = "Publish Markdown files to Confluence wiki"
+readme = { file = "README.md", content-type = "text/markdown" }
+keywords = ["markdown", "converter", "confluence"]
+license = "MIT"
+authors = [
+    { name = "Levente Hunyadi", email = "hunyadi@gmail.com" }
+]
+maintainers = [
+    { name = "Levente Hunyadi", email = "hunyadi@gmail.com" }
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed"
+]
+dependencies = [
+    "json_strong_typing >= 0.3.9",
+    "lxml >= 5.4",
+    "types-lxml >= 2025.3.30",
+    "markdown >= 3.8",
+    "types-markdown >= 3.8",
+    "pymdown-extensions >= 10.16",
+    "PyYAML >= 6.0",
+    "types-PyYAML >= 6.0",
+    "requests >= 2.32",
+    "types-requests >= 2.32",
+    "typing_extensions >= 4.14; python_version < '3.12'"
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://github.com/hunyadi/md2conf"
+"Source" = "https://github.com/hunyadi/md2conf"
+
+[project.scripts]
+md2conf = "md2conf.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["md2conf"]
+zip-safe = true
+
+[tool.setuptools.dynamic]
+version = { attr = "md2conf.__version__" }
+
+[tool.setuptools.package-data]
+"md2conf" = ["entities.dtd", "puppeteer-config.json", "py.typed"]
+
+[tool.ruff]
+line-length = 160
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "Q"]

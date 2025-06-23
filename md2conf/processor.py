@@ -131,15 +131,11 @@ class Processor:
         Synchronizes a single Markdown document with its corresponding Confluence page.
         """
 
-        page_id, document = ConfluenceDocument.create(
-            path, self.options, self.root_dir, self.site, self.page_metadata
-        )
+        page_id, document = ConfluenceDocument.create(path, self.options, self.root_dir, self.site, self.page_metadata)
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_tree(
-        self, node: DocumentNode, page_id: Optional[ConfluencePageID]
-    ) -> None:
+    def _synchronize_tree(self, node: DocumentNode, page_id: Optional[ConfluencePageID]) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -150,17 +146,13 @@ class Processor:
         ...
 
     @abstractmethod
-    def _update_page(
-        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
-    ) -> None:
+    def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:
         """
         Saves the document as Confluence Storage Format XHTML.
         """
         ...
 
-    def _index_directory(
-        self, local_dir: Path, parent: Optional[DocumentNode]
-    ) -> DocumentNode:
+    def _index_directory(self, local_dir: Path, parent: Optional[DocumentNode]) -> DocumentNode:
         """
         Indexes Markdown files in a directory hierarchy recursively.
         """
@@ -254,9 +246,7 @@ class ProcessorFactory:
     options: ConfluenceDocumentOptions
     site: ConfluenceSiteMetadata
 
-    def __init__(
-        self, options: ConfluenceDocumentOptions, site: ConfluenceSiteMetadata
-    ) -> None:
+    def __init__(self, options: ConfluenceDocumentOptions, site: ConfluenceSiteMetadata) -> None:
         self.options = options
         self.site = site
 
@@ -283,9 +273,7 @@ class Converter:
         else:
             raise ArgumentError(f"expected: valid file or directory path; got: {path}")
 
-    def process_directory(
-        self, local_dir: Path, root_dir: Optional[Path] = None
-    ) -> None:
+    def process_directory(self, local_dir: Path, root_dir: Optional[Path] = None) -> None:
         """
         Recursively scans a directory hierarchy for Markdown files, and processes each, resolving cross-references.
         """

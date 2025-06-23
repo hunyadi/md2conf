@@ -145,14 +145,11 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
         load_dtd=True,
     )
 
-    ns_attr_list = "".join(
-        f' xmlns:{key}="{value}"' for key, value in namespaces.items()
-    )
+    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in namespaces.items())
 
     data = [
         '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}">'
-        f"<root{ns_attr_list}>",
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}"><root{ns_attr_list}>',
     ]
     data.extend(items)
     data.append("</root>")
@@ -417,13 +414,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         LOGGER.debug("Found link %s relative to %s", url, self.path)
         relative_url: ParseResult = urlparse(url)
 
-        if (
-            not relative_url.scheme
-            and not relative_url.netloc
-            and not relative_url.path
-            and not relative_url.params
-            and not relative_url.query
-        ):
+        if not relative_url.scheme and not relative_url.netloc and not relative_url.path and not relative_url.params and not relative_url.query:
             LOGGER.debug("Found local URL: %s", url)
             if self.options.heading_anchors:
                 # <ac:link ac:anchor="anchor"><ac:link-body>...</ac:link-body></ac:link>
@@ -467,9 +458,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(msg)
 
         relative_path = os.path.relpath(absolute_path, self.base_dir)
-        LOGGER.debug(
-            "found link to page %s with metadata: %s", relative_path, link_metadata
-        )
+        LOGGER.debug("found link to page %s with metadata: %s", relative_path, link_metadata)
         self.links.append(url)
 
         if self.options.webui_links:
@@ -478,9 +467,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             space_key = link_metadata.space_key or self.site_metadata.space_key
 
             if space_key is None:
-                raise DocumentError(
-                    "Confluence space key required for building full web URLs"
-                )
+                raise DocumentError("Confluence space key required for building full web URLs")
 
             page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{encode_title(link_metadata.title)}"
 
@@ -522,9 +509,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         else:
             return self._transform_attached_image(Path(src), caption, attributes)
 
-    def _transform_external_image(
-        self, url: str, caption: Optional[str], attributes: dict[str, Any]
-    ) -> ET._Element:
+    def _transform_external_image(self, url: str, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an external image."
 
         elements: list[ET._Element] = []
@@ -540,9 +525,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         return AC("image", attributes, *elements)
 
-    def _transform_attached_image(
-        self, path: Path, caption: Optional[str], attributes: dict[str, Any]
-    ) -> ET._Element:
+    def _transform_attached_image(self, path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an attached image."
 
         # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
@@ -607,9 +590,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_mermaid:
             image_data = render_diagram(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(
-                f"embedded_{image_hash}.{self.options.diagram_output_format}"
-            )
+            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_images[image_filename] = image_data
             return AC(
                 "image",
@@ -769,9 +750,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         return self._transform_alert(elem, class_name, skip)
 
-    def _transform_alert(
-        self, elem: ET._Element, class_name: Optional[str], skip: int
-    ) -> ET._Element:
+    def _transform_alert(self, elem: ET._Element, class_name: Optional[str], skip: int) -> ET._Element:
         """
         Creates an info, tip, note or warning panel from a GitHub or GitLab alert.
 
@@ -806,14 +785,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Creates a collapsed section.
 
         Transforms
-        [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)  # noqa: E501 # no way to make this link shorter
+        [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
         syntax into the Confluence structured macro *expand*.
         """
 
         if elem[0].tag != "summary":
-            raise DocumentError(
-                "expected: `<summary>` as first direct child of `<details>`"
-            )
+            raise DocumentError("expected: `<summary>` as first direct child of `<details>`")
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
 
@@ -905,13 +882,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <blockquote>
         #   <p>[!TIP] ...</p>
         # </blockquote>
-        elif (
-            child.tag == "blockquote"
-            and len(child) > 0
-            and child[0].tag == "p"
-            and child[0].text is not None
-            and child[0].text.startswith("[!")
-        ):
+        elif child.tag == "blockquote" and len(child) > 0 and child[0].tag == "p" and child[0].text is not None and child[0].text.startswith("[!"):
             return self._transform_github_alert(child)
 
         # Alerts in GitLab
@@ -923,9 +894,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             and len(child) > 0
             and child[0].tag == "p"
             and child[0].text is not None
-            and starts_with_any(
-                child[0].text, ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"]
-            )
+            and starts_with_any(child[0].text, ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"])
         ):
             return self._transform_gitlab_alert(child)
 
@@ -1041,9 +1010,7 @@ class ConfluenceDocument:
             else:
                 raise PageError("missing Confluence page ID")
 
-        return page_id, ConfluenceDocument(
-            path, document, options, root_dir, site_metadata, page_metadata
-        )
+        return page_id, ConfluenceDocument(path, document, options, root_dir, site_metadata, page_metadata)
 
     def __init__(
         self,
@@ -1147,14 +1114,11 @@ def _content_to_string(dtd_path: Path, content: str) -> str:
         load_dtd=True,
     )
 
-    ns_attr_list = "".join(
-        f' xmlns:{key}="{value}"' for key, value in namespaces.items()
-    )
+    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in namespaces.items())
 
     data = [
         '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}">'
-        f"<root{ns_attr_list}>",
+        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}"><root{ns_attr_list}>',
     ]
     data.append(content)
     data.append("</root>")

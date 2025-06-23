@@ -1,17 +1,15 @@
 @echo off
 
 rem Run static type checker and verify formatting guidelines
-python -m mypy md2conf
+ruff check
 if errorlevel 1 goto error
-python -m flake8 md2conf
+ruff format --check
+if errorlevel 1 goto error
+python -m mypy md2conf
 if errorlevel 1 goto error
 python -m mypy tests
 if errorlevel 1 goto error
-python -m flake8 tests
-if errorlevel 1 goto error
 python -m mypy integration_tests
-if errorlevel 1 goto error
-python -m flake8 integration_tests
 if errorlevel 1 goto error
 
 rem Generate documentation

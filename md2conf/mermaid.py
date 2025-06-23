@@ -19,10 +19,7 @@ LOGGER = logging.getLogger(__name__)
 def is_docker() -> bool:
     "True if the application is running in a Docker container."
 
-    return (
-        os.environ.get("CHROME_BIN") == "/usr/bin/chromium-browser"
-        and os.environ.get("PUPPETEER_SKIP_DOWNLOAD") == "true"
-    )
+    return os.environ.get("CHROME_BIN") == "/usr/bin/chromium-browser" and os.environ.get("PUPPETEER_SKIP_DOWNLOAD") == "true"
 
 
 def get_mmdc() -> str:
@@ -79,9 +76,7 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png") ->
         )
         stdout, stderr = proc.communicate(input=source.encode("utf-8"))
         if proc.returncode:
-            messages = [
-                f"failed to convert Mermaid diagram; exit code: {proc.returncode}"
-            ]
+            messages = [f"failed to convert Mermaid diagram; exit code: {proc.returncode}"]
             console_output = stdout.decode("utf-8")
             if console_output:
                 messages.append(f"output:\n{console_output}")

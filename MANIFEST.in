@@ -1,0 +1,5 @@
+recursive-include tests *.py
+recursive-include tests *.md
+recursive-include tests *.xml
+exclude tests/source/emoji.md
+exclude tests/target/emoji.xml

@@ -58,9 +58,7 @@ class TestConversion(unittest.TestCase):
         test_dir = Path(__file__).parent
         self.source_dir = test_dir / "source"
         self.target_dir = test_dir / "target"
-        self.site_metadata = ConfluenceSiteMetadata(
-            domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
-        )
+        self.site_metadata = ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY")
         self.page_metadata = ConfluencePageCollection()
 
     def test_markdown(self) -> None:
@@ -69,9 +67,7 @@ class TestConversion(unittest.TestCase):
         if not os.path.exists(self.target_dir / "emoji.xml"):
             emoji.generate_target(self.target_dir / "emoji.xml")
 
-        matcher = Matcher(
-            MatcherOptions(source=".mdignore", extension="md"), self.source_dir
-        )
+        matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), self.source_dir)
 
         for entry in os.scandir(self.source_dir):
             if matcher.is_excluded(entry):

@@ -45,9 +45,7 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     @override
-    def _synchronize_tree(
-        self, root: DocumentNode, root_id: Optional[ConfluencePageID]
-    ) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
         """
         Creates the cross-reference index.
 
@@ -59,9 +57,7 @@ class LocalProcessor(Processor):
                 page_id = node.page_id
             else:
                 digest = self._generate_hash(node.absolute_path)
-                LOGGER.info(
-                    "Identifier %s assigned to page: %s", digest, node.absolute_path
-                )
+                LOGGER.info("Identifier %s assigned to page: %s", digest, node.absolute_path)
                 page_id = digest
 
             self.page_metadata.add(
@@ -74,9 +70,7 @@ class LocalProcessor(Processor):
             )
 
     @override
-    def _update_page(
-        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
-    ) -> None:
+    def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:
         """
         Saves the document as Confluence Storage Format XHTML to the local disk.
         """
@@ -101,9 +95,7 @@ class LocalProcessorFactory(ProcessorFactory):
         self.out_dir = out_dir
 
     def create(self, root_dir: Path) -> Processor:
-        return LocalProcessor(
-            self.options, self.site, out_dir=self.out_dir, root_dir=root_dir
-        )
+        return LocalProcessor(self.options, self.site, out_dir=self.out_dir, root_dir=root_dir)
 
 
 class LocalConverter(Converter):

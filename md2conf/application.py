@@ -32,9 +32,7 @@ class SynchronizingProcessor(Processor):
 
     api: ConfluenceSession
 
-    def __init__(
-        self, api: ConfluenceSession, options: ConfluenceDocumentOptions, root_dir: Path
-    ) -> None:
+    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions, root_dir: Path) -> None:
         """
         Initializes a new processor instance.
 
@@ -47,9 +45,7 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _synchronize_tree(
-        self, root: DocumentNode, root_id: Optional[ConfluencePageID]
-    ) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -59,14 +55,10 @@ class SynchronizingProcessor(Processor):
         """
 
         if root.page_id is None and root_id is None:
-            raise PageError(
-                f"expected: root page ID in options, or explicit page ID in {root.absolute_path}"
-            )
+            raise PageError(f"expected: root page ID in options, or explicit page ID in {root.absolute_path}")
         elif root.page_id is not None and root_id is not None:
             if root.page_id != root_id.page_id:
-                raise PageError(
-                    f"mismatched inferred page ID of {root_id.page_id} and explicit page ID in {root.absolute_path}"
-                )
+                raise PageError(f"mismatched inferred page ID of {root_id.page_id} and explicit page ID in {root.absolute_path}")
 
             real_id = root_id
         elif root_id is not None:
@@ -78,9 +70,7 @@ class SynchronizingProcessor(Processor):
 
         self._synchronize_subtree(root, real_id)
 
-    def _synchronize_subtree(
-        self, node: DocumentNode, parent_id: ConfluencePageID
-    ) -> None:
+    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID) -> None:
         if node.page_id is not None:
             # verify if page exists
             page = self.api.get_page_properties(node.page_id)
@@ -115,9 +105,7 @@ class SynchronizingProcessor(Processor):
             self._synchronize_subtree(child_node, ConfluencePageID(page.id))
 
     @override
-    def _update_page(
-        self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path
-    ) -> None:
+    def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:
         """
         Saves a new version of a Confluence document.
 
@@ -145,14 +133,8 @@ class SynchronizingProcessor(Processor):
         title = None
         if document.title is not None:
             meta = self.page_metadata.get(path)
-            if (
-                meta is not None
-                and meta.space_key is not None
-                and meta.title != document.title
-            ):
-                conflicting_page_id = self.api.page_exists(
-                    document.title, space_id=self.api.space_key_to_id(meta.space_key)
-                )
+            if meta is not None and meta.space_key is not None and meta.title != document.title:
+                conflicting_page_id = self.api.page_exists(document.title, space_id=self.api.space_key_to_id(meta.space_key))
                 if conflicting_page_id is None:
                     title = document.title
                 else:
@@ -167,10 +149,7 @@ class SynchronizingProcessor(Processor):
         if document.labels is not None:
             self.api.update_labels(
                 page_id.page_id,
-                [
-                    ConfluenceLabel(name=label, prefix="global")
-                    for label in document.labels
-                ],
+                [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
             )
 
     def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
@@ -202,9 +181,7 @@ class SynchronizingProcessor(Processor):
 class SynchronizingProcessorFactory(ProcessorFactory):
     api: ConfluenceSession
 
-    def __init__(
-        self, api: ConfluenceSession, options: ConfluenceDocumentOptions
-    ) -> None:
+    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions) -> None:
         super().__init__(options, api.site)
         self.api = api
 
@@ -219,7 +196,5 @@ class Application(Converter):
     This is the class instantiated by the command-line application.
     """
 
-    def __init__(
-        self, api: ConfluenceSession, options: ConfluenceDocumentOptions
-    ) -> None:
+    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions) -> None:
         super().__init__(SynchronizingProcessorFactory(api, options))

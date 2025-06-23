@@ -28,9 +28,7 @@ class TestProcessor(unittest.TestCase):
     out_dir: Path
     sample_dir: Path
 
-    def assertStartsWith(
-        self, text: str, prefix: str, msg: Optional[str] = None
-    ) -> None:
+    def assertStartsWith(self, text: str, prefix: str, msg: Optional[str] = None) -> None:
         """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
 
         if not text.startswith(prefix):
@@ -56,9 +54,7 @@ class TestProcessor(unittest.TestCase):
         shutil.rmtree(self.out_dir)
 
     def create_converter(self, options: ConfluenceDocumentOptions) -> LocalConverter:
-        site_metadata = ConfluenceSiteMetadata(
-            domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"
-        )
+        site_metadata = ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY")
         return LocalConverter(options, site_metadata, self.out_dir)
 
     def test_process_document(self) -> None:

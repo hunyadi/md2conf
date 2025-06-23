@@ -10,7 +10,7 @@ if [ -d dist ]; then rm -rf dist; fi
 if [ -d *.egg-info ]; then rm -rf *.egg-info; fi
 
 # create PyPI package for distribution
-$PYTHON -m build
+$PYTHON -m build --sdist --wheel
 
 VERSION=`$PYTHON -c "from md2conf import __version__; print(__version__)"`
 docker build -f Dockerfile -t leventehunyadi/md2conf:latest -t leventehunyadi/md2conf:$VERSION .

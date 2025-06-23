@@ -8,7 +8,6 @@ Copyright 2022-2025, Levente Hunyadi
 
 import datetime
 import enum
-import functools
 import io
 import logging
 import mimetypes
@@ -21,21 +20,11 @@ from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
 from strong_typing.core import JsonType
-from strong_typing.serialization import (
-    DeserializerOptions,
-    json_dump_string,
-    json_to_object,
-    object_to_json,
-)
+from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
 
 from .converter import ParseError, sanitize_confluence
 from .metadata import ConfluenceSiteMetadata
-from .properties import (
-    ArgumentError,
-    ConfluenceConnectionProperties,
-    ConfluenceError,
-    PageError,
-)
+from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 
 T = TypeVar("T")
 
@@ -300,9 +289,7 @@ class ConfluenceAPI:
     properties: ConfluenceConnectionProperties
     session: Optional["ConfluenceSession"] = None
 
-    def __init__(
-        self, properties: Optional[ConfluenceConnectionProperties] = None
-    ) -> None:
+    def __init__(self, properties: Optional[ConfluenceConnectionProperties] = None) -> None:
         self.properties = properties or ConfluenceConnectionProperties()
 
     def __enter__(self) -> "ConfluenceSession":
@@ -310,9 +297,7 @@ class ConfluenceAPI:
         if self.properties.user_name:
             session.auth = (self.properties.user_name, self.properties.api_key)
         else:
-            session.headers.update(
-                {"Authorization": f"Bearer {self.properties.api_key}"}
-            )
+            session.headers.update({"Authorization": f"Bearer {self.properties.api_key}"})
 
         if self.properties.headers:
             session.headers.update(self.properties.headers)
@@ -366,9 +351,7 @@ class ConfluenceSession:
             self.api_url = api_url
 
             if not domain or not base_path:
-                payload = self._invoke(
-                    ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"}
-                )
+                payload = self._invoke(ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
                 data = json_to_object(ConfluenceResultSet, payload)
                 base_url = data._links.base
 
@@ -377,13 +360,9 @@ class ConfluenceSession:
                     base_path = f"{base_path}/"
 
         if not domain:
-            raise ArgumentError(
-                "Confluence domain not specified and cannot be inferred"
-            )
+            raise ArgumentError("Confluence domain not specified and cannot be inferred")
         if not base_path:
-            raise ArgumentError(
-                "Confluence base path not specified and cannot be inferred"
-            )
+            raise ArgumentError("Confluence base path not specified and cannot be inferred")
         self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
         if not api_url:
             self.api_url = f"https://{self.site.domain}{self.site.base_path}"
@@ -425,9 +404,7 @@ class ConfluenceSession:
         response.raise_for_status()
         return typing.cast(JsonType, response.json())
 
-    def _fetch(
-        self, path: str, query: Optional[dict[str, str]] = None
-    ) -> list[JsonType]:
+    def _fetch(self, path: str, query: Optional[dict[str, str]] = None) -> list[JsonType]:
         "Retrieves all results of a REST API v2 paginated result-set."
 
         items: list[JsonType] = []
@@ -506,9 +483,7 @@ class ConfluenceSession:
 
         return id
 
-    def get_space_id(
-        self, *, space_id: Optional[str] = None, space_key: Optional[str] = None
-    ) -> Optional[str]:
+    def get_space_id(self, *, space_id: Optional[str] = None, space_key: Optional[str] = None) -> Optional[str]:
         """
         Coalesces a space ID or space key into a space ID, accounting for site default.
 
@@ -529,9 +504,7 @@ class ConfluenceSession:
         # space ID and key are unset, and no default space is configured
         return None
 
-    def get_attachment_by_name(
-        self, page_id: str, filename: str
-    ) -> ConfluenceAttachment:
+    def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         """
         Retrieves a Confluence page attachment by an unprefixed file name.
         """
@@ -667,9 +640,7 @@ class ConfluenceSession:
         # ensure path component is retained in attachment name
         self._update_attachment(page_id, attachment_id, version, attachment_name)
 
-    def _update_attachment(
-        self, page_id: str, attachment_id: str, version: int, attachment_title: str
-    ) -> None:
+    def _update_attachment(self, page_id: str, attachment_id: str, version: int, attachment_title: str) -> None:
         id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
         request = ConfluenceUpdateAttachmentRequest(
@@ -730,7 +701,6 @@ class ConfluenceSession:
         payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
         return _json_to_object(ConfluencePage, payload)
 
-    @functools.cache
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
         """
         Retrieves Confluence wiki page details.
@@ -784,14 +754,8 @@ class ConfluenceSession:
             id=page_id,
             status=ConfluenceStatus.CURRENT,
             title=new_title,
-            body=ConfluencePageBody(
-                storage=ConfluencePageStorage(
-                    representation=ConfluenceRepresentation.STORAGE, value=new_content
-                )
-            ),
-            version=ConfluenceContentVersion(
-                number=page.version.number + 1, minorEdit=True
-            ),
+            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=new_content)),
+            version=ConfluenceContentVersion(number=page.version.number + 1, minorEdit=True),
         )
         LOGGER.info("Updating page: %s", page_id)
         self._save(ConfluenceVersion.VERSION_2, path, object_to_json(request))
@@ -982,10 +946,7 @@ class ConfluenceSession:
         """
 
         new_labels = set(labels)
-        old_labels = set(
-            ConfluenceLabel(name=label.name, prefix=label.prefix)
-            for label in self.get_labels(page_id)
-        )
+        old_labels = set(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in self.get_labels(page_id))
 
         add_labels = list(new_labels - old_labels)
         remove_labels = list(old_labels - new_labels)

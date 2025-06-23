@@ -46,10 +46,7 @@ class TestConfluenceStorageFormat(unittest.TestCase):
                 TEST_PAGE_ID,
                 expected_labels,
             )
-            assigned_labels = sorted(
-                ConfluenceLabel(name=label.name, prefix=label.prefix)
-                for label in api.get_labels(TEST_PAGE_ID)
-            )
+            assigned_labels = sorted(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in api.get_labels(TEST_PAGE_ID))
             self.assertListEqual(assigned_labels, expected_labels)
 
 
@@ -59,14 +56,10 @@ if __name__ == "__main__":
         format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
     )
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s")
 
     (name, _) = os.path.splitext(os.path.basename(__file__))
-    handler = logging.FileHandler(
-        os.path.join(os.path.dirname(__file__), f"{name}.log"), "w", "utf-8"
-    )
+    handler = logging.FileHandler(os.path.join(os.path.dirname(__file__), f"{name}.log"), "w", "utf-8")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
 
