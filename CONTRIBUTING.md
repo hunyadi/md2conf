@@ -2,10 +2,17 @@
 
 We want to make contributing to this project as easy and transparent as possible.
 
+## Install latest version
+
+Before you request a feature or report an issue, verify whether the proposal has already been implemented in one of the commits on the branch `master`. Instruct `pip` to install the package directly from source control rather than PyPI:
+
+```sh
+pip install git+https://github.com/hunyadi/md2conf.git@master
+```
+
 ## Pull requests
 
-We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix
-or a single feature.
+We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix or a single feature.
 
 ### Prerequisites
 
@@ -17,7 +24,7 @@ Python is installed. Minimum version we support is Python 3.9.
 2. Fork the repo and create your branch from `master`.
 3. Set up your environment:
 
-   ```
+   ```sh
    git clone git@github.com:<your github username>/md2conf.git
    python -m venv ".venv"
    source .venv/bin/activate

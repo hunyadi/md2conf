@@ -14,6 +14,10 @@ if errorlevel 1 goto error
 python -m flake8 integration_tests
 if errorlevel 1 goto error
 
+rem Generate documentation
+python documentation.py
+if errorlevel 1 goto error
+
 goto :EOF
 
 :error
