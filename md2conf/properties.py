@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import os
-from typing import Optional
+from typing import Optional, overload
 
 
 class ArgumentError(ValueError):
@@ -20,6 +20,42 @@ class PageError(ValueError):
 
 class ConfluenceError(RuntimeError):
     "Raised when a Confluence API call fails."
+
+
+@overload
+def _validate_domain(domain: str) -> str: ...
+
+
+@overload
+def _validate_domain(domain: Optional[str]) -> Optional[str]: ...
+
+
+def _validate_domain(domain: Optional[str]) -> Optional[str]:
+    if domain is None:
+        return None
+
+    if domain.startswith(("http://", "https://")) or domain.endswith("/"):
+        raise ArgumentError("Confluence domain looks like a URL; only host name required")
+
+    return domain
+
+
+@overload
+def _validate_base_path(base_path: str) -> str: ...
+
+
+@overload
+def _validate_base_path(base_path: Optional[str]) -> Optional[str]: ...
+
+
+def _validate_base_path(base_path: Optional[str]) -> Optional[str]:
+    if base_path is None:
+        return None
+
+    if not base_path.startswith("/") or not base_path.endswith("/"):
+        raise ArgumentError("Confluence base path must start and end with a '/'")
+
+    return base_path
 
 
 class ConfluenceSiteProperties:
@@ -42,13 +78,8 @@ class ConfluenceSiteProperties:
         if not opt_base_path:
             opt_base_path = "/wiki/"
 
-        if opt_domain.startswith(("http://", "https://")) or opt_domain.endswith("/"):
-            raise ArgumentError("Confluence domain looks like a URL; only host name required")
-        if not opt_base_path.startswith("/") or not opt_base_path.endswith("/"):
-            raise ArgumentError("Confluence base path must start and end with a '/'")
-
-        self.domain = opt_domain
-        self.base_path = opt_base_path
+        self.domain = _validate_domain(opt_domain)
+        self.base_path = _validate_base_path(opt_base_path)
         self.space_key = opt_space_key
 
 
@@ -90,10 +121,14 @@ class ConfluenceConnectionProperties:
 
         if not opt_api_key:
             raise ArgumentError("Confluence API key not specified")
+        if not opt_api_url and not opt_domain:
+            raise ArgumentError("Confluence API URL or domain required")
+        if not opt_api_url and not opt_base_path:
+            opt_base_path = "/wiki/"
 
         self.api_url = opt_api_url
-        self.domain = opt_domain
-        self.base_path = opt_base_path
+        self.domain = _validate_domain(opt_domain)
+        self.base_path = _validate_base_path(opt_base_path)
         self.space_key = opt_space_key
         self.user_name = opt_user_name
         self.api_key = opt_api_key
