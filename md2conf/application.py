@@ -11,12 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from .api import ConfluenceLabel, ConfluenceSession
-from .converter import (
-    ConfluenceDocument,
-    ConfluenceDocumentOptions,
-    ConfluencePageID,
-    attachment_name,
-)
+from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name
 from .extra import override
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
@@ -113,11 +108,11 @@ class SynchronizingProcessor(Processor):
         """
 
         base_path = path.parent
-        for image in document.images:
+        for image_path in document.images:
             self.api.upload_attachment(
                 page_id.page_id,
-                attachment_name(image),
-                attachment_path=base_path / image,
+                attachment_name(image_path.relative_to(base_path)),
+                attachment_path=image_path,
             )
 
         for name, data in document.embedded_images.items():

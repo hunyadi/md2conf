@@ -39,7 +39,7 @@ class TestMatcher(unittest.TestCase):
 
     def test_rules(self) -> None:
         directory = Path(os.path.dirname(__file__)) / "source"
-        expected = [Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.name.endswith(".md")]
+        expected = [Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.is_dir() or entry.name.endswith(".md")]
         expected.remove(Entry("ignore.md", False))
         expected.remove(Entry("anchors.md", False))
         expected.remove(Entry("missing.md", False))

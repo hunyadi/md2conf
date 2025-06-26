@@ -16,12 +16,7 @@ from pathlib import Path
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import (
-    ConfluenceDocument,
-    ConfluenceDocumentOptions,
-    ConfluencePageID,
-    sanitize_confluence,
-)
+from md2conf.converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, sanitize_confluence
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.scanner import Scanner
@@ -37,7 +32,7 @@ class TestAPI(unittest.TestCase):
 
     @override
     def setUp(self) -> None:
-        test_dir = Path(__file__).parent
+        test_dir = Path(__file__).parent.resolve(True)
         parent_dir = test_dir.parent
 
         self.out_dir = test_dir / "output"
@@ -59,7 +54,7 @@ class TestAPI(unittest.TestCase):
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
-            [Path("figure/interoperability.png"), Path("figure/interoperability.png")],
+            [self.sample_dir / "figure" / "interoperability.png", self.sample_dir / "figure" / "interoperability.png"],
         )
 
         with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:

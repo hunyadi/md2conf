@@ -62,9 +62,9 @@ A block quote:
 
 Images:
 
-![PNG image with caption](figure/interoperability.png)
+![PNG image with caption](figure/raster.png)
 
-![SVG image with caption](figure/interoperability.svg)
+![SVG image with caption](figure/vector.svg)
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 

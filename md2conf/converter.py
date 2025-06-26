@@ -67,6 +67,12 @@ def is_relative_url(url: str) -> bool:
     return not bool(urlparts.scheme) and not bool(urlparts.netloc)
 
 
+def is_directory_within(absolute_path: Path, base_path: Path) -> bool:
+    "True if the absolute path is nested within the base path."
+
+    return absolute_path.as_posix().startswith(base_path.as_posix())
+
+
 def encode_title(text: str) -> str:
     "Converts a title string such that it is safe to embed into a Confluence URL."
 
@@ -373,6 +379,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         page_metadata: ConfluencePageCollection,
     ) -> None:
         super().__init__()
+
+        path = path.resolve(True)
+        root_dir = root_dir.resolve(True)
+
         self.options = options
         self.path = path
         self.base_dir = path.parent
@@ -438,7 +448,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # the absolute path in the page metadata dictionary to discover the relative path
         # within Confluence that should be used
         absolute_path = (self.base_dir / relative_url.path).resolve(True)
-        if not str(absolute_path).startswith(str(self.root_dir)):
+        if not is_directory_within(absolute_path, self.root_dir):
             msg = f"relative URL {url} points to outside root path: {self.root_dir}"
             if self.options.ignore_invalid_url:
                 LOGGER.warning(msg)
@@ -528,13 +538,25 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_attached_image(self, path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an attached image."
 
-        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        png_file = path.with_suffix(".png")
-        if path.suffix == ".svg" and (self.base_dir / png_file).exists():
-            path = png_file
+        # resolve relative path into absolute path w.r.t. base dir
+        absolute_path = (self.base_dir / path).resolve(True)
 
-        self.images.append(path)
-        image_name = attachment_name(path)
+        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
+        if absolute_path.suffix == ".svg":
+            png_file = absolute_path.with_suffix(".png")
+            if png_file.exists():
+                absolute_path = png_file
+
+        if not is_directory_within(absolute_path, self.root_dir):
+            msg = f"relative path to image {path} points to outside root path: {self.root_dir}"
+            if self.options.ignore_invalid_url:
+                LOGGER.warning(msg)
+                image_name = ""
+            else:
+                raise DocumentError(msg)
+        else:
+            self.images.append(absolute_path)
+            image_name = attachment_name(absolute_path.relative_to(self.base_dir))
 
         elements: list[ET._Element] = []
         elements.append(
@@ -1074,16 +1096,36 @@ class ConfluenceDocument:
         return elements_to_string(self.root)
 
 
-def attachment_name(name: Union[Path, str]) -> str:
+def attachment_name(ref: Union[Path, str]) -> str:
     """
     Safe name for use with attachment uploads.
 
+    Mutates a relative path such that it meets Confluence's attachment naming requirements.
+
     Allowed characters:
+
     * Alphanumeric characters: 0-9, a-z, A-Z
     * Special characters: hyphen (-), underscore (_), period (.)
     """
 
-    return re.sub(r"[^\-0-9A-Za-z_.]", "_", str(name))
+    if isinstance(ref, Path):
+        path = ref
+    else:
+        path = Path(ref)
+
+    if path.drive or path.root:
+        raise ValueError(f"required: relative path; got: {ref}")
+
+    regexp = re.compile(r"[^\-0-9A-Za-z_.]", re.UNICODE)
+
+    def replace_part(part: str) -> str:
+        if part == "..":
+            return "PAR"
+        else:
+            return regexp.sub("_", part)
+
+    parts = [replace_part(p) for p in path.parts]
+    return Path(*parts).as_posix().replace("/", "_")
 
 
 def sanitize_confluence(html: str) -> str:

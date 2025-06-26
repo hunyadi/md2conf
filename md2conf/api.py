@@ -15,7 +15,7 @@ import typing
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -556,6 +556,9 @@ class ConfluenceSession:
                 name = attachment_name
             content_type, _ = mimetypes.guess_type(name, strict=True)
 
+            if content_type is None:
+                content_type = "application/octet-stream"
+
         if attachment_path is not None and not attachment_path.is_file():
             raise PageError(f"file not found: {attachment_path}")
 
@@ -583,8 +586,13 @@ class ConfluenceSession:
 
         if attachment_path is not None:
             with open(attachment_path, "rb") as attachment_file:
-                file_to_upload = {
-                    "comment": comment,
+                file_to_upload: dict[str, tuple[Optional[str], Any, str, dict[str, str]]] = {
+                    "comment": (
+                        None,
+                        comment,
+                        "text/plain; charset=utf-8",
+                        {},
+                    ),
                     "file": (
                         attachment_name,  # will truncate path component
                         attachment_file,
@@ -595,7 +603,7 @@ class ConfluenceSession:
                 LOGGER.info("Uploading attachment: %s", attachment_name)
                 response = self.session.post(
                     url,
-                    files=file_to_upload,  # type: ignore[arg-type]
+                    files=file_to_upload,
                     headers={
                         "X-Atlassian-Token": "no-check",
                         "Accept": "application/json",
@@ -607,17 +615,22 @@ class ConfluenceSession:
             raw_file = io.BytesIO(raw_data)
             raw_file.name = attachment_name
             file_to_upload = {
-                "comment": comment,
+                "comment": (
+                    None,
+                    comment,
+                    "text/plain; charset=utf-8",
+                    {},
+                ),
                 "file": (
                     attachment_name,  # will truncate path component
-                    raw_file,  # type: ignore[dict-item]
+                    raw_file,
                     content_type,
                     {"Expires": "0"},
                 ),
             }
             response = self.session.post(
                 url,
-                files=file_to_upload,  # type: ignore[arg-type]
+                files=file_to_upload,
                 headers={
                     "X-Atlassian-Token": "no-check",
                     "Accept": "application/json",
