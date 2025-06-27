@@ -1,0 +1,27 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Images</h2>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:attachment ri:filename="figure_raster.png"/>
+  <ac:caption>
+    <p>PNG image with caption</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:attachment ri:filename="figure_vector.svg"/>
+  <ac:caption>
+    <p>SVG image with caption</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
+  <ac:caption>
+    <p>External image</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center" ac:width="24" ac:height="24">
+  <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
+</ac:image>

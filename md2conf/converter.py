@@ -25,6 +25,7 @@ import markdown
 from lxml.builder import ElementMaker
 
 from .collection import ConfluencePageCollection
+from .extra import path_relative_to
 from .mermaid import render_diagram
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
@@ -416,6 +417,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         anchor.tail = heading.text
         heading.text = None
 
+    def _warn_or_raise(self, msg: str) -> None:
+        "Emit a warning or raise an exception when a path points to a resource that doesn't exist."
+
+        if self.options.ignore_invalid_url:
+            LOGGER.warning(msg)
+        else:
+            raise DocumentError(msg)
+
     def _transform_link(self, anchor: ET._Element) -> Optional[ET._Element]:
         url = anchor.attrib.get("href")
         if url is None or is_absolute_url(url):
@@ -447,15 +456,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # convert the relative URL to absolute URL based on the base path value, then look up
         # the absolute path in the page metadata dictionary to discover the relative path
         # within Confluence that should be used
-        absolute_path = (self.base_dir / relative_url.path).resolve(True)
+        absolute_path = (self.base_dir / relative_url.path).resolve()
         if not is_directory_within(absolute_path, self.root_dir):
-            msg = f"relative URL {url} points to outside root path: {self.root_dir}"
-            if self.options.ignore_invalid_url:
-                LOGGER.warning(msg)
-                anchor.attrib.pop("href")
-                return None
-            else:
-                raise DocumentError(msg)
+            anchor.attrib.pop("href")
+            self._warn_or_raise(f"relative URL {url} points to outside root path: {self.root_dir}")
+            return None
 
         link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
@@ -539,24 +544,24 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Emits Confluence Storage Format XHTML for an attached image."
 
         # resolve relative path into absolute path w.r.t. base dir
-        absolute_path = (self.base_dir / path).resolve(True)
+        absolute_path = (self.base_dir / path).resolve()
 
-        # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-        if absolute_path.suffix == ".svg":
-            png_file = absolute_path.with_suffix(".png")
-            if png_file.exists():
-                absolute_path = png_file
+        if absolute_path.exists():
+            # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
+            if absolute_path.suffix == ".svg":
+                png_file = absolute_path.with_suffix(".png")
+                if png_file.exists():
+                    absolute_path = png_file
 
-        if not is_directory_within(absolute_path, self.root_dir):
-            msg = f"relative path to image {path} points to outside root path: {self.root_dir}"
-            if self.options.ignore_invalid_url:
-                LOGGER.warning(msg)
-                image_name = ""
+            if is_directory_within(absolute_path, self.root_dir):
+                self.images.append(absolute_path)
+                image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
             else:
-                raise DocumentError(msg)
+                image_name = ""
+                self._warn_or_raise(f"path to image {path} points to outside root path {self.root_dir}")
         else:
-            self.images.append(absolute_path)
-            image_name = attachment_name(absolute_path.relative_to(self.base_dir))
+            image_name = ""
+            self._warn_or_raise(f"path to image {path} does not exist")
 
         elements: list[ET._Element] = []
         elements.append(

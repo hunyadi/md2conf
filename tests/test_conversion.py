@@ -100,7 +100,8 @@ class TestConversion(unittest.TestCase):
             self.assertEqual(doc.title, "Broken links")
             actual = standardize(doc.xhtml())
 
-        self.assertEqual(len(cm.records), 1)
+        # check if 2 broken links have been found (anchor `href` & image `src`)
+        self.assertEqual(len(cm.records), 2)
 
         with open(self.target_dir / "missing.xml", "r", encoding="utf-8") as f:
             expected = canonicalize(f.read())
@@ -119,6 +120,21 @@ class TestConversion(unittest.TestCase):
         actual = standardize(doc.xhtml())
 
         with open(self.target_dir / "anchors.xml", "r", encoding="utf-8") as f:
+            expected = canonicalize(f.read())
+
+        self.assertEqual(actual, expected)
+
+    def test_images(self) -> None:
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "images" / "images.md",
+            ConfluenceDocumentOptions(),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "images" / "images.xml", "r", encoding="utf-8") as f:
             expected = canonicalize(f.read())
 
         self.assertEqual(actual, expected)

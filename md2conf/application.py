@@ -12,7 +12,7 @@ from typing import Optional
 
 from .api import ConfluenceLabel, ConfluenceSession
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name
-from .extra import override
+from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .properties import PageError
@@ -111,7 +111,7 @@ class SynchronizingProcessor(Processor):
         for image_path in document.images:
             self.api.upload_attachment(
                 page_id.page_id,
-                attachment_name(image_path.relative_to(base_path)),
+                attachment_name(path_relative_to(image_path, base_path)),
                 attachment_path=image_path,
             )
 

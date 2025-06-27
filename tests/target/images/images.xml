@@ -3,11 +3,10 @@
     <p>This page has been generated with a tool.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
-<h2>Broken links</h2>
-<p>Relative URLs to <a>locations not exported</a> may be skipped.</p>
+<h2>Images</h2>
 <ac:image ac:align="center" ac:layout="center">
-  <ri:attachment ri:filename=""/>
+  <ri:attachment ri:filename="PAR_figure_raster.png"/>
   <ac:caption>
-    <p>Missing PNG image</p>
+    <p>Image with relative path</p>
   </ac:caption>
 </ac:image>

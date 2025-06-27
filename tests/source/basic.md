@@ -60,16 +60,6 @@ A block quote:
 > Lorem ipsum dolor sit amet, consectetur adipiscing elit,
 > sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 
-Images:
-
-![PNG image with caption](figure/raster.png)
-
-![SVG image with caption](figure/vector.svg)
-
-![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
-
-<img src="http://confluence.atlassian.com/images/logo/confluence_48_trans.png" width="24" height="24" />
-
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
 
 Some HTML entities are supported, e.g.&nbsp;&copy; or &para;.
