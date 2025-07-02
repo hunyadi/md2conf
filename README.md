@@ -290,6 +290,22 @@ Any previously assigned labels are discarded. As per Confluence terminology, new
 
 If a document has no `tags` attribute, existing Confluence labels are left intact.
 
+### Content properties
+
+The front-matter attribute `properties` in a Markdown document allows setting Confluence content properties on a page. Confluence content properties are a way to store structured metadata in the form of key-value pairs directly on Confluence content. The values in content properties are represented as JSON objects.
+
+Some content properties have special meaning to Confluence. For example, the following properties cause Confluence to display a wiki page with content confined to a fixed width in regular view mode, and taking the full page width in draft mode:
+
+```yaml
+---
+properties:
+  content-appearance-published: fixed-width
+  content-appearance-draft: full-width
+---
+```
+
+The attribute `properties` is parsed as a dictionary with keys of type string and values of type JSON. *md2conf* passes JSON values to Confluence REST API unchanged.
+
 ### Converting diagrams
 
 You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown documents to create visual representations of systems, processes, and relationships. When a Markdown document contains a code block with the language specifier `mermaid`, *md2conf* offers two options to publish the diagram:

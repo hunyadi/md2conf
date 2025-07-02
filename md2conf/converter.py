@@ -23,6 +23,7 @@ from urllib.parse import ParseResult, quote_plus, urlparse, urlunparse
 import lxml.etree as ET
 import markdown
 from lxml.builder import ElementMaker
+from strong_typing.core import JsonType
 
 from .collection import ConfluencePageCollection
 from .extra import path_relative_to
@@ -1008,6 +1009,7 @@ class ConversionError(RuntimeError):
 class ConfluenceDocument:
     title: Optional[str]
     labels: Optional[list[str]]
+    properties: Optional[dict[str, JsonType]]
     links: list[str]
     images: list[Path]
 
@@ -1096,6 +1098,7 @@ class ConfluenceDocument:
 
         self.title = document.title or converter.toc.get_title()
         self.labels = document.tags
+        self.properties = document.properties
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)

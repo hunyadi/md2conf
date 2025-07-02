@@ -69,6 +69,7 @@ class DocumentProperties:
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
+    :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     """
 
     page_id: Optional[str]
@@ -78,6 +79,7 @@ class DocumentProperties:
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
+    properties: Optional[dict[str, JsonType]]
 
 
 @dataclass
@@ -90,6 +92,7 @@ class ScannedDocument:
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
+    :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
@@ -98,6 +101,7 @@ class ScannedDocument:
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
+    properties: Optional[dict[str, JsonType]]
     text: str
 
 
@@ -122,6 +126,7 @@ class Scanner:
 
         title: Optional[str] = None
         tags: Optional[list[str]] = None
+        properties: Optional[dict[str, JsonType]] = None
 
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
@@ -132,6 +137,7 @@ class Scanner:
             generated_by = generated_by or p.generated_by
             title = p.title
             tags = p.tags
+            properties = p.properties
 
         return ScannedDocument(
             page_id=page_id,
@@ -139,5 +145,6 @@ class Scanner:
             generated_by=generated_by,
             title=title,
             tags=tags,
+            properties=properties,
             text=text,
         )

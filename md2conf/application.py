@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .api import ConfluenceLabel, ConfluenceSession, ConfluenceStatus
+from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
@@ -150,6 +150,9 @@ class SynchronizingProcessor(Processor):
                 page_id.page_id,
                 [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
             )
+
+        if document.properties is not None:
+            self.api.update_content_properties_for_page(page_id.page_id, [ConfluenceContentProperty(key, value) for key, value in document.properties.items()])
 
     def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
         """
