@@ -95,6 +95,7 @@ class ConfluenceRepresentation(enum.Enum):
 class ConfluenceStatus(enum.Enum):
     CURRENT = "current"
     DRAFT = "draft"
+    ARCHIVED = "archived"
 
 
 @enum.unique
@@ -899,6 +900,9 @@ class ConfluenceSession:
         response.raise_for_status()
         data = typing.cast(dict[str, JsonType], response.json())
         results = _json_to_object(list[ConfluencePageProperties], data["results"])
+
+        # filter out archived pages
+        results = [x for x in results if x.status != ConfluenceStatus.ARCHIVED]
 
         if len(results) == 1:
             return results[0].id
