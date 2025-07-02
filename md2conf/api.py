@@ -24,7 +24,7 @@ from strong_typing.serialization import DeserializerOptions, json_dump_string, j
 
 from .converter import ParseError, sanitize_confluence
 from .metadata import ConfluenceSiteMetadata
-from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
+from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError,
 
 T = TypeVar("T")
 
@@ -48,7 +48,8 @@ def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
     if fragment:
         raise ValueError("expected: url with no fragment")
 
-    url_parts = (scheme, netloc, path, None, urlencode(query) if query else None, None)
+    url_parts = (scheme, netloc, path, None,
+                 urlencode(query) if query else None, None)
     return urlunparse(url_parts)
 
 
@@ -95,6 +96,7 @@ class ConfluenceRepresentation(enum.Enum):
 class ConfluenceStatus(enum.Enum):
     CURRENT = "current"
     DRAFT = "draft"
+    ARCHIVED = "archived"
 
 
 @enum.unique
@@ -323,7 +325,8 @@ class ConfluenceAPI:
         if self.properties.user_name:
             session.auth = (self.properties.user_name, self.properties.api_key)
         else:
-            session.headers.update({"Authorization": f"Bearer {self.properties.api_key}"})
+            session.headers.update(
+                {"Authorization": f"Bearer {self.properties.api_key}"})
 
         if self.properties.headers:
             session.headers.update(self.properties.headers)
@@ -377,7 +380,8 @@ class ConfluenceSession:
             self.api_url = api_url
 
             if not domain or not base_path:
-                payload = self._invoke(ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
+                payload = self._invoke(
+                    ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
                 data = json_to_object(ConfluenceResultSet, payload)
                 base_url = data._links.base
 
@@ -386,9 +390,11 @@ class ConfluenceSession:
                     base_path = f"{base_path}/"
 
         if not domain:
-            raise ArgumentError("Confluence domain not specified and cannot be inferred")
+            raise ArgumentError(
+                "Confluence domain not specified and cannot be inferred")
         if not base_path:
-            raise ArgumentError("Confluence base path not specified and cannot be inferred")
+            raise ArgumentError(
+                "Confluence base path not specified and cannot be inferred")
         self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
         if not api_url:
             self.api_url = f"https://{self.site.domain}{self.site.base_path}"
@@ -424,7 +430,8 @@ class ConfluenceSession:
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
-        response = self.session.get(url, headers={"Accept": "application/json"})
+        response = self.session.get(
+            url, headers={"Accept": "application/json"})
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
@@ -436,7 +443,8 @@ class ConfluenceSession:
         items: list[JsonType] = []
         url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
         while True:
-            response = self.session.get(url, headers={"Accept": "application/json"})
+            response = self.session.get(
+                url, headers={"Accept": "application/json"})
             response.raise_for_status()
 
             payload = typing.cast(dict[str, JsonType], response.json())
@@ -500,7 +508,8 @@ class ConfluenceSession:
             data = typing.cast(dict[str, JsonType], payload)
             results = typing.cast(list[JsonType], data["results"])
             if len(results) != 1:
-                raise ConfluenceError(f"unique space not found with key: {key}")
+                raise ConfluenceError(
+                    f"unique space not found with key: {key}")
 
             result = typing.cast(dict[str, JsonType], results[0])
             id = typing.cast(str, result["id"])
@@ -518,7 +527,8 @@ class ConfluenceSession:
         """
 
         if space_id is not None and space_key is not None:
-            raise ConfluenceError("either space ID or space key is required; not both")
+            raise ConfluenceError(
+                "either space ID or space key is required; not both")
 
         if space_id is not None:
             return space_id
@@ -542,7 +552,8 @@ class ConfluenceSession:
 
         results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
-            raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
+            raise ConfluenceError(
+                f"no such attachment on page {page_id}: {filename}")
         result = typing.cast(dict[str, JsonType], results[0])
         return _json_to_object(ConfluenceAttachment, result)
 
@@ -573,7 +584,8 @@ class ConfluenceSession:
             raise ArgumentError("required: `attachment_path` or `raw_data`")
 
         if attachment_path is not None and raw_data is not None:
-            raise ArgumentError("expected: either `attachment_path` or `raw_data`")
+            raise ArgumentError(
+                "expected: either `attachment_path` or `raw_data`")
 
         if content_type is None:
             if attachment_path is not None:
@@ -597,7 +609,8 @@ class ConfluenceSession:
                     return
             elif raw_data is not None:
                 if not force and attachment.fileSize == len(raw_data):
-                    LOGGER.info("Up-to-date embedded image: %s", attachment_name)
+                    LOGGER.info("Up-to-date embedded image: %s",
+                                attachment_name)
                     return
             else:
                 raise NotImplementedError("parameter match not exhaustive")
@@ -677,7 +690,8 @@ class ConfluenceSession:
         version = result["version"]["number"] + 1
 
         # ensure path component is retained in attachment name
-        self._update_attachment(page_id, attachment_id, version, attachment_name)
+        self._update_attachment(page_id, attachment_id,
+                                version, attachment_name)
 
     def _update_attachment(self, page_id: str, attachment_id: str, version: int, attachment_title: str) -> None:
         id = attachment_id.removeprefix("att")
@@ -793,8 +807,10 @@ class ConfluenceSession:
             id=page_id,
             status=ConfluenceStatus.CURRENT,
             title=new_title,
-            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=new_content)),
-            version=ConfluenceContentVersion(number=page.version.number + 1, minorEdit=True),
+            body=ConfluencePageBody(storage=ConfluencePageStorage(
+                representation=ConfluenceRepresentation.STORAGE, value=new_content)),
+            version=ConfluenceContentVersion(
+                number=page.version.number + 1, minorEdit=True),
         )
         LOGGER.info("Updating page: %s", page_id)
         self._save(ConfluenceVersion.VERSION_2, path, object_to_json(request))
@@ -898,7 +914,11 @@ class ConfluenceSession:
         )
         response.raise_for_status()
         data = typing.cast(dict[str, JsonType], response.json())
-        results = _json_to_object(list[ConfluencePageProperties], data["results"])
+        results = _json_to_object(
+            list[ConfluencePageProperties], data["results"])
+
+        # filter for archived pages
+        results = [x for x in results if x.status != ConfluenceStatus.ARCHIVED]
 
         if len(results) == 1:
             return results[0].id
@@ -985,7 +1005,8 @@ class ConfluenceSession:
         """
 
         new_labels = set(labels)
-        old_labels = set(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in self.get_labels(page_id))
+        old_labels = set(ConfluenceLabel(name=label.name, prefix=label.prefix)
+                         for label in self.get_labels(page_id))
 
         add_labels = list(new_labels - old_labels)
         remove_labels = list(old_labels - new_labels)
@@ -1022,7 +1043,8 @@ class ConfluenceSession:
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         response = self.session.post(
             url,
-            data=json_dump_string(object_to_json(ConfluenceContentProperty(key=key, value=value, version=None))),
+            data=json_dump_string(object_to_json(
+                ConfluenceContentProperty(key=key, value=value, version=None))),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
