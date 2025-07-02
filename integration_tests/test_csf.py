@@ -49,6 +49,12 @@ class TestConfluenceStorageFormat(unittest.TestCase):
             assigned_labels = sorted(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in api.get_labels(TEST_PAGE_ID))
             self.assertListEqual(assigned_labels, expected_labels)
 
+    def test_properties(self) -> None:
+        with ConfluenceAPI() as api:
+            properties = api.get_content_properties_for_page(TEST_PAGE_ID)
+            self.assertGreater(len(properties), 0)
+            # api.add_content_property_to_page(TEST_PAGE_ID, "content-appearance-published", "full-width")
+
 
 if __name__ == "__main__":
     logging.basicConfig(

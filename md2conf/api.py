@@ -255,6 +255,32 @@ class ConfluenceIdentifiedLabel(ConfluenceLabel):
 
 
 @dataclass(frozen=True)
+class ConfluenceContentProperty:
+    """
+    Represents a content property.
+
+    :param key: Property key.
+    :param value: Property value as JSON.
+    :param version: Version information about the property.
+    """
+
+    key: str
+    value: JsonType
+    version: Optional[ConfluenceContentVersion]
+
+
+@dataclass(frozen=True)
+class ConfluenceIdentifiedContentProperty(ConfluenceContentProperty):
+    """
+    Represents a content property.
+
+    :param id: Property ID.
+    """
+
+    id: str
+
+
+@dataclass(frozen=True)
 class ConfluenceCreatePageRequest:
     spaceId: str
     status: Optional[ConfluenceStatus]
@@ -970,3 +996,39 @@ class ConfluenceSession:
         if remove_labels:
             remove_labels.sort()
             self.remove_labels(page_id, remove_labels)
+
+    def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
+        """
+        Retrieves content properties for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :returns: A list of content properties.
+        """
+
+        path = f"/pages/{page_id}/properties"
+        results = self._fetch(path)
+        return _json_to_object(list[ConfluenceIdentifiedContentProperty], results)
+
+    def add_content_property_to_page(self, page_id: str, key: str, value: JsonType) -> ConfluenceIdentifiedContentProperty:
+        """
+        Adds a new content property to a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param key: Property key.
+        :param value: Property value as JSON.
+        """
+
+        path = f"/pages/{page_id}/properties"
+        url = self._build_url(ConfluenceVersion.VERSION_2, path)
+        response = self.session.post(
+            url,
+            data=json_dump_string(object_to_json(ConfluenceContentProperty(key=key, value=value, version=None))),
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
+        return _json_to_object(ConfluenceIdentifiedContentProperty, response.json())
