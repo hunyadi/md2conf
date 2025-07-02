@@ -168,21 +168,21 @@ class Processor:
                 continue
 
             if entry.is_file():
-                files.append(Path(local_dir) / entry.name)
+                files.append(local_dir / entry.name)
             elif entry.is_dir():
-                directories.append(Path(local_dir) / entry.name)
+                directories.append(local_dir / entry.name)
 
         # make page act as parent node
         parent_doc: Optional[Path] = None
-        if (Path(local_dir) / "index.md") in files:
-            parent_doc = Path(local_dir) / "index.md"
-        elif (Path(local_dir) / "README.md") in files:
-            parent_doc = Path(local_dir) / "README.md"
-        elif (Path(local_dir) / f"{local_dir.name}.md") in files:
-            parent_doc = Path(local_dir) / f"{local_dir.name}.md"
+        if (local_dir / "index.md") in files:
+            parent_doc = local_dir / "index.md"
+        elif (local_dir / "README.md") in files:
+            parent_doc = local_dir / "README.md"
+        elif (local_dir / f"{local_dir.name}.md") in files:
+            parent_doc = local_dir / f"{local_dir.name}.md"
 
         if parent_doc is None and self.options.keep_hierarchy:
-            parent_doc = Path(local_dir) / "index.md"
+            parent_doc = local_dir / "index.md"
 
             # create a blank page for directory entry
             with open(parent_doc, "w"):
@@ -198,13 +198,7 @@ class Processor:
                 parent.add_child(node)
             parent = node
         elif parent is None:
-            # create new top-level node
-            if self.options.root_page_id is not None:
-                page_id = self.options.root_page_id.page_id
-                parent = DocumentNode(local_dir, page_id=page_id)
-            else:
-                # local use only, raises error with remote synchronization
-                parent = DocumentNode(local_dir, page_id=None)
+            raise ArgumentError(f"root page requires corresponding top-level Markdown document in {local_dir}")
 
         for file in files:
             node = self._index_file(file)
