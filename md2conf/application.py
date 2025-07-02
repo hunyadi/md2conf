@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .api import ConfluenceLabel, ConfluenceSession
+from .api import ConfluenceLabel, ConfluenceSession, ConfluenceStatus
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
@@ -73,6 +73,10 @@ class SynchronizingProcessor(Processor):
         elif node.title is not None:
             # look up page by title
             page = self.api.get_or_create_page(node.title, parent_id.page_id)
+
+            if page.status is ConfluenceStatus.ARCHIVED:
+                raise PageError(f"Unable to update archived page with ID {page.id}")
+
             update = True
         else:
             # always create a new page
