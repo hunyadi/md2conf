@@ -75,7 +75,7 @@ class SynchronizingProcessor(Processor):
             page = self.api.get_or_create_page(node.title, parent_id.page_id)
 
             if page.status is ConfluenceStatus.ARCHIVED:
-                raise PageError(f"Unable to update archived page with ID {page.id}")
+                raise PageError(f"unable to update archived page with ID {page.id}")
 
             update = True
         else:
