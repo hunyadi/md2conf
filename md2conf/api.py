@@ -95,6 +95,7 @@ class ConfluenceRepresentation(enum.Enum):
 class ConfluenceStatus(enum.Enum):
     CURRENT = "current"
     DRAFT = "draft"
+    ARCHIVED = "archived"
 
 
 @enum.unique
