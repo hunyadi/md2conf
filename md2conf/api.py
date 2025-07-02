@@ -261,16 +261,25 @@ class ConfluenceContentProperty:
 
     :param key: Property key.
     :param value: Property value as JSON.
-    :param version: Version information about the property.
     """
 
     key: str
     value: JsonType
-    version: Optional[ConfluenceContentVersion]
 
 
 @dataclass(frozen=True)
-class ConfluenceIdentifiedContentProperty(ConfluenceContentProperty):
+class ConfluenceVersionedContentProperty(ConfluenceContentProperty):
+    """
+    Represents a content property.
+
+    :param version: Version information about the property.
+    """
+
+    version: ConfluenceContentVersion
+
+
+@dataclass(frozen=True)
+class ConfluenceIdentifiedContentProperty(ConfluenceVersionedContentProperty):
     """
     Represents a content property.
 
@@ -976,7 +985,7 @@ class ConfluenceSession:
                 LOGGER.debug("Received HTTP payload:\n%s", response.text)
             response.raise_for_status()
 
-    def update_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+    def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
         """
         Assigns the specified labels to a Confluence page. Existing labels are removed.
 
@@ -993,7 +1002,7 @@ class ConfluenceSession:
         if add_labels:
             add_labels.sort()
             self.add_labels(page_id, add_labels)
-        if remove_labels:
+        if not keep_existing and remove_labels:
             remove_labels.sort()
             self.remove_labels(page_id, remove_labels)
 
@@ -1009,20 +1018,19 @@ class ConfluenceSession:
         results = self._fetch(path)
         return _json_to_object(list[ConfluenceIdentifiedContentProperty], results)
 
-    def add_content_property_to_page(self, page_id: str, key: str, value: JsonType) -> ConfluenceIdentifiedContentProperty:
+    def add_content_property_to_page(self, page_id: str, property: ConfluenceContentProperty) -> ConfluenceIdentifiedContentProperty:
         """
         Adds a new content property to a Confluence page.
 
         :param page_id: The Confluence page ID.
-        :param key: Property key.
-        :param value: Property value as JSON.
+        :param property: Content property to add.
         """
 
         path = f"/pages/{page_id}/properties"
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         response = self.session.post(
             url,
-            data=json_dump_string(object_to_json(ConfluenceContentProperty(key=key, value=value, version=None))),
+            data=json_dump_string(object_to_json(property)),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -1032,3 +1040,85 @@ class ConfluenceSession:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
         return _json_to_object(ConfluenceIdentifiedContentProperty, response.json())
+
+    def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
+        """
+        Removes a content property from a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param property_id: Property ID, which uniquely identifies the property.
+        """
+
+        path = f"/pages/{page_id}/properties/{property_id}"
+        url = self._build_url(ConfluenceVersion.VERSION_2, path)
+        response = self.session.delete(url)
+        response.raise_for_status()
+
+    def update_content_property_for_page(
+        self, page_id: str, property_id: str, version: int, property: ConfluenceContentProperty
+    ) -> ConfluenceIdentifiedContentProperty:
+        """
+        Updates an existing content property associated with a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param property_id: Property ID, which uniquely identifies the property.
+        :param version: Version number to assign.
+        :param property: Content property data to assign.
+        :returns: Updated content property data.
+        """
+
+        path = f"/pages/{page_id}/properties/{property_id}"
+        url = self._build_url(ConfluenceVersion.VERSION_2, path)
+        response = self.session.put(
+            url,
+            data=json_dump_string(
+                object_to_json(
+                    ConfluenceVersionedContentProperty(
+                        key=property.key,
+                        value=property.value,
+                        version=ConfluenceContentVersion(number=version),
+                    )
+                )
+            ),
+            headers={"Content-Type": "application/json"},
+        )
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
+        return json_to_object(ConfluenceIdentifiedContentProperty, response.json())
+
+    def update_content_properties_for_page(self, page_id: str, properties: list[ConfluenceContentProperty], *, keep_existing: bool = False) -> None:
+        """
+        Updates content properties associated with a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param properties: A list of content property data to update.
+        :param keep_existing: Whether to keep content property data whose key is not included in the list of properties passed as an argument.
+        """
+
+        old_mapping = {p.key: p for p in self.get_content_properties_for_page(page_id)}
+        new_mapping = {p.key: p for p in properties}
+
+        new_props = set(p.key for p in properties)
+        old_props = set(old_mapping.keys())
+
+        add_props = list(new_props - old_props)
+        remove_props = list(old_props - new_props)
+        update_props = list(old_props & new_props)
+
+        if add_props:
+            add_props.sort()
+            for key in add_props:
+                self.add_content_property_to_page(page_id, new_mapping[key])
+        if not keep_existing and remove_props:
+            remove_props.sort()
+            for key in remove_props:
+                self.remove_content_property_from_page(page_id, old_mapping[key].id)
+        if update_props:
+            update_props.sort()
+            for key in update_props:
+                old_prop = old_mapping[key]
+                new_prop = new_mapping[key]
+                if old_prop.value == new_prop.value:
+                    continue
+                self.update_content_property_for_page(page_id, old_prop.id, old_prop.version.number + 1, new_prop)

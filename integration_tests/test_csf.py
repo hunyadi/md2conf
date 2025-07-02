@@ -11,7 +11,7 @@ import os.path
 import unittest
 from pathlib import Path
 
-from md2conf.api import ConfluenceAPI, ConfluenceLabel
+from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
 from md2conf.converter import content_to_string
 from md2conf.extra import override
 
@@ -53,7 +53,14 @@ class TestConfluenceStorageFormat(unittest.TestCase):
         with ConfluenceAPI() as api:
             properties = api.get_content_properties_for_page(TEST_PAGE_ID)
             self.assertGreater(len(properties), 0)
-            # api.add_content_property_to_page(TEST_PAGE_ID, "content-appearance-published", "full-width")
+
+            api.update_content_properties_for_page(
+                TEST_PAGE_ID,
+                [
+                    ConfluenceContentProperty(key="content-appearance-published", value="full-width"),
+                    ConfluenceContentProperty(key="content-appearance-draft", value="full-width"),
+                ],
+            )
 
 
 if __name__ == "__main__":
