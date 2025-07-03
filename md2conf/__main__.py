@@ -124,6 +124,12 @@ def main() -> None:
         help="Maintain source directory structure when exporting to Confluence.",
     )
     parser.add_argument(
+        "--flatten-hierarchy",
+        dest="keep_hierarchy",
+        action="store_false",
+        help="Flatten directories with no index.md or README.md when exporting to Confluence.",
+    )
+    parser.add_argument(
         "--generated-by",
         default="This page has been generated with a tool.",
         help="Add prompt to pages (default: 'This page has been generated with a tool.').",
@@ -160,6 +166,12 @@ def main() -> None:
         action="store_true",
         default=False,
         help="Place an anchor at each section heading with GitHub-style same-page identifiers.",
+    )
+    parser.add_argument(
+        "--no-heading-anchors",
+        action="store_false",
+        dest="heading_anchors",
+        help="Don't place an anchor at each section heading.",
     )
     parser.add_argument(
         "--ignore-invalid-url",

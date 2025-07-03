@@ -55,6 +55,18 @@ def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
 LOGGER = logging.getLogger(__name__)
 
 
+def response_cast(response_type: type[T], response: requests.Response) -> T:
+    "Converts a response body into the expected type."
+
+    if response.text:
+        LOGGER.debug("Received HTTP payload:\n%s", response.text)
+    response.raise_for_status()
+    if response_type is not type(None):
+        return _json_to_object(response_type, response.json())
+    else:
+        return None
+
+
 @enum.unique
 class ConfluenceVersion(enum.Enum):
     """
@@ -387,8 +399,7 @@ class ConfluenceSession:
             self.api_url = api_url
 
             if not domain or not base_path:
-                payload = self._invoke(ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
-                data = json_to_object(ConfluenceResultSet, payload)
+                data = self._get(ConfluenceVersion.VERSION_2, "/spaces", ConfluenceResultSet, query={"limit": "1"})
                 base_url = data._links.base
 
                 _, domain, base_path, _, _, _ = urlparse(base_url)
@@ -425,12 +436,14 @@ class ConfluenceSession:
         base_url = f"{self.api_url}{version.value}{path}"
         return build_url(base_url, query)
 
-    def _invoke(
+    def _get(
         self,
         version: ConfluenceVersion,
         path: str,
+        response_type: type[T],
+        *,
         query: Optional[dict[str, str]] = None,
-    ) -> JsonType:
+    ) -> T:
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
@@ -438,7 +451,7 @@ class ConfluenceSession:
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
-        return typing.cast(JsonType, response.json())
+        return _json_to_object(response_type, response.json())
 
     def _fetch(self, path: str, query: Optional[dict[str, str]] = None) -> list[JsonType]:
         "Retrieves all results of a REST API v2 paginated result-set."
@@ -462,30 +475,55 @@ class ConfluenceSession:
 
         return items
 
-    def _save(self, version: ConfluenceVersion, path: str, data: JsonType) -> None:
-        "Persists data via Confluence REST API."
+    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> tuple[str, dict[str, str], str]:
+        "Generates URL, headers and raw payload for a typed request/response."
 
         url = self._build_url(version, path)
+        if response_type is not type(None):
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+        else:
+            headers = {
+                "Content-Type": "application/json",
+            }
+        data = json_dump_string(object_to_json(body))
+        return url, headers, data
+
+    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
+        "Creates a new object via Confluence REST API."
+
+        url, headers, data = self._build_request(version, path, body, response_type)
+        response = self.session.post(
+            url,
+            data=data,
+            headers=headers,
+        )
+        return response_cast(response_type, response)
+
+    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
+        "Updates an existing object via Confluence REST API."
+
+        url, headers, data = self._build_request(version, path, body, response_type)
         response = self.session.put(
             url,
-            data=json_dump_string(data),
-            headers={"Content-Type": "application/json"},
+            data=data,
+            headers=headers,
         )
-        if response.text:
-            LOGGER.debug("Received HTTP payload:\n%s", response.text)
-        response.raise_for_status()
+        return response_cast(response_type, response)
 
     def space_id_to_key(self, id: str) -> str:
         "Finds the Confluence space key for a space ID."
 
         key = self._space_id_to_key.get(id)
         if key is None:
-            payload = self._invoke(
+            data = self._get(
                 ConfluenceVersion.VERSION_2,
                 "/spaces",
-                {"ids": id, "status": "current"},
+                dict[str, JsonType],
+                query={"ids": id, "status": "current"},
             )
-            data = typing.cast(dict[str, JsonType], payload)
             results = typing.cast(list[JsonType], data["results"])
             if len(results) != 1:
                 raise ConfluenceError(f"unique space not found with id: {id}")
@@ -502,12 +540,12 @@ class ConfluenceSession:
 
         id = self._space_key_to_id.get(key)
         if id is None:
-            payload = self._invoke(
+            data = self._get(
                 ConfluenceVersion.VERSION_2,
                 "/spaces",
-                {"keys": key, "status": "current"},
+                dict[str, JsonType],
+                query={"keys": key, "status": "current"},
             )
-            data = typing.cast(dict[str, JsonType], payload)
             results = typing.cast(list[JsonType], data["results"])
             if len(results) != 1:
                 raise ConfluenceError(f"unique space not found with key: {key}")
@@ -546,9 +584,7 @@ class ConfluenceSession:
         """
 
         path = f"/pages/{page_id}/attachments"
-        query = {"filename": filename}
-        payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
-        data = typing.cast(dict[str, JsonType], payload)
+        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType], query={"filename": filename})
 
         results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
@@ -701,7 +737,7 @@ class ConfluenceSession:
         )
 
         LOGGER.info("Updating attachment: %s", attachment_id)
-        self._save(ConfluenceVersion.VERSION_1, path, object_to_json(request))
+        self._put(ConfluenceVersion.VERSION_1, path, request, type(None))
 
     def get_page_properties_by_title(
         self,
@@ -728,8 +764,7 @@ class ConfluenceSession:
         if space_id is not None:
             query["space-id"] = space_id
 
-        payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
-        data = typing.cast(dict[str, JsonType], payload)
+        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType], query=query)
         results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"unique page not found with title: {title}")
@@ -746,9 +781,7 @@ class ConfluenceSession:
         """
 
         path = f"/pages/{page_id}"
-        query = {"body-format": "storage"}
-        payload = self._invoke(ConfluenceVersion.VERSION_2, path, query)
-        return _json_to_object(ConfluencePage, payload)
+        return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePage, query={"body-format": "storage"})
 
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
         """
@@ -759,8 +792,7 @@ class ConfluenceSession:
         """
 
         path = f"/pages/{page_id}"
-        payload = self._invoke(ConfluenceVersion.VERSION_2, path)
-        return _json_to_object(ConfluencePageProperties, payload)
+        return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePageProperties)
 
     def get_page_version(self, page_id: str) -> int:
         """
@@ -807,7 +839,7 @@ class ConfluenceSession:
             version=ConfluenceContentVersion(number=page.version.number + 1, minorEdit=True),
         )
         LOGGER.info("Updating page: %s", page_id)
-        self._save(ConfluenceVersion.VERSION_2, path, object_to_json(request))
+        self._put(ConfluenceVersion.VERSION_2, path, request, type(None))
 
     def create_page(
         self,
@@ -954,19 +986,7 @@ class ConfluenceSession:
         """
 
         path = f"/content/{page_id}/label"
-
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.post(
-            url,
-            data=json_dump_string(object_to_json(labels)),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-        )
-        if response.text:
-            LOGGER.debug("Received HTTP payload:\n%s", response.text)
-        response.raise_for_status()
+        self._post(ConfluenceVersion.VERSION_1, path, labels, type(None))
 
     def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
         """
@@ -1028,19 +1048,7 @@ class ConfluenceSession:
         """
 
         path = f"/pages/{page_id}/properties"
-        url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.post(
-            url,
-            data=json_dump_string(object_to_json(property)),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-        )
-        if response.text:
-            LOGGER.debug("Received HTTP payload:\n%s", response.text)
-        response.raise_for_status()
-        return _json_to_object(ConfluenceIdentifiedContentProperty, response.json())
+        return self._post(ConfluenceVersion.VERSION_2, path, property, ConfluenceIdentifiedContentProperty)
 
     def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
         """
@@ -1069,24 +1077,16 @@ class ConfluenceSession:
         """
 
         path = f"/pages/{page_id}/properties/{property_id}"
-        url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.put(
-            url,
-            data=json_dump_string(
-                object_to_json(
-                    ConfluenceVersionedContentProperty(
-                        key=property.key,
-                        value=property.value,
-                        version=ConfluenceContentVersion(number=version),
-                    )
-                )
+        return self._put(
+            ConfluenceVersion.VERSION_2,
+            path,
+            ConfluenceVersionedContentProperty(
+                key=property.key,
+                value=property.value,
+                version=ConfluenceContentVersion(number=version),
             ),
-            headers={"Content-Type": "application/json"},
+            ConfluenceIdentifiedContentProperty,
         )
-        if response.text:
-            LOGGER.debug("Received HTTP payload:\n%s", response.text)
-        response.raise_for_status()
-        return json_to_object(ConfluenceIdentifiedContentProperty, response.json())
 
     def update_content_properties_for_page(self, page_id: str, properties: list[ConfluenceContentProperty], *, keep_existing: bool = False) -> None:
         """
