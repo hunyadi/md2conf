@@ -3,27 +3,31 @@ name: Publish Python Package
 on:
   push:
     # Pattern matched against refs/tags
-    tags:        
+    tags:
       - '*'
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
 
 jobs:
   pypi-publish:
-    name: Publish release to PyPI
+    name: Publish to PyPI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
       - name: Install build dependencies
         run: |
-          PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip
-          pip3 install build
+          python3 -m pip install --upgrade pip
+          python3 -m pip install build
       - name: Build package
         run: |
           python3 -m build --sdist --wheel
-      - name: Publish package distribution to PyPI
+      - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ID_TOKEN }}

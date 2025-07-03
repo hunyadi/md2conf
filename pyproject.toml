@@ -31,18 +31,25 @@ classifiers = [
 ]
 dependencies = [
     "json_strong_typing >= 0.3.9",
-    "lxml >= 5.4",
-    "types-lxml >= 2025.3.30",
+    "lxml >= 6.0",
     "markdown >= 3.8",
-    "types-markdown >= 3.8",
     "pymdown-extensions >= 10.16",
     "PyYAML >= 6.0",
-    "types-PyYAML >= 6.0",
     "requests >= 2.32",
-    "types-requests >= 2.32",
     "typing_extensions >= 4.14; python_version < '3.12'"
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "markdown_doc >= 0.1.4; python_version >= '3.10'",
+    "types-lxml >= 2025.3.30",
+    "types-markdown >= 3.8",
+    "types-PyYAML >= 6.0",
+    "types-requests >= 2.32",
+    "mypy >= 1.16",
+    "ruff >= 0.12"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/hunyadi/md2conf"
