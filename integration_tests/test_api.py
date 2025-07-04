@@ -128,6 +128,8 @@ class TestAPI(unittest.TestCase):
                     f"# {relative_path}: A sample document",
                     "",
                     "This is a document without an explicitly assigned Confluence page ID or space key.",
+                    "",
+                    "UTF-8 test sequence: árvíztűrő tükörfúrógép.",
                 ]
 
                 frontmatter = []

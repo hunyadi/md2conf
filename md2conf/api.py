@@ -475,20 +475,20 @@ class ConfluenceSession:
 
         return items
 
-    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> tuple[str, dict[str, str], str]:
+    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> tuple[str, dict[str, str], bytes]:
         "Generates URL, headers and raw payload for a typed request/response."
 
         url = self._build_url(version, path)
         if response_type is not type(None):
             headers = {
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
             }
         else:
             headers = {
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
             }
-        data = json_dump_string(object_to_json(body))
+        data = json_dump_string(object_to_json(body)).encode("utf-8")
         return url, headers, data
 
     def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
@@ -872,9 +872,9 @@ class ConfluenceSession:
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         response = self.session.post(
             url,
-            data=json_dump_string(object_to_json(request)),
+            data=json_dump_string(object_to_json(request)).encode("utf-8"),
             headers={
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
             },
         )
@@ -934,7 +934,7 @@ class ConfluenceSession:
             url,
             params=query,
             headers={
-                "Content-Type": "application/json",
+                "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
             },
         )
