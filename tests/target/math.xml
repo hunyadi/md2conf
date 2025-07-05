@@ -1,0 +1,17 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>LaTeX math equations</h2>
+<p>Inline formulas can be enclosed with <code>$</code> signs: <ac:structured-macro ac:name="eazy-math-inline" ac:schema-version="1" ac:local-id="UUID" ac:macro-id="UUID"><ac:parameter ac:name="body">\sum_{i=1}^{n} i = \frac{n(n+1)}{2}</ac:parameter><ac:parameter ac:name="align">center</ac:parameter></ac:structured-macro>, or delimited with <code>\(</code> and <code>\)</code>: <ac:structured-macro ac:name="eazy-math-inline" ac:schema-version="1" ac:local-id="UUID" ac:macro-id="UUID"><ac:parameter ac:name="body">\lim _{x\rightarrow \infty }\frac{1}{x}=0</ac:parameter><ac:parameter ac:name="align">center</ac:parameter></ac:structured-macro>.</p>
+<p>Block formulas can be wrapped with <code>$$</code>:</p>
+<ac:structured-macro ac:name="easy-math-block" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="body">\frac{-b\pm \sqrt{b^{2}-4ac}}{2a}</ac:parameter>
+  <ac:parameter ac:name="align">center</ac:parameter>
+</ac:structured-macro>
+<p>Code blocks with language <code>math</code> are also supported:</p>
+<ac:structured-macro ac:name="easy-math-block" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="body">\int _{a}^{b}f(x)dx=F(b)-F(a)</ac:parameter>
+  <ac:parameter ac:name="align">center</ac:parameter>
+</ac:structured-macro>

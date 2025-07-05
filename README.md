@@ -257,6 +257,25 @@ Unfortunately, Confluence struggles with SVG images, e.g. they may only show in 
 
 External images referenced with an absolute URL retain the original URL.
 
+### LaTeX math formulas
+
+Inline formulas can be enclosed with `$` signs, or delimited with `\(` and `\)`, i.e.
+
+* the code `$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$` is shown as $\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$,
+* and `\(\lim _{x\rightarrow \infty }\frac{1}{x}=0\)` is shown as $\lim _{x\rightarrow \infty }\frac{1}{x}=0$.
+
+Block formulas can be enclosed with `$$`, or wrapped in code blocks specifying the language `math`:
+
+```md
+$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
+```
+
+is shown as
+
+$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
+
+Displaying math formulas in Confluence requires the extension [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
+
 ### Ignoring files
 
 Skip files in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax (and constraints) of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.

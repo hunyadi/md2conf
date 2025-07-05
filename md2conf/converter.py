@@ -111,28 +111,57 @@ def emoji_generator(
     return span
 
 
+def math_formatter(
+    source: str,
+    language: str,
+    css_class: str,
+    options: dict[str, Any],
+    md: markdown.Markdown,
+    classes: Optional[list[str]] = None,
+    id_value: str = "",
+    attrs: Optional[dict[str, str]] = None,
+    **kwargs: Any,
+) -> str:
+    """
+    Custom formatter for language `math` in `pymdownx.superfences`.
+    """
+
+    if classes is None:
+        classes = [css_class]
+    else:
+        classes.insert(0, css_class)
+
+    html_id = f' id="{id_value}"' if id_value else ""
+    html_class = ' class="{}"'.format(" ".join(classes))
+    html_attrs = " " + " ".join(f'{k}="{v}"' for k, v in attrs.items()) if attrs else ""
+
+    return f"<div{html_id}{html_class}{html_attrs}>{source}</div>"
+
+
 def markdown_to_html(content: str) -> str:
     return markdown.markdown(
         content,
         extensions=[
             "admonition",
             "markdown.extensions.tables",
-            # "markdown.extensions.fenced_code",
+            "md_in_html",
+            "pymdownx.arithmatex",
             "pymdownx.emoji",
             "pymdownx.highlight",  # required by `pymdownx.superfences`
             "pymdownx.magiclink",
             "pymdownx.superfences",
             "pymdownx.tilde",
             "sane_lists",
-            "md_in_html",
         ],
         extension_configs={
+            "pymdownx.arithmatex": {"generic": True, "preview": False, "tex_inline_wrap": ["", ""], "tex_block_wrap": ["", ""]},
             "pymdownx.emoji": {
                 "emoji_generator": emoji_generator,
             },
             "pymdownx.highlight": {
                 "use_pygments": False,
             },
+            "pymdownx.superfences": {"custom_fences": [{"name": "math", "class": "arithmatex", "format": math_formatter}]},
         },
     )
 
@@ -474,7 +503,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(msg)
 
         relative_path = os.path.relpath(absolute_path, self.base_dir)
-        LOGGER.debug("found link to page %s with metadata: %s", relative_path, link_metadata)
+        LOGGER.debug("Found link to page %s with metadata: %s", relative_path, link_metadata)
         self.links.append(url)
 
         if self.options.webui_links:
@@ -842,6 +871,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
 
     def _transform_emoji(self, elem: ET._Element) -> ET._Element:
+        """
+        Inserts an inline emoji character.
+        """
+
         shortname = elem.attrib.get("data-emoji-shortname", "")
         unicode = elem.attrib.get("data-emoji-unicode", None)
         alt = elem.text or ""
@@ -852,7 +885,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return AC(
             "emoticon",
             {
-                # use "blue-star" as a placeholder name to ensure wiki page loads in timely manner
                 ET.QName(namespaces["ac"], "name"): shortname,
                 ET.QName(namespaces["ac"], "emoji-shortname"): f":{shortname}:",
                 ET.QName(namespaces["ac"], "emoji-id"): unicode,
@@ -860,7 +892,77 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
         )
 
+    def _transform_inline_math(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates an inline LaTeX formula using the Confluence extension "LaTeX Math for Confluence - Math Formula & Equations".
+
+        :see: https://help.narva.net/latex-math-for-confluence/
+        """
+
+        content = elem.text or ""
+        if not content:
+            raise DocumentError("empty inline LaTeX formula")
+
+        LOGGER.debug("Found inline LaTeX formula: %s", content)
+
+        local_id = str(uuid.uuid4())
+        macro_id = str(uuid.uuid4())
+        macro = AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "eazy-math-inline",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+                ET.QName(namespaces["ac"], "local-id"): local_id,
+                ET.QName(namespaces["ac"], "macro-id"): macro_id,
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "body"},
+                content,
+            ),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "align"}, "center"),
+        )
+        macro.tail = elem.tail  # chain sibling text node that immediately follows original element
+        return macro
+
+    def _transform_block_math(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates a block-level LaTeX formula using the Confluence extension "LaTeX Math for Confluence - Math Formula & Equations".
+
+        :see: https://help.narva.net/latex-math-for-confluence/
+        """
+
+        content = elem.text or ""
+        if not content:
+            raise DocumentError("empty block-level LaTeX formula")
+
+        LOGGER.debug("Found block-level LaTeX formula: %s", content)
+
+        local_id = str(uuid.uuid4())
+        macro_id = str(uuid.uuid4())
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "easy-math-block",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+                "data-layout": "default",
+                ET.QName(namespaces["ac"], "local-id"): local_id,
+                ET.QName(namespaces["ac"], "macro-id"): macro_id,
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "body"},
+                content,
+            ),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "align"}, "center"),
+        )
+
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
+        """
+        Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
+        """
+
         # normalize line breaks to regular space in element text
         if child.text:
             text: str = child.text
@@ -945,8 +1047,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_block(child[0])
 
+        # <span data-emoji-shortname="..." data-emoji-unicode="...">...</span>
         elif child.tag == "span" and child.attrib.has_key("data-emoji-shortname"):
             return self._transform_emoji(child)
+
+        # <div class="arithmatex">...</div>
+        elif child.tag == "div" and "arithmatex" in child.attrib.get("class", ""):
+            return self._transform_block_math(child)
+
+        # <span class="arithmatex">...</span>
+        elif child.tag == "span" and "arithmatex" in child.attrib.get("class", ""):
+            return self._transform_inline_math(child)
 
         return None
 
