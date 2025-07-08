@@ -16,16 +16,18 @@ This Python package
 * Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~
 * Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
 * Subscript and superscript (with HTML tags `<sub>` and `<sup>`)
+* Math formulas with LaTeX notation [^math]
 * Emoji
 * Ordered and unordered lists
 * Block quotes
 * Code blocks (e.g. Python, JSON, XML)
 * Images (uploaded as Confluence page attachments or hosted externally)
 * Tables
+* Footnotes
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
 * [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
-* [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
+* [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images) [^mermaid]
 
 Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
 
@@ -110,7 +112,7 @@ If you lack appropriate permissions, you will get an *Unauthorized* response fro
 Each Markdown file is associated with a Confluence wiki page with a Markdown comment:
 
 ```markdown
-<!-- confluence-page-id: 85668266616 -->
+<!-- confluence-page-id: 20250001023 -->
 ```
 
 The above tells the tool to synchronize the Markdown file with the given Confluence page ID. This implies that the Confluence wiki page must exist such that it has an ID. The comment can be placed anywhere in the source file.
@@ -439,3 +441,6 @@ FROM leventehunyadi/md2conf:latest
 
 CMD ["-d", "example.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a", "0123456789abcdef", "-s", "SPACE", "./"]
 ```
+
+[^math]: Requires installing Confluence plugin [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
+[^mermaid]: Converting Mermaid diagrams to images before uploading to Confluence requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli).

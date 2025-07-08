@@ -106,6 +106,10 @@ Code blocks with language `math` are also supported:
 \int _{a}^{b}f(x)dx=F(b)-F(a)
 ```
 
+## Footnotes
+
+Footnote with numeric notation [^1] and string identifier [^string].
+
 ## Sections
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam dignissim sem vel tortor scelerisque sodales. Quisque id faucibus massa. Integer enim nulla, cursus vel facilisis id, convallis in nunc. Suspendisse potenti. Aenean vehicula semper fringilla. Nulla pretium vitae enim sed feugiat. Integer molestie a elit ac fermentum.
@@ -198,3 +202,6 @@ You can add an image or a code block, too.
 puts "Hello World"
 ```
 </details>
+
+[^1]: This is a footnote with *numeric* notation.
+[^string]: This is a footnote with a *string identifier*.

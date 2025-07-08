@@ -3,16 +3,16 @@ set -e
 # Builds a Python package and runs unit tests in Docker
 #
 
-PYTHON=python3
+PYTHON_EXECUTABLE=${PYTHON:-python3}
 
 # clean up output from previous runs
 if [ -d dist ]; then rm -rf dist; fi
 if [ -d *.egg-info ]; then rm -rf *.egg-info; fi
 
 # create PyPI package for distribution
-$PYTHON -m build --sdist --wheel
+$PYTHON_EXECUTABLE -m build --sdist --wheel
 
-VERSION=`$PYTHON -c "from md2conf import __version__; print(__version__)"`
+VERSION=`$PYTHON_EXECUTABLE -c "from md2conf import __version__; print(__version__)"`
 docker build -f Dockerfile -t leventehunyadi/md2conf:latest -t leventehunyadi/md2conf:$VERSION .
 docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest sample/index.md --ignore-invalid-url
 
