@@ -390,7 +390,7 @@ class ConfluenceConverterOptions:
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
-    "Transforms a plain HTML tree into the Confluence storage format."
+    "Transforms a plain HTML tree into Confluence Storage Format."
 
     options: ConfluenceConverterOptions
     path: Path
@@ -428,6 +428,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.page_metadata = page_metadata
 
     def _transform_heading(self, heading: ET._Element) -> None:
+        "Adds anchors to headings in the same document (if *heading anchors* is enabled)."
+
         for e in heading:
             self.visit(e)
 
@@ -458,6 +460,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             raise DocumentError(msg)
 
     def _transform_link(self, anchor: ET._Element) -> Optional[ET._Element]:
+        """
+        Transforms links (HTML anchor `<a>`).
+
+        * Absolute URLs are left intact.
+        * Links to headings in the same document are transformed into `<ac:link>` (if *heading anchors* is enabled).
+        * Links to documents in the source hierarchy are mapped into full Confluence URLs.
+        """
+
         url = anchor.attrib.get("href")
         if url is None or is_absolute_url(url):
             return None
@@ -482,7 +492,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 link_wrapper.tail = anchor.tail
                 return link_wrapper
             else:
-                anchor.attrib["href"] = url
                 return None
 
         # convert the relative URL to absolute URL based on the base path value, then look up
@@ -533,6 +542,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return None
 
     def _transform_image(self, image: ET._Element) -> ET._Element:
+        "Inserts an attached or external image."
+
         src = image.attrib.get("src")
 
         if not src:
@@ -608,7 +619,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         return AC("image", attributes, *elements)
 
-    def _transform_block(self, code: ET._Element) -> ET._Element:
+    def _transform_code_block(self, code: ET._Element) -> ET._Element:
+        "Transforms a code block."
+
         language = code.attrib.get("class")
         if language:
             m = re.match("^language-(.*)$", language)
@@ -670,7 +683,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {
                     ET.QName(namespaces["ac"], "name"): "macro-diagram",
                     ET.QName(namespaces["ac"], "schema-version"): "1",
-                    ET.QName(namespaces["ac"], "data-layout"): "default",
+                    "data-layout": "default",
                     ET.QName(namespaces["ac"], "local-id"): local_id,
                     ET.QName(namespaces["ac"], "macro-id"): macro_id,
                 },
@@ -697,6 +710,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
 
     def _transform_toc(self, code: ET._Element) -> ET._Element:
+        "Creates a table of contents, constructed from headings in the document."
+
         return AC(
             "structured-macro",
             {
@@ -705,6 +720,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
             AC("parameter", {ET.QName(namespaces["ac"], "name"): "outline"}, "clear"),
             AC("parameter", {ET.QName(namespaces["ac"], "name"): "style"}, "default"),
+        )
+
+    def _transform_listing(self, code: ET._Element) -> ET._Element:
+        "Creates a list of child pages."
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "children",
+                ET.QName(namespaces["ac"], "schema-version"): "2",
+                "data-layout": "default",
+            },
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "allChildren"}, "true"),
         )
 
     def _transform_admonition(self, elem: ET._Element) -> ET._Element:
@@ -756,6 +784,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         )
 
     def _transform_github_alert(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates a GitHub-style panel, normally triggered with a block-quote starting with a capitalized string such as `[!TIP]`.
+        """
+
         content = elem[0]
         if content.text is None:
             raise DocumentError("empty content")
@@ -784,6 +816,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return self._transform_alert(elem, class_name, skip)
 
     def _transform_gitlab_alert(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates a classic GitLab-style panel.
+
+        Classic panels are defined with a block-quote and text starting with a capitalized string such as `DISCLAIMER:`.
+        This syntax does not use Hugo shortcode.
+        """
+
         content = elem[0]
         if content.text is None:
             raise DocumentError("empty content")
@@ -1116,6 +1155,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "p" and "".join(child.itertext()) in ["[[TOC]]", "[TOC]"]:
             return self._transform_toc(child)
 
+        # <p>[[_LISTING_]]</p>
+        elif child.tag == "p" and "".join(child.itertext()) in ["[[LISTING]]", "[LISTING]"]:
+            return self._transform_listing(child)
+
         # <div class="admonition note">
         # <p class="admonition-title">Note</p>
         # <p>...</p>
@@ -1166,7 +1209,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
-            return self._transform_block(child[0])
+            return self._transform_code_block(child[0])
 
         # <span data-emoji-shortname="..." data-emoji-unicode="...">...</span>
         elif child.tag == "span" and child.attrib.has_key("data-emoji-shortname"):

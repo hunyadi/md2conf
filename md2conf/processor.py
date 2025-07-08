@@ -185,8 +185,8 @@ class Processor:
             parent_doc = local_dir / "index.md"
 
             # create a blank page for directory entry
-            with open(parent_doc, "w"):
-                pass
+            with open(parent_doc, "w") as f:
+                print("[[_LISTING_]]", file=f)
 
         if parent_doc is not None:
             if parent_doc in files:
