@@ -153,24 +153,28 @@ First, *md2conf* builds an index of pages in the directory hierarchy. The index 
 
 If a Markdown file doesn't yet pair up with a Confluence page, *md2conf* creates a new page and assigns a parent. Parent-child relationships are reflected in the navigation panel in Confluence. You can set a root page ID with the command-line option `-r`, which constitutes the topmost parent. (This could correspond to the landing page of your Confluence space. The Confluence page ID is always revealed when you edit a page.) Whenever a directory contains the file `index.md` or `README.md`, this page becomes the future parent page, and all Markdown files in this directory (and possibly nested directories) become its child pages (unless they already have a page ID). However, if an `index.md` or `README.md` file is subsequently found in one of the nested directories, it becomes the parent page of that directory, and any of its subdirectories.
 
+The top-level directory to be synchronized must always have an `index.md` or `README.md`, which maps to the root of the corresponding sub-tree in Confluence (specified with `-r`).
+
 The concepts above are illustrated in the following sections.
 
 #### File-system directory hierarchy
 
-The title of each Markdown file (either the text of the topmost unique heading (`#`), or the title specified in front-matter) is shown next to the file name.
+The title of each Markdown file (either the text of the topmost unique heading (`#`), or the title specified in front-matter) is shown next to the file name. `docs` is the top-level directory to be synchronized.
 
 ```
-.
+docs
+├── index.md: Root page
 ├── computer-science
 │   ├── index.md: Introduction to computer science
 │   ├── algebra.md: Linear algebra
 │   └── algorithms.md: Theory of algorithms
-└── machine-learning
-    ├── README.md: AI and ML
-    ├── awareness.md: Consciousness and intelligence
-    └── statistics
-        ├── index.md: Introduction to statistics
-        └── median.md: Mean vs. median
+├── machine-learning
+│   ├── README.md: AI and ML
+│   ├── awareness.md: Consciousness and intelligence
+│   └── statistics
+│       ├── index.md: Introduction to statistics
+│       └── median.md: Mean vs. median
+└── ethics.md: Ethical considerations
 ```
 
 #### Page hierarchy in Confluence
@@ -178,14 +182,15 @@ The title of each Markdown file (either the text of the topmost unique heading (
 Observe how `index.md` and `README.md` files have assumed parent (or ancestor) role for any Markdown files in the same directory (or below).
 
 ```
-root
+Root page
 ├── Introduction to computer science
 │   ├── Linear algebra
 │   └── Theory of algorithms
-└── AI and ML
-    ├── Consciousness and intelligence
-    └── Introduction to statistics
-        └── Mean vs. median
+├── AI and ML
+│   ├── Consciousness and intelligence
+│   └── Introduction to statistics
+│       └── Mean vs. median
+└── Ethical considerations
 ```
 
 ### Emoji
