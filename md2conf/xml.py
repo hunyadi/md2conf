@@ -19,7 +19,10 @@ def normalize_element(elem: ET.Element) -> None:
 
 
 def elements_equal(e1: ET.Element, e2: ET.Element) -> bool:
-    """Recursively check if two XML elements are equal."""
+    """
+    Recursively check if two XML elements are equal.
+    """
+
     if e1.tag != e2.tag:
         return False
     if e1.text != e2.text:
@@ -37,8 +40,8 @@ def compare_xml(tree1: ET.Element, tree2: ET.Element) -> bool:
     """
     Compare two XML documents for equivalence, ignoring whitespace differences.
 
-    :param xml1: XML document as a string.
-    :param xml2: XML document as a string.
+    :param tree1: XML document as an element tree.
+    :param tree2: XML document as an element tree.
     :returns: True if equivalent, False otherwise.
     """
 
