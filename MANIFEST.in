@@ -1,5 +1,6 @@
 recursive-include tests *.py
 recursive-include tests *.md
+recursive-include tests *.drawio
 recursive-include tests *.png
 recursive-include tests *.svg
 recursive-include tests *.xml

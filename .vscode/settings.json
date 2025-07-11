@@ -25,6 +25,7 @@
         "magiclink",
         "mdignore",
         "mmdc",
+        "mxfile",
         "pymdownx",
         "scandir",
         "superfences",
