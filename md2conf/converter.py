@@ -25,6 +25,8 @@ import markdown
 from lxml.builder import ElementMaker
 from strong_typing.core import JsonType
 
+from md2conf.drawio import extract_diagram
+
 from .collection import ConfluencePageCollection
 from .extra import path_relative_to
 from .mermaid import render_diagram
@@ -565,7 +567,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if is_absolute_url(src):
             return self._transform_external_image(src, caption, attributes)
         else:
-            return self._transform_attached_image(Path(src), caption, attributes)
+            path = Path(src)
+
+            absolute_path = self._verify_image_path(path)
+            if absolute_path is None:
+                return self._create_missing(path, caption)
+
+            if absolute_path.name.endswith(".drawio.png"):
+                return self._transform_drawio_image(absolute_path, caption, attributes)
+            else:
+                return self._transform_attached_image(absolute_path, caption, attributes)
 
     def _transform_external_image(self, url: str, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an external image."
@@ -583,28 +594,52 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         return AC("image", attributes, *elements)
 
-    def _transform_attached_image(self, path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
-        "Emits Confluence Storage Format XHTML for an attached image."
+    def _verify_image_path(self, path: Path) -> Optional[Path]:
+        "Checks whether an image path is safe to use."
 
         # resolve relative path into absolute path w.r.t. base dir
         absolute_path = (self.base_dir / path).resolve()
 
-        if absolute_path.exists():
-            # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-            if absolute_path.suffix == ".svg":
-                png_file = absolute_path.with_suffix(".png")
-                if png_file.exists():
-                    absolute_path = png_file
-
-            if is_directory_within(absolute_path, self.root_dir):
-                self.images.append(absolute_path)
-                image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
-            else:
-                image_name = ""
-                self._warn_or_raise(f"path to image {path} points to outside root path {self.root_dir}")
-        else:
-            image_name = ""
+        if not absolute_path.exists():
             self._warn_or_raise(f"path to image {path} does not exist")
+            return None
+
+        if not is_directory_within(absolute_path, self.root_dir):
+            self._warn_or_raise(f"path to image {path} points to outside root path {self.root_dir}")
+            return None
+
+        return absolute_path
+
+    def _transform_attached_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for an attached raster or vector image."
+
+        if absolute_path.name.endswith(".svg"):
+            # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
+            png_file = absolute_path.with_suffix(".png")
+            if png_file.exists():
+                absolute_path = png_file
+
+        self.images.append(absolute_path)
+        return self._create_image(absolute_path, caption, attributes)
+
+    def _transform_drawio_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for a draw.io image."
+
+        if not absolute_path.name.endswith(".drawio.png"):
+            raise DocumentError("invalid image format; expected: `*.drawio.png`")
+
+        # extract embedded editable diagram and upload as *.drawio
+        image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir).with_suffix(".xml"))
+        image_data = extract_diagram(absolute_path)
+        self.embedded_images[image_filename] = image_data
+
+        self.images.append(absolute_path)
+        return self._create_image(absolute_path, caption, attributes)
+
+    def _create_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+        "An image embedded into the page, linking to an attachment."
+
+        image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
 
         elements: list[ET._Element] = []
         elements.append(
@@ -618,6 +653,31 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             elements.append(AC("caption", HTML.p(caption)))
 
         return AC("image", attributes, *elements)
+
+    def _create_missing(self, path: Path, caption: Optional[str]) -> ET._Element:
+        "A warning panel for a missing image."
+
+        message = HTML.p("Missing image: ", HTML.code(path.as_posix()))
+        if caption is not None:
+            content = [
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "title"},
+                    caption,
+                ),
+                AC("rich-text-body", {}, message),
+            ]
+        else:
+            content = [AC("rich-text-body", {}, message)]
+
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "warning",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+            },
+            *content,
+        )
 
     def _transform_code_block(self, code: ET._Element) -> ET._Element:
         "Transforms a code block."

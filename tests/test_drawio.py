@@ -11,7 +11,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from md2conf.drawio import extract_diagram
+from md2conf.drawio import extract_diagram, extract_xml
 from md2conf.xml import compare_xml
 
 logging.basicConfig(
@@ -21,13 +21,19 @@ logging.basicConfig(
 
 
 class TestDrawio(unittest.TestCase):
-    def test_extract(self) -> None:
-        image_dir = Path(__file__).parent / "images"
+    def test_bytes(self) -> None:
+        image_dir = Path(__file__).parent / "source" / "figure"
+        image_file = image_dir / "diagram.drawio.png"
+        image = extract_diagram(image_file)
+        self.assertGreater(len(image), 0)
+
+    def test_xml(self) -> None:
+        image_dir = Path(__file__).parent / "source" / "figure"
         with open(image_dir / "diagram.drawio", "r") as f:
             expected = ET.fromstring(f.read())
 
-        with open(image_dir / "diagram.png", "rb") as f:
-            actual = extract_diagram(f.read())
+        with open(image_dir / "diagram.drawio.png", "rb") as f:
+            actual = extract_xml(f.read())
 
         self.assertTrue(compare_xml(expected, actual))
 

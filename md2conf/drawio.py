@@ -7,8 +7,10 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import base64
+import typing
 import xml.etree.ElementTree as ET
 import zlib
+from pathlib import Path
 from struct import unpack
 from urllib.parse import unquote_to_bytes
 
@@ -113,7 +115,7 @@ def decompress_diagram(xml_bytes: bytes) -> ET.Element:
     return root
 
 
-def extract_diagram(png_data: bytes) -> ET.Element:
+def extract_xml(png_data: bytes) -> ET.Element:
     """
     Extracts an editable draw.io diagram from a PNG file.
 
@@ -171,3 +173,17 @@ def extract_diagram(png_data: bytes) -> ET.Element:
 
     # matching `tEXt` chunk not found
     raise DrawioError("not a PNG file made with draw.io")
+
+
+def extract_diagram(png_path: Path) -> bytes:
+    """
+    Extracts an editable draw.io diagram from a PNG file.
+
+    :param png_path: Path to a PNG file.
+    :returns: XML data of a draw.io diagram as bytes.
+    """
+
+    with open(png_path, "rb") as f:
+        root = extract_xml(f.read())
+
+    return typing.cast(bytes, ET.tostring(root, encoding="utf8", method="xml"))

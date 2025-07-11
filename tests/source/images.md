@@ -6,6 +6,8 @@
 
 ![SVG image with caption](figure/vector.svg)
 
+![Embedded draw.io image with caption](figure/diagram.drawio.png)
+
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 
 <img src="http://confluence.atlassian.com/images/logo/confluence_48_trans.png" width="24" height="24" />

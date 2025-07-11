@@ -5,9 +5,9 @@
 </ac:structured-macro>
 <h2>Broken links</h2>
 <p>Relative URLs to <a>locations not exported</a> may be skipped.</p>
-<ac:image ac:align="center" ac:layout="center">
-  <ri:attachment ri:filename=""/>
-  <ac:caption>
-    <p>Missing PNG image</p>
-  </ac:caption>
-</ac:image>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:parameter ac:name="title">Missing PNG image</ac:parameter>
+  <ac:rich-text-body>
+    <p>Missing image: <code>missing.png</code></p>
+  </ac:rich-text-body>
+</ac:structured-macro>
