@@ -64,6 +64,7 @@ class TestConversion(unittest.TestCase):
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), self.source_dir)
 
+        entries: list[os.DirEntry[str]] = []
         for entry in os.scandir(self.source_dir):
             if entry.is_dir():
                 continue
@@ -71,6 +72,10 @@ class TestConversion(unittest.TestCase):
             if matcher.is_excluded(entry):
                 continue
 
+            entries.append(entry)
+
+        entries.sort(key=lambda e: e.name)
+        for entry in entries:
             name, _ = os.path.splitext(entry.name)
 
             with self.subTest(name=name):

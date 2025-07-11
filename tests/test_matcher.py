@@ -11,6 +11,7 @@ import os
 import os.path
 import unittest
 from pathlib import Path
+from random import shuffle
 
 from md2conf.matcher import Entry, Matcher, MatcherOptions
 
@@ -21,15 +22,36 @@ logging.basicConfig(
 
 
 class TestMatcher(unittest.TestCase):
+    def test_ordering(self) -> None:
+        ordered = [
+            Entry("0.md", True),
+            Entry("9.md", True),
+            Entry("A.md", True),
+            Entry("a.md", True),
+            Entry("Z.md", True),
+            Entry("z.md", True),
+            Entry("0.md", False),
+            Entry("9.md", False),
+            Entry("A.md", False),
+            Entry("a.md", False),
+            Entry("Z.md", False),
+            Entry("z.md", False),
+        ]
+        unordered: list[Entry] = []
+        unordered.extend(ordered)
+        shuffle(unordered)
+        self.assertNotEqual(ordered, unordered)
+        self.assertEqual(ordered, sorted(unordered))
+
     def test_extension(self) -> None:
         directory = Path(os.path.dirname(__file__))
-        expected = [Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.is_dir() or entry.name.endswith(".py")]
+        expected = sorted(Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.is_dir() or entry.name.endswith(".py"))
 
         options = MatcherOptions(".mdignore", ".py")
         matcher = Matcher(options, directory)
-        actual = matcher.scandir(directory)
+        actual = matcher.listing(directory)
 
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_nested(self) -> None:
         directory = Path(os.path.dirname(__file__))
@@ -39,7 +61,7 @@ class TestMatcher(unittest.TestCase):
 
     def test_rules(self) -> None:
         directory = Path(os.path.dirname(__file__)) / "source"
-        expected = [Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.is_dir() or entry.name.endswith(".md")]
+        expected = sorted(Entry(entry.name, entry.is_dir()) for entry in os.scandir(directory) if entry.is_dir() or entry.name.endswith(".md"))
         expected.remove(Entry("ignore.md", False))
         expected.remove(Entry("anchors.md", False))
         expected.remove(Entry("missing.md", False))
@@ -47,9 +69,9 @@ class TestMatcher(unittest.TestCase):
 
         options = MatcherOptions(".mdignore", ".md")
         matcher = Matcher(options, directory)
-        actual = matcher.scandir(directory)
+        actual = matcher.listing(directory)
 
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__":

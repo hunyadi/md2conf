@@ -10,13 +10,56 @@ import os.path
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterable, Optional, Union, overload
+from typing import Iterable, Optional, Union, final, overload
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
+class _BaseEntry:
+    """
+    Represents a file or directory entry.
+
+    Entries are primarily sorted alphabetically case-insensitive.
+    When two items are equal case-insensitive, conflicting items are put in case-sensitive order.
+
+    :param name: Name of the file-system entry.
+    """
+
+    name: str
+
+    @property
+    def lower_name(self) -> str:
+        return self.name.lower()
+
+    def __lt__(self, other: "_BaseEntry") -> bool:
+        return (self.lower_name, self.name) < (other.lower_name, other.name)
+
+    def __le__(self, other: "_BaseEntry") -> bool:
+        return (self.lower_name, self.name) <= (other.lower_name, other.name)
+
+    def __ge__(self, other: "_BaseEntry") -> bool:
+        return (self.lower_name, self.name) >= (other.lower_name, other.name)
+
+    def __gt__(self, other: "_BaseEntry") -> bool:
+        return (self.lower_name, self.name) > (other.lower_name, other.name)
+
+
+@final
+class FileEntry(_BaseEntry):
+    pass
+
+
+@final
+class DirectoryEntry(_BaseEntry):
+    pass
+
+
+@dataclass(frozen=True, eq=True)
 class Entry:
     """
     Represents a file or directory entry.
+
+    When sorted, directories come before files and items are primarily arranged in alphabetical order case-insensitive.
+    When two items are equal case-insensitive, conflicting items are put in case-sensitive order.
 
     :param name: Name of the file-system entry to match against the rule-set.
     :param is_dir: True if the entry is a directory.
@@ -24,6 +67,22 @@ class Entry:
 
     name: str
     is_dir: bool
+
+    @property
+    def lower_name(self) -> str:
+        return self.name.lower()
+
+    def __lt__(self, other: "Entry") -> bool:
+        return (not self.is_dir, self.lower_name, self.name) < (not other.is_dir, other.lower_name, other.name)
+
+    def __le__(self, other: "Entry") -> bool:
+        return (not self.is_dir, self.lower_name, self.name) <= (not other.is_dir, other.lower_name, other.name)
+
+    def __ge__(self, other: "Entry") -> bool:
+        return (not self.is_dir, self.lower_name, self.name) >= (not other.is_dir, other.lower_name, other.name)
+
+    def __gt__(self, other: "Entry") -> bool:
+        return (not self.is_dir, self.lower_name, self.name) > (not other.is_dir, other.lower_name, other.name)
 
 
 @dataclass
@@ -146,9 +205,9 @@ class Matcher:
         :returns: A filtered list of names that didn't match any of the exclusion rules.
         """
 
-        return [entry for entry in entries if self.is_included(entry)]
+        return sorted(entry for entry in entries if self.is_included(entry))
 
-    def scandir(self, path: Path) -> list[Entry]:
+    def listing(self, path: Path) -> list[Entry]:
         """
         Returns only those entries in a directory whose name doesn't match any of the exclusion rules.
 

@@ -15,7 +15,7 @@ from typing import Iterable, Optional
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
-from .matcher import Matcher, MatcherOptions
+from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .properties import ArgumentError
 from .scanner import Scanner
@@ -165,24 +165,27 @@ class Processor:
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
-        files: list[Path] = []
-        directories: list[Path] = []
+        files: list[FileEntry] = []
+        directories: list[DirectoryEntry] = []
         for entry in os.scandir(local_dir):
             if matcher.is_excluded(entry):
                 continue
 
             if entry.is_file():
-                files.append(local_dir / entry.name)
+                files.append(FileEntry(entry.name))
             elif entry.is_dir():
-                directories.append(local_dir / entry.name)
+                directories.append(DirectoryEntry(entry.name))
+
+        files.sort()
+        directories.sort()
 
         # make page act as parent node
         parent_doc: Optional[Path] = None
-        if (local_dir / "index.md") in files:
+        if FileEntry("index.md") in files:
             parent_doc = local_dir / "index.md"
-        elif (local_dir / "README.md") in files:
+        elif FileEntry("README.md") in files:
             parent_doc = local_dir / "README.md"
-        elif (local_dir / f"{local_dir.name}.md") in files:
+        elif FileEntry(f"{local_dir.name}.md") in files:
             parent_doc = local_dir / f"{local_dir.name}.md"
 
         if parent_doc is None and self.options.keep_hierarchy:
@@ -193,8 +196,9 @@ class Processor:
                 print("[[_LISTING_]]", file=f)
 
         if parent_doc is not None:
-            if parent_doc in files:
-                files.remove(parent_doc)
+            parent_entry = FileEntry(parent_doc.name)
+            if parent_entry in files:
+                files.remove(parent_entry)
 
             # promote Markdown document in directory as parent page in Confluence
             node = self._index_file(parent_doc)
@@ -205,11 +209,11 @@ class Processor:
             raise ArgumentError(f"root page requires corresponding top-level Markdown document in {local_dir}")
 
         for file in files:
-            node = self._index_file(file)
+            node = self._index_file(local_dir / Path(file.name))
             parent.add_child(node)
 
         for directory in directories:
-            self._index_directory(directory, parent)
+            self._index_directory(local_dir / Path(directory.name), parent)
 
         return parent
 
