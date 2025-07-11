@@ -69,6 +69,7 @@ class DocumentProperties:
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
+    :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     """
 
@@ -79,6 +80,7 @@ class DocumentProperties:
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
+    synchronized: Optional[bool]
     properties: Optional[dict[str, JsonType]]
 
 
@@ -92,6 +94,7 @@ class ScannedDocument:
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
+    :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
@@ -101,6 +104,7 @@ class ScannedDocument:
     generated_by: Optional[str]
     title: Optional[str]
     tags: Optional[list[str]]
+    synchronized: Optional[bool]
     properties: Optional[dict[str, JsonType]]
     text: str
 
@@ -126,6 +130,7 @@ class Scanner:
 
         title: Optional[str] = None
         tags: Optional[list[str]] = None
+        synchronized: Optional[bool] = None
         properties: Optional[dict[str, JsonType]] = None
 
         # extract front-matter
@@ -137,6 +142,7 @@ class Scanner:
             generated_by = generated_by or p.generated_by
             title = p.title
             tags = p.tags
+            synchronized = p.synchronized
             properties = p.properties
 
         return ScannedDocument(
@@ -145,6 +151,7 @@ class Scanner:
             generated_by=generated_by,
             title=title,
             tags=tags,
+            synchronized=synchronized,
             properties=properties,
             text=text,
         )

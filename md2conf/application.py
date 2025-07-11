@@ -97,6 +97,7 @@ class SynchronizingProcessor(Processor):
             page_id=page.id,
             space_key=space_key,
             title=page.title,
+            synchronized=node.synchronized,
         )
         self.page_metadata.add(node.absolute_path, data)
 

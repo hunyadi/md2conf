@@ -291,6 +291,20 @@ Files that don't have the extension `*.md` are skipped automatically. Hidden dir
 
 Relative paths to items in a nested directory are not supported. You must put `.mdignore` in the same directory where the items to be skipped reside.
 
+If you add the `synchronized` attribute to JSON or YAML front-matter with the value `false`, the document content (including attachments) and metadata (e.g. tags) will not be synchronized with Confluence:
+
+```yaml
+---
+title: "Collaborating with other teams"
+page_id: "19830101"
+synchronized: false
+---
+
+This Markdown document is neither parsed, nor synchronized with Confluence.
+```
+
+This is useful if you have a page in a hierarchy that participates in parent-child relationships but whose content is edited directly in Confluence. Specifically, these documents can be referenced with relative links from other Markdown documents in the file system tree.
+
 ### Page title
 
 *md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following are probed in this order:

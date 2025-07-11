@@ -33,8 +33,10 @@ class ConfluencePageMetadata:
     :param page_id: Confluence page ID.
     :param space_key: Confluence space key.
     :param title: Document title.
+    :param synchronized: True if the document content is parsed and synchronized with Confluence.
     """
 
     page_id: str
     space_key: str
     title: str
+    synchronized: bool
