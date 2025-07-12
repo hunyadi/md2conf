@@ -19,7 +19,13 @@
 <ac:image ac:align="center" ac:layout="center">
   <ri:attachment ri:filename="figure_diagram.drawio.png"/>
   <ac:caption>
-    <p>Embedded draw.io image with caption</p>
+    <p>draw.io image embedded in PNG</p>
+  </ac:caption>
+</ac:image>
+<ac:image ac:align="center" ac:layout="center">
+  <ri:attachment ri:filename="figure_diagram.drawio.svg"/>
+  <ac:caption>
+    <p>draw.io image embedded in SVG</p>
   </ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center">

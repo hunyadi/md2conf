@@ -41,11 +41,13 @@ def inflate(data: bytes) -> bytes:
     return zlib.decompress(data, -zlib.MAX_WBITS)
 
 
-def decompress_diagram(xml_bytes: bytes) -> ET.Element:
+def decompress_diagram(xml_data: typing.Union[bytes, str]) -> ET.Element:
     """
     Decompresses the text content of the `<diagram>` element in a draw.io XML document.
 
-    Expected input (as `bytes`):
+    If the data is not compressed, the de-serialized XML element tree is returned.
+
+    Expected input (as `bytes` or `str`):
     ```
     <mxfile>
         <diagram>... ENCODED_COMPRESSED_DATA ...</diagram>
@@ -65,12 +67,12 @@ def decompress_diagram(xml_bytes: bytes) -> ET.Element:
     </mxfile>
     ```
 
-    :param xml_bytes: The XML document as a `bytes` object.
+    :param xml_data: The serialized XML document.
     :returns: XML element tree with the text contained within the `<diagram>` element expanded into a sub-tree.
     """
 
     try:
-        root = ET.fromstring(xml_bytes)
+        root = ET.fromstring(xml_data)
     except ET.ParseError as e:
         raise DrawioError("invalid outer XML") from e
 
@@ -80,6 +82,10 @@ def decompress_diagram(xml_bytes: bytes) -> ET.Element:
     diagram_elem = root.find("diagram")
     if diagram_elem is None:
         raise DrawioError("`<diagram>` element not found")
+
+    if len(diagram_elem) > 0:
+        # already decompressed
+        return root
 
     if diagram_elem.text is None:
         raise DrawioError("`<diagram>` element has no data")
@@ -115,7 +121,7 @@ def decompress_diagram(xml_bytes: bytes) -> ET.Element:
     return root
 
 
-def extract_xml(png_data: bytes) -> ET.Element:
+def extract_xml_from_png(png_data: bytes) -> ET.Element:
     """
     Extracts an editable draw.io diagram from a PNG file.
 
@@ -175,15 +181,41 @@ def extract_xml(png_data: bytes) -> ET.Element:
     raise DrawioError("not a PNG file made with draw.io")
 
 
-def extract_diagram(png_path: Path) -> bytes:
+def extract_xml_from_svg(svg_data: bytes) -> ET.Element:
+    """
+    Extracts an editable draw.io diagram from an SVG file.
+
+    :param svg_data: SVG XML data, with an embedded draw.io diagram.
+    :returns: XML element tree of a draw.io diagram.
+    """
+
+    try:
+        root = ET.fromstring(svg_data)
+    except ET.ParseError as e:
+        raise DrawioError("invalid SVG XML") from e
+
+    content = root.attrib.get("content")
+    if content is None:
+        raise DrawioError("SVG root element has no attribute `content`")
+
+    return decompress_diagram(content)
+
+
+def extract_diagram(path: Path) -> bytes:
     """
     Extracts an editable draw.io diagram from a PNG file.
 
-    :param png_path: Path to a PNG file.
+    :param path: Path to a PNG or SVG file with an embedded draw.io diagram.
     :returns: XML data of a draw.io diagram as bytes.
     """
 
-    with open(png_path, "rb") as f:
-        root = extract_xml(f.read())
+    if path.name.endswith(".drawio.png"):
+        with open(path, "rb") as png_file:
+            root = extract_xml_from_png(png_file.read())
+    elif path.name.endswith(".drawio.svg"):
+        with open(path, "rb") as svg_file:
+            root = extract_xml_from_svg(svg_file.read())
+    else:
+        raise DrawioError(f"unrecognized file type for {path.name}")
 
     return typing.cast(bytes, ET.tostring(root, encoding="utf8", method="xml"))

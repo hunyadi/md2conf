@@ -6,7 +6,9 @@
 
 ![SVG image with caption](figure/vector.svg)
 
-![Embedded draw.io image with caption](figure/diagram.drawio.png)
+![draw.io image embedded in PNG](figure/diagram.drawio.png)
+
+![draw.io image embedded in SVG](figure/diagram.drawio.svg)
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 
