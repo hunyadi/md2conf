@@ -27,6 +27,7 @@ This Python package
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
 * [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+* draw\.io diagrams [^drawio]
 * [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images) [^mermaid]
 
 Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
@@ -39,11 +40,25 @@ Whenever possible, the implementation uses [Confluence REST API v2](https://deve
 pip install markdown-to-confluence
 ```
 
-**Optional.** Converting code blocks of Mermaid diagrams into Confluence image attachments requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli):
+### Command-line utilities
+
+**Optional.** Converting `*.drawio` diagrams into PNG or SVG images requires installing [draw.io](https://www.drawio.com/). (Refer to `--render-drawio`.)
+
+**Optional.** Converting code blocks of Mermaid diagrams into PNG or SVG images requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). (Refer to `--render-mermaid`.)
 
 ```sh
 npm install -g @mermaid-js/mermaid-cli
 ```
+
+### Marketplace apps
+
+As authors of *md2conf*, we don't endorse or support any particular Confluence marketplace apps.
+
+**Optional.** Editable draw\.io diagrams require [draw.io Diagrams marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts). (Refer to `--no-render-drawio`.)
+
+**Optional.** Displaying Mermaid diagrams in Confluence without pre-rendering requires a marketplace app. (Refer to `--no-render-mermaid`.)
+
+**Optional.** Displaying formulas and equations requires [LaTeX Math marketplace app](https://marketplace.atlassian.com/apps/1226109/latex-math-for-confluence-math-formula-equations).
 
 ## Getting started
 
@@ -346,12 +361,18 @@ properties:
 
 The attribute `properties` is parsed as a dictionary with keys of type string and values of type JSON. *md2conf* passes JSON values to Confluence REST API unchanged.
 
-### Converting diagrams
+### draw\.io diagrams
+
+With the command-line option `--no-render-drawio` (default), editable diagram data is extracted from images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`), and uploaded to Confluence as attachments. `*.drawio` and `*.drawio.xml` files are uploaded as-is. You need a [marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts) to view and edit these diagrams on a Confluence page.
+
+With the command-line option `--render-drawio`, images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`) are uploaded unchanged, and shown on the Confluence page as images. These diagrams are not editable in Confluence. When both an SVG and a PNG image is available, PNG is preferred. `*.drawio` and `*.drawio.xml` files are converted into PNG or SVG images by invoking draw\.io as a command-line utility, and the generated images are uploaded to Confluence as attachments, and shown as images.
+
+### Mermaid diagrams
 
 You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown documents to create visual representations of systems, processes, and relationships. When a Markdown document contains a code block with the language specifier `mermaid`, *md2conf* offers two options to publish the diagram:
 
-1. Pre-render into an image. The code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
-2. Render on demand. The code block is transformed into a [diagram macro](https://atlasauthority.atlassian.net/wiki/spaces/MARKDOWNCLOUD/pages/2946826241/Diagram+Macro), which is processed by Confluence. You need a [Confluence plugin](https://marketplace.atlassian.com/apps/1211438/markdown-html-plantuml-latex-diagrams-open-api-mermaid) to turn macro definitions into images when a Confluence page is visited. This is a contributed feature. As authors of *md2conf*, we don't endorse or support any particular Confluence plugin.
+1. Pre-render into an image (command-line option `--render-mermaid`). The code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
+2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://atlasauthority.atlassian.net/wiki/spaces/MARKDOWNCLOUD/pages/2946826241/Diagram+Macro), which is processed by Confluence. You need a [marketplace app](https://marketplace.atlassian.com/apps/1211438/markdown-html-plantuml-latex-diagrams-open-api-mermaid) to turn macro definitions into images when a Confluence page is visited.
 
 If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
 
@@ -462,4 +483,5 @@ CMD ["-d", "example.atlassian.net", "-u", "levente.hunyadi@instructure.com", "-a
 ```
 
 [^math]: Requires installing Confluence plugin [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
-[^mermaid]: Converting Mermaid diagrams to images before uploading to Confluence requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli).
+[^drawio]: Converting draw\.io diagrams to images before uploading to Confluence requires an installation of [draw.io](https://www.drawio.com/). Editable draw\.io diagrams require separate marketplace app.
+[^mermaid]: Converting Mermaid diagrams to images before uploading to Confluence requires [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). Displaying Mermaid diagrams on the fly requires separate marketplace app.
