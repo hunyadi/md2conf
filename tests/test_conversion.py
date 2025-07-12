@@ -81,7 +81,7 @@ class TestConversion(unittest.TestCase):
             with self.subTest(name=name):
                 _, doc = ConfluenceDocument.create(
                     self.source_dir / f"{name}.md",
-                    ConfluenceDocumentOptions(prefer_raster=False),
+                    ConfluenceDocumentOptions(prefer_raster=False, render_drawio=True),
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,

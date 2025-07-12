@@ -330,6 +330,13 @@ def element_to_text(node: ET._Element) -> str:
 
 
 @dataclass
+class ImageAttributes:
+    caption: Optional[str]
+    width: Optional[str]
+    height: Optional[str]
+
+
+@dataclass
 class TableOfContentsEntry:
     level: int
     text: str
@@ -380,6 +387,7 @@ class ConfluenceConverterOptions:
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
+    :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -388,6 +396,7 @@ class ConfluenceConverterOptions:
     ignore_invalid_url: bool = False
     heading_anchors: bool = False
     prefer_raster: bool = True
+    render_drawio: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
@@ -553,21 +562,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not src:
             raise DocumentError("image lacks `src` attribute")
 
-        attributes: dict[str, Any] = {
-            ET.QName(namespaces["ac"], "align"): "center",
-            ET.QName(namespaces["ac"], "layout"): "center",
-        }
-        width = image.attrib.get("width")
-        if width is not None:
-            attributes.update({ET.QName(namespaces["ac"], "width"): width})
-        height = image.attrib.get("height")
-        if height is not None:
-            attributes.update({ET.QName(namespaces["ac"], "height"): height})
-
         caption = image.attrib.get("alt")
+        width = image.attrib.get("width")
+        height = image.attrib.get("height")
+        attrs = ImageAttributes(caption, width, height)
 
         if is_absolute_url(src):
-            return self._transform_external_image(src, caption, attributes)
+            return self._transform_external_image(src, attrs)
         else:
             path = Path(src)
 
@@ -576,12 +577,25 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 return self._create_missing(path, caption)
 
             if absolute_path.name.endswith(".drawio.png") or absolute_path.name.endswith(".drawio.svg"):
-                return self._transform_drawio_image(absolute_path, caption, attributes)
+                return self._transform_drawio_image(absolute_path, attrs)
+            elif absolute_path.name.endswith(".drawio.xml") or absolute_path.name.endswith(".drawio"):
+                self.images.append(absolute_path)
+                image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
+                return self._create_drawio(image_filename, attrs)
             else:
-                return self._transform_attached_image(absolute_path, caption, attributes)
+                return self._transform_attached_image(absolute_path, attrs)
 
-    def _transform_external_image(self, url: str, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+    def _transform_external_image(self, url: str, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an external image."
+
+        attributes: dict[str, Any] = {
+            ET.QName(namespaces["ac"], "align"): "center",
+            ET.QName(namespaces["ac"], "layout"): "center",
+        }
+        if attrs.width is not None:
+            attributes.update({ET.QName(namespaces["ac"], "width"): attrs.width})
+        if attrs.height is not None:
+            attributes.update({ET.QName(namespaces["ac"], "height"): attrs.height})
 
         elements: list[ET._Element] = []
         elements.append(
@@ -591,8 +605,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {ET.QName(namespaces["ri"], "value"): url},
             )
         )
-        if caption is not None:
-            elements.append(AC("caption", HTML.p(caption)))
+        if attrs.caption is not None:
+            elements.append(AC("caption", HTML.p(attrs.caption)))
 
         return AC("image", attributes, *elements)
 
@@ -612,7 +626,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         return absolute_path
 
-    def _transform_attached_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+    def _transform_attached_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an attached raster or vector image."
 
         if self.options.prefer_raster and absolute_path.name.endswith(".svg"):
@@ -622,25 +636,37 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 absolute_path = png_file
 
         self.images.append(absolute_path)
-        return self._create_image(absolute_path, caption, attributes)
+        return self._create_image(absolute_path, attrs)
 
-    def _transform_drawio_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+    def _transform_drawio_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for a draw.io image."
 
         if not absolute_path.name.endswith(".drawio.png") and not absolute_path.name.endswith(".drawio.svg"):
             raise DocumentError("invalid image format; expected: `*.drawio.png` or `*.drawio.svg`")
 
-        # extract embedded editable diagram and upload as *.drawio
-        image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir).with_suffix(".xml"))
-        image_data = extract_diagram(absolute_path)
-        self.embedded_images[image_filename] = image_data
+        if self.options.render_drawio:
+            return self._transform_attached_image(absolute_path, attrs)
+        else:
+            # extract embedded editable diagram and upload as *.drawio
+            image_data = extract_diagram(absolute_path)
+            image_filename = attachment_name(path_relative_to(absolute_path.with_suffix(".xml"), self.base_dir))
+            self.embedded_images[image_filename] = image_data
 
-        return self._transform_attached_image(absolute_path, caption, attributes)
+            return self._create_drawio(image_filename, attrs)
 
-    def _create_image(self, absolute_path: Path, caption: Optional[str], attributes: dict[str, Any]) -> ET._Element:
+    def _create_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "An image embedded into the page, linking to an attachment."
 
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
+
+        attributes: dict[str, Any] = {
+            ET.QName(namespaces["ac"], "align"): "center",
+            ET.QName(namespaces["ac"], "layout"): "center",
+        }
+        if attrs.width is not None:
+            attributes.update({ET.QName(namespaces["ac"], "width"): attrs.width})
+        if attrs.height is not None:
+            attributes.update({ET.QName(namespaces["ac"], "height"): attrs.height})
 
         elements: list[ET._Element] = []
         elements.append(
@@ -650,10 +676,51 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {ET.QName(namespaces["ri"], "filename"): image_name},
             )
         )
-        if caption is not None:
-            elements.append(AC("caption", HTML.p(caption)))
+        if attrs.caption is not None:
+            elements.append(AC("caption", HTML.p(attrs.caption)))
 
         return AC("image", attributes, *elements)
+
+    def _create_drawio(self, filename: str, attrs: ImageAttributes) -> ET._Element:
+        "A draw.io diagram embedded into the page, linking to an attachment."
+
+        parameters: list[ET._Element] = [
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "diagramName"},
+                filename,
+            ),
+        ]
+        if attrs.width is not None:
+            parameters.append(
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "width"},
+                    attrs.width,
+                ),
+            )
+        if attrs.height is not None:
+            parameters.append(
+                AC(
+                    "parameter",
+                    {ET.QName(namespaces["ac"], "name"): "height"},
+                    attrs.height,
+                ),
+            )
+
+        local_id = str(uuid.uuid4())
+        macro_id = str(uuid.uuid4())
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "drawio",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+                "data-layout": "default",
+                ET.QName(namespaces["ac"], "local-id"): local_id,
+                ET.QName(namespaces["ac"], "macro-id"): macro_id,
+            },
+            *parameters,
+        )
 
     def _create_missing(self, path: Path, caption: Optional[str]) -> ET._Element:
         "A warning panel for a missing image."
@@ -1339,6 +1406,7 @@ class ConfluenceDocumentOptions:
     :param root_page_id: Confluence page to assume root page role for publishing a directory of Markdown files.
     :param keep_hierarchy: Whether to maintain source directory structure when exporting to Confluence.
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
+    :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -1350,6 +1418,7 @@ class ConfluenceDocumentOptions:
     root_page_id: Optional[ConfluencePageID] = None
     keep_hierarchy: bool = False
     prefer_raster: bool = True
+    render_drawio: bool = False
     render_mermaid: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
@@ -1436,6 +1505,7 @@ class ConfluenceDocument:
                 ignore_invalid_url=self.options.ignore_invalid_url,
                 heading_anchors=self.options.heading_anchors,
                 prefer_raster=self.options.prefer_raster,
+                render_drawio=self.options.render_drawio,
                 render_mermaid=self.options.render_mermaid,
                 diagram_output_format=self.options.diagram_output_format,
                 webui_links=self.options.webui_links,
