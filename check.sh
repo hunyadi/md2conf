@@ -9,5 +9,8 @@ $PYTHON_EXECUTABLE -m mypy md2conf
 $PYTHON_EXECUTABLE -m mypy tests
 $PYTHON_EXECUTABLE -m mypy integration_tests
 
+# Test help message
+$PYTHON_EXECUTABLE -m md2conf --help > /dev/null
+
 # Generate documentation
 $PYTHON_EXECUTABLE documentation.py

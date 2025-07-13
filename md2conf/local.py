@@ -11,7 +11,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
+from .converter import ConfluenceDocument
+from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory

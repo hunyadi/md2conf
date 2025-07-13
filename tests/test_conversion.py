@@ -15,7 +15,8 @@ from pathlib import Path
 
 import md2conf.emoji as emoji
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, ConfluenceDocumentOptions, elements_from_string, elements_to_string
+from md2conf.converter import ConfluenceDocument, elements_from_string, elements_to_string
+from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.extra import override
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc

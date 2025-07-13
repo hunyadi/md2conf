@@ -2,7 +2,7 @@ ARG PYTHON_VERSION=3.9
 ARG ALPINE_VERSION=3.20
 ARG MERMAID_VERSION=11.4
 
-FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} as builder
+FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
 COPY ./ ./
 
@@ -10,7 +10,7 @@ RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
     pip install build
 RUN python -m build --wheel
 
-FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} as host
+FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS host
 
 # set environment for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/Dockerfile
@@ -30,7 +30,7 @@ WORKDIR /home/md2conf
 RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
     && node_modules/.bin/mmdc --version
 
-FROM host as runner
+FROM host AS runner
 
 COPY --from=builder /dist/*.whl dist/
 

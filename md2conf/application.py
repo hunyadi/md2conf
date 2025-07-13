@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
-from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name, elements_from_string, get_volatile_attributes
+from .converter import ConfluenceDocument, attachment_name, elements_from_string, get_volatile_attributes
+from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
@@ -158,7 +159,7 @@ class SynchronizingProcessor(Processor):
         ):
             self.api.update_page(page_id.page_id, content, title=title, version=page.version.number + 1)
         else:
-            LOGGER.info("Up-to-date page: %s", page_id)
+            LOGGER.info("Up-to-date page: %s", page_id.page_id)
 
         if document.labels is not None:
             self.api.update_labels(

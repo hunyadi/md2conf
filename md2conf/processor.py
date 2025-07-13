@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from .collection import ConfluencePageCollection
-from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID
+from .converter import ConfluenceDocument
+from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .properties import ArgumentError

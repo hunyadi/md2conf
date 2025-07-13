@@ -12,6 +12,10 @@ if errorlevel 1 goto error
 python -m mypy integration_tests
 if errorlevel 1 goto error
 
+rem Test help message
+python -m md2conf --help > NUL
+if errorlevel 1 goto error
+
 rem Generate documentation
 python documentation.py
 if errorlevel 1 goto error

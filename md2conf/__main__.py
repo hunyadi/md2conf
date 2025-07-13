@@ -17,14 +17,9 @@ import typing
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional, Sequence, Union
 
-import requests
-
 from . import __version__
-from .api import ConfluenceAPI
-from .application import Application
-from .converter import ConfluenceDocumentOptions, ConfluencePageID
+from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override
-from .local import LocalConverter
 from .metadata import ConfluenceSiteMetadata
 from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
 
@@ -52,7 +47,7 @@ class Arguments(argparse.Namespace):
 
 
 class KwargsAppendAction(argparse.Action):
-    """Append key-value pairs to a dictionary"""
+    """Append key-value pairs to a dictionary."""
 
     @override
     def __call__(
@@ -70,6 +65,26 @@ class KwargsAppendAction(argparse.Action):
                 f'Could not parse argument "{values}". It should follow the format: k1=v1 k2=v2 ...',
             ) from None
         setattr(namespace, self.dest, d)
+
+
+def unsupported(prefer: str) -> type[argparse.Action]:
+    class UnsupportedAction(argparse.Action):
+        """Display an error for unsupported command-line options."""
+
+        @override
+        def __call__(
+            self,
+            parser: argparse.ArgumentParser,
+            namespace: argparse.Namespace,
+            values: Union[None, str, Sequence[Any]],
+            option_string: Optional[str] = None,
+        ) -> None:
+            raise argparse.ArgumentError(
+                self,
+                f"this command-line option is no longer supported, use `--{prefer}`",
+            )
+
+    return UnsupportedAction
 
 
 class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
@@ -189,12 +204,13 @@ def main() -> None:
         help="Inline Mermaid diagram in Confluence page. (Marketplace app required.)",
     )
     parser.add_argument(
-        "--render-mermaid-format",
+        "--diagram-output-format",
         dest="diagram_output_format",
         choices=["png", "svg"],
         default="png",
         help="Format for rendering Mermaid and draw.io diagrams (default: 'png').",
     )
+    parser.add_argument("--render-mermaid-format", action=unsupported("diagram-output-format"))
     parser.add_argument(
         "--heading-anchors",
         action="store_true",
@@ -256,6 +272,8 @@ def main() -> None:
         webui_links=args.webui_links,
     )
     if args.local:
+        from .local import LocalConverter
+
         try:
             site_properties = ConfluenceSiteProperties(
                 domain=args.domain,
@@ -271,6 +289,11 @@ def main() -> None:
         )
         LocalConverter(options, site_metadata).process(args.mdpath)
     else:
+        from requests import HTTPError, JSONDecodeError
+
+        from .api import ConfluenceAPI
+        from .application import Application
+
         try:
             properties = ConfluenceConnectionProperties(
                 api_url=args.api_url,
@@ -289,14 +312,14 @@ def main() -> None:
                     api,
                     options,
                 ).process(args.mdpath)
-        except requests.exceptions.HTTPError as err:
+        except HTTPError as err:
             logging.error(err)
 
             # print details for a response with JSON body
             if err.response is not None:
                 try:
                     logging.error(err.response.json())
-                except requests.exceptions.JSONDecodeError:
+                except JSONDecodeError:
                     pass
 
             sys.exit(1)

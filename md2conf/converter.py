@@ -8,6 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 # mypy: disable-error-code="dict-item"
 
+import dataclasses
 import hashlib
 import importlib.resources as resources
 import logging
@@ -25,9 +26,9 @@ import markdown
 from lxml.builder import ElementMaker
 from strong_typing.core import JsonType
 
-from md2conf.drawio import extract_diagram
-
 from .collection import ConfluencePageCollection
+from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .drawio import extract_diagram
 from .extra import path_relative_to
 from .mermaid import render_diagram
 from .metadata import ConfluenceSiteMetadata
@@ -1388,48 +1389,6 @@ class DocumentError(RuntimeError):
     "Raised when a converted Markdown document has an unexpected element or attribute."
 
 
-@dataclass
-class ConfluencePageID:
-    page_id: str
-
-
-@dataclass
-class ConfluenceQualifiedID:
-    page_id: str
-    space_key: str
-
-
-@dataclass
-class ConfluenceDocumentOptions:
-    """
-    Options that control the generated page content.
-
-    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
-        plain text; when false, raise an exception.
-    :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
-        conversion rules for the identifier.
-    :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
-    :param root_page_id: Confluence page to assume root page role for publishing a directory of Markdown files.
-    :param keep_hierarchy: Whether to maintain source directory structure when exporting to Confluence.
-    :param prefer_raster: Whether to choose PNG files over SVG files when available.
-    :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
-    :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
-    :param diagram_output_format: Target image format for diagrams.
-    :param webui_links: When true, convert relative URLs to Confluence Web UI links.
-    """
-
-    ignore_invalid_url: bool = False
-    heading_anchors: bool = False
-    generated_by: Optional[str] = "This page has been generated with a tool."
-    root_page_id: Optional[ConfluencePageID] = None
-    keep_hierarchy: bool = False
-    prefer_raster: bool = True
-    render_drawio: bool = False
-    render_mermaid: bool = False
-    diagram_output_format: Literal["png", "svg"] = "png"
-    webui_links: bool = False
-
-
 class ConversionError(RuntimeError):
     "Raised when a Markdown document cannot be converted to Confluence Storage Format."
 
@@ -1507,15 +1466,7 @@ class ConfluenceDocument:
             raise ConversionError(path) from ex
 
         converter = ConfluenceStorageFormatConverter(
-            ConfluenceConverterOptions(
-                ignore_invalid_url=self.options.ignore_invalid_url,
-                heading_anchors=self.options.heading_anchors,
-                prefer_raster=self.options.prefer_raster,
-                render_drawio=self.options.render_drawio,
-                render_mermaid=self.options.render_mermaid,
-                diagram_output_format=self.options.diagram_output_format,
-                webui_links=self.options.webui_links,
-            ),
+            ConfluenceConverterOptions(**{field.name: getattr(self.options, field.name) for field in dataclasses.fields(ConfluenceConverterOptions)}),
             path,
             root_dir,
             site_metadata,
