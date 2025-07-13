@@ -12,11 +12,22 @@ import os.path
 import shutil
 import unittest
 from pathlib import Path
+from typing import Optional
+
+import lxml.etree as ET
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, sanitize_confluence
+from md2conf.converter import (
+    ConfluenceDocument,
+    ConfluenceDocumentOptions,
+    ConfluencePageID,
+    NodeVisitor,
+    elements_from_string,
+    elements_to_string,
+    get_volatile_attributes,
+)
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.scanner import Scanner
@@ -24,6 +35,26 @@ from md2conf.scanner import Scanner
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
 TEST_PAGE_ID = ConfluencePageID("1933314")
+
+
+class ConfluenceStorageFormatCleaner(NodeVisitor):
+    "Removes volatile attributes from a Confluence storage format XHTML document."
+
+    def transform(self, child: ET._Element) -> Optional[ET._Element]:
+        for name in get_volatile_attributes():
+            child.attrib.pop(name, None)
+        return None
+
+
+def sanitize_confluence(html: str) -> str:
+    "Generates a sanitized version of a Confluence storage format XHTML document with no volatile attributes."
+
+    if not html:
+        return ""
+
+    root = elements_from_string(html)
+    ConfluenceStorageFormatCleaner().visit(root)
+    return elements_to_string(root)
 
 
 class TestAPI(unittest.TestCase):
@@ -54,7 +85,11 @@ class TestAPI(unittest.TestCase):
         self.assertListEqual(document.links, [])
         self.assertListEqual(
             document.images,
-            [self.sample_dir / "figure" / "interoperability.png", self.sample_dir / "figure" / "interoperability.png"],
+            [
+                self.sample_dir / "figure" / "interoperability.png",
+                self.sample_dir / "figure" / "interoperability.png",
+                self.sample_dir / "figure" / "diagram.drawio",
+            ],
         )
 
         with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:

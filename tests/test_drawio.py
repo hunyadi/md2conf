@@ -8,11 +8,12 @@ Copyright 2022-2025, Levente Hunyadi
 
 import logging
 import unittest
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import lxml.etree as ET
+
 from md2conf.drawio import extract_diagram, extract_xml_from_png, extract_xml_from_svg
-from md2conf.xml import compare_xml
+from md2conf.xml import is_xml_equal
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,7 +36,7 @@ class TestDrawio(unittest.TestCase):
         with open(image_dir / "diagram.drawio.png", "rb") as f:
             actual = extract_xml_from_png(f.read())
 
-        self.assertTrue(compare_xml(expected, actual))
+        self.assertTrue(is_xml_equal(expected, actual))
 
     def test_xml_from_svg(self) -> None:
         image_dir = Path(__file__).parent / "source" / "figure"
@@ -45,7 +46,7 @@ class TestDrawio(unittest.TestCase):
         with open(image_dir / "diagram.drawio.svg", "rb") as f:
             actual = extract_xml_from_svg(f.read())
 
-        self.assertTrue(compare_xml(expected, actual))
+        self.assertTrue(is_xml_equal(expected, actual))
 
 
 if __name__ == "__main__":

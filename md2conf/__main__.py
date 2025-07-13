@@ -15,7 +15,7 @@ import os.path
 import sys
 import typing
 from pathlib import Path
-from typing import Any, Literal, Optional, Sequence, Union
+from typing import Any, Iterable, Literal, Optional, Sequence, Union
 
 import requests
 
@@ -72,8 +72,28 @@ class KwargsAppendAction(argparse.Action):
         setattr(namespace, self.dest, d)
 
 
+class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
+    def _format_usage(
+        self,
+        usage: Optional[str],
+        actions: Iterable[argparse.Action],
+        groups: Iterable[argparse._MutuallyExclusiveGroup],
+        prefix: Optional[str],
+    ) -> str:
+        # filter only positional arguments
+        positional_actions = [a for a in actions if not a.option_strings]
+
+        # format usage string with only positional arguments
+        usage_str = super()._format_usage(usage, positional_actions, groups, prefix).rstrip()
+
+        # insert [OPTIONS] as a placeholder for all options (detailed below)
+        usage_str += " [OPTIONS]\n"
+
+        return usage_str
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=PositionalOnlyHelpFormatter)
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("mdpath", help="Path to Markdown file or directory to convert and publish.")
@@ -201,7 +221,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--headers",
-        nargs="*",
+        nargs="+",
         required=False,
         action=KwargsAppendAction,
         metavar="KEY=VALUE",

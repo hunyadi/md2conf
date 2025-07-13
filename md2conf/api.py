@@ -22,7 +22,6 @@ import requests
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
 
-from .converter import ParseError, sanitize_confluence
 from .metadata import ConfluenceSiteMetadata
 from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 
@@ -162,7 +161,7 @@ class ConfluenceAttachment:
     createdAt: datetime.datetime
     pageId: str
     mediaType: str
-    mediaTypeDescription: str
+    mediaTypeDescription: Optional[str]
     comment: Optional[str]
     fileId: str
     fileSize: int
@@ -807,36 +806,27 @@ class ConfluenceSession:
     def update_page(
         self,
         page_id: str,
-        new_content: str,
+        content: str,
         *,
-        title: Optional[str] = None,
+        title: str,
+        version: int,
     ) -> None:
         """
         Updates a page via the Confluence API.
 
         :param page_id: The Confluence page ID.
-        :param new_content: Confluence Storage Format XHTML.
+        :param content: Confluence Storage Format XHTML.
         :param title: New title to assign to the page. Needs to be unique within a space.
+        :param version: New version to assign to the page.
         """
-
-        page = self.get_page(page_id)
-        new_title = title or page.title
-
-        try:
-            old_content = sanitize_confluence(page.content)
-            if page.title == new_title and old_content == new_content:
-                LOGGER.info("Up-to-date page: %s", page_id)
-                return
-        except ParseError as exc:
-            LOGGER.warning(exc)
 
         path = f"/pages/{page_id}"
         request = ConfluenceUpdatePageRequest(
             id=page_id,
             status=ConfluenceStatus.CURRENT,
-            title=new_title,
-            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=new_content)),
-            version=ConfluenceContentVersion(number=page.version.number + 1, minorEdit=True),
+            title=title,
+            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
+            version=ConfluenceContentVersion(number=version, minorEdit=True),
         )
         LOGGER.info("Updating page: %s", page_id)
         self._put(ConfluenceVersion.VERSION_2, path, request, type(None))

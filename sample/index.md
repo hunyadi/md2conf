@@ -61,7 +61,7 @@ A nested list:
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 
-UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
+UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép. :smile:
 
 ## Code blocks
 

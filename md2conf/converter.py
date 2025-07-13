@@ -41,6 +41,17 @@ namespaces = {
 for key, value in namespaces.items():
     ET.register_namespace(key, value)
 
+
+def get_volatile_attributes() -> list[ET.QName]:
+    "Returns a list of volatile attributes that frequently change as a Confluence storage format XHTML document is updated."
+
+    return [
+        ET.QName(namespaces["ac"], "local-id"),
+        ET.QName(namespaces["ac"], "macro-id"),
+        ET.QName(namespaces["ri"], "version-at-save"),
+    ]
+
+
 HTML = ElementMaker()
 AC = ElementMaker(namespace=namespaces["ac"])
 RI = ElementMaker(namespace=namespaces["ri"])
@@ -101,6 +112,10 @@ def emoji_generator(
     options: dict[str, Any],
     md: markdown.Markdown,
 ) -> xml.etree.ElementTree.Element:
+    """
+    Custom generator for `pymdownx.emoji`.
+    """
+
     name = (alias or shortname).strip(":")
     span = xml.etree.ElementTree.Element("span", {"data-emoji-shortname": name})
     if uc is not None:
@@ -1369,15 +1384,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return None
 
 
-class ConfluenceStorageFormatCleaner(NodeVisitor):
-    "Removes volatile attributes from a Confluence storage format XHTML document."
-
-    def transform(self, child: ET._Element) -> Optional[ET._Element]:
-        child.attrib.pop(ET.QName(namespaces["ac"], "macro-id"), None)
-        child.attrib.pop(ET.QName(namespaces["ri"], "version-at-save"), None)
-        return None
-
-
 class DocumentError(RuntimeError):
     "Raised when a converted Markdown document has an unexpected element or attribute."
 
@@ -1558,17 +1564,6 @@ def attachment_name(ref: Union[Path, str]) -> str:
 
     parts = [replace_part(p) for p in path.parts]
     return Path(*parts).as_posix().replace("/", "_")
-
-
-def sanitize_confluence(html: str) -> str:
-    "Generates a sanitized version of a Confluence storage format XHTML document with no volatile attributes."
-
-    if not html:
-        return ""
-
-    root = elements_from_strings([html])
-    ConfluenceStorageFormatCleaner().visit(root)
-    return elements_to_string(root)
 
 
 def elements_to_string(root: ET._Element) -> str:

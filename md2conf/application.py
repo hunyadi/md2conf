@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
-from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name
+from .converter import ConfluenceDocument, ConfluenceDocumentOptions, ConfluencePageID, attachment_name, elements_from_string, get_volatile_attributes
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .properties import PageError
+from .xml import is_xml_equal
 
 LOGGER = logging.getLogger(__name__)
 
@@ -144,7 +145,20 @@ class SynchronizingProcessor(Processor):
                         conflicting_page_id,
                     )
 
-        self.api.update_page(page_id.page_id, content, title=title)
+        # fetch existing page
+        page = self.api.get_page(page_id.page_id)
+        if not title:  # empty or `None`
+            title = page.title
+
+        # check if page has any changes
+        if page.title != title or not is_xml_equal(
+            document.root,
+            elements_from_string(page.content),
+            skip_attributes=get_volatile_attributes(),
+        ):
+            self.api.update_page(page_id.page_id, content, title=title, version=page.version.number + 1)
+        else:
+            LOGGER.info("Up-to-date page: %s", page_id)
 
         if document.labels is not None:
             self.api.update_labels(
