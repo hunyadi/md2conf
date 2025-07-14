@@ -57,7 +57,7 @@ A nested list:
 
 ![Embedded draw.io image](figure/diagram.drawio.png)
 
-![Editable draw.io image](figure/diagram.drawio)
+![Editable or rendered draw.io image](figure/diagram.drawio)
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 

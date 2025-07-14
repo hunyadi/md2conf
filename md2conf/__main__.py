@@ -84,6 +84,10 @@ def unsupported(prefer: str) -> type[argparse.Action]:
                 f"this command-line option is no longer supported, use `--{prefer}`",
             )
 
+        @override
+        def __repr__(self) -> str:
+            return f"{unsupported.__name__}({repr(prefer)})"
+
     return UnsupportedAction
 
 
@@ -210,7 +214,12 @@ def main() -> None:
         default="png",
         help="Format for rendering Mermaid and draw.io diagrams (default: 'png').",
     )
-    parser.add_argument("--render-mermaid-format", action=unsupported("diagram-output-format"))
+    parser.add_argument(
+        "--render-mermaid-format",
+        action=unsupported("diagram-output-format"),
+        metavar="FORMAT",
+        help="Format for rendering Mermaid diagrams (default: 'png').",
+    )
     parser.add_argument(
         "--heading-anchors",
         action="store_true",

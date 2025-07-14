@@ -7,6 +7,11 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import base64
+import logging
+import os
+import os.path
+import shutil
+import subprocess
 import typing
 import zlib
 from pathlib import Path
@@ -14,6 +19,8 @@ from struct import unpack
 from urllib.parse import unquote_to_bytes
 
 import lxml.etree as ET
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DrawioError(ValueError):
@@ -220,3 +227,45 @@ def extract_diagram(path: Path) -> bytes:
         raise DrawioError(f"unrecognized file type for {path.name}")
 
     return ET.tostring(root, encoding="utf8", method="xml")
+
+
+def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "png") -> bytes:
+    "Generates a PNG or SVG image from a draw.io diagram source."
+
+    executable = shutil.which("draw.io")
+    if executable is None:
+        raise DrawioError("draw.io executable not found")
+
+    target = f"tmp_drawio.{output_format}"
+
+    cmd = [executable, "--export", "--format", output_format, "--output", target]
+    if output_format == "png":
+        cmd.extend(["--scale", "2", "--transparent"])
+    elif output_format == "svg":
+        cmd.append("--embed-svg-images")
+    cmd.append(str(source))
+
+    LOGGER.debug("Executing: %s", " ".join(cmd))
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=False,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode:
+            messages = [f"failed to convert draw.io diagram; exit code: {proc.returncode}"]
+            console_output = stdout.decode("utf-8")
+            if console_output:
+                messages.append(f"output:\n{console_output}")
+            console_error = stderr.decode("utf-8")
+            if console_error:
+                messages.append(f"error:\n{console_error}")
+            raise DrawioError("\n".join(messages))
+        with open(target, "rb") as f:
+            return f.read()
+
+    finally:
+        if os.path.exists(target):
+            os.remove(target)

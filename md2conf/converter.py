@@ -26,11 +26,10 @@ import markdown
 from lxml.builder import ElementMaker
 from strong_typing.core import JsonType
 
+from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
-from .drawio import extract_diagram
 from .extra import path_relative_to
-from .mermaid import render_diagram
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
@@ -595,9 +594,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if absolute_path.name.endswith(".drawio.png") or absolute_path.name.endswith(".drawio.svg"):
                 return self._transform_drawio_image(absolute_path, attrs)
             elif absolute_path.name.endswith(".drawio.xml") or absolute_path.name.endswith(".drawio"):
-                self.images.append(absolute_path)
-                image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
-                return self._create_drawio(image_filename, attrs)
+                return self._transform_drawio(absolute_path, attrs)
             else:
                 return self._transform_attached_image(absolute_path, attrs)
 
@@ -652,10 +649,28 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 absolute_path = png_file
 
         self.images.append(absolute_path)
-        return self._create_image(absolute_path, attrs)
+        image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
+        return self._create_attached_image(image_name, attrs)
+
+    def _transform_drawio(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for a draw.io diagram."
+
+        if not absolute_path.name.endswith(".drawio.xml") and not absolute_path.name.endswith(".drawio"):
+            raise DocumentError("invalid image format; expected: `*.drawio.xml` or `*.drawio`")
+
+        if self.options.render_drawio:
+            image_data = drawio.render_diagram(absolute_path, self.options.diagram_output_format)
+            image_hash = hashlib.md5(image_data).hexdigest()
+            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
+            self.embedded_images[image_filename] = image_data
+            return self._create_attached_image(image_filename, attrs)
+        else:
+            self.images.append(absolute_path)
+            image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
+            return self._create_drawio(image_filename, attrs)
 
     def _transform_drawio_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
-        "Emits Confluence Storage Format XHTML for a draw.io image."
+        "Emits Confluence Storage Format XHTML for a draw.io diagram embedded in a PNG or SVG image."
 
         if not absolute_path.name.endswith(".drawio.png") and not absolute_path.name.endswith(".drawio.svg"):
             raise DocumentError("invalid image format; expected: `*.drawio.png` or `*.drawio.svg`")
@@ -664,16 +679,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             return self._transform_attached_image(absolute_path, attrs)
         else:
             # extract embedded editable diagram and upload as *.drawio
-            image_data = extract_diagram(absolute_path)
+            image_data = drawio.extract_diagram(absolute_path)
             image_filename = attachment_name(path_relative_to(absolute_path.with_suffix(".xml"), self.base_dir))
             self.embedded_images[image_filename] = image_data
 
             return self._create_drawio(image_filename, attrs)
 
-    def _create_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
+    def _create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ET._Element:
         "An image embedded into the page, linking to an attachment."
-
-        image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
 
         attributes: dict[str, Any] = {
             ET.QName(namespaces["ac"], "align"): "center",
@@ -804,21 +817,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Transforms a Mermaid diagram code block."
 
         if self.options.render_mermaid:
-            image_data = render_diagram(content, self.options.diagram_output_format)
+            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_images[image_filename] = image_data
-            return AC(
-                "image",
-                {
-                    ET.QName(namespaces["ac"], "align"): "center",
-                    ET.QName(namespaces["ac"], "layout"): "center",
-                },
-                RI(
-                    "attachment",
-                    {ET.QName(namespaces["ri"], "filename"): image_filename},
-                ),
-            )
+            return self._create_attached_image(image_filename, ImageAttributes(None, None, None))
         else:
             local_id = str(uuid.uuid4())
             macro_id = str(uuid.uuid4())
