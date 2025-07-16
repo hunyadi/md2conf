@@ -333,8 +333,8 @@ def title_to_identifier(title: str) -> str:
     "Converts a section heading title to a GitHub-style Markdown same-page anchor."
 
     s = title.strip().lower()
-    s = re.sub("[^ A-Za-z0-9]", "", s)
-    s = s.replace(" ", "-")
+    s = re.sub(r"[^\sA-Za-z0-9_\-]", "", s)
+    s = re.sub(r"\s+", "-", s)
     return s
 
 
