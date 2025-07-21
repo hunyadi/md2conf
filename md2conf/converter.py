@@ -15,14 +15,12 @@ import logging
 import os.path
 import re
 import uuid
-import xml.etree.ElementTree
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 from urllib.parse import ParseResult, quote_plus, urlparse, urlunparse
 
 import lxml.etree as ET
-import markdown
 from lxml.builder import ElementMaker
 from strong_typing.core import JsonType
 
@@ -30,6 +28,7 @@ from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import path_relative_to
+from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
@@ -99,90 +98,6 @@ def encode_title(text: str) -> str:
 
     # URL-encode
     return quote_plus(text.strip())
-
-
-def emoji_generator(
-    index: str,
-    shortname: str,
-    alias: Optional[str],
-    uc: Optional[str],
-    alt: str,
-    title: Optional[str],
-    category: Optional[str],
-    options: dict[str, Any],
-    md: markdown.Markdown,
-) -> xml.etree.ElementTree.Element:
-    """
-    Custom generator for `pymdownx.emoji`.
-    """
-
-    name = (alias or shortname).strip(":")
-    span = xml.etree.ElementTree.Element("span", {"data-emoji-shortname": name})
-    if uc is not None:
-        span.attrib["data-emoji-unicode"] = uc
-
-        # convert series of Unicode code point hexadecimal values into characters
-        span.text = "".join(chr(int(item, base=16)) for item in uc.split("-"))
-    else:
-        span.text = alt
-    return span
-
-
-def math_formatter(
-    source: str,
-    language: str,
-    css_class: str,
-    options: dict[str, Any],
-    md: markdown.Markdown,
-    classes: Optional[list[str]] = None,
-    id_value: str = "",
-    attrs: Optional[dict[str, str]] = None,
-    **kwargs: Any,
-) -> str:
-    """
-    Custom formatter for language `math` in `pymdownx.superfences`.
-    """
-
-    if classes is None:
-        classes = [css_class]
-    else:
-        classes.insert(0, css_class)
-
-    html_id = f' id="{id_value}"' if id_value else ""
-    html_class = ' class="{}"'.format(" ".join(classes))
-    html_attrs = " " + " ".join(f'{k}="{v}"' for k, v in attrs.items()) if attrs else ""
-
-    return f"<div{html_id}{html_class}{html_attrs}>{source}</div>"
-
-
-def markdown_to_html(content: str) -> str:
-    return markdown.markdown(
-        content,
-        extensions=[
-            "admonition",
-            "footnotes",
-            "markdown.extensions.tables",
-            "md_in_html",
-            "pymdownx.arithmatex",
-            "pymdownx.emoji",
-            "pymdownx.highlight",  # required by `pymdownx.superfences`
-            "pymdownx.magiclink",
-            "pymdownx.superfences",
-            "pymdownx.tilde",
-            "sane_lists",
-        ],
-        extension_configs={
-            "footnotes": {"BACKLINK_TITLE": ""},
-            "pymdownx.arithmatex": {"generic": True, "preview": False, "tex_inline_wrap": ["", ""], "tex_block_wrap": ["", ""]},
-            "pymdownx.emoji": {
-                "emoji_generator": emoji_generator,
-            },
-            "pymdownx.highlight": {
-                "use_pygments": False,
-            },
-            "pymdownx.superfences": {"custom_fences": [{"name": "math", "class": "arithmatex", "format": math_formatter}]},
-        },
-    )
 
 
 def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
