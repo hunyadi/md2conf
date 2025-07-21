@@ -131,6 +131,16 @@ facilisis orci libero, ac fermentum metus iaculis eget. Morbi aliquam enim et se
 amet metus convallis elementum. Cras sagittis justo ac venenatis pulvinar. Integer est massa, blandit vel nulla at,
 dignissim finibus dui.
 
+## Tables
+
+| Left | Center | Right |
+|:-----|:------:|------:|
+| Bal  | Közép  | Jobb  |
+
+| Name | Description                 |
+| ---- | --------------------------- |
+| Data | A multi-line<br/>paragraph. |
+
 ## Admonitions
 
 Markdown has no native support for admonitions. Admonitions that follow the [Python-Markdown syntax](https://python-markdown.github.io/extensions/admonition/) are converted into Confluence structured macros, which are shown as info panels. (See [Alerts](#alerts) for an alternative that has pretty output in both GitHub and Confluence.)

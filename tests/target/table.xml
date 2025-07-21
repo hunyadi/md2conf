@@ -1,0 +1,81 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Tables</h2>
+<p>Simple table</p>
+<table>
+  <thead>
+    <tr>
+      <th>Arabic</th>
+      <th>Roman</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>I</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>V</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>X</td>
+    </tr>
+    <tr>
+      <td>50</td>
+      <td>L</td>
+    </tr>
+    <tr>
+      <td>100</td>
+      <td>C</td>
+    </tr>
+    <tr>
+      <td>500</td>
+      <td>D</td>
+    </tr>
+    <tr>
+      <td>1000</td>
+      <td>M</td>
+    </tr>
+    <tr>
+      <td>1986</td>
+      <td>MCMLXXXVI</td>
+    </tr>
+  </tbody>
+</table>
+<p>Aligned cells</p>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left;">Left</th>
+      <th style="text-align: center;">Center</th>
+      <th style="text-align: right;">Right</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left;">Bal</td>
+      <td style="text-align: center;">Közép</td>
+      <td style="text-align: right;">Jobb</td>
+    </tr>
+  </tbody>
+</table>
+<p>Multi-line cells</p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Data</td>
+      <td>A multi-line<br/>paragraph.</td>
+    </tr>
+  </tbody>
+</table>
