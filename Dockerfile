@@ -1,6 +1,10 @@
+# Example commands how to use this `Dockerfile`:
+# > docker build --tag md2conf .
+# > docker run --rm --env-file .env -v %CD%/tests/source:/data md2conf --render-mermaid --local /data/mermaid.md
+
 ARG PYTHON_VERSION=3.9
-ARG ALPINE_VERSION=3.20
-ARG MERMAID_VERSION=11.4
+ARG ALPINE_VERSION=3.22
+ARG MERMAID_VERSION=11.6
 
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 

@@ -78,10 +78,14 @@ class LocalProcessor(Processor):
         """
 
         content = document.xhtml()
-        out_path = self.out_dir / path.relative_to(self.root_dir).with_suffix(".csf")
-        os.makedirs(out_path.parent, exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
+        csf_path = self.out_dir / path.relative_to(self.root_dir).with_suffix(".csf")
+        csf_dir = csf_path.parent
+        os.makedirs(csf_dir, exist_ok=True)
+        with open(csf_path, "w", encoding="utf-8") as f:
             f.write(content)
+        for name, data in document.embedded_images.items():
+            with open(csf_dir / name, "wb") as f:
+                f.write(data)
 
 
 class LocalProcessorFactory(ProcessorFactory):

@@ -1,7 +1,12 @@
 __pycache__
+*.log
 /.env
 /.envrc
 /.idea
 /.mypy_cache
+/.ruff_cache
 /.venv
 /*.egg-info
+/build
+/dist
+/docs
