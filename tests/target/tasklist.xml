@@ -1,0 +1,20 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Tasklist</h2>
+<ac:task-list>
+  <ac:task>
+    <ac:task-id>1</ac:task-id>
+    <ac:task-uuid>UUID</ac:task-uuid>
+    <ac:task-status>complete</ac:task-status>
+    <ac:task-body><strong>Finished</strong> action</ac:task-body>
+  </ac:task>
+  <ac:task>
+    <ac:task-id>2</ac:task-id>
+    <ac:task-uuid>UUID</ac:task-uuid>
+    <ac:task-status>incomplete</ac:task-status>
+    <ac:task-body><strong>Unfinished</strong> action</ac:task-body>
+  </ac:task>
+</ac:task-list>

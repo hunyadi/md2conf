@@ -914,10 +914,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates an info, tip, note or warning panel from a GitHub or GitLab alert.
 
-        Transforms
-        [GitHub alert](https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
-        or [GitLab alert](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
-        syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
+        Transforms GitHub alert or GitLab alert syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
+
+        :see: https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts
+        :see: https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes
         """
 
         content = elem[0]
@@ -944,9 +944,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
         Creates a collapsed section.
 
-        Transforms
-        [GitHub collapsed section](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
-        syntax into the Confluence structured macro *expand*.
+        Transforms a GitHub collapsed section syntax into the Confluence structured macro *expand*.
+
+        :see: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections
         """
 
         if elem[0].tag != "summary":
@@ -957,6 +957,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         summary = "".join(elem[0].itertext()).strip()
         elem.remove(elem[0])
 
+        # transform Markdown to Confluence within collapsed section content
         self.visit(elem)
 
         return AC(
@@ -1180,6 +1181,51 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             paragraph.text = None
             paragraph.append(ref_link)
 
+    def _transform_tasklist(self, elem: ET._Element) -> ET._Element:
+        """
+        Transforms a list of tasks into an action widget.
+
+        :see: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists
+        """
+
+        if elem.tag != "ul":
+            raise DocumentError("expected: `<ul>` as the HTML element for a tasklist")
+
+        for item in elem:
+            if item.tag != "li":
+                raise DocumentError("expected: `<li>` as the HTML element for a task")
+            if item.text is None or re.match(r"^\[[x X]\]", item.text) is None:
+                raise DocumentError("expected: each `<li>` in a task list starting with [ ] or [x]")
+
+        # transform Markdown to Confluence within tasklist content
+        self.visit(elem)
+
+        tasks: list[ET._Element] = []
+        for index, item in enumerate(elem, start=1):
+            if item.text is None:
+                raise NotImplementedError("pre-condition check not exhaustive")
+            match = re.match(r"^\[([x X])\]", item.text)
+            if match is None:
+                raise NotImplementedError("pre-condition check not exhaustive")
+
+            status = "incomplete" if match.group(1).isspace() else "complete"
+
+            body = AC("task-body")
+            body.text = item.text[3:]
+            for child in item:
+                body.append(child)
+            tasks.append(
+                AC(
+                    "task",
+                    {},
+                    AC("task-id", str(index)),
+                    AC("task-uuid", str(uuid.uuid4())),
+                    AC("task-status", status),
+                    body,
+                ),
+            )
+        return AC("task-list", {}, *tasks)
+
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
         """
         Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
@@ -1299,6 +1345,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "div" and "footnote" in child.attrib.get("class", "").split(" "):
             self._transform_footnote_def(child)
             return None
+
+        elif child.tag == "ul" and len(child) > 0 and child[0].text is not None and re.match(r"^\[[x X]\]", child[0].text) is not None:
+            return self._transform_tasklist(child)
 
         return None
 

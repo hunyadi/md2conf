@@ -27,6 +27,7 @@ This Python package
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
 * [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+* [Tasklists](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)
 * draw\.io diagrams
 * [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
 
@@ -297,6 +298,15 @@ is shown as
 $$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
 
 Displaying math formulas in Confluence requires the extension [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
+
+### HTML in Markdown
+
+*md2conf* relays HTML elements nested in Markdown content to Confluence (such as `e<sup>x</sup>` for superscript). However, Confluence uses an extension of XHTML, i.e. the content must qualify as valid XML too. In particular, unterminated tags (e.g. `<br>` or `<img ...>`) or inconsistent nesting (e.g. `<b><i></b></i>`) are not permitted, and will raise an XML parsing error. When an HTML element has no content such as `<br>` or `<img>`, use a self-closing tag:
+
+```html
+<br/>
+<img src="image.png" width="24" height="24" />
+```
 
 ### Ignoring files
 

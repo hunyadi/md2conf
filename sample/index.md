@@ -51,6 +51,11 @@ A nested list:
     1. Nested item 3
     2. Nested item 4
 
+A tasklist:
+
+- [x] **Finished** action
+- [ ] **Unfinished** action
+
 ![PNG image with caption](figure/interoperability.png)
 
 ![SVG image with caption](figure/interoperability.svg)

@@ -29,6 +29,8 @@
         "pymdownx",
         "scandir",
         "superfences",
+        "tasklist",
+        "tasklists",
         "viewpage",
         "webui"
     ]
