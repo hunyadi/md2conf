@@ -32,6 +32,7 @@ from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
+from .toc import TableOfContentsBuilder
 
 namespaces = {
     "ac": "http://atlassian.com/content",
@@ -267,47 +268,6 @@ class ImageAttributes:
 
 
 @dataclass
-class TableOfContentsEntry:
-    level: int
-    text: str
-
-
-class TableOfContents:
-    "Builds a table of contents from Markdown headings."
-
-    headings: list[TableOfContentsEntry]
-
-    def __init__(self) -> None:
-        self.headings = []
-
-    def add(self, level: int, text: str) -> None:
-        """
-        Adds a heading to the table of contents.
-
-        :param level: Markdown heading level (e.g. `1` for first-level heading).
-        :param text: Markdown heading text.
-        """
-
-        self.headings.append(TableOfContentsEntry(level, text))
-
-    def get_title(self) -> Optional[str]:
-        """
-        Returns a proposed document title (if unique).
-
-        :returns: Title text, or `None` if no unique title can be inferred.
-        """
-
-        for level in range(1, 7):
-            try:
-                (title,) = (item.text for item in self.headings if item.level == level)
-                return title
-            except ValueError:
-                pass
-
-        return None
-
-
-@dataclass
 class ConfluenceConverterOptions:
     """
     Options for converting an HTML tree into Confluence storage format.
@@ -339,7 +299,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     path: Path
     base_dir: Path
     root_dir: Path
-    toc: TableOfContents
+    toc: TableOfContentsBuilder
     links: list[str]
     images: list[Path]
     embedded_images: dict[str, bytes]
@@ -363,7 +323,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.path = path
         self.base_dir = path.parent
         self.root_dir = root_dir
-        self.toc = TableOfContents()
+        self.toc = TableOfContentsBuilder()
         self.links = []
         self.images = []
         self.embedded_images = {}
