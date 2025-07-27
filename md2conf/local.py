@@ -83,7 +83,7 @@ class LocalProcessor(Processor):
         os.makedirs(csf_dir, exist_ok=True)
         with open(csf_path, "w", encoding="utf-8") as f:
             f.write(content)
-        for name, data in document.embedded_images.items():
+        for name, data in document.embedded_files.items():
             with open(csf_dir / name, "wb") as f:
                 f.write(data)
 

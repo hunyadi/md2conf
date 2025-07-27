@@ -122,7 +122,7 @@ class SynchronizingProcessor(Processor):
                 attachment_path=image_path,
             )
 
-        for name, data in document.embedded_images.items():
+        for name, data in document.embedded_files.items():
             self.api.upload_attachment(
                 page_id.page_id,
                 name,

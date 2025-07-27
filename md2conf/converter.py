@@ -302,7 +302,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     toc: TableOfContentsBuilder
     links: list[str]
     images: list[Path]
-    embedded_images: dict[str, bytes]
+    embedded_files: dict[str, bytes]
     site_metadata: ConfluenceSiteMetadata
     page_metadata: ConfluencePageCollection
 
@@ -326,7 +326,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.toc = TableOfContentsBuilder()
         self.links = []
         self.images = []
-        self.embedded_images = {}
+        self.embedded_files = {}
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
 
@@ -470,6 +470,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 return self._transform_drawio_image(absolute_path, attrs)
             elif absolute_path.name.endswith(".drawio.xml") or absolute_path.name.endswith(".drawio"):
                 return self._transform_drawio(absolute_path, attrs)
+            elif absolute_path.name.endswith(".mmd") or absolute_path.name.endswith(".mermaid"):
+                return self._transform_external_mermaid(absolute_path, attrs)
             else:
                 return self._transform_attached_image(absolute_path, attrs)
 
@@ -537,7 +539,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             image_data = drawio.render_diagram(absolute_path, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-            self.embedded_images[image_filename] = image_data
+            self.embedded_files[image_filename] = image_data
             return self._create_attached_image(image_filename, attrs)
         else:
             self.images.append(absolute_path)
@@ -556,7 +558,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             # extract embedded editable diagram and upload as *.drawio
             image_data = drawio.extract_diagram(absolute_path)
             image_filename = attachment_name(path_relative_to(absolute_path.with_suffix(".xml"), self.base_dir))
-            self.embedded_images[image_filename] = image_data
+            self.embedded_files[image_filename] = image_data
 
             return self._create_drawio(image_filename, attrs)
 
@@ -667,7 +669,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         content = content.rstrip()
 
         if language == "mermaid":
-            return self._transform_mermaid(content)
+            return self._transform_inline_mermaid(content)
 
         return AC(
             "structured-macro",
@@ -688,48 +690,73 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC("plain-text-body", ET.CDATA(content)),
         )
 
-    def _transform_mermaid(self, content: str) -> ET._Element:
-        "Transforms a Mermaid diagram code block."
+    def _transform_external_mermaid(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for a Mermaid diagram read from an external file."
+
+        if not absolute_path.name.endswith(".mmd") and not absolute_path.name.endswith(".mermaid"):
+            raise DocumentError("invalid image format; expected: `*.mmd` or `*.mermaid`")
 
         if self.options.render_mermaid:
-            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
-            image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-            self.embedded_images[image_filename] = image_data
-            return self._create_attached_image(image_filename, ImageAttributes(None, None, None))
+            with open(absolute_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return self._create_mermaid_image(content, attrs)
         else:
-            local_id = str(uuid.uuid4())
-            macro_id = str(uuid.uuid4())
-            return AC(
-                "structured-macro",
-                {
-                    ET.QName(namespaces["ac"], "name"): "macro-diagram",
-                    ET.QName(namespaces["ac"], "schema-version"): "1",
-                    "data-layout": "default",
-                    ET.QName(namespaces["ac"], "local-id"): local_id,
-                    ET.QName(namespaces["ac"], "macro-id"): macro_id,
-                },
-                AC(
-                    "parameter",
-                    {ET.QName(namespaces["ac"], "name"): "sourceType"},
-                    "MacroBody",
-                ),
-                AC(
-                    "parameter",
-                    {ET.QName(namespaces["ac"], "name"): "attachmentPageId"},
-                ),
-                AC(
-                    "parameter",
-                    {ET.QName(namespaces["ac"], "name"): "syntax"},
-                    "Mermaid",
-                ),
-                AC(
-                    "parameter",
-                    {ET.QName(namespaces["ac"], "name"): "attachmentId"},
-                ),
-                AC("parameter", {ET.QName(namespaces["ac"], "name"): "url"}),
-                AC("plain-text-body", ET.CDATA(content)),
-            )
+            self.images.append(absolute_path)
+            mermaid_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
+            return self._create_mermaid_embed(mermaid_filename)
+
+    def _transform_inline_mermaid(self, content: str) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a code block."
+
+        if self.options.render_mermaid:
+            return self._create_mermaid_image(content, ImageAttributes(None, None, None))
+        else:
+            mermaid_data = content.encode("utf-8")
+            mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
+            mermaid_filename = attachment_name(f"embedded_{mermaid_hash}.mmd")
+            self.embedded_files[mermaid_filename] = mermaid_data
+            return self._create_mermaid_embed(mermaid_filename)
+
+    def _create_mermaid_image(self, content: str, attrs: ImageAttributes) -> ET._Element:
+        "A rendered Mermaid diagram, linking to an attachment uploaded as an image."
+
+        image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
+        image_hash = hashlib.md5(image_data).hexdigest()
+        image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
+        self.embedded_files[image_filename] = image_data
+        return self._create_attached_image(image_filename, attrs)
+
+    def _create_mermaid_embed(self, filename: str) -> ET._Element:
+        "A Mermaid diagram, linking to an attachment that captures the Mermaid source."
+
+        local_id = str(uuid.uuid4())
+        macro_id = str(uuid.uuid4())
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "mermaid-cloud",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+                "data-layout": "default",
+                ET.QName(namespaces["ac"], "local-id"): local_id,
+                ET.QName(namespaces["ac"], "macro-id"): macro_id,
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "filename"},
+                filename,
+            ),
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "toolbar"},
+                "bottom",
+            ),
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "zoom"},
+                "fit",
+            ),
+            AC("parameter", {ET.QName(namespaces["ac"], "name"): "revision"}, "1"),
+        )
 
     def _transform_toc(self, code: ET._Element) -> ET._Element:
         "Creates a table of contents, constructed from headings in the document."
@@ -1402,7 +1429,7 @@ class ConfluenceDocument:
         converter.visit(self.root)
         self.links = converter.links
         self.images = converter.images
-        self.embedded_images = converter.embedded_images
+        self.embedded_files = converter.embedded_files
 
         self.title = document.title or converter.toc.get_title()
         self.labels = document.tags

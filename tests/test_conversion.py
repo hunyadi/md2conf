@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import hashlib
 import logging
 import os
 import os.path
@@ -15,7 +16,7 @@ from pathlib import Path
 
 import md2conf.emoji as emoji
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, elements_from_string, elements_to_string
+from md2conf.converter import ConfluenceDocument, attachment_name, elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.extra import override
 from md2conf.matcher import Matcher, MatcherOptions
@@ -34,11 +35,32 @@ def canonicalize(content: str) -> str:
     return elements_to_string(elements_from_string(content))
 
 
+def substitute(root_dir: Path, content: str) -> str:
+    "Converts a Confluence Storage Format (CSF) expectation template into a concrete match."
+
+    def _repl_embed(m: re.Match[str]) -> str:
+        "Replaces an embedding placeholder with the concrete attachment file name computed using a hash algorithm."
+
+        relative_path = m.group(1)
+        absolute_path = root_dir / relative_path
+        with open(absolute_path, "r", encoding="utf-8") as f:
+            content = f.read().rstrip()
+        hash = hashlib.md5(content.encode("utf-8")).hexdigest()
+        extension = absolute_path.suffix
+        return attachment_name(f"embedded_{hash}{extension}")
+
+    embed_pattern = re.compile(r"EMBED\(([^()]+)\)")
+    content = embed_pattern.sub(_repl_embed, content)
+
+    return canonicalize(content)
+
+
 def standardize(content: str) -> str:
     "Converts a Confluence Storage Format (CSF) document to the normalized format, removing unique identifiers."
 
-    uuid_pattern = re.compile(r"\b[0-9a-fA-F-]{36}\b")
-    content = re.sub(uuid_pattern, "UUID", content)
+    uuid_pattern = re.compile(r"(?<![0-9a-fA-F])([0-9a-fA-F-]{36})(?![0-9a-fA-F])")
+    content = uuid_pattern.sub("UUID", content)
+
     return canonicalize(content)
 
 
@@ -90,7 +112,7 @@ class TestConversion(unittest.TestCase):
                 actual = standardize(doc.xhtml())
 
                 with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
-                    expected = canonicalize(f.read())
+                    expected = substitute(self.target_dir, f.read())
 
                 self.assertEqual(actual, expected)
 
@@ -110,7 +132,7 @@ class TestConversion(unittest.TestCase):
         self.assertEqual(len(cm.records), 2)
 
         with open(self.target_dir / "missing.xml", "r", encoding="utf-8") as f:
-            expected = canonicalize(f.read())
+            expected = substitute(self.target_dir, f.read())
 
         self.assertEqual(actual, expected)
 
@@ -126,7 +148,7 @@ class TestConversion(unittest.TestCase):
         actual = standardize(doc.xhtml())
 
         with open(self.target_dir / "anchors.xml", "r", encoding="utf-8") as f:
-            expected = canonicalize(f.read())
+            expected = substitute(self.target_dir, f.read())
 
         self.assertEqual(actual, expected)
 
@@ -141,7 +163,7 @@ class TestConversion(unittest.TestCase):
         actual = standardize(doc.xhtml())
 
         with open(self.target_dir / "images" / "images.xml", "r", encoding="utf-8") as f:
-            expected = canonicalize(f.read())
+            expected = substitute(self.target_dir, f.read())
 
         self.assertEqual(actual, expected)
 
@@ -177,7 +199,7 @@ class TestConversion(unittest.TestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_images), 6)
+        self.assertEqual(len(document.embedded_files), 6)
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     def test_mermaid_embedded_png(self) -> None:
@@ -191,7 +213,7 @@ class TestConversion(unittest.TestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_images), 6)
+        self.assertEqual(len(document.embedded_files), 6)
 
 
 if __name__ == "__main__":

@@ -27,6 +27,8 @@ from .properties import ArgumentError, ConfluenceConnectionProperties, Confluenc
 
 T = TypeVar("T")
 
+mimetypes.add_type("text/vnd.mermaid", ".mmd", strict=True)
+
 
 def _json_to_object(
     typ: type[T],
@@ -642,7 +644,7 @@ class ConfluenceSession:
                     return
             elif raw_data is not None:
                 if not force and attachment.fileSize == len(raw_data):
-                    LOGGER.info("Up-to-date embedded image: %s", attachment_name)
+                    LOGGER.info("Up-to-date embedded file: %s", attachment_name)
                     return
             else:
                 raise NotImplementedError("parameter match not exhaustive")

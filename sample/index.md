@@ -10,6 +10,8 @@ This page demonstrates the various features of converting a Markdown document in
 
 Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
 
+Text with subscript (H<sub>2</sub>O) and superscript (X<sup>2</sup>).
+
 Absolute link to an [external location](http://example.com/) or relative link to a [heading in the same document](#Basic-features). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to locations not exported may be skipped.
 
 An ordered list:
@@ -64,7 +66,18 @@ A tasklist:
 
 ![Editable or rendered draw.io image](figure/diagram.drawio)
 
+![Editable or rendered Mermaid diagram](figure/class.mmd)
+
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
+
+```mermaid
+classDiagram
+Entity <|-- Product
+Entity <|-- Customer
+Entity <|-- Vendor
+Vendor <|-- Store
+Entity <|-- Project
+```
 
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép. :smile:
 
@@ -224,3 +237,9 @@ puts "Hello World"
 
 [^1]: This is a footnote with *numeric* notation.
 [^string]: This is a footnote with a *string identifier*.
+
+## Colors
+
+Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.
+
+Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.

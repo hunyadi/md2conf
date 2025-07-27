@@ -34,7 +34,6 @@ proportions of different categories within a dataset.  This example
 shows the relative time spent looking for a movie versus watching
 it on Netflix.
 
-
 ```mermaid
 pie title NETFLIX
     "Time spent looking for movie" : 90
@@ -50,7 +49,6 @@ sequence of messages that are exchanged between objects. Sequence
 diagrams are often used to model the flow of control in a system,
 such as the steps involved in processing a request or handling an
 event.
-
 
 ```mermaid
 sequenceDiagram
@@ -121,7 +119,6 @@ different variable. The axes are usually labeled with opposite ends
 of a spectrum, such as "Important" vs. "Not Important" or "Urgent"
 vs. "Not Urgent". The four quadrants are then defined by the
 intersection of these axes.
-
 
 ```mermaid
 %%{init: {"quadrantChart": {"chartWidth": 400, "chartHeight": 400}, "themeVariables": {"quadrant1TextFill": "#ff0000"} }}%%
