@@ -14,7 +14,9 @@ import importlib.resources as resources
 import logging
 import os.path
 import re
+import sys
 import uuid
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
@@ -34,6 +36,12 @@ from .properties import PageError
 from .scanner import ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
 
+if sys.version_info >= (3, 12):
+    from typing import override as override
+else:
+    from typing_extensions import override as override
+
+# XML namespaces typically associated with Confluence Storage Format documents
 namespaces = {
     "ac": "http://atlassian.com/content",
     "ri": "http://atlassian.com/resource/identifier",
@@ -103,9 +111,9 @@ def encode_title(text: str) -> str:
 
 def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
     """
-    Creates a fragment of several XML nodes from their string representation wrapped in a root element.
+    Creates an XML document tree from XML fragment strings.
 
-    :param dtd_path: Path to a DTD document that defines entities like &cent; or &copy;.
+    :param dtd_path: Path to a DTD document that defines entities like `&cent;` or `&copy;`.
     :param items: Strings to parse into XML fragments.
     :returns: An XML document as an element tree.
     """
@@ -133,7 +141,14 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
 
 
 def elements_from_strings(items: list[str]) -> ET._Element:
-    "Creates a fragment of several XML nodes from their string representation wrapped in a root element."
+    """
+    Creates an XML document tree from XML fragment strings.
+
+    A root element is created to hold several XML fragments.
+
+    :param items: Strings to parse into XML fragments.
+    :returns: An XML document as an element tree.
+    """
 
     resource_path = resources.files(__package__).joinpath("entities.dtd")
     with resources.as_file(resource_path) as dtd_path:
@@ -141,10 +156,18 @@ def elements_from_strings(items: list[str]) -> ET._Element:
 
 
 def elements_from_string(content: str) -> ET._Element:
+    """
+    Creates an XML document tree from an XML string.
+
+    :param content: String to parse into XML.
+    :returns: An XML document as an element tree.
+    """
+
     return elements_from_strings([content])
 
 
-_languages = [
+# supported code block languages, for which syntax highlighting is available
+_LANGUAGES = [
     "abap",
     "actionscript3",
     "ada",
@@ -226,7 +249,7 @@ _languages = [
 ]
 
 
-class NodeVisitor:
+class NodeVisitor(ABC):
     def visit(self, node: ET._Element) -> None:
         "Recursively visits all descendants of this node."
 
@@ -241,8 +264,8 @@ class NodeVisitor:
             else:
                 self.visit(source)
 
-    def transform(self, child: ET._Element) -> Optional[ET._Element]:
-        pass
+    @abstractmethod
+    def transform(self, child: ET._Element) -> Optional[ET._Element]: ...
 
 
 def title_to_identifier(title: str) -> str:
@@ -260,8 +283,24 @@ def element_to_text(node: ET._Element) -> str:
     return "".join(node.itertext()).strip()
 
 
+def element_text_starts_with_any(node: ET._Element, prefixes: list[str]) -> bool:
+    "True if the text contained in an element starts with any of the specified prefix strings."
+
+    if node.text is None:
+        return False
+    return starts_with_any(node.text, prefixes)
+
+
 @dataclass
 class ImageAttributes:
+    """
+    Attributes applied to an `<img>` element.
+
+    :param caption: Caption text (`alt` attribute).
+    :param width: Natural image width in pixels.
+    :param height: Natural image height in pixels.
+    """
+
     caption: Optional[str]
     width: Optional[str]
     height: Optional[str]
@@ -355,7 +394,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         heading.text = None
 
     def _warn_or_raise(self, msg: str) -> None:
-        "Emit a warning or raise an exception when a path points to a resource that doesn't exist."
+        "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
         if self.options.ignore_invalid_url:
             LOGGER.warning(msg)
@@ -663,7 +702,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 language = m.group(1)
             else:
                 language = "none"
-        if language not in _languages:
+        if language not in _LANGUAGES:
             language = "none"
         content: str = code.text or ""
         content = content.rstrip()
@@ -941,7 +980,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if elem[0].tail is not None:
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
 
-        summary = "".join(elem[0].itertext()).strip()
+        summary = element_to_text(elem[0])
         elem.remove(elem[0])
 
         # transform Markdown to Confluence within collapsed section content
@@ -971,8 +1010,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         alt = elem.text or ""
 
         # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
-        # <ac:emoticon ac:name="blue-star" ac:emoji-shortname=":heavy_plus_sign:" ac:emoji-id="2795" ac:emoji-fallback="&#10133;"/>
-        # <ac:emoticon ac:name="blue-star" ac:emoji-shortname=":heavy_minus_sign:" ac:emoji-id="2796" ac:emoji-fallback="&#10134;"/>
         return AC(
             "emoticon",
             {
@@ -1181,7 +1218,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         for item in elem:
             if item.tag != "li":
                 raise DocumentError("expected: `<li>` as the HTML element for a task")
-            if item.text is None or re.match(r"^\[[x X]\]", item.text) is None:
+            if not element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]):
                 raise DocumentError("expected: each `<li>` in a task list starting with [ ] or [x]")
 
         # transform Markdown to Confluence within tasklist content
@@ -1213,6 +1250,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
         return AC("task-list", {}, *tasks)
 
+    @override
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
         """
         Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
@@ -1241,51 +1279,67 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 self._transform_heading(child)
                 return None
 
-        # <p><img src="..." /></p>
-        if child.tag == "p" and len(child) == 1 and child[0].tag == "img":
-            return self._transform_image(child[0])
-
-        # <p>[[_TOC_]]</p>
-        # <p>[TOC]</p>
-        elif child.tag == "p" and "".join(child.itertext()) in ["[[TOC]]", "[TOC]"]:
-            return self._transform_toc(child)
-
-        # <p>[[_LISTING_]]</p>
-        elif child.tag == "p" and "".join(child.itertext()) in ["[[LISTING]]", "[LISTING]"]:
-            return self._transform_listing(child)
-
-        # <div class="admonition note">
-        # <p class="admonition-title">Note</p>
         # <p>...</p>
-        # </div>
-        #
-        # --- OR ---
-        #
-        # <div class="admonition note">
-        # <p>...</p>
-        # </div>
-        elif child.tag == "div" and "admonition" in child.attrib.get("class", ""):
-            return self._transform_admonition(child)
+        if child.tag == "p":
+            # <p><img src="..." /></p>
+            if len(child) == 1 and child[0].tag == "img":
+                return self._transform_image(child[0])
 
-        # Alerts in GitHub
-        # <blockquote>
-        #   <p>[!TIP] ...</p>
-        # </blockquote>
-        elif child.tag == "blockquote" and len(child) > 0 and child[0].tag == "p" and child[0].text is not None and child[0].text.startswith("[!"):
-            return self._transform_github_alert(child)
+            # <p>[[_TOC_]]</p> (represented as <p>[[<em>TOC</em>]]</p>)
+            # <p>[TOC]</p>
+            elif element_to_text(child) in ["[[TOC]]", "[TOC]"]:
+                return self._transform_toc(child)
 
-        # Alerts in GitLab
-        # <blockquote>
-        #   <p>DISCLAIMER: ...</p>
-        # </blockquote>
-        elif (
-            child.tag == "blockquote"
-            and len(child) > 0
-            and child[0].tag == "p"
-            and child[0].text is not None
-            and starts_with_any(child[0].text, ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"])
-        ):
-            return self._transform_gitlab_alert(child)
+            # <p>[[_LISTING_]]</p> (represented as <p>[[<em>LISTING</em>]]</p>)
+            elif element_to_text(child) in ["[[LISTING]]", "[LISTING]"]:
+                return self._transform_listing(child)
+
+        # <div>...</div>
+        elif child.tag == "div":
+            classes = child.attrib.get("class", "").split(" ")
+
+            # <div class="arithmatex">...</div>
+            if "arithmatex" in classes:
+                return self._transform_block_math(child)
+
+            # <div class="footnote">
+            #   <hr/>
+            #   <ol>
+            #     <li id="fn:NAME"><p>TEXT <a class="footnote-backref" href="#fnref:NAME">↩</a></p></li>
+            #   </ol>
+            # </div>
+            elif "footnote" in classes:
+                self._transform_footnote_def(child)
+                return None
+
+            # <div class="admonition note">
+            # <p class="admonition-title">Note</p>
+            # <p>...</p>
+            # </div>
+            #
+            # --- OR ---
+            #
+            # <div class="admonition note">
+            # <p>...</p>
+            # </div>
+            elif "admonition" in classes:
+                return self._transform_admonition(child)
+
+        # <blockquote>...</blockquote>
+        elif child.tag == "blockquote":
+            # Alerts in GitHub
+            # <blockquote>
+            #   <p>[!TIP] ...</p>
+            # </blockquote>
+            if len(child) > 0 and child[0].tag == "p" and child[0].text is not None and child[0].text.startswith("[!"):
+                return self._transform_github_alert(child)
+
+            # Alerts in GitLab
+            # <blockquote>
+            #   <p>DISCLAIMER: ...</p>
+            # </blockquote>
+            elif len(child) > 0 and child[0].tag == "p" and element_text_starts_with_any(child[0], ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"]):
+                return self._transform_gitlab_alert(child)
 
         # <details markdown="1">
         # <summary>...</summary>
@@ -1306,34 +1360,28 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_code_block(child[0])
 
-        # <span data-emoji-shortname="..." data-emoji-unicode="...">...</span>
-        elif child.tag == "span" and child.attrib.has_key("data-emoji-shortname"):
-            return self._transform_emoji(child)
+        # <span>...</span>
+        elif child.tag == "span":
+            classes = child.attrib.get("class", "").split(" ")
 
-        # <div class="arithmatex">...</div>
-        elif child.tag == "div" and "arithmatex" in child.attrib.get("class", "").split(" "):
-            return self._transform_block_math(child)
+            # <span class="arithmatex">...</span>
+            if "arithmatex" in classes:
+                return self._transform_inline_math(child)
 
-        # <span class="arithmatex">...</span>
-        elif child.tag == "span" and "arithmatex" in child.attrib.get("class", "").split(" "):
-            return self._transform_inline_math(child)
+            # <span data-emoji-shortname="..." data-emoji-unicode="...">...</span>
+            elif child.attrib.has_key("data-emoji-shortname"):
+                return self._transform_emoji(child)
 
         # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
         elif child.tag == "sup" and child.attrib.get("id", "").startswith("fnref:"):
             self._transform_footnote_ref(child)
             return None
 
-        # <div class="footnote">
-        #   <hr/>
-        #   <ol>
-        #     <li id="fn:NAME"><p>TEXT <a class="footnote-backref" href="#fnref:NAME">↩</a></p></li>
-        #   </ol>
-        # </div>
-        elif child.tag == "div" and "footnote" in child.attrib.get("class", "").split(" "):
-            self._transform_footnote_def(child)
-            return None
-
-        elif child.tag == "ul" and len(child) > 0 and child[0].text is not None and re.match(r"^\[[x X]\]", child[0].text) is not None:
+        # <ul>
+        #   <li>[ ] ...</li>
+        #   <li>[x] ...</li>
+        # </ul>
+        elif child.tag == "ul" and len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
             return self._transform_tasklist(child)
 
         return None
@@ -1502,7 +1550,17 @@ def _content_to_string(dtd_path: Path, content: str) -> str:
 
 
 def content_to_string(content: str) -> str:
-    "Converts a Confluence Storage Format document returned by the API into a readable XML document."
+    """
+    Converts a Confluence Storage Format document returned by the API into a readable XML document.
+
+    This function
+    * adds an XML declaration,
+    * wraps the content in a root element,
+    * adds namespace declarations associated with Confluence documents.
+
+    :param content: Confluence Storage Format content as a string.
+    :returns: XML as a string.
+    """
 
     resource_path = resources.files(__package__).joinpath("entities.dtd")
     with resources.as_file(resource_path) as dtd_path:
