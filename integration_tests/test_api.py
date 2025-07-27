@@ -80,8 +80,9 @@ class TestAPI(unittest.TestCase):
             document.images,
             [
                 self.sample_dir / "figure" / "interoperability.png",
-                self.sample_dir / "figure" / "interoperability.png",
+                self.sample_dir / "figure" / "interoperability.png",  # preferred over `interoperability.svg`
                 self.sample_dir / "figure" / "diagram.drawio",
+                self.sample_dir / "figure" / "class.mmd",
             ],
         )
 

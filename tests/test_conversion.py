@@ -14,7 +14,6 @@ import re
 import unittest
 from pathlib import Path
 
-import md2conf.emoji as emoji
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import ConfluenceDocument, attachment_name, elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions
@@ -22,6 +21,7 @@ from md2conf.extra import override
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
+from tests import emoji
 
 logging.basicConfig(
     level=logging.INFO,

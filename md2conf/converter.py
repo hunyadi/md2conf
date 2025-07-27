@@ -14,7 +14,6 @@ import importlib.resources as resources
 import logging
 import os.path
 import re
-import sys
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,17 +28,12 @@ from strong_typing.core import JsonType
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
-from .extra import path_relative_to
+from .extra import override, path_relative_to
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
-
-if sys.version_info >= (3, 12):
-    from typing import override as override
-else:
-    from typing_extensions import override as override
 
 # XML namespaces typically associated with Confluence Storage Format documents
 namespaces = {
