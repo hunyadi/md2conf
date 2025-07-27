@@ -1,0 +1,32 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Status</h2>
+<ul>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">gray</ac:parameter>
+  <ac:parameter ac:name="colour">Gray</ac:parameter>
+</ac:structured-macro></li>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">purple</ac:parameter>
+  <ac:parameter ac:name="colour">Purple</ac:parameter>
+</ac:structured-macro></li>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">blue</ac:parameter>
+  <ac:parameter ac:name="colour">Blue</ac:parameter>
+</ac:structured-macro></li>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">red</ac:parameter>
+  <ac:parameter ac:name="colour">Red</ac:parameter>
+</ac:structured-macro></li>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">yellow</ac:parameter>
+  <ac:parameter ac:name="colour">Yellow</ac:parameter>
+</ac:structured-macro></li>
+<li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="title">green</ac:parameter>
+  <ac:parameter ac:name="colour">Green</ac:parameter>
+</ac:structured-macro></li>
+</ul>

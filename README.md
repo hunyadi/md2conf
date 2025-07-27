@@ -30,6 +30,7 @@ This Python package
 * [Tasklists](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)
 * draw\.io diagrams
 * [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
+* Confluence status labels and date widget
 
 Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
 
@@ -238,7 +239,7 @@ Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <spa
 The following table shows standard text colors (CSS `color`) that are available via Confluence UI:
 
 | Color name    | CSS attribute value |
-| ------------- | ------------------- |
+| :------------ | :------------------ |
 | bold blue     | rgb(7,71,166)       |
 | blue          | rgb(76,154,255)     |
 | subtle blue   | rgb(179,212,255)    |
@@ -307,6 +308,20 @@ Displaying math formulas in Confluence requires the extension [LaTeX Math for Co
 <br/>
 <img src="image.png" width="24" height="24" />
 ```
+
+### Confluence widgets
+
+*md2conf* supports some Confluence widgets. If the appropriate code is found when a Markdown document is processed, it is automatically replaced with Confluence Storage Format XML that produces the corresponding widget.
+
+| Markdown code                              | Confluence equivalent                                   |
+| :----------------------------------------- | :------------------------------------------------------ |
+| `![My label][STATUS-GRAY]`                 | gray status label (with specified label text)           |
+| `![My label][STATUS-PURPLE]`               | purple status label                                     |
+| `![My label][STATUS-BLUE]`                 | blue status label                                       |
+| `![My label][STATUS-RED]`                  | red status label                                        |
+| `![My label][STATUS-YELLOW]`               | yellow status label                                     |
+| `![My label][STATUS-GREEN]`                | green status label                                      |
+| `<input type="date" value="YYYY-MM-DD" />` | date widget (with year, month and day set as specified) |
 
 ### Ignoring files
 
@@ -391,6 +406,16 @@ mmdc -i sample.mmd -o sample.png -b transparent --scale 2
 ```
 
 Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
+
+### Implicit URLs
+
+*md2conf* implicitly defines some URLs, as if you included the following at the start of the Markdown document for each URL:
+
+```md
+[CUSTOM-URL]: https://example.com/path/to/resource
+```
+
+Specifically, image references for status labels (e.g. `![My label][STATUS-RED]`) are automatically resolved into internally defined URLs via this mechanism.
 
 ### Local output
 

@@ -14,6 +14,7 @@ import importlib.resources as resources
 import logging
 import os.path
 import re
+import urllib.parse
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -53,6 +54,19 @@ def get_volatile_attributes() -> list[ET.QName]:
         ET.QName(namespaces["ri"], "version-at-save"),
     ]
 
+
+def svg_to_data_uri(svg: str) -> str:
+    "Generates a data URI that encapsulates an SVG image."
+
+    # URL-encode the SVG image data
+    encoded = urllib.parse.quote(svg, safe=";/?:@&=+$,-_.!~*'()#")  # minimal encoding
+    return f"data:image/svg+xml,{encoded}"
+
+
+status_images: dict[str, str] = {
+    svg_to_data_uri(f'<svg height="10" width="10" xmlns="http://www.w3.org/2000/svg"><circle r="5" cx="5" cy="5" fill="{color}" /></svg>'): color
+    for color in ["gray", "purple", "blue", "red", "yellow", "green"]
+}
 
 HTML = ElementMaker()
 AC = ElementMaker(namespace=namespaces["ac"])
@@ -477,15 +491,38 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         anchor.attrib["href"] = transformed_url
         return None
 
+    def _transform_status(self, color: str, caption: str) -> ET._Element:
+        macro_id = str(uuid.uuid4())
+        return AC(
+            "structured-macro",
+            {
+                ET.QName(namespaces["ac"], "name"): "status",
+                ET.QName(namespaces["ac"], "schema-version"): "1",
+                ET.QName(namespaces["ac"], "macro-id"): macro_id,
+            },
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "title"},
+                caption,
+            ),
+            AC(
+                "parameter",
+                {ET.QName(namespaces["ac"], "name"): "colour"},
+                color.title(),
+            ),
+        )
+
     def _transform_image(self, image: ET._Element) -> ET._Element:
         "Inserts an attached or external image."
 
         src = image.attrib.get("src")
-
         if not src:
             raise DocumentError("image lacks `src` attribute")
 
         caption = image.attrib.get("alt")
+        if caption is not None and (color := status_images.get(src)) is not None:
+            return self._transform_status(color, caption)
+
         width = image.attrib.get("width")
         height = image.attrib.get("height")
         attrs = ImageAttributes(caption, width, height)
@@ -1342,6 +1379,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
             return self._transform_section(child)
 
+        # <ul>
+        #   <li>[ ] ...</li>
+        #   <li>[x] ...</li>
+        # </ul>
+        elif child.tag == "ul" and len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
+            return self._transform_tasklist(child)
+
+        # <pre><code class="language-java"> ... </code></pre>
+        elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
+            return self._transform_code_block(child[0])
+
         # <img src="..." alt="..." />
         elif child.tag == "img":
             return self._transform_image(child)
@@ -1349,10 +1397,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <a href="..."> ... </a>
         elif child.tag == "a":
             return self._transform_link(child)
-
-        # <pre><code class="language-java"> ... </code></pre>
-        elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
-            return self._transform_code_block(child[0])
 
         # <span>...</span>
         elif child.tag == "span":
@@ -1371,12 +1415,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             self._transform_footnote_ref(child)
             return None
 
-        # <ul>
-        #   <li>[ ] ...</li>
-        #   <li>[x] ...</li>
-        # </ul>
-        elif child.tag == "ul" and len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
-            return self._transform_tasklist(child)
+        # <input type="date" value="1984-01-01" />
+        elif child.tag == "input" and child.attrib.get("type", "") == "date":
+            return HTML("time", {"datetime": child.attrib.get("value", "")})
 
         return None
 
@@ -1433,10 +1474,18 @@ class ConfluenceDocument:
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: ConfluencePageCollection,
     ) -> None:
+        "Converts a single Markdown document to Confluence Storage Format."
+
         self.options = options
 
+        # register auxiliary URL substitutions
+        lines: list[str] = []
+        for data_uri, color in status_images.items():
+            lines.append(f"[STATUS-{color.upper()}]: {data_uri}")
+        lines.append(document.text)
+
         # convert to HTML
-        html = markdown_to_html(document.text)
+        html = markdown_to_html("\n".join(lines))
 
         # parse Markdown document
         if self.options.generated_by is not None:

@@ -42,16 +42,16 @@ A nested list:
 
 * List item 1
     * Nested item 1
-        1. Item 1
-        2. Item 2
-        3. Item 3
+        1. Item 1 ![gray][STATUS-GRAY]
+        2. Item 2 ![purple][STATUS-PURPLE]
+        3. Item 3 ![blue][STATUS-BLUE]
     * Nested item 2
-        - Item 4
-        - Item 5
-        - Item 6
+        - Item 4 ![red][STATUS-RED]
+        - Item 5 ![yellow][STATUS-YELLOW]
+        - Item 6 ![green][STATUS-GREEN]
 * List item 2
-    1. Nested item 3
-    2. Nested item 4
+    1. Nested item 3 <input type="date" value="1984-01-01" />
+    2. Nested item 4 <input type="date" value="2024-12-31" />
 
 A tasklist:
 
