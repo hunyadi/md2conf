@@ -1418,7 +1418,10 @@ class ConfluenceDocument:
             site_metadata,
             page_metadata,
         )
-        converter.visit(self.root)
+        try:
+            converter.visit(self.root)
+        except DocumentError as ex:
+            raise ConversionError(path) from ex
         self.links = converter.links
         self.images = converter.images
         self.embedded_files = converter.embedded_files
