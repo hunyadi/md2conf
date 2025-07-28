@@ -19,7 +19,8 @@ import lxml.etree as ET
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, NodeVisitor, elements_from_string, elements_to_string, get_volatile_attributes
+from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes
+from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata

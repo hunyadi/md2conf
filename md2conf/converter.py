@@ -10,11 +10,9 @@ Copyright 2022-2025, Levente Hunyadi
 
 import dataclasses
 import hashlib
-import importlib.resources as resources
 import logging
 import os.path
 import re
-import urllib.parse
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -28,6 +26,7 @@ from strong_typing.core import JsonType
 
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
+from .csf import ParseError, elements_from_strings, elements_to_string, namespaces
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
 from .markdown import markdown_to_html
@@ -35,14 +34,8 @@ from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
 from .scanner import ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
-
-# XML namespaces typically associated with Confluence Storage Format documents
-namespaces = {
-    "ac": "http://atlassian.com/content",
-    "ri": "http://atlassian.com/resource/identifier",
-}
-for key, value in namespaces.items():
-    ET.register_namespace(key, value)
+from .uri import is_absolute_url, to_uuid_urn
+from .xml import element_to_text
 
 
 def get_volatile_attributes() -> list[ET.QName]:
@@ -55,16 +48,8 @@ def get_volatile_attributes() -> list[ET.QName]:
     ]
 
 
-def svg_to_data_uri(svg: str) -> str:
-    "Generates a data URI that encapsulates an SVG image."
-
-    # URL-encode the SVG image data
-    encoded = urllib.parse.quote(svg, safe=";/?:@&=+$,-_.!~*'()#")  # minimal encoding
-    return f"data:image/svg+xml,{encoded}"
-
-
 status_images: dict[str, str] = {
-    svg_to_data_uri(f'<svg height="10" width="10" xmlns="http://www.w3.org/2000/svg"><circle r="5" cx="5" cy="5" fill="{color}" /></svg>'): color
+    to_uuid_urn(f'<svg height="10" width="10" xmlns="http://www.w3.org/2000/svg"><circle r="5" cx="5" cy="5" fill="{color}" /></svg>'): color
     for color in ["gray", "purple", "blue", "red", "yellow", "green"]
 }
 
@@ -75,10 +60,6 @@ RI = ElementMaker(namespace=namespaces["ri"])
 LOGGER = logging.getLogger(__name__)
 
 
-class ParseError(RuntimeError):
-    pass
-
-
 def starts_with_any(text: str, prefixes: list[str]) -> bool:
     "True if text starts with any of the listed prefixes."
 
@@ -86,16 +67,6 @@ def starts_with_any(text: str, prefixes: list[str]) -> bool:
         if text.startswith(prefix):
             return True
     return False
-
-
-def is_absolute_url(url: str) -> bool:
-    urlparts = urlparse(url)
-    return bool(urlparts.scheme) or bool(urlparts.netloc)
-
-
-def is_relative_url(url: str) -> bool:
-    urlparts = urlparse(url)
-    return not bool(urlparts.scheme) and not bool(urlparts.netloc)
 
 
 def is_directory_within(absolute_path: Path, base_path: Path) -> bool:
@@ -115,63 +86,6 @@ def encode_title(text: str) -> str:
 
     # URL-encode
     return quote_plus(text.strip())
-
-
-def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
-    """
-    Creates an XML document tree from XML fragment strings.
-
-    :param dtd_path: Path to a DTD document that defines entities like `&cent;` or `&copy;`.
-    :param items: Strings to parse into XML fragments.
-    :returns: An XML document as an element tree.
-    """
-
-    parser = ET.XMLParser(
-        remove_blank_text=True,
-        remove_comments=True,
-        strip_cdata=False,
-        load_dtd=True,
-    )
-
-    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in namespaces.items())
-
-    data = [
-        '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}"><root{ns_attr_list}>',
-    ]
-    data.extend(items)
-    data.append("</root>")
-
-    try:
-        return ET.fromstringlist(data, parser=parser)
-    except ET.XMLSyntaxError as ex:
-        raise ParseError() from ex
-
-
-def elements_from_strings(items: list[str]) -> ET._Element:
-    """
-    Creates an XML document tree from XML fragment strings.
-
-    A root element is created to hold several XML fragments.
-
-    :param items: Strings to parse into XML fragments.
-    :returns: An XML document as an element tree.
-    """
-
-    resource_path = resources.files(__package__).joinpath("entities.dtd")
-    with resources.as_file(resource_path) as dtd_path:
-        return _elements_from_strings(dtd_path, items)
-
-
-def elements_from_string(content: str) -> ET._Element:
-    """
-    Creates an XML document tree from an XML string.
-
-    :param content: String to parse into XML.
-    :returns: An XML document as an element tree.
-    """
-
-    return elements_from_strings([content])
 
 
 # supported code block languages, for which syntax highlighting is available
@@ -283,12 +197,6 @@ def title_to_identifier(title: str) -> str:
     s = re.sub(r"[^\sA-Za-z0-9_\-]", "", s)
     s = re.sub(r"\s+", "-", s)
     return s
-
-
-def element_to_text(node: ET._Element) -> str:
-    "Returns all text contained in an element as a concatenated string."
-
-    return "".join(node.itertext()).strip()
 
 
 def element_text_starts_with_any(node: ET._Element, prefixes: list[str]) -> bool:
@@ -520,7 +428,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             raise DocumentError("image lacks `src` attribute")
 
         caption = image.attrib.get("alt")
-        if caption is not None and (color := status_images.get(src)) is not None:
+        if caption is not None and src.startswith("urn:uuid:") and (color := status_images.get(src)) is not None:
             return self._transform_status(color, caption)
 
         width = image.attrib.get("width")
@@ -1560,51 +1468,3 @@ def attachment_name(ref: Union[Path, str]) -> str:
 
     parts = [replace_part(p) for p in path.parts]
     return Path(*parts).as_posix().replace("/", "_")
-
-
-def elements_to_string(root: ET._Element) -> str:
-    xml = ET.tostring(root, encoding="utf8", method="xml").decode("utf8")
-    m = re.match(r"^<root\s+[^>]*>(.*)</root>\s*$", xml, re.DOTALL)
-    if m:
-        return m.group(1)
-    else:
-        raise ValueError("expected: Confluence content")
-
-
-def _content_to_string(dtd_path: Path, content: str) -> str:
-    parser = ET.XMLParser(
-        remove_blank_text=True,
-        remove_comments=True,
-        strip_cdata=False,
-        load_dtd=True,
-    )
-
-    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in namespaces.items())
-
-    data = [
-        '<?xml version="1.0"?>',
-        f'<!DOCTYPE ac:confluence PUBLIC "-//Atlassian//Confluence 4 Page//EN" "{dtd_path.as_posix()}"><root{ns_attr_list}>',
-    ]
-    data.append(content)
-    data.append("</root>")
-
-    tree = ET.fromstringlist(data, parser=parser)
-    return ET.tostring(tree, pretty_print=True).decode("utf-8")
-
-
-def content_to_string(content: str) -> str:
-    """
-    Converts a Confluence Storage Format document returned by the API into a readable XML document.
-
-    This function
-    * adds an XML declaration,
-    * wraps the content in a root element,
-    * adds namespace declarations associated with Confluence documents.
-
-    :param content: Confluence Storage Format content as a string.
-    :returns: XML as a string.
-    """
-
-    resource_path = resources.files(__package__).joinpath("entities.dtd")
-    with resources.as_file(resource_path) as dtd_path:
-        return _content_to_string(dtd_path, content)

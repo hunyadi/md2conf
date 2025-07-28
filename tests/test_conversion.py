@@ -15,7 +15,8 @@ import unittest
 from pathlib import Path
 
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, attachment_name, elements_from_string, elements_to_string
+from md2conf.converter import ConfluenceDocument, attachment_name
+from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.extra import override
 from md2conf.matcher import Matcher, MatcherOptions

@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
-from md2conf.converter import content_to_string
+from md2conf.csf import content_to_string
 from md2conf.extra import override
 
 TEST_SPACE = "~hunyadi"

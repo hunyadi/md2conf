@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
-from .converter import ConfluenceDocument, attachment_name, elements_from_string, get_volatile_attributes
+from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes
+from .csf import elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata

@@ -1,3 +1,11 @@
+"""
+Publish Markdown files to Confluence wiki.
+
+Copyright 2022-2025, Levente Hunyadi
+
+:see: https://github.com/hunyadi/md2conf
+"""
+
 from typing import Iterable, Optional, Union
 
 import lxml.etree as ET
@@ -68,3 +76,9 @@ def is_xml_equal(
     """
 
     return ElementComparator(skip_attributes=skip_attributes).is_equal(tree1, tree2)
+
+
+def element_to_text(node: ET._Element) -> str:
+    "Returns all text contained in an element as a concatenated string."
+
+    return "".join(node.itertext()).strip()
