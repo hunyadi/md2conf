@@ -12,20 +12,38 @@ from pathlib import Path
 from typing import Callable, TypeVar
 
 import lxml.etree as ET
+from lxml.builder import ElementMaker
 
 # XML namespaces typically associated with Confluence Storage Format documents
-namespaces = {
+_namespaces = {
     "ac": "http://atlassian.com/content",
     "ri": "http://atlassian.com/resource/identifier",
 }
-for key, value in namespaces.items():
+for key, value in _namespaces.items():
     ET.register_namespace(key, value)
 
-R = TypeVar("R")
+HTML = ElementMaker()
+AC_ELEM = ElementMaker(namespace=_namespaces["ac"])
+RI_ELEM = ElementMaker(namespace=_namespaces["ri"])
 
 
 class ParseError(RuntimeError):
     pass
+
+
+def _qname(namespace_uri: str, name: str) -> str:
+    return ET.QName(namespace_uri, name).text
+
+
+def AC_ATTR(name: str) -> str:
+    return _qname(_namespaces["ac"], name)
+
+
+def RI_ATTR(name: str) -> str:
+    return _qname(_namespaces["ri"], name)
+
+
+R = TypeVar("R")
 
 
 def with_entities(func: Callable[[Path], R]) -> R:
@@ -57,7 +75,7 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
         load_dtd=True,
     )
 
-    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in namespaces.items())
+    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in _namespaces.items())
 
     data = [
         '<?xml version="1.0"?>',
