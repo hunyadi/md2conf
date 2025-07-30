@@ -70,6 +70,8 @@ A tasklist:
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
 
+A Mermaid diagram:
+
 ```mermaid
 classDiagram
 Entity <|-- Product
@@ -77,6 +79,20 @@ Entity <|-- Customer
 Entity <|-- Vendor
 Vendor <|-- Store
 Entity <|-- Project
+```
+
+Confluence Storage Format macro passed unchanged to Confluence:
+
+```csf
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="aa7f545b-2616-4edc-9bb6-406ec6403515">
+  <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
+  <ac:parameter ac:name="panelIconText">🙂</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
+  <ac:rich-text-body>
+    <p>A <em>custom colored panel</em> with a 🙂 emoji</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
 ```
 
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép. :smile:

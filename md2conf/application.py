@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
-from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes
+from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes, get_volatile_elements
 from .csf import elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
@@ -157,6 +157,7 @@ class SynchronizingProcessor(Processor):
             document.root,
             elements_from_string(page.content),
             skip_attributes=get_volatile_attributes(),
+            skip_elements=get_volatile_elements(),
         ):
             self.api.update_page(page_id.page_id, content, title=title, version=page.version.number + 1)
         else:

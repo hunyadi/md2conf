@@ -323,6 +323,22 @@ Displaying math formulas in Confluence requires the extension [LaTeX Math for Co
 | `![My label][STATUS-GREEN]`                | green status label                                      |
 | `<input type="date" value="YYYY-MM-DD" />` | date widget (with year, month and day set as specified) |
 
+Use the pseudo-language `csf` in a Markdown code block to pass content directly to Confluence. The content must be a single XML node that conforms to Confluence Storage Format (typically an `ac:structured-macro`) but is otherwise not validated. The following example shows how to create a panel similar to an *info panel* but with custom background color and emoji. Notice that `ac:rich-text-body` uses XHTML, not Markdown.
+
+````md
+```csf
+<ac:structured-macro ac:name="panel" ac:schema-version="1">
+  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
+  <ac:parameter ac:name="panelIconText">&#128578;</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
+  <ac:rich-text-body>
+    <p>A <em>custom colored panel</em> with a 🙂 emoji</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+```
+````
+
 ### Ignoring files
 
 Skip files in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax (and constraints) of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.

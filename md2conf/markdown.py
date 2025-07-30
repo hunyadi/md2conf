@@ -28,18 +28,19 @@ def _emoji_generator(
     """
 
     name = (alias or shortname).strip(":")
-    span = xml.etree.ElementTree.Element("span", {"data-emoji-shortname": name})
+    emoji = xml.etree.ElementTree.Element("x-emoji", {"data-shortname": name})
     if uc is not None:
-        span.attrib["data-emoji-unicode"] = uc
+        emoji.attrib["data-unicode"] = uc
 
         # convert series of Unicode code point hexadecimal values into characters
-        span.text = "".join(chr(int(item, base=16)) for item in uc.split("-"))
+        emoji.text = "".join(chr(int(item, base=16)) for item in uc.split("-"))
     else:
-        span.text = alt
-    return span
+        emoji.text = alt
+
+    return emoji
 
 
-def _math_formatter(
+def _verbatim_formatter(
     source: str,
     language: str,
     css_class: str,
@@ -51,7 +52,9 @@ def _math_formatter(
     **kwargs: Any,
 ) -> str:
     """
-    Custom formatter for language `math` in `pymdownx.superfences`.
+    Custom formatter for `pymdownx.superfences`.
+
+    Used by language `math` (a.k.a. `pymdownx.arithmatex`) and pseudo-language `csf` (Confluence Storage Format pass-through).
     """
 
     if classes is None:
@@ -83,13 +86,16 @@ _CONVERTER = markdown.Markdown(
     extension_configs={
         "footnotes": {"BACKLINK_TITLE": ""},
         "pymdownx.arithmatex": {"generic": True, "preview": False, "tex_inline_wrap": ["", ""], "tex_block_wrap": ["", ""]},
-        "pymdownx.emoji": {
-            "emoji_generator": _emoji_generator,
-        },
+        "pymdownx.emoji": {"emoji_generator": _emoji_generator, "strict": True},
         "pymdownx.highlight": {
             "use_pygments": False,
         },
-        "pymdownx.superfences": {"custom_fences": [{"name": "math", "class": "arithmatex", "format": _math_formatter}]},
+        "pymdownx.superfences": {
+            "custom_fences": [
+                {"name": "math", "class": "arithmatex", "format": _verbatim_formatter},
+                {"name": "csf", "class": "csf", "format": _verbatim_formatter},
+            ]
+        },
     },
 )
 

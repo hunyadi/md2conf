@@ -6,14 +6,16 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 
 import lxml.etree as ET
 
 
-def _attrs_equal_excluding(attrs1: ET._Attrib, attrs2: ET._Attrib, exclude: set[Union[str, ET.QName]]) -> bool:
+def _attrs_equal_excluding(attrs1: ET._Attrib, attrs2: ET._Attrib, exclude: set[str]) -> bool:
     """
     Compares two dictionary objects, excluding keys in the skip set.
+
+    :param exclude: Attributes to exclude, in `{namespace}name` notation.
     """
 
     # create key sets to compare, excluding keys to be skipped
@@ -31,10 +33,19 @@ def _attrs_equal_excluding(attrs1: ET._Attrib, attrs2: ET._Attrib, exclude: set[
 
 
 class ElementComparator:
-    skip_attributes: set[Union[str, ET.QName]]
+    skip_attributes: set[str]
+    skip_elements: set[str]
 
-    def __init__(self, *, skip_attributes: Optional[Iterable[Union[str, ET.QName]]] = None):
+    def __init__(self, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None):
+        """
+        Initializes a new element tree comparator.
+
+        :param skip_attributes: Attributes to exclude, in `{namespace}name` notation.
+        :param skip_elements: Elements to exclude, in `{namespace}name` notation.
+        """
+
         self.skip_attributes = set(skip_attributes) if skip_attributes else set()
+        self.skip_elements = set(skip_elements) if skip_elements else set()
 
     def is_equal(self, e1: ET._Element, e2: ET._Element) -> bool:
         """
@@ -44,38 +55,46 @@ class ElementComparator:
         if e1.tag != e2.tag:
             return False
 
-        e1_text = e1.text.strip() if e1.text else ""
-        e2_text = e2.text.strip() if e2.text else ""
-        if e1_text != e2_text:
-            return False
-
+        # compare tail first, which is outside of element
         e1_tail = e1.tail.strip() if e1.tail else ""
         e2_tail = e2.tail.strip() if e2.tail else ""
         if e1_tail != e2_tail:
             return False
 
+        # skip element (and content) if on ignore list
+        if e1.tag in self.skip_elements:
+            return True
+
+        # compare text second, which is encapsulated by element
+        e1_text = e1.text.strip() if e1.text else ""
+        e2_text = e2.text.strip() if e2.text else ""
+        if e1_text != e2_text:
+            return False
+
+        # compare attributes, disregarding definition order
         if not _attrs_equal_excluding(e1.attrib, e2.attrib, self.skip_attributes):
             return False
+
+        # compare children recursively
         if len(e1) != len(e2):
             return False
         return all(self.is_equal(c1, c2) for c1, c2 in zip(e1, e2))
 
 
 def is_xml_equal(
-    tree1: ET._Element,
-    tree2: ET._Element,
-    *,
-    skip_attributes: Optional[Iterable[Union[str, ET.QName]]] = None,
+    tree1: ET._Element, tree2: ET._Element, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None
 ) -> bool:
     """
     Compare two XML documents for equivalence, ignoring leading/trailing whitespace differences and attribute definition order.
 
     :param tree1: XML document as an element tree.
     :param tree2: XML document as an element tree.
+    :param skip_attributes: Attributes to exclude, in `{namespace}name` notation.
+    :param skip_elements: Elements to exclude, in `{namespace}name` notation.
     :returns: True if equivalent, False otherwise.
     """
 
-    return ElementComparator(skip_attributes=skip_attributes).is_equal(tree1, tree2)
+    return ElementComparator(skip_attributes=skip_attributes, skip_elements=skip_elements).is_equal(tree1, tree2)
 
 
 def element_to_text(node: ET._Element) -> str:

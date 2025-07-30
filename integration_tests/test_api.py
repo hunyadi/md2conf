@@ -19,7 +19,7 @@ import lxml.etree as ET
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.application import Application
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes
+from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
@@ -35,6 +35,8 @@ class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
 
     def transform(self, child: ET._Element) -> Optional[ET._Element]:
+        if child.tag in get_volatile_elements():
+            child.clear(keep_tail=True)
         for name in get_volatile_attributes():
             child.attrib.pop(name, None)
         return None

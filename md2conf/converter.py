@@ -45,6 +45,12 @@ def get_volatile_attributes() -> list[str]:
     ]
 
 
+def get_volatile_elements() -> list[str]:
+    "Returns a list of volatile elements whose content frequently changes as a Confluence storage format XHTML document is updated."
+
+    return [AC_ATTR("task-uuid")]
+
+
 status_images: dict[str, str] = {
     to_uuid_urn(f'<svg height="10" width="10" xmlns="http://www.w3.org/2000/svg"><circle r="5" cx="5" cy="5" fill="{color}" /></svg>'): color
     for color in ["gray", "purple", "blue", "red", "yellow", "green"]
@@ -403,13 +409,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
             AC_ELEM(
                 "parameter",
-                {AC_ATTR("name"): "title"},
-                caption,
+                {AC_ATTR("name"): "colour"},
+                color.title(),
             ),
             AC_ELEM(
                 "parameter",
-                {AC_ATTR("name"): "colour"},
-                color.title(),
+                {AC_ATTR("name"): "title"},
+                caption,
             ),
         )
 
@@ -937,8 +943,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Inserts an inline emoji character.
         """
 
-        shortname = elem.attrib.get("data-emoji-shortname", "")
-        unicode = elem.attrib.get("data-emoji-unicode", None)
+        shortname = elem.attrib.get("data-shortname", "")
+        unicode = elem.attrib.get("data-unicode", None)
         alt = elem.text or ""
 
         # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
@@ -1234,6 +1240,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if "arithmatex" in classes:
                 return self._transform_block_math(child)
 
+            # <div><ac:structured-macro ...>...</ac:structured-macro></div>
+            elif "csf" in classes:
+                if len(child) != 1:
+                    raise DocumentError("expected: single child in Confluence Storage Format block")
+
+                return child[0]
+
             # <div class="footnote">
             #   <hr/>
             #   <ol>
@@ -1307,10 +1320,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if "arithmatex" in classes:
                 return self._transform_inline_math(child)
 
-            # <span data-emoji-shortname="..." data-emoji-unicode="...">...</span>
-            elif child.attrib.has_key("data-emoji-shortname"):
-                return self._transform_emoji(child)
-
         # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
         elif child.tag == "sup" and child.attrib.get("id", "").startswith("fnref:"):
             self._transform_footnote_ref(child)
@@ -1319,6 +1328,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <input type="date" value="1984-01-01" />
         elif child.tag == "input" and child.attrib.get("type", "") == "date":
             return HTML("time", {"datetime": child.attrib.get("value", "")})
+
+        # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
+        elif child.tag == "x-emoji":
+            return self._transform_emoji(child)
 
         return None
 
