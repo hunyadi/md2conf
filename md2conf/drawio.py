@@ -153,7 +153,8 @@ def extract_xml_from_png(png_data: bytes) -> ET._Element:
         offset += 8
 
         if offset + length + 4 > len(png_data):
-            raise DrawioError(f"corrupted PNG: incomplete data for chunk {chunk_type.decode('ascii')}")
+            chunk_name = chunk_type.decode("ascii", errors="replace")
+            raise DrawioError(f"corrupted PNG: incomplete data for chunk {chunk_name}")
 
         # read chunk data
         chunk_data = png_data[offset : offset + length]
@@ -169,7 +170,7 @@ def extract_xml_from_png(png_data: bytes) -> ET._Element:
         # format: keyword\0text
         null_pos = chunk_data.find(b"\x00")
         if null_pos < 0:
-            raise DrawioError("corrupted PNG: tEXt chunk missing keyword")
+            raise DrawioError("corrupted PNG: `tEXt` chunk missing keyword or data")
 
         keyword = chunk_data[:null_pos].decode("latin1")
         if keyword != "mxfile":

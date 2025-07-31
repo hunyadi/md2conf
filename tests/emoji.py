@@ -46,6 +46,8 @@ def generate_source(path: pathlib.Path) -> None:
         for key in emojis.keys():
             key = key.strip(":")
             print(f"| :{key}: | `:{key}:` |", file=f)
+        print(file=f)
+        print("Counterexamples: 2:44:59 and 23:15:00", file=f)
 
 
 def generate_target(path: pathlib.Path) -> None:
@@ -81,3 +83,4 @@ def generate_target(path: pathlib.Path) -> None:
             )
         print("</tbody>", file=f)
         print("</table>", file=f)
+        print("<p>Counterexamples: 2:44:59 and 23:15:00</p>", file=f)

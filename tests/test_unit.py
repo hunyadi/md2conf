@@ -32,7 +32,12 @@ class TestUnit(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = attachment_name("/path/to/image.png")
 
-    def test_xml(self) -> None:
+    def test_xml_entities(self) -> None:
+        tree1 = ET.fromstring('<body><p>to be, or "not" to be 😉</p></body>')
+        tree2 = ET.fromstring("<body><p>to be, or &quot;not&quot; to be &#128521;</p></body>")
+        self.assertTrue(is_xml_equal(tree1, tree2))
+
+    def test_xml_skip_attribute(self) -> None:
         tree1 = ET.fromstring('<body><p class="paragraph" data-skip="..." style="display: none;">to be, or not to be</p></body>')
         tree2 = ET.fromstring('<body><p style="display: none;" class="paragraph">to be, or not to be</p></body>')
         self.assertFalse(is_xml_equal(tree1, tree2))

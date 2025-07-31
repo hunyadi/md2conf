@@ -512,15 +512,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not absolute_path.name.endswith(".drawio.xml") and not absolute_path.name.endswith(".drawio"):
             raise DocumentError("invalid image format; expected: `*.drawio.xml` or `*.drawio`")
 
+        relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render_drawio:
             image_data = drawio.render_diagram(absolute_path, self.options.diagram_output_format)
-            image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
+            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
             self.embedded_files[image_filename] = image_data
             return self._create_attached_image(image_filename, attrs)
         else:
             self.images.append(absolute_path)
-            image_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
+            image_filename = attachment_name(relative_path)
             return self._create_drawio(image_filename, attrs)
 
     def _transform_drawio_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
@@ -673,35 +673,34 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not absolute_path.name.endswith(".mmd") and not absolute_path.name.endswith(".mermaid"):
             raise DocumentError("invalid image format; expected: `*.mmd` or `*.mermaid`")
 
+        relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render_mermaid:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            return self._create_mermaid_image(content, attrs)
+            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
+            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
+            self.embedded_files[image_filename] = image_data
+            return self._create_attached_image(image_filename, attrs)
         else:
             self.images.append(absolute_path)
-            mermaid_filename = attachment_name(path_relative_to(absolute_path, self.base_dir))
+            mermaid_filename = attachment_name(relative_path)
             return self._create_mermaid_embed(mermaid_filename)
 
     def _transform_inline_mermaid(self, content: str) -> ET._Element:
         "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a code block."
 
         if self.options.render_mermaid:
-            return self._create_mermaid_image(content, ImageAttributes(None, None, None))
+            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
+            image_hash = hashlib.md5(image_data).hexdigest()
+            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
+            self.embedded_files[image_filename] = image_data
+            return self._create_attached_image(image_filename, ImageAttributes(None, None, None))
         else:
             mermaid_data = content.encode("utf-8")
             mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
             mermaid_filename = attachment_name(f"embedded_{mermaid_hash}.mmd")
             self.embedded_files[mermaid_filename] = mermaid_data
             return self._create_mermaid_embed(mermaid_filename)
-
-    def _create_mermaid_image(self, content: str, attrs: ImageAttributes) -> ET._Element:
-        "A rendered Mermaid diagram, linking to an attachment uploaded as an image."
-
-        image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
-        image_hash = hashlib.md5(image_data).hexdigest()
-        image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-        self.embedded_files[image_filename] = image_data
-        return self._create_attached_image(image_filename, attrs)
 
     def _create_mermaid_embed(self, filename: str) -> ET._Element:
         "A Mermaid diagram, linking to an attachment that captures the Mermaid source."
@@ -1194,13 +1193,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
         """
 
-        # normalize line breaks to regular space in element text
+        # replace line breaks with regular space in element text to minimize phantom changes
         if child.text:
-            text: str = child.text
-            child.text = text.replace("\n", " ")
+            child.text = child.text.replace("\n", " ")
         if child.tail:
-            tail: str = child.tail
-            child.tail = tail.replace("\n", " ")
+            child.tail = child.tail.replace("\n", " ")
 
         if not isinstance(child.tag, str):
             return None

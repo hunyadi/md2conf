@@ -13,9 +13,12 @@ import os.path
 import re
 import unittest
 from pathlib import Path
+from typing import Optional
+
+import lxml.etree as ET
 
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, attachment_name
+from md2conf.converter import ConfluenceDocument, NodeVisitor, attachment_name
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.extra import override
@@ -30,10 +33,24 @@ logging.basicConfig(
 )
 
 
+class XMLWhitespaceNormalizer(NodeVisitor):
+    "Replaces multiple whitespace characters with a single space in XHTML elements."
+
+    def transform(self, child: ET._Element) -> Optional[ET._Element]:
+        if child.tag in ["code", "div", "em", "li", "ol", "p", "strong", "ul"]:
+            if child.text:
+                child.text = re.sub(r"\s", " ", child.text)
+            if child.tail:
+                child.tail = re.sub(r"\s", " ", child.tail)
+        return None
+
+
 def canonicalize(content: str) -> str:
     "Converts a Confluence Storage Format (CSF) document to the normalized format."
 
-    return elements_to_string(elements_from_string(content))
+    root = elements_from_string(content)
+    XMLWhitespaceNormalizer().visit(root)
+    return elements_to_string(root)
 
 
 def substitute(root_dir: Path, content: str) -> str:

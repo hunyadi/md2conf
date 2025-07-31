@@ -86,7 +86,7 @@ _CONVERTER = markdown.Markdown(
     extension_configs={
         "footnotes": {"BACKLINK_TITLE": ""},
         "pymdownx.arithmatex": {"generic": True, "preview": False, "tex_inline_wrap": ["", ""], "tex_block_wrap": ["", ""]},
-        "pymdownx.emoji": {"emoji_generator": _emoji_generator, "strict": True},
+        "pymdownx.emoji": {"emoji_generator": _emoji_generator},
         "pymdownx.highlight": {
             "use_pygments": False,
         },
