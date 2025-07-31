@@ -15,7 +15,7 @@ This Python package
 * Sections and subsections
 * Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~
 * Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
-* Subscript and superscript (with HTML tags `<sub>` and `<sup>`)
+* Subscript and superscript
 * Math formulas with LaTeX notation
 * Emoji
 * Ordered and unordered lists
@@ -29,7 +29,7 @@ This Python package
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
 * [Tasklists](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)
 * draw\.io diagrams
-* [Mermaid diagrams](https://mermaid.live/) in code blocks (converted to images)
+* [Mermaid diagrams](https://mermaid.live/)
 * Confluence status labels and date widget
 
 Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
@@ -210,6 +210,12 @@ Root page
 └── Ethical considerations
 ```
 
+### Subscript and superscript
+
+Subscripts may either use the character *tilde* (e.g. `CH~3~CH~2~OH`) or the HTML tag `<sub>`.
+
+Superscripts may either use the character *caret* (e.g. `e^-ix^`) or the HTML tag `<sup>`.
+
 ### Emoji
 
 The short name notation `:smile:` in a Markdown document is converted into the corresponding emoji 😄 when publishing to Confluence.
@@ -235,6 +241,8 @@ Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <spa
 ```markdown
 Highlight in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.
 ```
+
+Highlighting is also supported via `==marks==`. However, the background color is not customizable.
 
 The following table shows standard text colors (CSS `color`) that are available via Confluence UI:
 
@@ -406,16 +414,21 @@ The attribute `properties` is parsed as a dictionary with keys of type string an
 
 ### draw\.io diagrams
 
-With the command-line option `--no-render-drawio` (default), editable diagram data is extracted from images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`), and uploaded to Confluence as attachments. `*.drawio` and `*.drawio.xml` files are uploaded as-is. You need a [marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts) to view and edit these diagrams on a Confluence page.
+With the command-line option `--no-render-drawio` (default), editable diagram data is extracted from images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`), and uploaded to Confluence as attachments. Files that match `*.drawio` or `*.drawio.xml` are uploaded as-is. You need a [marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts) to view and edit these diagrams on a Confluence page.
 
-With the command-line option `--render-drawio`, images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`) are uploaded unchanged, and shown on the Confluence page as images. These diagrams are not editable in Confluence. When both an SVG and a PNG image is available, PNG is preferred. `*.drawio` and `*.drawio.xml` files are converted into PNG or SVG images by invoking draw\.io as a command-line utility, and the generated images are uploaded to Confluence as attachments, and shown as images.
+With the command-line option `--render-drawio`, images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`) are uploaded unchanged, and shown on the Confluence page as images. These diagrams are not editable in Confluence. When both an SVG and a PNG image is available, PNG is preferred. Files that match `*.drawio` or `*.drawio.xml` are converted into PNG or SVG images by invoking draw\.io as a command-line utility, and the generated images are uploaded to Confluence as attachments, and shown as images.
 
 ### Mermaid diagrams
 
-You can include [Mermaid diagrams](https://mermaid.js.org/) in your Markdown documents to create visual representations of systems, processes, and relationships. When a Markdown document contains a code block with the language specifier `mermaid`, *md2conf* offers two options to publish the diagram:
+You can add [Mermaid diagrams](https://mermaid.js.org/) to your Markdown documents to create visual representations of systems, processes, and relationships. There are two ways to include a Mermaid diagram:
 
-1. Pre-render into an image (command-line option `--render-mermaid`). The code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
-2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://stratus-addons.atlassian.net/wiki/spaces/MDFC/overview), which is processed by Confluence. You need a [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence) to turn macro definitions into images when a Confluence page is visited.
+* an image reference to a `.mmd` or `.mermaid` file, i.e. `![My diagram](figure/diagram.mmd)`, or
+* a fenced code block with the language specifier `mermaid`.
+
+*md2conf* offers two options to publish the diagram:
+
+1. Pre-render into an image (command-line option `--render-mermaid`). The source file or code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
+2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://stratus-addons.atlassian.net/wiki/spaces/MDFC/overview), which is processed by Confluence. You need a separate [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence) to turn macro definitions into images when a Confluence page is visited.
 
 If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
 

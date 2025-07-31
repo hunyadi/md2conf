@@ -957,6 +957,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
         )
 
+    def _transform_mark(self, elem: ET._Element) -> ET._Element:
+        """
+        Adds inline highlighting to text.
+        """
+
+        span = HTML("span", {"style": "background-color: rgb(254,222,200);"}, *list(elem))
+        span.text = elem.text
+        span.tail = elem.tail
+        return span
+
     def _transform_inline_math(self, elem: ET._Element) -> ET._Element:
         """
         Creates an inline LaTeX formula using the Confluence extension "LaTeX Math for Confluence - Math Formula & Equations".
@@ -1308,6 +1318,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # <a href="..."> ... </a>
         elif child.tag == "a":
             return self._transform_link(child)
+
+        # <mark>...</mark>
+        elif child.tag == "mark":
+            return self._transform_mark(child)
 
         # <span>...</span>
         elif child.tag == "span":
