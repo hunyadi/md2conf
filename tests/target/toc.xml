@@ -1,0 +1,15 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Table of contents</h2>
+<p>Table of contents macro:</p>
+<ac:structured-macro ac:name="toc" ac:schema-version="1">
+  <ac:parameter ac:name="outline">clear</ac:parameter>
+  <ac:parameter ac:name="style">default</ac:parameter>
+</ac:structured-macro>
+<p>Child pages macro:</p>
+<ac:structured-macro ac:name="children" ac:schema-version="2" data-layout="default">
+  <ac:parameter ac:name="allChildren">true</ac:parameter>
+</ac:structured-macro>

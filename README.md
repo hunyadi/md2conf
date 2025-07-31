@@ -315,6 +315,8 @@ Displaying math formulas in Confluence requires the extension [LaTeX Math for Co
 
 | Markdown code                              | Confluence equivalent                                   |
 | :----------------------------------------- | :------------------------------------------------------ |
+| `[[_TOC_]]`                                | table of contents (based on headings)                   |
+| `[[_LISTING_]]`                            | child pages (of current page)                           |
 | `![My label][STATUS-GRAY]`                 | gray status label (with specified label text)           |
 | `![My label][STATUS-PURPLE]`               | purple status label                                     |
 | `![My label][STATUS-BLUE]`                 | blue status label                                       |
@@ -363,13 +365,13 @@ This is useful if you have a page in a hierarchy that participates in parent-chi
 
 ### Page title
 
-*md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following are probed in this order:
+*md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following act as sources for deriving a page title:
 
 1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Both JSON and YAML syntax are supported.
 2. The text of the topmost unique Markdown heading (`#`). For example, if a document has a single first-level heading (e.g. `# My document`), its text is used. However, if there are multiple first-level headings, this step is skipped.
-3. The file name (without the extension `.md`).
+3. The file name (without the extension `.md`) and a digest. The digest is included to ensure the title is unique across the Confluence space.
 
-If a matching Confluence page already exists for a Markdown file, the page title in Confluence is left unchanged.
+If the `title` attribute (in the front-matter) or the topmost unique heading (in the document body) changes, the Confluence page title is updated. A warning is raised if the new title conflicts with the title of another page, and thus cannot be updated.
 
 ### Labels
 
