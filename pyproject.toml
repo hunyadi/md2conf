@@ -51,7 +51,7 @@ dev = [
     "ruff >= 0.12"
 ]
 formulas = [
-    "matplotlib >= 3.10"
+    "matplotlib >= 3.9"
 ]
 
 [project.urls]
