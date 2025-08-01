@@ -22,6 +22,7 @@ from md2conf.converter import ConfluenceDocument, NodeVisitor, attachment_name
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.extra import override
+from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
@@ -232,6 +233,34 @@ class TestConversion(unittest.TestCase):
             self.page_metadata,
         )
         self.assertEqual(len(document.embedded_files), 6)
+
+    @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
+    def test_latex_svg(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "math.md",
+            ConfluenceDocumentOptions(
+                render_latex=True,
+                diagram_output_format="svg",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 4)
+
+    @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
+    def test_latex_png(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "math.md",
+            ConfluenceDocumentOptions(
+                render_latex=True,
+                diagram_output_format="png",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 4)
 
 
 if __name__ == "__main__":

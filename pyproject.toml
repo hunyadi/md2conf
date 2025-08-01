@@ -50,6 +50,9 @@ dev = [
     "mypy >= 1.16",
     "ruff >= 0.12"
 ]
+formulas = [
+    "matplotlib >= 3.10"
+]
 
 [project.urls]
 "Homepage" = "https://github.com/hunyadi/md2conf"

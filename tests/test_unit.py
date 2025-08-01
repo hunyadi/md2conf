@@ -12,6 +12,7 @@ import unittest
 import lxml.etree as ET
 
 from md2conf.converter import attachment_name, title_to_identifier
+from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from md2conf.xml import is_xml_equal
 
@@ -120,6 +121,11 @@ class TestUnit(unittest.TestCase):
         ]
         self.assertEqual(expected, builder.tree)
         self.assertEqual(builder.get_title(), "Title")
+
+    @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
+    def test_formula(self) -> None:
+        self.assertTrue(render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}"))
+        self.assertTrue(render_latex(r"\underset{S}{\int\int}\ \vec{\nabla}\times\vec{B}\cdot d\vec{S}=\underset{C}{\oint}\ \vec{B}\cdot d\vec{l}"))
 
 
 if __name__ == "__main__":

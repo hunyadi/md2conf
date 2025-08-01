@@ -40,6 +40,7 @@ class Arguments(argparse.Namespace):
     generated_by: Optional[str]
     render_drawio: bool
     render_mermaid: bool
+    render_latex: bool
     diagram_output_format: Literal["png", "svg"]
     local: bool
     headers: dict[str, str]
@@ -186,26 +187,39 @@ def main() -> None:
         dest="render_drawio",
         action="store_true",
         default=True,
-        help="Render draw.io diagrams as image files and add as attachments. (Installed utility required.)",
+        help="Render draw.io diagrams as image files. (Installed utility required to covert.)",
     )
     parser.add_argument(
         "--no-render-drawio",
         dest="render_drawio",
         action="store_false",
-        help="Inline draw.io diagram in Confluence page. (Marketplace app required.)",
+        help="Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)",
     )
     parser.add_argument(
         "--render-mermaid",
         dest="render_mermaid",
         action="store_true",
         default=True,
-        help="Render Mermaid diagrams as image files and add as attachments. (Installed utility required.)",
+        help="Render Mermaid diagrams as image files. (Installed utility required to convert.)",
     )
     parser.add_argument(
         "--no-render-mermaid",
         dest="render_mermaid",
         action="store_false",
-        help="Inline Mermaid diagram in Confluence page. (Marketplace app required.)",
+        help="Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+    )
+    parser.add_argument(
+        "--render-latex",
+        dest="render_latex",
+        action="store_true",
+        default=True,
+        help="Render LaTeX formulas as image files. (Matplotlib required to convert.)",
+    )
+    parser.add_argument(
+        "--no-render-latex",
+        dest="render_latex",
+        action="store_false",
+        help="Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)",
     )
     parser.add_argument(
         "--diagram-output-format",
@@ -277,6 +291,7 @@ def main() -> None:
         keep_hierarchy=args.keep_hierarchy,
         render_drawio=args.render_drawio,
         render_mermaid=args.render_mermaid,
+        render_latex=args.render_latex,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
     )

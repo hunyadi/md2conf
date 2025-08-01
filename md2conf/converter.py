@@ -26,6 +26,7 @@ from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
+from .latex import render_latex
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
@@ -233,6 +234,7 @@ class ConfluenceConverterOptions:
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
+    :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     """
@@ -242,6 +244,7 @@ class ConfluenceConverterOptions:
     prefer_raster: bool = True
     render_drawio: bool = False
     render_mermaid: bool = False
+    render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
 
@@ -967,6 +970,23 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         span.tail = elem.tail
         return span
 
+    def _transform_latex(self, elem: ET._Element) -> ET._Element:
+        """
+        Creates an image rendering of a LaTeX formula with Matplotlib.
+        """
+
+        content = elem.text
+        if not content:
+            raise DocumentError("empty LaTeX formula")
+
+        image_data = render_latex(content, format=self.options.diagram_output_format)
+        image_hash = hashlib.md5(image_data).hexdigest()
+        image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
+        self.embedded_files[image_filename] = image_data
+        image = self._create_attached_image(image_filename, ImageAttributes(None, None, None))
+        image.tail = elem.tail
+        return image
+
     def _transform_inline_math(self, elem: ET._Element) -> ET._Element:
         """
         Creates an inline LaTeX formula using the Confluence extension "LaTeX Math for Confluence - Math Formula & Equations".
@@ -974,11 +994,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         :see: https://help.narva.net/latex-math-for-confluence/
         """
 
-        content = elem.text or ""
+        content = elem.text
         if not content:
             raise DocumentError("empty inline LaTeX formula")
 
         LOGGER.debug("Found inline LaTeX formula: %s", content)
+
+        if self.options.render_latex:
+            return self._transform_latex(elem)
 
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())
@@ -1007,11 +1030,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         :see: https://help.narva.net/latex-math-for-confluence/
         """
 
-        content = elem.text or ""
+        content = elem.text
         if not content:
             raise DocumentError("empty block-level LaTeX formula")
 
         LOGGER.debug("Found block-level LaTeX formula: %s", content)
+
+        if self.options.render_latex:
+            return self._transform_latex(elem)
 
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())

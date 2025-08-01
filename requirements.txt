@@ -7,6 +7,9 @@ PyYAML >= 6.0
 requests >= 2.32
 typing_extensions >= 4.14; python_version<"3.12"
 
+# optional package requirements
+matplotlib >= 3.10
+
 # development environment
 markdown_doc >= 0.1.4; python_version>="3.10"
 types-lxml >= 2025.3.30
