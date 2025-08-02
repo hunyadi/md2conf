@@ -182,6 +182,11 @@ class NodeVisitor(ABC):
             source = node[index]
             target = self.transform(source)
             if target is not None:
+                # chain sibling text node that immediately follows original element
+                target.tail = source.tail
+                source.tail = None
+
+                # replace original element with transformed element
                 node[index] = target
             else:
                 self.visit(source)
@@ -288,7 +293,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.page_metadata = page_metadata
 
     def _transform_heading(self, heading: ET._Element) -> None:
-        "Adds anchors to headings in the same document (if *heading anchors* is enabled)."
+        """
+        Adds anchors to headings in the same document (if *heading anchors* is enabled).
+
+        Original:
+        ```
+        <h1>Heading text</h1>
+        ```
+
+        Transformed:
+        ```
+        <h1><structured-macro name="anchor">...</structured-macro>Heading text</h1>
+        ```
+        """
 
         for e in heading:
             self.visit(e)
@@ -328,7 +345,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         * Links to documents in the source hierarchy are mapped into full Confluence URLs.
         """
 
-        url = anchor.attrib.get("href")
+        url = anchor.get("href")
         if url is None or is_absolute_url(url):
             return None
 
@@ -349,7 +366,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     },
                     link_body,
                 )
-                link_wrapper.tail = anchor.tail
                 return link_wrapper
             else:
                 return None
@@ -398,7 +414,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         transformed_url = urlunparse(components)
 
         LOGGER.debug("Transformed relative URL: %s to URL: %s", url, transformed_url)
-        anchor.attrib["href"] = transformed_url
+        anchor.set("href", transformed_url)
         return None
 
     def _transform_status(self, color: str, caption: str) -> ET._Element:
@@ -425,16 +441,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_image(self, image: ET._Element) -> ET._Element:
         "Inserts an attached or external image."
 
-        src = image.attrib.get("src")
+        src = image.get("src")
         if not src:
             raise DocumentError("image lacks `src` attribute")
 
-        caption = image.attrib.get("alt")
+        caption = image.get("alt")
         if caption is not None and src.startswith("urn:uuid:") and (color := status_images.get(src)) is not None:
             return self._transform_status(color, caption)
 
-        width = image.attrib.get("width")
-        height = image.attrib.get("height")
+        width = image.get("width")
+        height = image.get("height")
         attrs = ImageAttributes(caption, width, height)
 
         if is_absolute_url(src):
@@ -636,7 +652,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_code_block(self, code: ET._Element) -> ET._Element:
         "Transforms a code block."
 
-        language = code.attrib.get("class")
+        language = code.get("class")
         if language:
             m = re.match("^language-(.*)$", language)
             if m:
@@ -771,8 +787,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
         """
 
+        if len(elem) < 1:
+            raise DocumentError("empty admonition")
+
         # <div class="admonition note">
-        class_list = elem.attrib.get("class", "").split(" ")
+        class_list = elem.get("class", "").split(" ")
         class_name: Optional[str] = None
         if "info" in class_list:
             class_name = "info"
@@ -790,7 +809,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             self.visit(e)
 
         # <p class="admonition-title">Note</p>
-        if "admonition-title" in elem[0].attrib.get("class", "").split(" "):
+        if "admonition-title" in elem[0].get("class", "").split(" "):
             content = [
                 AC_ELEM(
                     "parameter",
@@ -811,12 +830,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *content,
         )
 
-    def _transform_github_alert(self, elem: ET._Element) -> ET._Element:
+    def _transform_github_alert(self, blockquote: ET._Element) -> ET._Element:
         """
         Creates a GitHub-style panel, normally triggered with a block-quote starting with a capitalized string such as `[!TIP]`.
         """
 
-        content = elem[0]
+        if len(blockquote) < 1:
+            raise DocumentError("empty GitHub alert")
+
+        content = blockquote[0]
         if content.text is None:
             raise DocumentError("empty content")
 
@@ -841,9 +863,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 raise DocumentError(f"unsupported GitHub alert: {alert}")
 
-        return self._transform_alert(elem, class_name, skip)
+        return self._transform_alert(blockquote, class_name, skip)
 
-    def _transform_gitlab_alert(self, elem: ET._Element) -> ET._Element:
+    def _transform_gitlab_alert(self, blockquote: ET._Element) -> ET._Element:
         """
         Creates a classic GitLab-style panel.
 
@@ -851,7 +873,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         This syntax does not use Hugo shortcode.
         """
 
-        content = elem[0]
+        if len(blockquote) < 1:
+            raise DocumentError("empty GitLab alert")
+
+        content = blockquote[0]
         if content.text is None:
             raise DocumentError("empty content")
 
@@ -874,9 +899,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 raise DocumentError(f"unsupported GitLab alert: {alert}")
 
-        return self._transform_alert(elem, class_name, skip)
+        return self._transform_alert(blockquote, class_name, skip)
 
-    def _transform_alert(self, elem: ET._Element, class_name: Optional[str], skip: int) -> ET._Element:
+    def _transform_alert(self, blockquote: ET._Element, class_name: Optional[str], skip: int) -> ET._Element:
         """
         Creates an info, tip, note or warning panel from a GitHub or GitLab alert.
 
@@ -886,14 +911,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         :see: https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes
         """
 
-        content = elem[0]
+        content = blockquote[0]
         if content.text is None:
             raise DocumentError("empty content")
 
         if class_name is None:
             raise DocumentError("not an alert")
 
-        for e in elem:
+        for e in blockquote:
             self.visit(e)
 
         content.text = content.text[skip:]
@@ -903,10 +928,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ATTR("name"): class_name,
                 AC_ATTR("schema-version"): "1",
             },
-            AC_ELEM("rich-text-body", {}, *list(elem)),
+            AC_ELEM("rich-text-body", {}, *list(blockquote)),
         )
 
-    def _transform_section(self, elem: ET._Element) -> ET._Element:
+    def _transform_section(self, details: ET._Element) -> ET._Element:
         """
         Creates a collapsed section.
 
@@ -915,16 +940,31 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         :see: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections
         """
 
-        if elem[0].tag != "summary":
+        summary = details[0]
+        if summary.tag != "summary":
             raise DocumentError("expected: `<summary>` as first direct child of `<details>`")
-        if elem[0].tail is not None:
+        if details.text is not None or summary.tail is not None:
+            # when `<details>` has attribute `markdown=1`, content is parsed as Markdown:
+            # ```
+            # <details>
+            #   <summary>...</summary>
+            #   <p>Text with <em>emphasis</em>.</p>
+            # </details>
+            # ```
+            #
+            # when `<details>` lacks attribute `markdown=1`, content is passed down as raw HTML, partly as `text` of `<detail>` or `tail` of `<summary>`:
+            # ```
+            # <details>
+            #   <summary>...</summary>
+            #   Text with *emphasis*.
+            # </details>
             raise DocumentError('expected: attribute `markdown="1"` on `<details>`')
 
-        summary = element_to_text(elem[0])
-        elem.remove(elem[0])
+        summary_text = element_to_text(summary)
+        details.remove(summary)
 
         # transform Markdown to Confluence within collapsed section content
-        self.visit(elem)
+        self.visit(details)
 
         return AC_ELEM(
             "structured-macro",
@@ -935,9 +975,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM(
                 "parameter",
                 {AC_ATTR("name"): "title"},
-                summary,
+                summary_text,
             ),
-            AC_ELEM("rich-text-body", {}, *list(elem)),
+            AC_ELEM("rich-text-body", {}, *list(details)),
         )
 
     def _transform_emoji(self, elem: ET._Element) -> ET._Element:
@@ -945,8 +985,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Inserts an inline emoji character.
         """
 
-        shortname = elem.attrib.get("data-shortname", "")
-        unicode = elem.attrib.get("data-unicode", None)
+        shortname = elem.get("data-shortname", "")
+        unicode = elem.get("data-unicode", None)
         alt = elem.text or ""
 
         # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
@@ -960,14 +1000,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
         )
 
-    def _transform_mark(self, elem: ET._Element) -> ET._Element:
+    def _transform_mark(self, mark: ET._Element) -> ET._Element:
         """
         Adds inline highlighting to text.
         """
 
-        span = HTML("span", {"style": "background-color: rgb(254,222,200);"}, *list(elem))
-        span.text = elem.text
-        span.tail = elem.tail
+        attrs = dict(mark.items())
+        old_style = attrs.get("style")
+        new_style = "background-color: rgb(254,222,200);"
+        if old_style is not None:
+            new_style += f" {old_style}"
+        attrs["style"] = new_style
+        span = HTML("span", attrs, *list(mark))
+        span.text = mark.text
         return span
 
     def _transform_latex(self, elem: ET._Element) -> ET._Element:
@@ -984,7 +1029,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
         self.embedded_files[image_filename] = image_data
         image = self._create_attached_image(image_filename, ImageAttributes(None, None, None))
-        image.tail = elem.tail
         return image
 
     def _transform_inline_math(self, elem: ET._Element) -> ET._Element:
@@ -1020,7 +1064,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             ),
             AC_ELEM("parameter", {AC_ATTR("name"): "align"}, "center"),
         )
-        macro.tail = elem.tail  # chain sibling text node that immediately follows original element
         return macro
 
     def _transform_block_math(self, elem: ET._Element) -> ET._Element:
@@ -1076,7 +1119,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             raise DocumentError("expected: attribute `id` of format `fnref:NAME` applied on `<sup>` for a footnote reference")
         footnote_ref = ref_id.removeprefix("fnref:")
 
-        link = elem[0]
+        link = next((elem.iterchildren(tag="a")), None)
+        if link is None:
+            raise DocumentError("expected: `<a>` as the first HTML element in a footnote reference")
         def_href = link.attrib.pop("href", "")
         if not def_href.startswith("#fn:"):
             raise DocumentError("expected: attribute `href` of format `#fn:NAME` applied on `<a>` for a footnote reference")
@@ -1130,18 +1175,28 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         ```
         """
 
-        for list_item in elem[1]:
+        ordered_list = next((elem.iterchildren(tag="ol")), None)
+        if ordered_list is None:
+            raise DocumentError("expected: `<ol>` as direct child of footnote definition block")
+
+        for list_item in ordered_list:
+            if list_item.tag != "li":
+                raise DocumentError("expected: `<li>` as children of `<ol>` in footnote definition block")
+
             def_id = list_item.attrib.pop("id", "")
             if not def_id.startswith("fn:"):
                 raise DocumentError("expected: attribute `id` of format `fn:NAME` applied on `<li>` for a footnote definition")
             footnote_def = def_id.removeprefix("fn:")
 
-            paragraph = list_item[0]
-            ref_anchor = paragraph[-1]
-            if ref_anchor.tag != "a":
+            paragraph = next((list_item.iterchildren(tag="p")), None)
+            if paragraph is None:
+                raise DocumentError("expected: `<p>` as a child of `<li>` in a footnote definition")
+
+            ref_anchor = next((paragraph.iterchildren(tag="a", reversed=True)), None)
+            if ref_anchor is None:
                 raise DocumentError("expected: `<a>` as the last HTML element in a footnote definition")
 
-            ref_href = ref_anchor.attrib.get("href", "")
+            ref_href = ref_anchor.get("href", "")
             if not ref_href.startswith("#fnref:"):
                 raise DocumentError("expected: attribute `href` of format `#fnref:NAME` applied on last element `<a>` for a footnote definition")
             footnote_ref = ref_href.removeprefix("#fnref:")
@@ -1267,7 +1322,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <div>...</div>
         elif child.tag == "div":
-            classes = child.attrib.get("class", "").split(" ")
+            classes = child.get("class", "").split(" ")
 
             # <div class="arithmatex">...</div>
             if "arithmatex" in classes:
@@ -1351,20 +1406,20 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <span>...</span>
         elif child.tag == "span":
-            classes = child.attrib.get("class", "").split(" ")
+            classes = child.get("class", "").split(" ")
 
             # <span class="arithmatex">...</span>
             if "arithmatex" in classes:
                 return self._transform_inline_math(child)
 
         # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
-        elif child.tag == "sup" and child.attrib.get("id", "").startswith("fnref:"):
+        elif child.tag == "sup" and child.get("id", "").startswith("fnref:"):
             self._transform_footnote_ref(child)
             return None
 
         # <input type="date" value="1984-01-01" />
-        elif child.tag == "input" and child.attrib.get("type", "") == "date":
-            return HTML("time", {"datetime": child.attrib.get("value", "")})
+        elif child.tag == "input" and child.get("type", "") == "date":
+            return HTML("time", {"datetime": child.get("value", "")})
 
         # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
         elif child.tag == "x-emoji":
