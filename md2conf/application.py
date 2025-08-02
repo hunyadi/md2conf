@@ -12,13 +12,13 @@ from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
 from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes, get_volatile_elements
-from .csf import elements_from_string
+from .csf import AC_ATTR, elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .properties import PageError
-from .xml import is_xml_equal
+from .xml import is_xml_equal, unwrap_substitute
 
 LOGGER = logging.getLogger(__name__)
 
@@ -152,10 +152,14 @@ class SynchronizingProcessor(Processor):
         if not title:  # empty or `None`
             title = page.title
 
+        # discard comments
+        tree = elements_from_string(page.content)
+        unwrap_substitute(AC_ATTR("inline-comment-marker"), tree)
+
         # check if page has any changes
         if page.title != title or not is_xml_equal(
             document.root,
-            elements_from_string(page.content),
+            tree,
             skip_attributes=get_volatile_attributes(),
             skip_elements=get_volatile_elements(),
         ):

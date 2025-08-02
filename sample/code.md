@@ -5,12 +5,14 @@ If you are a user who wants to publish pages to Confluence, you should install t
 This document illustrates the [code snippet element](https://support.atlassian.com/confluence-cloud/docs/insert-elements-into-a-page/#Code-snippet) support in Confluence for various languages. The list of languages is not exhaustive.
 
 A language-neutral code block:
+
 ```
 func:
     preformatted text
 ```
 
 C:
+
 ```c
 #include <stdio.h>
 
@@ -21,6 +23,7 @@ int main(void)
 ```
 
 C++:
+
 ```cpp
 #include <iostream>
 
@@ -32,6 +35,7 @@ int main()
 ```
 
 C#:
+
 ```csharp
 class Program
 {
@@ -43,6 +47,7 @@ class Program
 ```
 
 CSS:
+
 ```css
 body {
     background: #000 url(images/bg.gif) no-repeat left top;
@@ -54,6 +59,7 @@ h1 {
 ```
 
 Go:
+
 ```go
 package main
 import "fmt"
@@ -63,6 +69,7 @@ func main() {
 ```
 
 HTML:
+
 ```html
 <html>
     <title>An HTML document</title>
@@ -73,6 +80,7 @@ HTML:
 ```
 
 Java:
+
 ```java
 class Simple {
     public static void main(String args[]) {
@@ -82,11 +90,13 @@ class Simple {
 ```
 
 JavaScript:
+
 ```javascript
 alert('Hello World');
 ```
 
 JSON:
+
 ```json
 {
     "boolean": true,
@@ -97,6 +107,7 @@ JSON:
 ```
 
 Kotlin:
+
 ```kotlin
 fun main() {
     val scope = "World"
@@ -110,6 +121,7 @@ fun main(args: Array<String>) {
 ```
 
 Objective-C:
+
 ```objectivec
 #import <Foundation/Foundation.h>
 
@@ -122,17 +134,20 @@ int main(int argc, const char * argv[]) {
 ```
 
 PHP:
+
 ```php
 <?= "Hello world\n" ?>
 ```
 
 Python:
+
 ```python
 def func(n: int) -> str:
     return str(n)
 ```
 
 Ruby:
+
 ```ruby
 class MegaGreeter
   attr_accessor :names
@@ -143,6 +158,7 @@ class MegaGreeter
 ```
 
 Rust:
+
 ```rust
 fn main() {
     // Print text to the console.
@@ -151,6 +167,7 @@ fn main() {
 ```
 
 Scala:
+
 ```scala
 object HelloWorld extends App {
    println("Hello World")
@@ -158,6 +175,7 @@ object HelloWorld extends App {
 ```
 
 Swift:
+
 ```swift
 class Shape {
     var numberOfSides = 0
@@ -168,6 +186,7 @@ class Shape {
 ```
 
 TeX:
+
 ```tex
 \title{A  short \LaTeX Template}
 \date{\today}
@@ -188,6 +207,7 @@ Correct and improve the following examples of technical writing.
 ```
 
 YAML:
+
 ```yaml
 --- # The Smiths
 - {name: John Smith, age: 33}

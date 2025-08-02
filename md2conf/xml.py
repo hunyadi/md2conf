@@ -87,6 +87,8 @@ def is_xml_equal(
     """
     Compare two XML documents for equivalence, ignoring leading/trailing whitespace differences and attribute definition order.
 
+    Elements may be excluded, in which case they compare equal to any element of the same type that has the same tail text.
+
     :param tree1: XML document as an element tree.
     :param tree2: XML document as an element tree.
     :param skip_attributes: Attributes to exclude, in `{namespace}name` notation.
@@ -101,3 +103,38 @@ def element_to_text(node: ET._Element) -> str:
     "Returns all text contained in an element as a concatenated string."
 
     return "".join(node.itertext()).strip()
+
+
+def unwrap_substitute(name: str, root: ET._Element) -> None:
+    """
+    Substitutes all occurrences of an element with its contents.
+
+    :param name: Element tag name to find and replace.
+    :param root: Top-most element at which to start.
+    """
+
+    for node in root.iterdescendants(name):
+        if node.text:
+            # append first piece of text in this element at the end of previous sibling, or text contained by parent
+            if (prev_node := node.getprevious()) is not None:
+                prev_node.tail = (prev_node.tail or "") + node.text
+            elif (parent_node := node.getparent()) is not None:  # always true except for root
+                parent_node.text = (parent_node.text or "") + node.text
+            else:
+                raise NotImplementedError("must always have a previous sibling or a parent")
+        if node.tail:
+            if len(node) > 0:
+                # append text immediately following the closing tag of this element to the last child element of this element
+                last_node = node[-1]
+                last_node.tail = (last_node.tail or "") + node.tail
+            else:  # node has no child elements, only text
+                if (prev_node := node.getprevious()) is not None:
+                    prev_node.tail = (prev_node.tail or "") + node.tail
+                elif (parent_node := node.getparent()) is not None:  # always true except for root
+                    parent_node.text = (parent_node.text or "") + node.tail
+                else:
+                    raise NotImplementedError("must always have a previous sibling or a parent")
+        for child in node.iterchildren(reversed=True):
+            node.addnext(child)
+        if (parent_node := node.getparent()) is not None:  # always true except for root
+            parent_node.remove(node)

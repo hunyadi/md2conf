@@ -89,86 +89,89 @@ def encode_title(text: str) -> str:
 
 
 # supported code block languages, for which syntax highlighting is available
-_LANGUAGES = [
-    "abap",
-    "actionscript3",
-    "ada",
-    "applescript",
-    "arduino",
-    "autoit",
-    "bash",
-    "c",
-    "clojure",
-    "coffeescript",
-    "coldfusion",
-    "cpp",
-    "csharp",
-    "css",
-    "cuda",
-    "d",
-    "dart",
-    "delphi",
-    "diff",
-    "elixir",
-    "erlang",
-    "fortran",
-    "foxpro",
-    "go",
-    "graphql",
-    "groovy",
-    "haskell",
-    "haxe",
-    "html",
-    "java",
-    "javafx",
-    "javascript",
-    "json",
-    "jsx",
-    "julia",
-    "kotlin",
-    "livescript",
-    "lua",
-    "mermaid",
-    "mathematica",
-    "matlab",
-    "objectivec",
-    "objectivej",
-    "ocaml",
-    "octave",
-    "pascal",
-    "perl",
-    "php",
-    "powershell",
-    "prolog",
-    "puppet",
-    "python",
-    "qml",
-    "r",
-    "racket",
-    "rst",
-    "ruby",
-    "rust",
-    "sass",
-    "scala",
-    "scheme",
-    "shell",
-    "smalltalk",
-    "splunk",
-    "sql",
-    "standardml",
-    "swift",
-    "tcl",
-    "tex",
-    "tsx",
-    "typescript",
-    "vala",
-    "vb",
-    "verilog",
-    "vhdl",
-    "xml",
-    "xquery",
-    "yaml",
-]
+_LANGUAGES = {
+    "abap": "abap",
+    "actionscript3": "actionscript3",
+    "ada": "ada",
+    "applescript": "applescript",
+    "arduino": "arduino",
+    "autoit": "autoit",
+    "bash": "bash",
+    "c": "c",
+    "c#": "c#",
+    "clojure": "clojure",
+    "coffeescript": "coffeescript",
+    "coldfusion": "coldfusion",
+    "cpp": "cpp",
+    "csharp": "c#",
+    "css": "css",
+    "cuda": "cuda",
+    "d": "d",
+    "dart": "dart",
+    "delphi": "delphi",
+    "diff": "diff",
+    "elixir": "elixir",
+    "erlang": "erlang",
+    "fortran": "fortran",
+    "foxpro": "foxpro",
+    "go": "go",
+    "graphql": "graphql",
+    "groovy": "groovy",
+    "haskell": "haskell",
+    "haxe": "haxe",
+    "html": "html",
+    "java": "java",
+    "javafx": "javafx",
+    "javascript": "js",
+    "js": "js",
+    "json": "json",
+    "jsx": "jsx",
+    "julia": "julia",
+    "kotlin": "kotlin",
+    "livescript": "livescript",
+    "lua": "lua",
+    "mermaid": "mermaid",
+    "mathematica": "mathematica",
+    "matlab": "matlab",
+    "objectivec": "objectivec",
+    "objectivej": "objectivej",
+    "ocaml": "ocaml",
+    "octave": "octave",
+    "pascal": "pascal",
+    "perl": "perl",
+    "php": "php",
+    "powershell": "powershell",
+    "prolog": "prolog",
+    "puppet": "puppet",
+    "py": "py",
+    "python": "py",
+    "qml": "qml",
+    "r": "r",
+    "racket": "racket",
+    "rst": "rst",
+    "ruby": "ruby",
+    "rust": "rust",
+    "sass": "sass",
+    "scala": "scala",
+    "scheme": "scheme",
+    "shell": "shell",
+    "smalltalk": "smalltalk",
+    "splunk": "splunk",
+    "sql": "sql",
+    "standardml": "standardml",
+    "swift": "swift",
+    "tcl": "tcl",
+    "tex": "tex",
+    "tsx": "tsx",
+    "typescript": "typescript",
+    "vala": "vala",
+    "vb": "vb",
+    "verilog": "verilog",
+    "vhdl": "vhdl",
+    "xml": "xml",
+    "xquery": "xquery",
+    "yaml": "yaml",
+}
 
 
 class NodeVisitor(ABC):
@@ -419,24 +422,36 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
     def _transform_status(self, color: str, caption: str) -> ET._Element:
         macro_id = str(uuid.uuid4())
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "status",
-                AC_ATTR("schema-version"): "1",
-                AC_ATTR("macro-id"): macro_id,
-            },
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "colour"},
-                color.title(),
-            ),
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "title"},
-                caption,
-            ),
-        )
+        attributes = {
+            AC_ATTR("name"): "status",
+            AC_ATTR("schema-version"): "1",
+            AC_ATTR("macro-id"): macro_id,
+        }
+        if color != "gray":
+            return AC_ELEM(
+                "structured-macro",
+                attributes,
+                AC_ELEM(
+                    "parameter",
+                    {AC_ATTR("name"): "colour"},
+                    color.title(),
+                ),
+                AC_ELEM(
+                    "parameter",
+                    {AC_ATTR("name"): "title"},
+                    caption,
+                ),
+            )
+        else:
+            return AC_ELEM(
+                "structured-macro",
+                attributes,
+                AC_ELEM(
+                    "parameter",
+                    {AC_ATTR("name"): "title"},
+                    caption,
+                ),
+            )
 
     def _transform_image(self, image: ET._Element) -> ET._Element:
         "Inserts an attached or external image."
@@ -652,19 +667,24 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_code_block(self, code: ET._Element) -> ET._Element:
         "Transforms a code block."
 
-        language = code.get("class")
-        if language:
-            m = re.match("^language-(.*)$", language)
-            if m:
-                language = m.group(1)
+        if language_class := code.get("class"):
+            if m := re.match("^language-(.*)$", language_class):
+                language_name = m.group(1)
             else:
-                language = "none"
-        if language not in _LANGUAGES:
-            language = "none"
+                language_name = None
+        else:
+            language_name = None
+
+        # translate name to standard name for (programming) language
+        if language_name is not None:
+            language_id = _LANGUAGES.get(language_name)
+        else:
+            language_id = None
+
         content: str = code.text or ""
         content = content.rstrip()
 
-        if language == "mermaid":
+        if language_id == "mermaid":
             return self._transform_inline_mermaid(content)
 
         return AC_ELEM(
@@ -675,13 +695,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             },
             AC_ELEM(
                 "parameter",
-                {AC_ATTR("name"): "theme"},
-                "Default",
-            ),
-            AC_ELEM(
-                "parameter",
                 {AC_ATTR("name"): "language"},
-                language,
+                language_id or "none",
             ),
             AC_ELEM("plain-text-body", ET.CDATA(content)),
         )

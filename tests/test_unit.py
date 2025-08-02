@@ -12,9 +12,10 @@ import unittest
 import lxml.etree as ET
 
 from md2conf.converter import attachment_name, title_to_identifier
+from md2conf.csf import elements_from_string
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
-from md2conf.xml import is_xml_equal
+from md2conf.xml import is_xml_equal, unwrap_substitute
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,6 +44,26 @@ class TestUnit(unittest.TestCase):
         tree2 = ET.fromstring('<body><p style="display: none;" class="paragraph">to be, or not to be</p></body>')
         self.assertFalse(is_xml_equal(tree1, tree2))
         self.assertTrue(is_xml_equal(tree1, tree2, skip_attributes={"data-skip"}))
+
+    def test_unwrap(self) -> None:
+        xml1 = (
+            '<root xmlns:ac="http://atlassian.com/content"><p>'
+            "Lorem <mark>ipsum</mark> dolor sit amet, "
+            "<mark><em>consectetur</em> adipiscing elit</mark>, "
+            "sed do eiusmod tempor incididunt ut <mark><b>labore</b> et <b>dolore</b></mark> "
+            "<mark>magna <em>aliqua</em></mark>."
+            "</p></root>"
+        )
+        xml2 = (
+            '<root xmlns:ac="http://atlassian.com/content"><p>'
+            "Lorem ipsum dolor sit amet, <em>consectetur</em> adipiscing elit, "
+            "sed do eiusmod tempor incididunt ut <b>labore</b> et <b>dolore</b> magna <em>aliqua</em>."
+            "</p></root>"
+        )
+        tree1 = elements_from_string(xml1)
+        unwrap_substitute("mark", tree1)
+        tree2 = elements_from_string(xml2)
+        self.assertTrue(is_xml_equal(tree1, tree2))
 
     def test_title_to_identifier(self) -> None:
         self.assertEqual(title_to_identifier("This is  a Heading  "), "this-is-a-heading")

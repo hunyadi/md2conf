@@ -6,7 +6,6 @@
 <h2>Status</h2>
 <ul>
 <li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="colour">Gray</ac:parameter>
   <ac:parameter ac:name="title">gray</ac:parameter>
 </ac:structured-macro></li>
 <li><ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="UUID">
