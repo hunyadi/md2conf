@@ -11,6 +11,53 @@ func:
     preformatted text
 ```
 
+ActionScript:
+
+```actionscript3
+public class HelloWorld extends Sprite {
+    public function HelloWorld() {
+        trace("Hello, ActionScript 3!");
+    }
+}
+```
+
+Ada:
+
+```ada
+with Ada.Text_IO; use Ada.Text_IO;
+
+procedure Hello_World is
+begin
+    Put_Line("Hello, Ada!");
+end Hello_World;
+```
+
+AutoIt:
+
+```autoit
+Func Add($a, $b)
+    Return $a + $b
+EndFunc
+
+Local $result = Add(5, 3)
+MsgBox(0, "Result", "5 + 3 = " & $result)
+```
+
+Bash:
+
+```bash
+#!/bin/bash
+
+string=$1
+strLength=${#string}
+
+for ((i=$strLength-1;i>-1;i--));
+do
+    reverseStr+=${string:i:1}
+done
+echo $reverseStr
+```
+
 C:
 
 ```c
@@ -46,6 +93,20 @@ class Program
 }
 ```
 
+Clojure:
+
+```clojure
+(ns reverse-string
+	(:gen-class))
+
+(defn main [args]
+  (if (not= (count args) 0)
+    (println(clojure.string/reverse (first args)))
+  ))
+
+(main *command-line-args*)
+```
+
 CSS:
 
 ```css
@@ -58,6 +119,55 @@ h1 {
 }
 ```
 
+Delphi:
+
+```delphi
+program HelloWorld;
+
+uses
+  SysUtils;
+
+begin
+  Writeln('Hello, Delphi!');
+end.
+```
+
+Diff:
+
+```diff
+- console.log("Goodbye, world!");
++ console.log("Hello, world!");
+```
+
+Erlang:
+
+```erlang
+-module(hello).
+-export([start/0]).
+
+start() ->
+    io:format("Hello, Erlang!~n"),
+    spawn(fun() -> io:format("From a new process!~n") end).
+```
+
+Fortran:
+
+```fortran
+program reversestring
+character(len=100) :: argument
+character(len=:), allocatable :: buff, reversed
+integer :: i, n
+call GET_COMMAND_ARGUMENT(1,argument)
+allocate (buff, mold=argument)
+n = len(argument)
+do i = 0, n - 1
+    buff(n-i : n-i) = argument(i+1 : i+1)
+end do
+reversed = adjustl(trim(buff))
+write(*,'(g0.8)')reversed
+end program reversestring
+```
+
 Go:
 
 ```go
@@ -66,6 +176,34 @@ import "fmt"
 func main() {
     fmt.Println("hello world")
 }
+```
+
+GraphQL:
+
+```graphql
+query {
+  user(id: "123") {
+    id
+    name
+    email
+    posts {
+      title
+      published
+    }
+  }
+}
+```
+
+Haskell:
+
+```haskell
+square :: Int -> Int
+square x = x * x
+
+main :: IO ()
+main = do
+    putStrLn "Hello, Haskell!"
+    print (square 5)
 ```
 
 HTML:
@@ -95,6 +233,20 @@ JavaScript:
 alert('Hello World');
 ```
 
+Julia:
+
+```julia
+function greet(name="Julia")
+    println("Hello, $name!")
+end
+
+greet()
+greet("World")
+
+square(x) = x^2
+println("Square of 5 is ", square(5))
+```
+
 JSON:
 
 ```json
@@ -120,6 +272,41 @@ fun main(args: Array<String>) {
 }
 ```
 
+Lua:
+
+```lua
+function fib(n)
+  local a, b = 0, 1
+  for k = 1, n do
+    a, b = b, a + b
+    print(k .. ": " .. a)
+  end
+end
+```
+
+Mathematica:
+
+```mathematica
+(* Define a function and evaluate it *)
+f[x_] := x^2 + 3 x + 2
+f[5]
+
+(* Plot the function *)
+Plot[f[x], {x, -5, 5}]
+```
+
+MATLAB:
+
+```matlab
+function greet(name)
+    fprintf('Hello, %s!\n', name);
+end
+
+greet('User');
+
+disp(['3^2 = ', num2str(3^2)])
+```
+
 Objective-C:
 
 ```objectivec
@@ -133,10 +320,60 @@ int main(int argc, const char * argv[]) {
 }
 ```
 
+Octave:
+
+```octave
+function y = square(x)
+  y = x^2;
+endfunction
+
+disp("Hello, Octave!")
+
+a = 4;
+disp(["Square of ", num2str(a), " is ", num2str(square(a))])
+```
+
+Perl:
+
+```perl
+use strict;
+use warnings;
+
+sub greet {
+    my $name = shift;
+    return "Hello, $name!";
+}
+
+print greet("Perl"), "\n";
+```
+
 PHP:
 
 ```php
 <?= "Hello world\n" ?>
+```
+
+PowerShell:
+
+```powershell
+function Get-Rot13([string]$Str) {
+    # -regex is case-insensitive
+    $Result = switch -regex ($Str.ToCharArray()) {
+        "[a-m]" { [char]([byte]$_ + 13) } # A-M, a-m -> N-Z, n-z
+        "[n-z]" { [char]([byte]$_ - 13) } # N-Z, n-z -> A-M, a-m
+        default { $_ } # Else, don't change
+    }
+    -join $Result
+}
+```
+
+Prolog:
+
+```prolog
+:- initialization(main).
+main():-
+    write("Hello, World!\n"),
+    halt.
 ```
 
 Python:
@@ -174,6 +411,42 @@ object HelloWorld extends App {
 }
 ```
 
+Scheme:
+
+```scheme
+(define (reverse-string x)
+  (list->string (reverse (string->list x))))
+
+(if (> (length (command-line)) 1)
+  (display (reverse-string (list-ref (command-line) 1)))
+)
+```
+
+Smalltalk:
+
+```smalltalk
+-10 to: 10 do: [ :i |
+  numSpaces := i abs.
+  numSpaces timesRepeat: [ ' ' display ].
+  (21 - (2 * numSpaces)) timesRepeat: [ '*' display ].
+  Character nl display.
+]
+```
+
+SQL:
+
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+INSERT INTO users VALUES (1, 'Alice', 'alice@example.com');
+
+SELECT name FROM users WHERE id = 1;
+```
+
 Swift:
 
 ```swift
@@ -204,6 +477,34 @@ Correct and improve the following examples of technical writing.
 \end{enumerate}
 
 \end{document}
+```
+
+TypeScript:
+
+```typescript
+let myString: string = (process.argv.length >= 3) ? process.argv[2] : "";
+
+const reverse = (str: string) => str.split("").reverse().join("");
+```
+
+Visual Basic:
+
+```vb
+Public Sub Main()
+    System.Console.WriteLine("Hello, World!")
+End Sub
+```
+
+Verilog:
+
+```verilog
+module main;
+  initial
+    begin
+      $display("Hello, World!");
+      $finish(0);
+    end
+endmodule
 ```
 
 YAML:

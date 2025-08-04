@@ -16,13 +16,19 @@
   <ac:plain-text-body><![CDATA[def func(n: int) -> str:
     return str(n)]]></ac:plain-text-body>
 </ac:structured-macro>
-<p>A code block in Java:</p><ac:structured-macro ac:name="code" ac:schema-version="1">
+<p>A code block in Java:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
   <ac:parameter ac:name="language">java</ac:parameter>
   <ac:plain-text-body><![CDATA[class Simple {
     public static void main(String args[]) {
         System.out.println("Hello Java!");
     }
 }]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>A code block in JavaScript:</p>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">js</ac:parameter>
+  <ac:plain-text-body><![CDATA[alert('Hello World');]]></ac:plain-text-body>
 </ac:structured-macro>
 <p>A code block in JSON:</p>
 <ac:structured-macro ac:name="code" ac:schema-version="1">

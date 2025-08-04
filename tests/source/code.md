@@ -26,6 +26,12 @@ class Simple {
 }
 ```
 
+A code block in JavaScript:
+
+```javascript
+alert('Hello World');
+```
+
 A code block in JSON:
 
 ```json
