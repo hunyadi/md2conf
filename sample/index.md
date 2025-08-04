@@ -12,7 +12,7 @@ Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethro
 
 Text with subscript (H<sub>2</sub>O) and superscript (X<sup>2</sup>).
 
-Absolute link to an [external location](http://example.com/) or relative link to a [heading in the same document](#Basic-features). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to locations not exported may be skipped.
+Absolute link to an [external location](http://example.com/ "An absolute URL") or relative link to a [heading in the same document](#Basic-features "A relative link"). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to locations not exported may be skipped.
 
 An ordered list:
 

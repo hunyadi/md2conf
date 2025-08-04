@@ -15,7 +15,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import ClassVar, Literal, Optional, Union
 from urllib.parse import ParseResult, quote_plus, urlparse, urlunparse
 
 import lxml.etree as ET
@@ -220,14 +220,42 @@ class ImageAttributes:
     """
     Attributes applied to an `<img>` element.
 
-    :param caption: Caption text (`alt` attribute).
     :param width: Natural image width in pixels.
     :param height: Natural image height in pixels.
+    :param alt: Alternate text.
+    :param title: Title text (a.k.a. image tooltip).
     """
 
-    caption: Optional[str]
-    width: Optional[str]
-    height: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+    alt: Optional[str]
+    title: Optional[str]
+
+    @property
+    def caption(self) -> Optional[str]:
+        "Caption text (derived from attributes `alt` and `title`)."
+
+        return self.title or self.alt
+
+    def as_dict(self) -> dict[str, str]:
+        attributes: dict[str, str] = {
+            AC_ATTR("align"): "center",
+            AC_ATTR("layout"): "center",
+        }
+        if self.width is not None:
+            attributes.update({AC_ATTR("width"): str(self.width)})
+        if self.height is not None:
+            attributes.update({AC_ATTR("height"): str(self.height)})
+        if self.alt is not None:
+            attributes.update({AC_ATTR("alt"): self.alt})
+        if self.title is not None:
+            attributes.update({AC_ATTR("title"): self.title})
+        return attributes
+
+    EMPTY: ClassVar["ImageAttributes"]
+
+
+ImageAttributes.EMPTY = ImageAttributes(None, None, None, None)
 
 
 @dataclass
@@ -356,7 +384,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         relative_url: ParseResult = urlparse(url)
 
         if not relative_url.scheme and not relative_url.netloc and not relative_url.path and not relative_url.params and not relative_url.query:
-            LOGGER.debug("Found local URL: %s", url)
+            LOGGER.debug("Found same-page URL: %s", url)
             if self.options.heading_anchors:
                 # <ac:link ac:anchor="anchor"><ac:link-body>...</ac:link-body></ac:link>
                 target = relative_url.fragment.lstrip("#")
@@ -460,13 +488,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not src:
             raise DocumentError("image lacks `src` attribute")
 
-        caption = image.get("alt")
-        if caption is not None and src.startswith("urn:uuid:") and (color := status_images.get(src)) is not None:
-            return self._transform_status(color, caption)
+        alt = image.get("alt")
+        if alt is not None and src.startswith("urn:uuid:") and (color := status_images.get(src)) is not None:
+            return self._transform_status(color, alt)
 
+        title = image.get("title")
         width = image.get("width")
         height = image.get("height")
-        attrs = ImageAttributes(caption, width, height)
+        pixel_width = int(width) if width is not None and width.isdecimal() else None
+        pixel_height = int(height) if height is not None and height.isdecimal() else None
+        attrs = ImageAttributes(pixel_width, pixel_height, alt, title)
 
         if is_absolute_url(src):
             return self._transform_external_image(src, attrs)
@@ -475,7 +506,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             absolute_path = self._verify_image_path(path)
             if absolute_path is None:
-                return self._create_missing(path, caption)
+                return self._create_missing(path, attrs.caption)
 
             if absolute_path.name.endswith(".drawio.png") or absolute_path.name.endswith(".drawio.svg"):
                 return self._transform_drawio_image(absolute_path, attrs)
@@ -489,15 +520,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_external_image(self, url: str, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an external image."
 
-        attributes: dict[str, Any] = {
-            AC_ATTR("align"): "center",
-            AC_ATTR("layout"): "center",
-        }
-        if attrs.width is not None:
-            attributes.update({AC_ATTR("width"): attrs.width})
-        if attrs.height is not None:
-            attributes.update({AC_ATTR("height"): attrs.height})
-
         elements: list[ET._Element] = []
         elements.append(
             RI_ELEM(
@@ -509,7 +531,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if attrs.caption is not None:
             elements.append(AC_ELEM("caption", HTML.p(attrs.caption)))
 
-        return AC_ELEM("image", attributes, *elements)
+        return AC_ELEM("image", attrs.as_dict(), *elements)
 
     def _verify_image_path(self, path: Path) -> Optional[Path]:
         "Checks whether an image path is safe to use."
@@ -530,7 +552,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_attached_image(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for an attached raster or vector image."
 
-        if self.options.prefer_raster and absolute_path.name.endswith(".svg"):
+        if self.options.prefer_raster and absolute_path.suffix == ".svg":
             # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
             png_file = absolute_path.with_suffix(".png")
             if png_file.exists():
@@ -576,15 +598,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ET._Element:
         "An image embedded into the page, linking to an attachment."
 
-        attributes: dict[str, Any] = {
-            AC_ATTR("align"): "center",
-            AC_ATTR("layout"): "center",
-        }
-        if attrs.width is not None:
-            attributes.update({AC_ATTR("width"): attrs.width})
-        if attrs.height is not None:
-            attributes.update({AC_ATTR("height"): attrs.height})
-
         elements: list[ET._Element] = []
         elements.append(
             RI_ELEM(
@@ -596,7 +609,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if attrs.caption is not None:
             elements.append(AC_ELEM("caption", HTML.p(attrs.caption)))
 
-        return AC_ELEM("image", attributes, *elements)
+        return AC_ELEM("image", attrs.as_dict(), *elements)
 
     def _create_drawio(self, filename: str, attrs: ImageAttributes) -> ET._Element:
         "A draw.io diagram embedded into the page, linking to an attachment."
@@ -613,7 +626,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ELEM(
                     "parameter",
                     {AC_ATTR("name"): "width"},
-                    attrs.width,
+                    str(attrs.width),
                 ),
             )
         if attrs.height is not None:
@@ -621,7 +634,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ELEM(
                     "parameter",
                     {AC_ATTR("name"): "height"},
-                    attrs.height,
+                    str(attrs.height),
                 ),
             )
 
@@ -728,7 +741,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_files[image_filename] = image_data
-            return self._create_attached_image(image_filename, ImageAttributes(None, None, None))
+            return self._create_attached_image(image_filename, ImageAttributes.EMPTY)
         else:
             mermaid_data = content.encode("utf-8")
             mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
@@ -1043,7 +1056,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         image_hash = hashlib.md5(image_data).hexdigest()
         image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
         self.embedded_files[image_filename] = image_data
-        image = self._create_attached_image(image_filename, ImageAttributes(None, None, None))
+        image = self._create_attached_image(image_filename, ImageAttributes.EMPTY)
         return image
 
     def _transform_inline_math(self, elem: ET._Element) -> ET._Element:

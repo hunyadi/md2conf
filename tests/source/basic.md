@@ -12,6 +12,8 @@ Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb
 
 Absolute link to an [external location](http://example.com/) with a [query string](<http://example.com/?key[]=value>).
 
+Absolute link to an [external location](http://example.com/ "Absolute URL") with a [query string](<http://example.com/?key[]=value> "URL with query string").
+
 Relative link to a [heading in the same document](#Basic-features).
 
 "Naked" links: <https://example.com> and <mailto:me@example.com>.
