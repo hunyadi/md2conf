@@ -27,7 +27,9 @@ from .properties import ArgumentError, ConfluenceConnectionProperties, Confluenc
 
 T = TypeVar("T")
 
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx", strict=True)
 mimetypes.add_type("text/vnd.mermaid", ".mmd", strict=True)
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", strict=True)
 
 
 def _json_to_object(

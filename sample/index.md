@@ -58,29 +58,6 @@ A tasklist:
 - [x] **Finished** action
 - [ ] **Unfinished** action
 
-![PNG image with caption](figure/interoperability.png)
-
-![SVG image with caption](figure/interoperability.svg)
-
-![Embedded draw.io image](figure/diagram.drawio.png)
-
-![Editable or rendered draw.io image](figure/diagram.drawio)
-
-![Editable or rendered Mermaid diagram](figure/class.mmd)
-
-![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
-
-A Mermaid diagram:
-
-```mermaid
-classDiagram
-Entity <|-- Product
-Entity <|-- Customer
-Entity <|-- Vendor
-Vendor <|-- Store
-Entity <|-- Project
-```
-
 Confluence Storage Format macro passed unchanged to Confluence:
 
 ```csf
@@ -96,39 +73,6 @@ Confluence Storage Format macro passed unchanged to Confluence:
 ```
 
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép. :smile:
-
-## Code blocks
-
-A language-neutral code block:
-```
-func:
-    preformatted text
-```
-
-A code block in Python:
-```python
-def func(n: int) -> str:
-    return str(n)
-```
-
-A code block in Java:
-```java
-class Simple {
-    public static void main(String args[]) {
-        System.out.println("Hello Java!");
-    }
-}
-```
-
-A code block in JSON:
-```json
-{
-    "boolean": true,
-    "integer": 42,
-    "string": "value",
-    "list": [1,2,3]
-}
-```
 
 ## LaTeX math equations
 

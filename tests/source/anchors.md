@@ -11,3 +11,9 @@
 ### Subsection 2
 
 [Link to top](#anchors)
+
+[PDF document](docs/sample.pdf)
+
+[Word processor document](docs/sample.docx)
+
+[Spreadsheet document](docs/sample.xlsx)

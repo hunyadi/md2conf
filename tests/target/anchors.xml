@@ -9,3 +9,6 @@
 <p><ac:link ac:anchor="anchors"><ac:link-body>Link to top</ac:link-body></ac:link></p>
 <h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">subsection-2</ac:parameter></ac:structured-macro>Subsection 2</h3>
 <p><ac:link ac:anchor="anchors"><ac:link-body>Link to top</ac:link-body></ac:link></p>
+<p><ac:link><ri:attachment ri:filename="docs_sample.pdf"/><ac:link-body>PDF document</ac:link-body></ac:link></p>
+<p><ac:link><ri:attachment ri:filename="docs_sample.docx"/><ac:link-body>Word processor document</ac:link-body></ac:link></p>
+<p><ac:link><ri:attachment ri:filename="docs_sample.xlsx"/><ac:link-body>Spreadsheet document</ac:link-body></ac:link></p>

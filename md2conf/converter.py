@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Literal, Optional, Union
-from urllib.parse import ParseResult, quote_plus, urlparse, urlunparse
+from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
 from strong_typing.core import JsonType
@@ -286,6 +286,18 @@ class ConfluenceConverterOptions:
     webui_links: bool = False
 
 
+@dataclass
+class ImageData:
+    path: Path
+    description: Optional[str] = None
+
+
+@dataclass
+class EmbeddedFileData:
+    data: bytes
+    description: Optional[str] = None
+
+
 class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into Confluence Storage Format."
 
@@ -295,8 +307,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     root_dir: Path
     toc: TableOfContentsBuilder
     links: list[str]
-    images: list[Path]
-    embedded_files: dict[str, bytes]
+    images: list[ImageData]
+    embedded_files: dict[str, EmbeddedFileData]
     site_metadata: ConfluenceSiteMetadata
     page_metadata: ConfluencePageCollection
 
@@ -402,28 +414,35 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             else:
                 return None
 
-        # convert the relative URL to absolute URL based on the base path value, then look up
-        # the absolute path in the page metadata dictionary to discover the relative path
-        # within Confluence that should be used
+        # discard original value: relative links always require transformation
+        anchor.attrib.pop("href")
+
+        # convert the relative URL to absolute path based on the base path value
         absolute_path = (self.base_dir / relative_url.path).resolve()
+
+        # look up the absolute path in the page metadata dictionary to discover the relative path within Confluence that should be used
         if not is_directory_within(absolute_path, self.root_dir):
-            anchor.attrib.pop("href")
             self._warn_or_raise(f"relative URL {url} points to outside root path: {self.root_dir}")
             return None
 
+        if absolute_path.suffix == ".md":
+            return self._transform_page_link(anchor, relative_url, absolute_path)
+        else:
+            return self._transform_attachment_link(anchor, absolute_path)
+
+    def _transform_page_link(self, anchor: ET._Element, relative_url: ParseResult, absolute_path: Path) -> Optional[ET._Element]:
+        """
+        Transforms links to other Markdown documents (Confluence pages).
+        """
+
         link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
-            msg = f"unable to find matching page for URL: {url}"
-            if self.options.ignore_invalid_url:
-                LOGGER.warning(msg)
-                anchor.attrib.pop("href")
-                return None
-            else:
-                raise DocumentError(msg)
+            self._warn_or_raise(f"unable to find matching page for URL: {relative_url.geturl()}")
+            return None
 
         relative_path = os.path.relpath(absolute_path, self.base_dir)
         LOGGER.debug("Found link to page %s with metadata: %s", relative_path, link_metadata)
-        self.links.append(url)
+        self.links.append(relative_url.geturl())
 
         if self.options.webui_links:
             page_url = f"{self.site_metadata.base_path}pages/viewpage.action?pageId={link_metadata.page_id}"
@@ -435,7 +454,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             page_url = f"{self.site_metadata.base_path}spaces/{space_key}/pages/{link_metadata.page_id}/{encode_title(link_metadata.title)}"
 
-        components = ParseResult(
+        transformed_url = ParseResult(
             scheme="https",
             netloc=self.site_metadata.domain,
             path=page_url,
@@ -443,11 +462,32 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             query="",
             fragment=relative_url.fragment,
         )
-        transformed_url = urlunparse(components)
 
-        LOGGER.debug("Transformed relative URL: %s to URL: %s", url, transformed_url)
-        anchor.set("href", transformed_url)
+        LOGGER.debug("Transformed relative URL: %s to URL: %s", relative_url.geturl(), transformed_url.geturl())
+        anchor.set("href", transformed_url.geturl())
         return None
+
+    def _transform_attachment_link(self, anchor: ET._Element, absolute_path: Path) -> Optional[ET._Element]:
+        """
+        Transforms links to document binaries such as PDF, DOCX or XLSX.
+        """
+
+        if not absolute_path.exists():
+            self._warn_or_raise(f"relative URL points to non-existing file: {absolute_path}")
+            return None
+
+        file_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
+        self.images.append(ImageData(absolute_path))
+
+        link_body = AC_ELEM("link-body", {}, *list(anchor))
+        link_body.text = anchor.text
+        link_wrapper = AC_ELEM(
+            "link",
+            {},
+            RI_ELEM("attachment", {RI_ATTR("filename"): file_name}),
+            link_body,
+        )
+        return link_wrapper
 
     def _transform_status(self, color: str, caption: str) -> ET._Element:
         macro_id = str(uuid.uuid4())
@@ -530,7 +570,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
         )
         if attrs.caption is not None:
-            elements.append(AC_ELEM("caption", HTML.p(attrs.caption)))
+            elements.append(AC_ELEM("caption", attrs.caption))
 
         return AC_ELEM("image", attrs.as_dict(), *elements)
 
@@ -559,7 +599,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if png_file.exists():
                 absolute_path = png_file
 
-        self.images.append(absolute_path)
+        self.images.append(ImageData(absolute_path, attrs.alt))
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
         return self._create_attached_image(image_name, attrs)
 
@@ -573,10 +613,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_drawio:
             image_data = drawio.render_diagram(absolute_path, self.options.diagram_output_format)
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
-            self.embedded_files[image_filename] = image_data
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
             return self._create_attached_image(image_filename, attrs)
         else:
-            self.images.append(absolute_path)
+            self.images.append(ImageData(absolute_path, attrs.alt))
             image_filename = attachment_name(relative_path)
             return self._create_drawio(image_filename, attrs)
 
@@ -592,7 +632,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             # extract embedded editable diagram and upload as *.drawio
             image_data = drawio.extract_diagram(absolute_path)
             image_filename = attachment_name(path_relative_to(absolute_path.with_suffix(".xml"), self.base_dir))
-            self.embedded_files[image_filename] = image_data
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
 
             return self._create_drawio(image_filename, attrs)
 
@@ -608,7 +648,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             )
         )
         if attrs.caption is not None:
-            elements.append(AC_ELEM("caption", HTML.p(attrs.caption)))
+            elements.append(AC_ELEM("caption", attrs.caption))
 
         return AC_ELEM("image", attrs.as_dict(), *elements)
 
@@ -727,10 +767,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 content = f.read()
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
-            self.embedded_files[image_filename] = image_data
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
             return self._create_attached_image(image_filename, attrs)
         else:
-            self.images.append(absolute_path)
+            self.images.append(ImageData(absolute_path, attrs.alt))
             mermaid_filename = attachment_name(relative_path)
             return self._create_mermaid_embed(mermaid_filename)
 
@@ -741,13 +781,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-            self.embedded_files[image_filename] = image_data
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data)
             return self._create_attached_image(image_filename, ImageAttributes.EMPTY)
         else:
             mermaid_data = content.encode("utf-8")
             mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
             mermaid_filename = attachment_name(f"embedded_{mermaid_hash}.mmd")
-            self.embedded_files[mermaid_filename] = mermaid_data
+            self.embedded_files[mermaid_filename] = EmbeddedFileData(mermaid_data)
             return self._create_mermaid_embed(mermaid_filename)
 
     def _create_mermaid_embed(self, filename: str) -> ET._Element:
@@ -1056,7 +1096,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         image_data = render_latex(content, format=self.options.diagram_output_format)
         image_hash = hashlib.md5(image_data).hexdigest()
         image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
-        self.embedded_files[image_filename] = image_data
+        self.embedded_files[image_filename] = EmbeddedFileData(image_data, content)
         image = self._create_attached_image(image_filename, ImageAttributes.EMPTY)
         return image
 
@@ -1466,11 +1506,15 @@ class ConversionError(RuntimeError):
 
 
 class ConfluenceDocument:
+    "Encapsulates an element tree for a Confluence document created by parsing a Markdown document."
+
     title: Optional[str]
     labels: Optional[list[str]]
     properties: Optional[dict[str, JsonType]]
+
     links: list[str]
-    images: list[Path]
+    images: list[ImageData]
+    embedded_files: dict[str, EmbeddedFileData]
 
     options: ConfluenceDocumentOptions
     root: ET._Element

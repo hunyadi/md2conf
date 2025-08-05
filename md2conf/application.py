@@ -116,18 +116,20 @@ class SynchronizingProcessor(Processor):
         """
 
         base_path = path.parent
-        for image_path in document.images:
+        for image_data in document.images:
             self.api.upload_attachment(
                 page_id.page_id,
-                attachment_name(path_relative_to(image_path, base_path)),
-                attachment_path=image_path,
+                attachment_name(path_relative_to(image_data.path, base_path)),
+                attachment_path=image_data.path,
+                comment=image_data.description,
             )
 
-        for name, data in document.embedded_files.items():
+        for name, file_data in document.embedded_files.items():
             self.api.upload_attachment(
                 page_id.page_id,
                 name,
-                raw_data=data,
+                raw_data=file_data.data,
+                comment=file_data.description,
             )
 
         content = document.xhtml()

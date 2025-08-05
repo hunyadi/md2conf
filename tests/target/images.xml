@@ -6,33 +6,23 @@
 <h2>Images</h2>
 <ac:image ac:align="center" ac:layout="center" ac:alt="PNG image with caption">
   <ri:attachment ri:filename="figure_raster.png"/>
-  <ac:caption>
-    <p>PNG image with caption</p>
-  </ac:caption>
+  <ac:caption>PNG image with caption</ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center" ac:alt="SVG image with caption" ac:title="A vector image">
   <ri:attachment ri:filename="figure_vector.svg"/>
-  <ac:caption>
-    <p>A vector image</p>
-  </ac:caption>
+  <ac:caption>A vector image</ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center" ac:alt="draw.io image embedded in PNG">
   <ri:attachment ri:filename="figure_diagram.drawio.png"/>
-  <ac:caption>
-    <p>draw.io image embedded in PNG</p>
-  </ac:caption>
+  <ac:caption>draw.io image embedded in PNG</ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center" ac:alt="draw.io image embedded in SVG">
   <ri:attachment ri:filename="figure_diagram.drawio.svg"/>
-  <ac:caption>
-    <p>draw.io image embedded in SVG</p>
-  </ac:caption>
+  <ac:caption>draw.io image embedded in SVG</ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center" ac:alt="External image" ac:title="An image at an external location">
   <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
-  <ac:caption>
-    <p>An image at an external location</p>
-  </ac:caption>
+  <ac:caption>An image at an external location</ac:caption>
 </ac:image>
 <ac:image ac:align="center" ac:layout="center" ac:width="24" ac:height="24">
   <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
