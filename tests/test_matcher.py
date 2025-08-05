@@ -14,6 +14,7 @@ from pathlib import Path
 from random import shuffle
 
 from md2conf.matcher import Entry, Matcher, MatcherOptions
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,7 +22,7 @@ logging.basicConfig(
 )
 
 
-class TestMatcher(unittest.TestCase):
+class TestMatcher(TypedTestCase):
     def test_ordering(self) -> None:
         ordered = [
             Entry("0.md", True),

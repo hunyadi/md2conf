@@ -10,6 +10,7 @@ import logging
 import unittest
 
 from md2conf.text import wrap_text
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +18,7 @@ logging.basicConfig(
 )
 
 
-class TestText(unittest.TestCase):
+class TestText(TypedTestCase):
     def test_basic_wrap(self) -> None:
         text = "This is a simple test sentence that should wrap nicely with no issues whatsoever."
         wrapped = wrap_text(text, line_length=20)

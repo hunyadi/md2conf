@@ -27,6 +27,7 @@ from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
 from tests import emoji
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -83,7 +84,7 @@ def standardize(content: str) -> str:
     return canonicalize(content)
 
 
-class TestConversion(unittest.TestCase):
+class TestConversion(TypedTestCase):
     source_dir: Path
     target_dir: Path
     site_metadata: ConfluenceSiteMetadata

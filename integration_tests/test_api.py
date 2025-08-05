@@ -25,6 +25,7 @@ from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.scanner import Scanner
+from tests.utility import TypedTestCase
 
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
@@ -53,7 +54,7 @@ def sanitize_confluence(html: str) -> str:
     return elements_to_string(root)
 
 
-class TestAPI(unittest.TestCase):
+class TestAPI(TypedTestCase):
     out_dir: Path
     sample_dir: Path
 
@@ -79,13 +80,30 @@ class TestAPI(unittest.TestCase):
             ConfluencePageCollection(),
         )
         self.assertListEqual(document.links, [])
+        self.assertListEqual(document.images, [])
+
+        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
+            f.write(document.xhtml())
+
+    def test_markdown_attachments(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.sample_dir / "attachments.md",
+            ConfluenceDocumentOptions(),
+            self.sample_dir,
+            ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
+            ConfluencePageCollection(),
+        )
+        self.assertListEqual(document.links, [])
         self.assertListEqual(
-            document.images,
+            [item.path for item in document.images],
             [
                 self.sample_dir / "figure" / "interoperability.png",
                 self.sample_dir / "figure" / "interoperability.png",  # preferred over `interoperability.svg`
                 self.sample_dir / "figure" / "diagram.drawio",
                 self.sample_dir / "figure" / "class.mmd",
+                self.sample_dir / "docs" / "sample.pdf",
+                self.sample_dir / "docs" / "sample.docx",
+                self.sample_dir / "docs" / "sample.xlsx",
             ],
         )
 

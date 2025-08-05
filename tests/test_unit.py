@@ -16,6 +16,7 @@ from md2conf.csf import elements_from_string
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from md2conf.xml import is_xml_equal, unwrap_substitute
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +24,7 @@ logging.basicConfig(
 )
 
 
-class TestUnit(unittest.TestCase):
+class TestUnit(TypedTestCase):
     "Simple unit tests without set-up or tear-down requirements."
 
     def test_attachment(self) -> None:

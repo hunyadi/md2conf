@@ -12,6 +12,7 @@ from pathlib import Path
 
 from md2conf.extra import override
 from md2conf.scanner import Scanner
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +20,7 @@ logging.basicConfig(
 )
 
 
-class TestScanner(unittest.TestCase):
+class TestScanner(TypedTestCase):
     sample_dir: Path
 
     @override

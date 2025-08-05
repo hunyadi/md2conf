@@ -14,12 +14,13 @@ from pathlib import Path
 from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
 from md2conf.csf import content_to_string
 from md2conf.extra import override
+from tests.utility import TypedTestCase
 
 TEST_SPACE = "~hunyadi"
 TEST_PAGE_ID = "65713"
 
 
-class TestConfluenceStorageFormat(unittest.TestCase):
+class TestConfluenceStorageFormat(TypedTestCase):
     test_dir: Path
 
     @override

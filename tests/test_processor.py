@@ -10,13 +10,12 @@ import logging
 import shutil
 import unittest
 from pathlib import Path
-from typing import Optional
-from unittest.util import safe_repr
 
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
+from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,19 +23,9 @@ logging.basicConfig(
 )
 
 
-class TestProcessor(unittest.TestCase):
+class TestProcessor(TypedTestCase):
     out_dir: Path
     sample_dir: Path
-
-    def assertStartsWith(self, text: str, prefix: str, msg: Optional[str] = None) -> None:
-        """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
-
-        if not text.startswith(prefix):
-            standardMsg = "%s does not start with %s" % (
-                safe_repr(text),
-                safe_repr(prefix),
-            )
-            self.fail(self._formatMessage(msg, standardMsg))
 
     @override
     def setUp(self) -> None:
