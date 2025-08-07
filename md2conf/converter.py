@@ -23,7 +23,7 @@ from strong_typing.core import JsonType
 
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
-from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string
+from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
 from .latex import render_latex
@@ -216,6 +216,25 @@ def element_text_starts_with_any(node: ET._Element, prefixes: list[str]) -> bool
     return starts_with_any(node.text, prefixes)
 
 
+def is_placeholder_for(node: ET._Element, name: str) -> bool:
+    """
+    Identifies a Confluence widget placeholder, e.g. `[[_TOC_]]` or `[[_LISTING_]]`.
+
+    :param node: The element to check.
+    :param name: The placeholder name.
+    """
+
+    # `[[_TOC_]]` is represented in HTML as <p>[[<em>TOC</em>]]</p>
+    if node.text != "[[" or len(node) != 1:
+        return False
+
+    child = node[0]
+    if child.tag != "em" or child.text != name or child.tail != "]]":
+        return False
+
+    return True
+
+
 @dataclass
 class ImageAttributes:
     """
@@ -388,6 +407,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         * Links to headings in the same document are transformed into `<ac:link>` (if *heading anchors* is enabled).
         * Links to documents in the source hierarchy are mapped into full Confluence URLs.
         """
+
+        # Confluence doesn't support `title` attribute on `<a>` elements
+        anchor.attrib.pop("title", None)
 
         url = anchor.get("href")
         if url is None or is_absolute_url(url):
@@ -830,6 +852,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             {
                 AC_ATTR("name"): "toc",
                 AC_ATTR("schema-version"): "1",
+                "data-layout": "default",
             },
             AC_ELEM("parameter", {AC_ATTR("name"): "outline"}, "clear"),
             AC_ELEM("parameter", {AC_ATTR("name"): "style"}, "default"),
@@ -1318,9 +1341,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if not element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]):
                 raise DocumentError("expected: each `<li>` in a task list starting with [ ] or [x]")
 
-        # transform Markdown to Confluence within tasklist content
-        self.visit(elem)
-
         tasks: list[ET._Element] = []
         for index, item in enumerate(elem, start=1):
             if item.text is None:
@@ -1330,11 +1350,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise NotImplementedError("pre-condition check not exhaustive")
 
             status = "incomplete" if match.group(1).isspace() else "complete"
+            item.text = item.text[3:]
 
-            body = AC_ELEM("task-body")
-            body.text = item.text[3:]
-            for child in item:
-                body.append(child)
+            # transform Markdown to Confluence within tasklist content
+            self.visit(item)
+
+            body = AC_ELEM("task-body", *list(item))
+            body.text = item.text
             tasks.append(
                 AC_ELEM(
                     "task",
@@ -1362,31 +1384,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not isinstance(child.tag, str):
             return None
 
-        # <h1>...</h1>
-        # <h2>...</h2> ...
-        m = re.match(r"^h([1-6])$", child.tag, flags=re.IGNORECASE)
-        if m is not None:
-            level = int(m.group(1))
-            title = element_to_text(child)
-            self.toc.add(level, title)
-
-            if self.options.heading_anchors:
-                self._transform_heading(child)
-                return None
-
         # <p>...</p>
         if child.tag == "p":
             # <p><img src="..." /></p>
-            if len(child) == 1 and child[0].tag == "img":
+            if len(child) == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
                 return self._transform_image(child[0])
 
-            # <p>[[_TOC_]]</p> (represented as <p>[[<em>TOC</em>]]</p>)
-            # <p>[TOC]</p>
-            elif element_to_text(child) in ["[[TOC]]", "[TOC]"]:
+            # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
+            elif is_placeholder_for(child, "TOC"):
                 return self._transform_toc(child)
 
-            # <p>[[_LISTING_]]</p> (represented as <p>[[<em>LISTING</em>]]</p>)
-            elif element_to_text(child) in ["[[LISTING]]", "[LISTING]"]:
+            # <p>[[<em>LISTING</em>]]</p> (represented in Markdown as `[[_LISTING_]]`)
+            elif is_placeholder_for(child, "LISTING"):
                 return self._transform_listing(child)
 
         # <div>...</div>
@@ -1450,16 +1459,34 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
             return self._transform_section(child)
 
+        # <ol>...</ol>
+        elif child.tag == "ol":
+            # Confluence adds the attribute `start` for every ordered list
+            child.set("start", "1")
+            return None
+
         # <ul>
         #   <li>[ ] ...</li>
         #   <li>[x] ...</li>
         # </ul>
-        elif child.tag == "ul" and len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
-            return self._transform_tasklist(child)
+        elif child.tag == "ul":
+            if len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
+                return self._transform_tasklist(child)
+
+            return None
+
+        elif child.tag == "li":
+            normalize_inline(child)
+            return None
 
         # <pre><code class="language-java"> ... </code></pre>
         elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
             return self._transform_code_block(child[0])
+
+        # <table>...</table>
+        elif child.tag == "table":
+            child.set("data-layout", "default")
+            return None
 
         # <img src="..." alt="..." />
         elif child.tag == "img":
@@ -1490,9 +1517,26 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         elif child.tag == "input" and child.get("type", "") == "date":
             return HTML("time", {"datetime": child.get("value", "")})
 
+        # <ins>...</ins>
+        elif child.tag == "ins":
+            # Confluence prefers <u> over <ins> for underline, and replaces <ins> with <u>
+            child.tag = "u"
+
         # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
         elif child.tag == "x-emoji":
             return self._transform_emoji(child)
+
+        # <h1>...</h1>
+        # <h2>...</h2> ...
+        m = re.match(r"^h([1-6])$", child.tag, flags=re.IGNORECASE)
+        if m is not None:
+            level = int(m.group(1))
+            title = element_to_text(child)
+            self.toc.add(level, title)
+
+            if self.options.heading_anchors:
+                self._transform_heading(child)
+                return None
 
         return None
 

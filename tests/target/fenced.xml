@@ -5,24 +5,36 @@
 </ac:structured-macro>
 <h2>Advanced fenced code blocks</h2>
 <p>A code block with an ordered list:</p>
-<ol>
-  <li>a list item:    <ac:structured-macro ac:name="code" ac:schema-version="1">
+<ol start="1">
+  <li>
+    <p>a list item:</p>
+    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="language">none</ac:parameter>
       <ac:plain-text-body><![CDATA[alice@example.com]]></ac:plain-text-body>
-    </ac:structured-macro></li>
-  <li>another list item:    <ac:structured-macro ac:name="code" ac:schema-version="1">
+    </ac:structured-macro>
+  </li>
+  <li>
+    <p>another list item:</p>
+    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="language">none</ac:parameter>
       <ac:plain-text-body><![CDATA[bob@example.com]]></ac:plain-text-body>
-    </ac:structured-macro></li>
+    </ac:structured-macro>
+  </li>
 </ol>
 <p>A code block with an unordered list:</p>
 <ul>
-  <li>a list item:   <ac:structured-macro ac:name="code" ac:schema-version="1">
+  <li>
+    <p>a list item:</p>
+    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="language">none</ac:parameter>
       <ac:plain-text-body><![CDATA[alice@example.com]]></ac:plain-text-body>
-    </ac:structured-macro></li>
-  <li>another list item:   <ac:structured-macro ac:name="code" ac:schema-version="1">
+    </ac:structured-macro>
+  </li>
+  <li>
+    <p>another list item:</p>
+    <ac:structured-macro ac:name="code" ac:schema-version="1">
       <ac:parameter ac:name="language">none</ac:parameter>
       <ac:plain-text-body><![CDATA[bob@example.com]]></ac:plain-text-body>
-    </ac:structured-macro></li>
+    </ac:structured-macro>
+  </li>
 </ul>

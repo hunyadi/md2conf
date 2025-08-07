@@ -9,7 +9,7 @@
   <summary>
     <b>My summary</b>
   </summary>
-  <table>
+  <table data-layout="default">
     <thead>
       <tr>
         <th>Operation</th>

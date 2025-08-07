@@ -4,53 +4,63 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Basic features</h2>
-<p>Text formatted with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <ins>underline</ins> and <del>strikethrough</del>.</p>
+<p>Text formatted with <strong>bold</strong>, <em>italic</em>, <code>monospace</code>, <u>underline</u> and <del>strikethrough</del>.</p>
 <p>Text with subscript (H<sub>2</sub>O or H<sub>2</sub>O) and superscript (e<sup>-ix</sup> or e<sup>-ix</sup>).</p>
 <p>Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.</p>
 <p><span style="background-color: rgb(254,222,200);">Highlight</span> in <span style="background-color: rgb(198,237,251);">teal</span>, <span style="background-color: rgb(211,241,167);">lime</span> and <span style="background-color: rgb(254,222,200);">yellow</span>.</p>
 <p>Absolute link to an <a href="http://example.com/">external location</a> with a <a href="http://example.com/?key[]=value">query string</a>.</p>
-<p>Absolute link to an <a href="http://example.com/" title="Absolute URL">external location</a> with a <a href="http://example.com/?key[]=value" title="URL with query string">query string</a>.</p>
+<p>Absolute link to an <a href="http://example.com/">external location</a> with a <a href="http://example.com/?key[]=value">query string</a>.</p>
 <p>Relative link to a <a href="#Basic-features">heading in the same document</a>.</p>
 <p>"Naked" links: <a href="https://example.com">https://example.com</a> and <a href="mailto:me@example.com">me@example.com</a>.</p>
 <p>An ordered list:</p>
-<ol>
-  <li><em>List item 1</em></li>
-  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
-  <li><em>List item 3</em></li>
-  <li><code>List item 4</code></li>
+<ol start="1">
+  <li><p><em>List item 1</em></p></li>
+  <li><p><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</p></li>
+  <li><p><em>List item 3</em></p></li>
+  <li><p><code>List item 4</code></p></li>
 </ol>
 <p>A bullet point list:</p>
 <ul>
-  <li><em>List item 1</em></li>
-  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
-  <li><em>List item 3</em></li>
-  <li><code>List item 4</code></li>
+  <li><p><em>List item 1</em></p></li>
+  <li><p><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</p></li>
+  <li><p><em>List item 3</em></p></li>
+  <li><p><code>List item 4</code></p></li>
 </ul>
 <p>An unordered list:</p>
 <ul>
-  <li><em>List item 1</em></li>
-  <li><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</li>
-  <li><em>List item 3</em></li>
-  <li><code>List item 4</code></li>
+  <li><p><em>List item 1</em></p></li>
+  <li><p><strong>List item 2</strong> spanning multiple text file lines but rendered as a single line</p></li>
+  <li><p><em>List item 3</em></p></li>
+  <li><p><code>List item 4</code></p></li>
 </ul>
 <p>A nested list:</p>
 <ul>
-  <li>List item 1<ul>
-      <li>Nested item 1<ol>
-          <li>Item 1</li>
-          <li>Item 2</li>
-          <li>Item 3</li>
-        </ol> </li>
-      <li>Nested item 2<ul>
-          <li>Item 4</li>
-          <li>Item 5</li>
-          <li>Item 6</li>
-        </ul> </li>
-    </ul> </li>
-  <li>List item 2<ol>
-      <li>Nested item 3</li>
-      <li>Nested item 4</li>
-    </ol> </li>
+  <li>
+    <p>List item 1</p>
+    <ul>
+      <li>
+        <p>Nested item 1</p>
+        <ol start="1">
+          <li><p>Item 1</p></li>
+          <li><p>Item 2</p></li>
+          <li><p>Item 3</p></li>
+        </ol></li>
+      <li>
+        <p>Nested item 2</p>
+        <ul>
+          <li><p>Item 4</p></li>
+          <li><p>Item 5</p></li>
+          <li><p>Item 6</p></li>
+        </ul></li>
+    </ul>
+  </li>
+  <li>
+    <p>List item 2</p>
+    <ol start="1">
+      <li><p>Nested item 3</p></li>
+      <li><p>Nested item 4</p></li>
+    </ol>
+  </li>
 </ul>
 <p>A block quote:</p>
 <blockquote>

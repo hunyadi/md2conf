@@ -5,7 +5,7 @@
 </ac:structured-macro>
 <h2>Table of contents</h2>
 <p>Table of contents macro:</p>
-<ac:structured-macro ac:name="toc" ac:schema-version="1">
+<ac:structured-macro ac:name="toc" ac:schema-version="1" data-layout="default">
   <ac:parameter ac:name="outline">clear</ac:parameter>
   <ac:parameter ac:name="style">default</ac:parameter>
 </ac:structured-macro>

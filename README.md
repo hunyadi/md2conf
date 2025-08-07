@@ -444,6 +444,10 @@ mmdc -i sample.mmd -o sample.png -b transparent --scale 2
 
 Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
 
+### Links to attachments
+
+If *md2conf* encounters a Markdown link that points to a file in the directory hierarchy being synchronized, it automatically uploads the file as an attachment to the Confluence page. Activating the link in Confluence downloads the file. Typical examples include PDFs (`*.pdf`), word processor documents (`*.docx`), spreadsheets (`*.xlsx`), plain text files (`*.txt`) or logs (`*.log`). The MIME type is set based on the file type.
+
 ### Implicit URLs
 
 *md2conf* implicitly defines some URLs, as if you included the following at the start of the Markdown document for each URL:

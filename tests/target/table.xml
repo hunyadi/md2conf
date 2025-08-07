@@ -5,7 +5,7 @@
 </ac:structured-macro>
 <h2>Tables</h2>
 <p>Simple table</p>
-<table>
+<table data-layout="default">
   <thead>
     <tr>
       <th>Arabic</th>
@@ -48,7 +48,7 @@
   </tbody>
 </table>
 <p>Aligned cells</p>
-<table>
+<table data-layout="default">
   <thead>
     <tr>
       <th style="text-align: left;">Left</th>
@@ -65,7 +65,7 @@
   </tbody>
 </table>
 <p>Multi-line cells</p>
-<table>
+<table data-layout="default">
   <thead>
     <tr>
       <th>Name</th>

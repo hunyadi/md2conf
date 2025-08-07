@@ -149,3 +149,69 @@ def elements_to_string(root: ET._Element) -> str:
         return m.group(1)
     else:
         raise ValueError("expected: Confluence content")
+
+
+def is_block_like(elem: ET._Element) -> bool:
+    return elem.tag in ["div", "li", "ol", "p", "pre", "ul"]
+
+
+def normalize_inline(elem: ET._Element) -> None:
+    """
+    Ensures that inline elements are direct children of an eligible block element.
+
+    The following transformations are applied:
+
+    * consecutive inline elements and text nodes that are the direct children of the parent element are wrapped into a `<p>`,
+    * block elements are left intact,
+    * leading and trailing whitespace in each block element is removed.
+
+    The above steps transform an element tree such as
+    ```
+    <li>  to <em>be</em>, <ol/> not to <em>be</em>  </li>
+    ```
+
+    into another element tree such as
+    ```
+    <li><p>to <em>be</em>,</p><ol/><p>not to <em>be</em></p></li>
+    ```
+    """
+
+    if not is_block_like(elem):
+        raise ValueError(f"expected: block element; got: {elem.tag!s}")
+
+    contents: list[ET._Element] = []
+
+    paragraph = HTML.p()
+    contents.append(paragraph)
+    if elem.text:
+        paragraph.text = elem.text
+        elem.text = None
+
+    for child in elem:
+        if is_block_like(child):
+            contents.append(child)
+            paragraph = HTML.p()
+            contents.append(paragraph)
+            if child.tail:
+                paragraph.text = child.tail
+                child.tail = None
+        else:
+            paragraph.append(child)
+
+    for item in contents:
+        # remove lead whitespace in the block element
+        if item.text:
+            item.text = item.text.lstrip()
+        if len(item) > 0:
+            # remove tail whitespace in the last child of the block element
+            last = item[-1]
+            if last.tail:
+                last.tail = last.tail.rstrip()
+        else:
+            # remove tail whitespace directly in the block element content
+            if item.text:
+                item.text = item.text.rstrip()
+
+        # ignore empty elements
+        if item.tag != "p" or len(item) > 0 or item.text:
+            elem.append(item)

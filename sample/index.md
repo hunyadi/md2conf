@@ -112,7 +112,7 @@ dignissim finibus dui.
 ## Tables
 
 | Left | Center | Right |
-|:-----|:------:|------:|
+|:---- |:------:| -----:|
 | Bal  | Közép  | Jobb  |
 
 | Name | Description                 |
