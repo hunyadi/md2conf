@@ -12,6 +12,7 @@ import os
 import os.path
 import shutil
 import subprocess
+import tempfile
 import typing
 import zlib
 from pathlib import Path
@@ -237,17 +238,21 @@ def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "
     if executable is None:
         raise DrawioError("draw.io executable not found")
 
-    target = f"tmp_drawio.{output_format}"
+    # create a temporary file and get its file descriptor and path
+    fd, target = tempfile.mkstemp(prefix="drawio_", suffix=f".{output_format}")
 
-    cmd = [executable, "--export", "--format", output_format, "--output", target]
-    if output_format == "png":
-        cmd.extend(["--scale", "2", "--transparent"])
-    elif output_format == "svg":
-        cmd.append("--embed-svg-images")
-    cmd.append(str(source))
-
-    LOGGER.debug("Executing: %s", " ".join(cmd))
     try:
+        # close the descriptor, just use the filename
+        os.close(fd)
+
+        cmd = [executable, "--export", "--format", output_format, "--output", target]
+        if output_format == "png":
+            cmd.extend(["--scale", "2", "--transparent"])
+        elif output_format == "svg":
+            cmd.append("--embed-svg-images")
+        cmd.append(str(source))
+
+        LOGGER.debug("Executing: %s", " ".join(cmd))
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -268,5 +273,4 @@ def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "
             return f.read()
 
     finally:
-        if os.path.exists(target):
-            os.remove(target)
+        os.remove(target)

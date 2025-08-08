@@ -192,6 +192,7 @@ class TestConversion(TypedTestCase):
         self.assertEqual(doc.title, "Sections")
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
+    @unittest.skipUnless(os.getenv("TEST_MERMAID"), "mermaid tests are disabled")
     def test_mermaid_embedded_svg(self) -> None:
         _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",
@@ -206,6 +207,7 @@ class TestConversion(TypedTestCase):
         self.assertEqual(len(document.embedded_files), 6)
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
+    @unittest.skipUnless(os.getenv("TEST_MERMAID"), "mermaid tests are disabled")
     def test_mermaid_embedded_png(self) -> None:
         _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",

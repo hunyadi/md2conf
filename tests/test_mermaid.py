@@ -30,6 +30,7 @@ graph TD
 
 
 @unittest.skipUnless(has_mmdc(), "mmdc is not available")
+@unittest.skipUnless(os.getenv("TEST_MERMAID"), "mermaid tests are disabled")
 class TestMermaidRendering(TypedTestCase):
     out_dir: Path
 

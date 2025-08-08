@@ -47,14 +47,12 @@ def has_mmdc() -> bool:
 def render_diagram(source: str, output_format: Literal["png", "svg"] = "png") -> bytes:
     "Generates a PNG or SVG image from a Mermaid diagram source."
 
-    filename = f"tmp_mermaid.{output_format}"
-
     cmd = [
         get_mmdc(),
         "--input",
         "-",
         "--output",
-        filename,
+        "-",
         "--outputFormat",
         output_format,
         "--backgroundColor",
@@ -66,27 +64,23 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png") ->
     if is_docker():
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
     LOGGER.debug("Executing: %s", " ".join(cmd))
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=False,
-        )
-        stdout, stderr = proc.communicate(input=source.encode("utf-8"))
-        if proc.returncode:
-            messages = [f"failed to convert Mermaid diagram; exit code: {proc.returncode}"]
-            console_output = stdout.decode("utf-8")
-            if console_output:
-                messages.append(f"output:\n{console_output}")
-            console_error = stderr.decode("utf-8")
-            if console_error:
-                messages.append(f"error:\n{console_error}")
-            raise RuntimeError("\n".join(messages))
-        with open(filename, "rb") as image:
-            return image.read()
 
-    finally:
-        if os.path.exists(filename):
-            os.remove(filename)
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=False,
+    )
+    stdout, stderr = proc.communicate(input=source.encode("utf-8"))
+    if proc.returncode:
+        messages = [f"failed to convert Mermaid diagram; exit code: {proc.returncode}"]
+        console_output = stdout.decode("utf-8")
+        if console_output:
+            messages.append(f"output:\n{console_output}")
+        console_error = stderr.decode("utf-8")
+        if console_error:
+            messages.append(f"error:\n{console_error}")
+        raise RuntimeError("\n".join(messages))
+
+    return stdout

@@ -7,6 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import logging
+import re
 import unittest
 from pathlib import Path
 
@@ -28,6 +29,7 @@ class TestDrawio(TypedTestCase):
         image_file = image_dir / "diagram.drawio.png"
         image = extract_diagram(image_file)
         self.assertGreater(len(image), 0)
+        self.assertIsNotNone(re.match(b"^<mxfile[^<>]*><diagram[^<>]*><mxGraphModel[^<>]*>.*</mxGraphModel></diagram></mxfile>$", image))
 
     def test_xml_from_png(self) -> None:
         image_dir = Path(__file__).parent / "source" / "figure"
