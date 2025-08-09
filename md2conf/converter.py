@@ -7,6 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import dataclasses
+import enum
 import hashlib
 import logging
 import os.path
@@ -26,7 +27,7 @@ from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .extra import override, path_relative_to
-from .latex import render_latex
+from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
 from .properties import PageError
@@ -235,47 +236,80 @@ def is_placeholder_for(node: ET._Element, name: str) -> bool:
     return True
 
 
+@enum.unique
+class FormattingContext(enum.Enum):
+    "Identifies the formatting context for the element."
+
+    BLOCK = "block"
+    INLINE = "inline"
+
+
 @dataclass
 class ImageAttributes:
     """
     Attributes applied to an `<img>` element.
 
+    :param context: Identifies the formatting context for the element (block or inline).
     :param width: Natural image width in pixels.
     :param height: Natural image height in pixels.
     :param alt: Alternate text.
     :param title: Title text (a.k.a. image tooltip).
+    :param caption: Caption text (shown below figure).
     """
 
+    context: FormattingContext
     width: Optional[int]
     height: Optional[int]
     alt: Optional[str]
     title: Optional[str]
+    caption: Optional[str]
 
-    @property
-    def caption(self) -> Optional[str]:
-        "Caption text (derived from attributes `alt` and `title`)."
-
-        return self.title or self.alt
+    def __post_init__(self) -> None:
+        if self.caption is None and self.context is FormattingContext.BLOCK:
+            self.caption = self.title or self.alt
 
     def as_dict(self) -> dict[str, str]:
-        attributes: dict[str, str] = {
-            AC_ATTR("align"): "center",
-            AC_ATTR("layout"): "center",
-        }
-        if self.width is not None:
-            attributes.update({AC_ATTR("width"): str(self.width)})
-        if self.height is not None:
-            attributes.update({AC_ATTR("height"): str(self.height)})
+        attributes: dict[str, str] = {}
+        if self.context is FormattingContext.BLOCK:
+            attributes[AC_ATTR("align")] = "center"
+            attributes[AC_ATTR("layout")] = "center"
+            if self.width is not None:
+                attributes[AC_ATTR("original-width")] = str(self.width)
+            if self.height is not None:
+                attributes[AC_ATTR("original-height")] = str(self.height)
+            if self.width is not None:
+                attributes[AC_ATTR("custom-width")] = "true"
+                attributes[AC_ATTR("width")] = str(self.width)
+
+        elif self.context is FormattingContext.INLINE:
+            if self.width is not None:
+                attributes[AC_ATTR("width")] = str(self.width)
+            if self.height is not None:
+                attributes[AC_ATTR("height")] = str(self.height)
+        else:
+            raise NotImplementedError("match not exhaustive for enumeration")
+
         if self.alt is not None:
             attributes.update({AC_ATTR("alt"): self.alt})
         if self.title is not None:
             attributes.update({AC_ATTR("title"): self.title})
         return attributes
 
-    EMPTY: ClassVar["ImageAttributes"]
+    EMPTY_BLOCK: ClassVar["ImageAttributes"]
+    EMPTY_INLINE: ClassVar["ImageAttributes"]
+
+    @classmethod
+    def empty(cls, context: FormattingContext) -> "ImageAttributes":
+        if context is FormattingContext.BLOCK:
+            return cls.EMPTY_BLOCK
+        elif context is FormattingContext.INLINE:
+            return cls.EMPTY_INLINE
+        else:
+            raise NotImplementedError("match not exhaustive for enumeration")
 
 
-ImageAttributes.EMPTY = ImageAttributes(None, None, None, None)
+ImageAttributes.EMPTY_BLOCK = ImageAttributes(FormattingContext.BLOCK, None, None, None, None, None)
+ImageAttributes.EMPTY_INLINE = ImageAttributes(FormattingContext.INLINE, None, None, None, None, None)
 
 
 @dataclass
@@ -544,7 +578,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 ),
             )
 
-    def _transform_image(self, image: ET._Element) -> ET._Element:
+    def _transform_image(self, context: FormattingContext, image: ET._Element) -> ET._Element:
         "Inserts an attached or external image."
 
         src = image.get("src")
@@ -560,7 +594,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         height = image.get("height")
         pixel_width = int(width) if width is not None and width.isdecimal() else None
         pixel_height = int(height) if height is not None and height.isdecimal() else None
-        attrs = ImageAttributes(pixel_width, pixel_height, alt, title)
+        attrs = ImageAttributes(context, pixel_width, pixel_height, alt, title, None)
 
         if is_absolute_url(src):
             return self._transform_external_image(src, attrs)
@@ -591,7 +625,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {RI_ATTR("value"): url},
             )
         )
-        if attrs.caption is not None:
+        if attrs.caption:
             elements.append(AC_ELEM("caption", attrs.caption))
 
         return AC_ELEM("image", attrs.as_dict(), *elements)
@@ -669,7 +703,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {RI_ATTR("filename"): image_name},
             )
         )
-        if attrs.caption is not None:
+        if attrs.caption:
             elements.append(AC_ELEM("caption", attrs.caption))
 
         return AC_ELEM("image", attrs.as_dict(), *elements)
@@ -761,7 +795,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         content = content.rstrip()
 
         if language_id == "mermaid":
-            return self._transform_inline_mermaid(content)
+            return self._transform_fenced_mermaid(content)
 
         return AC_ELEM(
             "structured-macro",
@@ -796,15 +830,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             mermaid_filename = attachment_name(relative_path)
             return self._create_mermaid_embed(mermaid_filename)
 
-    def _transform_inline_mermaid(self, content: str) -> ET._Element:
-        "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a code block."
+    def _transform_fenced_mermaid(self, content: str) -> ET._Element:
+        "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a fenced code block."
 
         if self.options.render_mermaid:
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_files[image_filename] = EmbeddedFileData(image_data)
-            return self._create_attached_image(image_filename, ImageAttributes.EMPTY)
+            return self._create_attached_image(image_filename, ImageAttributes.EMPTY_BLOCK)
         else:
             mermaid_data = content.encode("utf-8")
             mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
@@ -1107,7 +1141,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         span.text = mark.text
         return span
 
-    def _transform_latex(self, elem: ET._Element) -> ET._Element:
+    def _transform_latex(self, elem: ET._Element, context: FormattingContext) -> ET._Element:
         """
         Creates an image rendering of a LaTeX formula with Matplotlib.
         """
@@ -1117,10 +1151,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             raise DocumentError("empty LaTeX formula")
 
         image_data = render_latex(content, format=self.options.diagram_output_format)
+        if self.options.diagram_output_format == "png":
+            width, height = get_png_dimensions(data=image_data)
+            image_data = remove_png_chunks(["pHYs"], source_data=image_data)
+            attrs = ImageAttributes(context, width, height, content, None, "")
+        else:
+            attrs = ImageAttributes.empty(context)
+
         image_hash = hashlib.md5(image_data).hexdigest()
         image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
         self.embedded_files[image_filename] = EmbeddedFileData(image_data, content)
-        image = self._create_attached_image(image_filename, ImageAttributes.EMPTY)
+        image = self._create_attached_image(image_filename, attrs)
         return image
 
     def _transform_inline_math(self, elem: ET._Element) -> ET._Element:
@@ -1137,7 +1178,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         LOGGER.debug("Found inline LaTeX formula: %s", content)
 
         if self.options.render_latex:
-            return self._transform_latex(elem)
+            return self._transform_latex(elem, FormattingContext.INLINE)
 
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())
@@ -1172,7 +1213,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         LOGGER.debug("Found block-level LaTeX formula: %s", content)
 
         if self.options.render_latex:
-            return self._transform_latex(elem)
+            return self._transform_latex(elem, FormattingContext.BLOCK)
 
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())
@@ -1388,7 +1429,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if child.tag == "p":
             # <p><img src="..." /></p>
             if len(child) == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
-                return self._transform_image(child[0])
+                return self._transform_image(FormattingContext.BLOCK, child[0])
 
             # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
             elif is_placeholder_for(child, "TOC"):
@@ -1490,7 +1531,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <img src="..." alt="..." />
         elif child.tag == "img":
-            return self._transform_image(child)
+            return self._transform_image(FormattingContext.INLINE, child)
 
         # <a href="..."> ... </a>
         elif child.tag == "a":

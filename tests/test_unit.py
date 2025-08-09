@@ -10,7 +10,7 @@ import logging
 import unittest
 
 from md2conf.converter import attachment_name, title_to_identifier
-from md2conf.latex import LATEX_ENABLED, render_latex
+from md2conf.latex import LATEX_ENABLED, get_png_dimensions, remove_png_chunks, render_latex
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from tests.utility import TypedTestCase
 
@@ -111,8 +111,19 @@ class TestUnit(TypedTestCase):
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:
-        self.assertTrue(render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}"))
-        self.assertTrue(render_latex(r"\underset{S}{\int\int}\ \vec{\nabla}\times\vec{B}\cdot d\vec{S}=\underset{C}{\oint}\ \vec{B}\cdot d\vec{l}"))
+        data = render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}")
+        width, height = get_png_dimensions(data=data)
+        self.assertGreater(width, 0)
+        self.assertGreater(height, 0)
+
+        data = render_latex(r"\underset{S}{\int\int}\ \vec{\nabla}\times\vec{B}\cdot d\vec{S}=\underset{C}{\oint}\ \vec{B}\cdot d\vec{l}")
+        width, height = get_png_dimensions(data=data)
+        self.assertGreater(width, 0)
+        self.assertGreater(height, 0)
+
+        self.assertIn(b"pHYs", data)
+        data = remove_png_chunks(["pHYs"], source_data=data)
+        self.assertNotIn(b"pHYs", data)
 
 
 if __name__ == "__main__":

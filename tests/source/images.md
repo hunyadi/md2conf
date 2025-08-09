@@ -1,6 +1,6 @@
 <!-- confluence-page-id: 00000000000 -->
 
-## Images
+## Block images
 
 ![PNG image with caption](figure/raster.png)
 
@@ -13,3 +13,7 @@
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png "An image at an external location")
 
 <img src="http://confluence.atlassian.com/images/logo/confluence_48_trans.png" width="24" height="24" />
+
+## Inline images
+
+This is an ![inline image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png) at an external location.

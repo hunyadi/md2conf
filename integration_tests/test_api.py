@@ -29,7 +29,8 @@ from tests.utility import TypedTestCase
 
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
-TEST_PAGE_ID = ConfluencePageID("1933314")
+FEATURE_TEST_PAGE_ID = ConfluencePageID("1933314")
+IMAGE_TEST_PAGE_ID = ConfluencePageID("26837000")
 
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
@@ -113,11 +114,11 @@ class TestAPI(TypedTestCase):
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
             page = api.get_page_properties_by_title(TEST_PAGE_TITLE)
-            self.assertEqual(page.id, TEST_PAGE_ID.page_id)
+            self.assertEqual(page.id, FEATURE_TEST_PAGE_ID.page_id)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(TEST_PAGE_ID.page_id)
+            page = api.get_page(FEATURE_TEST_PAGE_ID.page_id)
             self.assertIsInstance(page, ConfluencePage)
 
         with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
@@ -125,13 +126,13 @@ class TestAPI(TypedTestCase):
 
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(TEST_PAGE_ID.page_id, "figure_interoperability.png")
+            data = api.get_attachment_by_name(IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png")
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
-                TEST_PAGE_ID.page_id,
+                IMAGE_TEST_PAGE_ID.page_id,
                 "figure_interoperability.png",
                 attachment_path=self.sample_dir / "figure" / "interoperability.png",
                 comment="A sample figure",
@@ -199,7 +200,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             Application(
                 api,
-                ConfluenceDocumentOptions(root_page_id=TEST_PAGE_ID),
+                ConfluenceDocumentOptions(root_page_id=FEATURE_TEST_PAGE_ID),
             ).process_directory(source_dir)
 
         with ConfluenceAPI() as api:

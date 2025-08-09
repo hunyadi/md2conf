@@ -9,7 +9,6 @@ Copyright 2022-2025, Levente Hunyadi
 import base64
 import logging
 import os
-import os.path
 import shutil
 import subprocess
 import tempfile
