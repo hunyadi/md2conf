@@ -73,19 +73,22 @@ class SynchronizingProcessor(Processor):
             # verify if page exists
             page = self.api.get_page_properties(node.page_id)
             update = False
-        elif node.title is not None:
-            # look up page by title
-            page = self.api.get_or_create_page(node.title, parent_id.page_id)
+        else:
+            if node.title is not None:
+                # use title extracted from source metadata
+                title = node.title
+            else:
+                # assign an auto-generated title
+                digest = self._generate_hash(node.absolute_path)
+                title = f"{node.absolute_path.stem} [{digest}]"
+
+            # look up page by (possibly auto-generated) title
+            page = self.api.get_or_create_page(title, parent_id.page_id)
 
             if page.status is ConfluenceStatus.ARCHIVED:
+                # user has archived a page with this (auto-generated) title
                 raise PageError(f"unable to update archived page with ID {page.id}")
 
-            update = True
-        else:
-            # always create a new page
-            digest = self._generate_hash(node.absolute_path)
-            title = f"{node.absolute_path.stem} [{digest}]"
-            page = self.api.create_page(parent_id.page_id, title, "")
             update = True
 
         space_key = self.api.space_id_to_key(page.spaceId)
