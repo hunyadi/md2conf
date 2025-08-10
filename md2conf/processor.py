@@ -16,9 +16,9 @@ from typing import Iterable, Optional
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .environment import ArgumentError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
-from .properties import ArgumentError
 from .scanner import Scanner
 
 LOGGER = logging.getLogger(__name__)

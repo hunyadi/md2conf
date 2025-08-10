@@ -26,11 +26,11 @@ from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .environment import PageError
 from .extra import override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
-from .properties import PageError
 from .scanner import ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
@@ -425,11 +425,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         anchor.tail = heading.text
         heading.text = None
 
-    def _warn_or_raise(self, msg: str) -> None:
+    def _anchor_warn_or_raise(self, anchor: ET._Element, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
         if self.options.ignore_invalid_url:
             LOGGER.warning(msg)
+            if anchor.text:
+                anchor.text = "❌ " + anchor.text
+            elif len(anchor) > 0:
+                anchor.text = "❌ "
         else:
             raise DocumentError(msg)
 
@@ -478,7 +482,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # look up the absolute path in the page metadata dictionary to discover the relative path within Confluence that should be used
         if not is_directory_within(absolute_path, self.root_dir):
-            self._warn_or_raise(f"relative URL {url} points to outside root path: {self.root_dir}")
+            self._anchor_warn_or_raise(anchor, f"relative URL {url} points to outside root path: {self.root_dir}")
             return None
 
         if absolute_path.suffix == ".md":
@@ -493,7 +497,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         link_metadata = self.page_metadata.get(absolute_path)
         if link_metadata is None:
-            self._warn_or_raise(f"unable to find matching page for URL: {relative_url.geturl()}")
+            self._anchor_warn_or_raise(anchor, f"unable to find matching page for URL: {relative_url.geturl()}")
             return None
 
         relative_path = os.path.relpath(absolute_path, self.base_dir)
@@ -529,7 +533,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
 
         if not absolute_path.exists():
-            self._warn_or_raise(f"relative URL points to non-existing file: {absolute_path}")
+            self._anchor_warn_or_raise(anchor, f"relative URL points to non-existing file: {absolute_path}")
             return None
 
         file_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
@@ -603,7 +607,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             absolute_path = self._verify_image_path(path)
             if absolute_path is None:
-                return self._create_missing(path, attrs.caption)
+                return self._create_missing(path, attrs)
 
             if absolute_path.name.endswith(".drawio.png") or absolute_path.name.endswith(".drawio.svg"):
                 return self._transform_drawio_image(absolute_path, attrs)
@@ -629,6 +633,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             elements.append(AC_ELEM("caption", attrs.caption))
 
         return AC_ELEM("image", attrs.as_dict(), *elements)
+
+    def _warn_or_raise(self, msg: str) -> None:
+        "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
+
+        if self.options.ignore_invalid_url:
+            LOGGER.warning(msg)
+        else:
+            raise DocumentError(msg)
 
     def _verify_image_path(self, path: Path) -> Optional[Path]:
         "Checks whether an image path is safe to use."
@@ -749,30 +761,33 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             *parameters,
         )
 
-    def _create_missing(self, path: Path, caption: Optional[str]) -> ET._Element:
+    def _create_missing(self, path: Path, attrs: ImageAttributes) -> ET._Element:
         "A warning panel for a missing image."
 
-        message = HTML.p("Missing image: ", HTML.code(path.as_posix()))
-        if caption is not None:
-            content = [
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "title"},
-                    caption,
-                ),
-                AC_ELEM("rich-text-body", {}, message),
-            ]
-        else:
-            content = [AC_ELEM("rich-text-body", {}, message)]
+        if attrs.context is FormattingContext.BLOCK:
+            message = HTML.p("❌ Missing image: ", HTML.code(path.as_posix()))
+            if attrs.caption is not None:
+                content = [
+                    AC_ELEM(
+                        "parameter",
+                        {AC_ATTR("name"): "title"},
+                        attrs.caption,
+                    ),
+                    AC_ELEM("rich-text-body", {}, message),
+                ]
+            else:
+                content = [AC_ELEM("rich-text-body", {}, message)]
 
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "warning",
-                AC_ATTR("schema-version"): "1",
-            },
-            *content,
-        )
+            return AC_ELEM(
+                "structured-macro",
+                {
+                    AC_ATTR("name"): "warning",
+                    AC_ATTR("schema-version"): "1",
+                },
+                *content,
+            )
+        else:
+            return HTML.span({"style": "color: rgb(255,86,48);"}, "❌ ", HTML.code(path.as_posix()))
 
     def _transform_code_block(self, code: ET._Element) -> ET._Element:
         "Transforms a code block."

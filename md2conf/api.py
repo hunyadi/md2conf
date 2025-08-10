@@ -22,8 +22,8 @@ import requests
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
 
+from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 from .metadata import ConfluenceSiteMetadata
-from .properties import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 
 T = TypeVar("T")
 

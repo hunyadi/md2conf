@@ -17,13 +17,13 @@ from typing import Optional
 import lxml.etree as ET
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
-from md2conf.application import Application
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
+from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
 
@@ -143,15 +143,15 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process(self.sample_dir / "index.md")
+            Publisher(api, ConfluenceDocumentOptions()).process(self.sample_dir / "index.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process_page(self.sample_dir / "index.md")
+            Publisher(api, ConfluenceDocumentOptions()).process_page(self.sample_dir / "index.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Application(api, ConfluenceDocumentOptions()).process_directory(self.sample_dir)
+            Publisher(api, ConfluenceDocumentOptions()).process_directory(self.sample_dir)
 
     def test_synchronize_create(self) -> None:
         """
@@ -200,7 +200,7 @@ class TestAPI(TypedTestCase):
                 f.write("\n".join(frontmatter + content))
 
         with ConfluenceAPI() as api:
-            Application(
+            Publisher(
                 api,
                 ConfluenceDocumentOptions(root_page_id=FEATURE_TEST_PAGE_ID),
             ).process_directory(source_dir)

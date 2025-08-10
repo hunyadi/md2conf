@@ -4,10 +4,13 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Broken links</h2>
-<p>Relative URLs to <a>locations not exported</a> may be skipped.</p>
+<p>Relative URLs to <a>❌ locations not exported</a> may be skipped.</p>
+<p>Relative URLs to locations <a>❌ <strong>outside</strong> of root</a> cannot be published.</p>
+<p>Inline image in text body emits <span style="color: rgb(255,86,48);">❌ <code>missing.png</code></span> when missing.</p>
 <ac:structured-macro ac:name="warning" ac:schema-version="1">
-  <ac:parameter ac:name="title">Missing PNG image</ac:parameter>
+  <ac:parameter ac:name="title">Missing block-level image</ac:parameter>
   <ac:rich-text-body>
-    <p>Missing image: <code>missing.png</code></p>
+    <p>❌ Missing image: <code>missing.png</code></p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<p><a>❌ Missing PDF document</a></p>

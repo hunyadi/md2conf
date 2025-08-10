@@ -14,10 +14,10 @@ from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, 
 from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .environment import PageError
 from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
-from .properties import PageError
 from .xml import is_xml_equal, unwrap_substitute
 
 LOGGER = logging.getLogger(__name__)
@@ -215,7 +215,7 @@ class SynchronizingProcessorFactory(ProcessorFactory):
         return SynchronizingProcessor(self.api, self.options, root_dir)
 
 
-class Application(Converter):
+class Publisher(Converter):
     """
     The entry point for Markdown to Confluence conversion.
 
