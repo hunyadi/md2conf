@@ -418,8 +418,31 @@ class ConfluenceSession:
         if not base_path:
             raise ArgumentError("Confluence base path not specified and cannot be inferred")
         self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
+
         if not api_url:
-            self.api_url = f"https://{self.site.domain}{self.site.base_path}"
+            LOGGER.info("Discovering Confluence REST API URL")
+            try:
+                # obtain cloud ID to build URL for access with scoped token
+                response = self.session.get(f"https://{self.site.domain}/_edge/tenant_info", headers={"Accept": "application/json"})
+                if response.text:
+                    LOGGER.debug("Received HTTP payload:\n%s", response.text)
+                response.raise_for_status()
+                cloud_id = response.json()["cloudId"]
+
+                # try next-generation REST API URL
+                LOGGER.info("Probing scoped Confluence REST API URL")
+                self.api_url = f"https://api.atlassian.com/ex/confluence/{cloud_id}/"
+                url = self._build_url(ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
+                response = self.session.get(url, headers={"Accept": "application/json"})
+                if response.text:
+                    LOGGER.debug("Received HTTP payload:\n%s", response.text)
+                response.raise_for_status()
+
+                LOGGER.info("Configured scoped Confluence REST API URL: %s", self.api_url)
+            except requests.exceptions.HTTPError:
+                # fall back to classic REST API URL
+                self.api_url = f"https://{self.site.domain}{self.site.base_path}"
+                LOGGER.info("Configured classic Confluence REST API URL: %s", self.api_url)
 
     def close(self) -> None:
         self.session.close()
@@ -507,6 +530,7 @@ class ConfluenceSession:
             data=data,
             headers=headers,
         )
+        response.raise_for_status()
         return response_cast(response_type, response)
 
     def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
@@ -518,6 +542,7 @@ class ConfluenceSession:
             data=data,
             headers=headers,
         )
+        response.raise_for_status()
         return response_cast(response_type, response)
 
     def space_id_to_key(self, id: str) -> str:

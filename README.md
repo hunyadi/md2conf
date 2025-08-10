@@ -99,7 +99,7 @@ export CONFLUENCE_SPACE_KEY='SPACE'
 
 On Windows, these can be set via system properties.
 
-If you use Atlassian scoped API tokens, you should set API URL, substituting `CLOUD_ID` with your own Cloud ID:
+If you use Atlassian scoped API tokens, you may want to set API URL directly, substituting `CLOUD_ID` with your own Cloud ID:
 
 ```sh
 export CONFLUENCE_API_URL='https://api.atlassian.com/ex/confluence/CLOUD_ID/'
@@ -107,20 +107,27 @@ export CONFLUENCE_API_URL='https://api.atlassian.com/ex/confluence/CLOUD_ID/'
 
 In this case, *md2conf* can automatically determine `CONFLUENCE_DOMAIN` and `CONFLUENCE_PATH`.
 
+If you can't find your `CLOUD_ID` but assign both `CONFLUENCE_DOMAIN` and `CONFLUENCE_PATH`, *md2conf* makes a best-effort attempt to determine `CONFLUENCE_API_URL`.
+
 ### Permissions
 
 The tool requires appropriate permissions in Confluence in order to invoke endpoints.
 
-Required scopes for scoped API tokens are as follows:
+We recommend the following scopes for scoped API tokens:
 
-* `read:page:confluence`
-* `write:page:confluence`
-* `read:space:confluence`
-* `write:space:confluence`
 * `read:attachment:confluence`
-* `write:attachment:confluence`
+* `read:content:confluence`
+* `read:content-details:confluence`
 * `read:label:confluence`
+* `read:page:confluence`
+* `read:space:confluence`
+* `write:attachment:confluence`
+* `write:content:confluence`
 * `write:label:confluence`
+* `write:page:confluence`
+* `delete:attachment:confluence`
+* `delete:content:confluence`
+* `delete:page:confluence`
 
 If a Confluence username is set, the tool uses HTTP *Basic* authentication to pass the username and the API key to Confluence REST API endpoints. If no username is provided, the tool authenticates with HTTP *Bearer*, and passes the API key as the bearer token.
 
