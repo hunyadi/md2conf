@@ -12,3 +12,5 @@
 <p><ac:link><ri:attachment ri:filename="docs_sample.pdf"/><ac:link-body>PDF document</ac:link-body></ac:link></p>
 <p><ac:link><ri:attachment ri:filename="docs_sample.docx"/><ac:link-body>Word processor document</ac:link-body></ac:link></p>
 <p><ac:link><ri:attachment ri:filename="docs_sample.xlsx"/><ac:link-body>Spreadsheet document</ac:link-body></ac:link></p>
+<p><ac:link><ri:attachment ri:filename="docs_sample.odt"/><ac:link-body>LibreOffice Writer document</ac:link-body></ac:link></p>
+<p><ac:link><ri:attachment ri:filename="docs_sample.ods"/><ac:link-body>LibreOffice Calc document</ac:link-body></ac:link></p>

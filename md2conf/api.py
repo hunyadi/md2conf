@@ -29,6 +29,10 @@ T = TypeVar("T")
 
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx", strict=True)
 mimetypes.add_type("text/vnd.mermaid", ".mmd", strict=True)
+mimetypes.add_type("application/vnd.oasis.opendocument.presentation", ".odp", strict=True)
+mimetypes.add_type("application/vnd.oasis.opendocument.spreadsheet", ".ods", strict=True)
+mimetypes.add_type("application/vnd.oasis.opendocument.text", ".odt", strict=True)
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx", strict=True)
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", strict=True)
 
 

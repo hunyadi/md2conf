@@ -105,6 +105,8 @@ class TestAPI(TypedTestCase):
                 self.sample_dir / "docs" / "sample.pdf",
                 self.sample_dir / "docs" / "sample.docx",
                 self.sample_dir / "docs" / "sample.xlsx",
+                self.sample_dir / "docs" / "sample.odt",
+                self.sample_dir / "docs" / "sample.ods",
             ],
         )
 

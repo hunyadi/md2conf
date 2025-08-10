@@ -17,3 +17,7 @@
 [Word processor document](docs/sample.docx)
 
 [Spreadsheet document](docs/sample.xlsx)
+
+[LibreOffice Writer document](docs/sample.odt)
+
+[LibreOffice Calc document](docs/sample.ods)
