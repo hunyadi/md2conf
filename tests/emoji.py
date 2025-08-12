@@ -10,6 +10,8 @@ import pathlib
 
 import pymdownx.emoji1_db as emoji_db
 
+from md2conf.emoticon import emoji_to_emoticon
+
 EMOJI_PAGE_ID = "13500452"
 
 
@@ -33,6 +35,10 @@ def to_html(cp: int) -> str:
 def generate_source(path: pathlib.Path) -> None:
     "Generates a source Markdown document for testing emojis."
 
+    if path.exists() and path.stat().st_mtime_ns > pathlib.Path(__file__).stat().st_mtime_ns:
+        # target file has not changed since this file was last edited
+        return
+
     emojis = emoji_db.emoji
 
     with open(path, "w") as f:
@@ -53,6 +59,10 @@ def generate_source(path: pathlib.Path) -> None:
 def generate_target(path: pathlib.Path) -> None:
     "Generates a target Confluence Storage Format (XML) document for testing emojis."
 
+    if path.exists() and path.stat().st_mtime_ns > pathlib.Path(__file__).stat().st_mtime_ns:
+        # target file has not changed since this file was last edited
+        return
+
     emojis = emoji_db.emoji
 
     with open(path, "w") as f:
@@ -63,20 +73,21 @@ def generate_target(path: pathlib.Path) -> None:
         print("</ac:structured-macro>", file=f)
         print("<h2>Emoji</h2>", file=f)
         print('<table data-layout="default">', file=f)
-        print("<thead><tr><th>Icon</th><th>Emoji code</th></tr></thead>", file=f)
+        print("<thead><tr><th><p>Icon</p></th><th><p>Emoji code</p></th></tr></thead>", file=f)
         print("<tbody>", file=f)
         for key, data in emojis.items():
             unicode = data["unicode"]
             key = key.strip(":")
+            emoticon = emoji_to_emoticon(key)
             html = "".join(to_html(int(item, base=16)) for item in unicode.split("-"))
 
             print(
                 f"<tr>\n"
                 f"  <td>\n"
-                f'    <ac:emoticon ac:name="{key}" ac:emoji-shortname=":{key}:" ac:emoji-id="{unicode}" ac:emoji-fallback="{html}"/>\n'
+                f'    <p><ac:emoticon ac:name="{emoticon}" ac:emoji-shortname=":{key}:" ac:emoji-id="{unicode}" ac:emoji-fallback="{html}"/></p>\n'
                 f"  </td>\n"
                 f"  <td>\n"
-                f"    <code>:{key}:</code>\n"
+                f"    <p><code>:{key}:</code></p>\n"
                 f"  </td>\n"
                 f"</tr>",
                 file=f,

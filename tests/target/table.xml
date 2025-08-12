@@ -8,42 +8,42 @@
 <table data-layout="default">
   <thead>
     <tr>
-      <th>Arabic</th>
-      <th>Roman</th>
+      <th><p>Arabic</p></th>
+      <th><p>Roman</p></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>1</td>
-      <td>I</td>
+      <td><p>1</p></td>
+      <td><p>I</p></td>
     </tr>
     <tr>
-      <td>5</td>
-      <td>V</td>
+      <td><p>5</p></td>
+      <td><p>V</p></td>
     </tr>
     <tr>
-      <td>10</td>
-      <td>X</td>
+      <td><p>10</p></td>
+      <td><p>X</p></td>
     </tr>
     <tr>
-      <td>50</td>
-      <td>L</td>
+      <td><p>50</p></td>
+      <td><p>L</p></td>
     </tr>
     <tr>
-      <td>100</td>
-      <td>C</td>
+      <td><p>100</p></td>
+      <td><p>C</p></td>
     </tr>
     <tr>
-      <td>500</td>
-      <td>D</td>
+      <td><p>500</p></td>
+      <td><p>D</p></td>
     </tr>
     <tr>
-      <td>1000</td>
-      <td>M</td>
+      <td><p>1000</p></td>
+      <td><p>M</p></td>
     </tr>
     <tr>
-      <td>1986</td>
-      <td>MCMLXXXVI</td>
+      <td><p>1986</p></td>
+      <td><p>MCMLXXXVI</p></td>
     </tr>
   </tbody>
 </table>
@@ -51,16 +51,16 @@
 <table data-layout="default">
   <thead>
     <tr>
-      <th style="text-align: left;">Left</th>
-      <th style="text-align: center;">Center</th>
-      <th style="text-align: right;">Right</th>
+      <th style="text-align: left;"><p>Left</p></th>
+      <th style="text-align: center;"><p>Center</p></th>
+      <th style="text-align: right;"><p>Right</p></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td style="text-align: left;">Bal</td>
-      <td style="text-align: center;">Közép</td>
-      <td style="text-align: right;">Jobb</td>
+      <td style="text-align: left;"><p>Bal</p></td>
+      <td style="text-align: center;"><p>Közép</p></td>
+      <td style="text-align: right;"><p>Jobb</p></td>
     </tr>
   </tbody>
 </table>
@@ -68,14 +68,14 @@
 <table data-layout="default">
   <thead>
     <tr>
-      <th>Name</th>
-      <th>Description</th>
+      <th><p>Name</p></th>
+      <th><p>Description</p></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Data</td>
-      <td>A multi-line<br/>paragraph.</td>
+      <td><p>Data</p></td>
+      <td><p>A multi-line<br/>paragraph.</p></td>
     </tr>
   </tbody>
 </table>

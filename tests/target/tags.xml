@@ -12,18 +12,18 @@
   <table data-layout="default">
     <thead>
       <tr>
-        <th>Operation</th>
-        <th>Types</th>
-        <th>Subtypes</th>
-        <th>Additional info</th>
+        <th><p>Operation</p></th>
+        <th><p>Types</p></th>
+        <th><p>Subtypes</p></th>
+        <th><p>Additional info</p></th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>Test</td>
-        <td>One</td>
-        <td>Sub-One</td>
-        <td>This is a test</td>
+        <td><p>Test</p></td>
+        <td><p>One</p></td>
+        <td><p>Sub-One</p></td>
+        <td><p>This is a test</p></td>
       </tr>
     </tbody>
   </table>

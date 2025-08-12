@@ -152,7 +152,7 @@ def elements_to_string(root: ET._Element) -> str:
 
 
 def is_block_like(elem: ET._Element) -> bool:
-    return elem.tag in ["div", "li", "ol", "p", "pre", "ul"]
+    return elem.tag in ["div", "li", "ol", "p", "pre", "td", "th", "ul"]
 
 
 def normalize_inline(elem: ET._Element) -> None:

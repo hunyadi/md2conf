@@ -84,10 +84,8 @@ class TestConversion(TypedTestCase):
         self.page_metadata = ConfluencePageCollection()
 
     def test_markdown(self) -> None:
-        if not os.path.exists(self.source_dir / "emoji.md"):
-            emoji.generate_source(self.source_dir / "emoji.md")
-        if not os.path.exists(self.target_dir / "emoji.xml"):
-            emoji.generate_target(self.target_dir / "emoji.xml")
+        emoji.generate_source(self.source_dir / "emoji.md")
+        emoji.generate_target(self.target_dir / "emoji.xml")
 
         matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), self.source_dir)
 

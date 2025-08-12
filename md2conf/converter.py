@@ -26,6 +26,7 @@ from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extra import override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
@@ -1072,7 +1073,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("rich-text-body", {}, *list(blockquote)),
         )
 
-    def _transform_section(self, details: ET._Element) -> ET._Element:
+    def _transform_collapsed(self, details: ET._Element) -> ET._Element:
         """
         Creates a collapsed section.
 
@@ -1130,11 +1131,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         unicode = elem.get("data-unicode", None)
         alt = elem.text or ""
 
+        # emoji with a matching emoticon:
         # <ac:emoticon ac:name="wink" ac:emoji-shortname=":wink:" ac:emoji-id="1f609" ac:emoji-fallback="&#128521;"/>
+        #
+        # emoji without a corresponding emoticon:
+        # <ac:emoticon ac:name="blue-star" ac:emoji-shortname=":shield:" ac:emoji-id="1f6e1" ac:emoji-fallback="&#128737;"/>
         return AC_ELEM(
             "emoticon",
             {
-                AC_ATTR("name"): shortname,
+                AC_ATTR("name"): emoji_to_emoticon(shortname),
                 AC_ATTR("emoji-shortname"): f":{shortname}:",
                 AC_ATTR("emoji-id"): unicode,
                 AC_ATTR("emoji-fallback"): alt,
@@ -1255,7 +1260,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Transforms a footnote reference.
 
         ```
-        <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
+        <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">REF</a></sup>
         ```
         """
 
@@ -1513,7 +1518,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # ...
         # </details>
         elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
-            return self._transform_section(child)
+            return self._transform_collapsed(child)
 
         # <ol>...</ol>
         elif child.tag == "ol":
@@ -1541,6 +1546,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <table>...</table>
         elif child.tag == "table":
+            for td in child.iterdescendants("td", "th"):
+                normalize_inline(td)
             child.set("data-layout", "default")
             return None
 
