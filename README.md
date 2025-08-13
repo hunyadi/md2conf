@@ -294,6 +294,21 @@ The following table shows standard highlight colors (CSS `background-color`) tha
 
 If your Markdown lists or tables don't appear in Confluence as expected, verify that the list or table is delimited by a blank line both before and after, as per strict Markdown syntax. While some previewers accept a more lenient syntax (e.g. an itemized list immediately following a paragraph), *md2conf* uses [Python-Markdown](https://python-markdown.github.io/) internally to convert Markdown into XHTML, which expects the Markdown document to adhere to the stricter syntax.
 
+Likewise, if you have a nested list, make sure that nested items are indented by exactly ***four*** spaces as compared to the parent node:
+
+```markdown
+1. List item 1
+    * Nested item 1
+        1. Item 1
+        2. Item 2
+    * Nested item 2
+        - Item 3
+        - Item 4
+2. List item 2
+    1. Nested item 3
+    2. Nested item 4
+```
+
 ### Publishing images
 
 Local images referenced in a Markdown file are automatically published to Confluence as attachments to the page.
@@ -311,7 +326,7 @@ Inline formulas can be enclosed with `$` signs, or delimited with `\(` and `\)`,
 
 Block formulas can be enclosed with `$$`, or wrapped in code blocks specifying the language `math`:
 
-```md
+```markdown
 $$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
 ```
 
@@ -348,7 +363,7 @@ Displaying math formulas in Confluence requires the extension [LaTeX Math for Co
 
 Use the pseudo-language `csf` in a Markdown code block to pass content directly to Confluence. The content must be a single XML node that conforms to Confluence Storage Format (typically an `ac:structured-macro`) but is otherwise not validated. The following example shows how to create a panel similar to an *info panel* but with custom background color and emoji. Notice that `ac:rich-text-body` uses XHTML, not Markdown.
 
-````md
+````markdown
 ```csf
 <ac:structured-macro ac:name="panel" ac:schema-version="1">
   <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
@@ -459,7 +474,7 @@ If *md2conf* encounters a Markdown link that points to a file in the directory h
 
 *md2conf* implicitly defines some URLs, as if you included the following at the start of the Markdown document for each URL:
 
-```md
+```markdown
 [CUSTOM-URL]: https://example.com/path/to/resource
 ```
 
@@ -513,8 +528,6 @@ options:
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
                         Format for rendering Mermaid and draw.io diagrams (default: 'png').
-  --render-mermaid-format FORMAT
-                        Format for rendering Mermaid diagrams (default: 'png').
   --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --no-heading-anchors  Don't place an anchor at each section heading.
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
