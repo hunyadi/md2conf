@@ -11,6 +11,8 @@ import enum
 import io
 import logging
 import mimetypes
+import ssl
+import sys
 import typing
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,11 +21,18 @@ from typing import Any, Optional, TypeVar
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+from requests.adapters import HTTPAdapter
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
 
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
+from .extra import override
 from .metadata import ConfluenceSiteMetadata
+
+if sys.version_info >= (3, 10):
+    import truststore
+else:
+    import certifi
 
 T = TypeVar("T")
 
@@ -336,6 +345,30 @@ class ConfluenceUpdateAttachmentRequest:
     version: ConfluenceContentVersion
 
 
+class TruststoreAdapter(HTTPAdapter):
+    """
+    Provides a general-case interface for HTTPS sessions to connect to HTTPS URLs.
+
+    This class implements the Transport Adapter interface in the Python library `requests`.
+
+    This class will usually be created by the :class:`requests.Session` class under the covers.
+    """
+
+    @override
+    def init_poolmanager(self, connections: int, maxsize: int, block: bool = False, **pool_kwargs: Any) -> None:
+        """
+        Adapts the pool manager to use the provided SSL context instead of the default.
+        """
+
+        if sys.version_info >= (3, 10):
+            ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        else:
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certifi.where())
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        super().init_poolmanager(connections, maxsize, block, ssl_context=ctx, **pool_kwargs)  # type: ignore[no-untyped-call]
+
+
 class ConfluenceAPI:
     """
     Represents an active connection to a Confluence server.
@@ -349,6 +382,8 @@ class ConfluenceAPI:
 
     def __enter__(self) -> "ConfluenceSession":
         session = requests.Session()
+        session.mount("https://", TruststoreAdapter())
+
         if self.properties.user_name:
             session.auth = (self.properties.user_name, self.properties.api_key)
         else:
@@ -423,7 +458,7 @@ class ConfluenceSession:
             LOGGER.info("Discovering Confluence REST API URL")
             try:
                 # obtain cloud ID to build URL for access with scoped token
-                response = self.session.get(f"https://{self.site.domain}/_edge/tenant_info", headers={"Accept": "application/json"})
+                response = self.session.get(f"https://{self.site.domain}/_edge/tenant_info", headers={"Accept": "application/json"}, verify=True)
                 if response.text:
                     LOGGER.debug("Received HTTP payload:\n%s", response.text)
                 response.raise_for_status()
@@ -433,7 +468,7 @@ class ConfluenceSession:
                 LOGGER.info("Probing scoped Confluence REST API URL")
                 self.api_url = f"https://api.atlassian.com/ex/confluence/{cloud_id}/"
                 url = self._build_url(ConfluenceVersion.VERSION_2, "/spaces", {"limit": "1"})
-                response = self.session.get(url, headers={"Accept": "application/json"})
+                response = self.session.get(url, headers={"Accept": "application/json"}, verify=True)
                 if response.text:
                     LOGGER.debug("Received HTTP payload:\n%s", response.text)
                 response.raise_for_status()
@@ -477,7 +512,7 @@ class ConfluenceSession:
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
-        response = self.session.get(url, headers={"Accept": "application/json"})
+        response = self.session.get(url, headers={"Accept": "application/json"}, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
@@ -489,7 +524,7 @@ class ConfluenceSession:
         items: list[JsonType] = []
         url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
         while True:
-            response = self.session.get(url, headers={"Accept": "application/json"})
+            response = self.session.get(url, headers={"Accept": "application/json"}, verify=True)
             response.raise_for_status()
 
             payload = typing.cast(dict[str, JsonType], response.json())
@@ -525,11 +560,7 @@ class ConfluenceSession:
         "Creates a new object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
-        response = self.session.post(
-            url,
-            data=data,
-            headers=headers,
-        )
+        response = self.session.post(url, data=data, headers=headers, verify=True)
         response.raise_for_status()
         return response_cast(response_type, response)
 
@@ -537,11 +568,7 @@ class ConfluenceSession:
         "Updates an existing object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
-        response = self.session.put(
-            url,
-            data=data,
-            headers=headers,
-        )
+        response = self.session.put(url, data=data, headers=headers, verify=True)
         response.raise_for_status()
         return response_cast(response_type, response)
 
@@ -712,6 +739,7 @@ class ConfluenceSession:
                         "X-Atlassian-Token": "no-check",
                         "Accept": "application/json",
                     },
+                    verify=True,
                 )
         elif raw_data is not None:
             LOGGER.info("Uploading raw data: %s", attachment_name)
@@ -739,6 +767,7 @@ class ConfluenceSession:
                     "X-Atlassian-Token": "no-check",
                     "Accept": "application/json",
                 },
+                verify=True,
             )
         else:
             raise NotImplementedError("parameter match not exhaustive")
@@ -900,6 +929,7 @@ class ConfluenceSession:
                 "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
             },
+            verify=True,
         )
         response.raise_for_status()
         return _json_to_object(ConfluencePage, response.json())
@@ -917,7 +947,7 @@ class ConfluenceSession:
         # move to trash
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         LOGGER.info("Moving page to trash: %s", page_id)
-        response = self.session.delete(url)
+        response = self.session.delete(url, verify=True)
         response.raise_for_status()
 
         if purge:
@@ -925,7 +955,7 @@ class ConfluenceSession:
             query = {"purge": "true"}
             url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
             LOGGER.info("Permanently deleting page: %s", page_id)
-            response = self.session.delete(url)
+            response = self.session.delete(url, verify=True)
             response.raise_for_status()
 
     def page_exists(
@@ -960,6 +990,7 @@ class ConfluenceSession:
                 "Content-Type": "application/json; charset=utf-8",
                 "Accept": "application/json",
             },
+            verify=True,
         )
         response.raise_for_status()
         data = typing.cast(dict[str, JsonType], response.json())
@@ -1024,7 +1055,7 @@ class ConfluenceSession:
             query = {"name": label.name}
 
             url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
-            response = self.session.delete(url)
+            response = self.session.delete(url, verify=True)
             if response.text:
                 LOGGER.debug("Received HTTP payload:\n%s", response.text)
             response.raise_for_status()
@@ -1083,7 +1114,7 @@ class ConfluenceSession:
 
         path = f"/pages/{page_id}/properties/{property_id}"
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.delete(url)
+        response = self.session.delete(url, verify=True)
         response.raise_for_status()
 
     def update_content_property_for_page(

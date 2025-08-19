@@ -30,12 +30,14 @@ classifiers = [
     "Typing :: Typed"
 ]
 dependencies = [
+    "certifi >= 2025.8.3; python_version<'3.10'",
     "json_strong_typing >= 0.4",
     "lxml >= 6.0",
     "markdown >= 3.8",
     "pymdown-extensions >= 10.16",
     "PyYAML >= 6.0",
     "requests >= 2.32",
+    "truststore >= 0.10; python_version>='3.10'",
     "typing-extensions >= 4.14; python_version < '3.12'"
 ]
 dynamic = ["version"]
