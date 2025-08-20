@@ -14,6 +14,7 @@ import logging
 import os.path
 import sys
 import typing
+from io import StringIO
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional, Sequence, Union
 
@@ -88,7 +89,7 @@ class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
         return usage_str
 
 
-def main() -> None:
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=PositionalOnlyHelpFormatter)
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
@@ -103,7 +104,6 @@ def main() -> None:
     parser.add_argument("-u", "--username", help="Confluence user name.")
     parser.add_argument(
         "-a",
-        "--apikey",
         "--api-key",
         dest="api_key",
         help="Confluence API key. Refer to documentation how to obtain one.",
@@ -242,7 +242,18 @@ def main() -> None:
         default=False,
         help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
     )
+    return parser
 
+
+def get_help() -> str:
+    parser = get_parser()
+    with StringIO() as buf:
+        parser.print_help(file=buf)
+        return buf.getvalue()
+
+
+def main() -> None:
+    parser = get_parser()
     args = Arguments()
     parser.parse_args(namespace=args)
 

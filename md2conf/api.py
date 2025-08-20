@@ -371,7 +371,7 @@ class TruststoreAdapter(HTTPAdapter):
 
 class ConfluenceAPI:
     """
-    Represents an active connection to a Confluence server.
+    Encapsulates operations that can be invoked via the [Confluence REST API](https://developer.atlassian.com/cloud/confluence/rest/v2/).
     """
 
     properties: ConfluenceConnectionProperties
@@ -381,6 +381,10 @@ class ConfluenceAPI:
         self.properties = properties or ConfluenceConnectionProperties()
 
     def __enter__(self) -> "ConfluenceSession":
+        """
+        Opens a connection to a Confluence server.
+        """
+
         session = requests.Session()
         session.mount("https://", TruststoreAdapter())
 
@@ -407,6 +411,10 @@ class ConfluenceAPI:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
+        """
+        Closes an open connection.
+        """
+
         if self.session is not None:
             self.session.close()
             self.session = None
@@ -414,7 +422,7 @@ class ConfluenceAPI:
 
 class ConfluenceSession:
     """
-    Information about an open session to a Confluence server.
+    Represents an active connection to a Confluence server.
     """
 
     session: requests.Session

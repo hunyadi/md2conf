@@ -13,4 +13,4 @@ $PYTHON_EXECUTABLE -m mypy integration_tests
 $PYTHON_EXECUTABLE -m md2conf --help > /dev/null
 
 # Generate documentation
-# $PYTHON_EXECUTABLE documentation.py
+$PYTHON_EXECUTABLE documentation.py

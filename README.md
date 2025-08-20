@@ -509,7 +509,7 @@ options:
   --api-url API_URL     Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.
   -u, --username USERNAME
                         Confluence user name.
-  -a, --apikey, --api-key API_KEY
+  -a, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s, --space SPACE     Confluence space key for pages to be published. If omitted, will default to user space.
   -l, --loglevel {debug,info,warning,error,critical}
