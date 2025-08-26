@@ -1706,9 +1706,7 @@ class ConfluenceDocument:
 
         # convert to HTML
         html = markdown_to_html("\n".join(lines))
-        with open("debug_html.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        print(f"HTML written to debug_html.html ({len(html)} characters)")
+
         # parse Markdown document
         if self.options.generated_by is not None:
             generated_by = document.generated_by or self.options.generated_by
