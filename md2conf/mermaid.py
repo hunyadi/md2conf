@@ -44,7 +44,7 @@ def has_mmdc() -> bool:
     return shutil.which(executable) is not None
 
 
-def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", scale: str = None) -> bytes:
+def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", scale: float = None) -> bytes:
     "Generates a PNG or SVG image from a Mermaid diagram source."
 
     cmd = [
@@ -58,7 +58,7 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", sc
         "--backgroundColor",
         "transparent",
         "--scale",
-        scale if scale is not None else "2",
+        str(scale) if scale is not None else "2",
     ]
     root = os.path.dirname(__file__)
     if is_docker():

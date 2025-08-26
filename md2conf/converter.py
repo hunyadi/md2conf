@@ -33,7 +33,7 @@ from .extra import override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
-from .scanner import ScannedDocument, Scanner
+from .scanner import ScannedDocument, Scanner, MermaidRenderProperties
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -390,6 +390,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.embedded_files = {}
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
+        self.scanner = Scanner()  # Create once, reuse multiple times
 
     def _transform_heading(self, heading: ET._Element) -> None:
         """
@@ -828,36 +829,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("plain-text-body", ET.CDATA(content)),
         )
 
-    def _extract_mermaid_dimensions(self, content: str) -> Optional[str]:
+    def _extract_mermaid_scale(self, content: str) -> Optional[float]:
         """Extract scale from Mermaid YAML front matter configuration."""
-        
-        # Look for YAML front matter pattern (--- ... ---)
-        yaml_pattern = r'^---\s*\n(.*?)\n---\s*\n'
-        match = re.search(yaml_pattern, content, re.DOTALL | re.MULTILINE)
-        
-        if not match:
-            return None
-
         try:
-            yaml_content = match.group(1)
-            config: JsonType = yaml.safe_load(yaml_content)
-            
-            scale = None
-            
-            # Check for scale in config section
-            if isinstance(config, dict) and 'config' in config:
-                config_section = config['config']
-                if isinstance(config_section, dict):
-                    scale = config_section.get('scale')
-            
-            # Convert to string if it's a number
-            if isinstance(scale, (int, float)):
-                scale = str(scale)
-                
-            return scale
-            
-        except (yaml.YAMLError, KeyError, ValueError):
+            properties = self.scanner.fetch_mermaid_properties(content)
+        except ValueError as ex:
+            LOGGER.warning("Failed to extract Mermaid properties: %s", ex)
             return None
+        return properties.scale
 
     def _transform_external_mermaid(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for a Mermaid diagram read from an external file."
@@ -869,7 +848,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_mermaid:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            scale = self._extract_mermaid_dimensions(content)
+            scale = self._extract_mermaid_scale(content)
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format, scale=scale)
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
             self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
@@ -883,7 +862,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a fenced code block."
 
         if self.options.render_mermaid:
-            scale = self._extract_mermaid_dimensions(content)
+            scale = self._extract_mermaid_scale(content)
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format, scale=scale)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")

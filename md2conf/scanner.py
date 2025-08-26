@@ -85,6 +85,17 @@ class DocumentProperties:
 
 
 @dataclass
+class MermaidRenderProperties:
+    """
+    An object that holds properties for Mermaid diagram rendering controlled by the CLI.
+    
+    :param scale: Scaling factor for the rendered diagram (e.g., "1", "2.5").
+    """
+    
+    scale: Optional[float] = None
+
+
+@dataclass
 class ScannedDocument:
     """
     An object that holds properties extracted from a Markdown document, including remaining source text.
@@ -154,4 +165,32 @@ class Scanner:
             synchronized=synchronized,
             properties=properties,
             text=text,
+        )
+
+    def fetch_mermaid_properties(self, content: str) -> MermaidRenderProperties:
+        """
+        Extracts rendering preferences from a Mermaid front-matter content.
+        ---
+        title: Tiny flow diagram
+        config:
+            scale: 1
+        ---
+        flowchart LR
+            A[Component A] --> B[Component B]
+            B --> C[Component C]
+        """
+
+        scale = None
+        properties, text = extract_frontmatter_properties(content)
+        if properties is not None:
+            
+            # Check for scale in `config` section
+            if isinstance(properties, dict) and 'config' in properties:
+                config_section = properties['config']
+                if isinstance(config_section, dict):
+                    scale = config_section.get('scale')
+                    if scale is not None and not isinstance(scale, (int, float)):
+                        raise ValueError("'scale' property must be a decimal number.")
+        return MermaidRenderProperties(
+            scale=scale
         )

@@ -19,6 +19,28 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
+mermaid_front_matter = """---
+title: Tiny flow diagram
+config:
+  scale: 1
+---
+flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
+mermaid_no_front_matter = """flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
+mermaid_malformed_front_matter = """---
+title: Tiny flow diagram
+config:
+  scale: 1.2.5
+---
+flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
 
 class TestScanner(TypedTestCase):
     sample_dir: Path
@@ -52,6 +74,17 @@ class TestScanner(TypedTestCase):
         self.assertEqual(document.title, "Markdown example document")
         self.assertEqual(document.tags, ["markdown", "confluence", "md", "wiki"])
 
+    def test_mermaid_frontmatter(self) -> None:
+        properties = Scanner().fetch_mermaid_properties(mermaid_front_matter)
+        self.assertEqual(properties.scale, 1)
+
+    def test_mermaid_no_frontmatter(self) -> None:
+        properties = Scanner().fetch_mermaid_properties(mermaid_no_front_matter)
+        self.assertIsNone(properties.scale, "No front-matter shall return `None` and let the mermaid CLI decides on the default value.")
+
+    def test_mermaid_malformed_frontmatter(self) -> None:
+        with self.assertRaises(ValueError):
+            Scanner().fetch_mermaid_properties(mermaid_malformed_front_matter)
 
 if __name__ == "__main__":
     unittest.main()
