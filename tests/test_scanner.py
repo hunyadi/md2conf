@@ -13,6 +13,7 @@ from pathlib import Path
 from md2conf.extra import override
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
+from strong_typing.deserializer import JsonTypeError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -76,14 +77,14 @@ class TestScanner(TypedTestCase):
 
     def test_mermaid_frontmatter(self) -> None:
         properties = Scanner().fetch_mermaid_properties(mermaid_front_matter)
-        self.assertEqual(properties.scale, 1)
+        self.assertEqual(properties.config.scale, 1)
 
     def test_mermaid_no_frontmatter(self) -> None:
         properties = Scanner().fetch_mermaid_properties(mermaid_no_front_matter)
-        self.assertIsNone(properties.scale, "No front-matter shall return `None` and let the mermaid CLI decides on the default value.")
+        self.assertIsNone(properties.config.scale, "No front-matter shall build a dataclass structure and return `None` to the 'scale' property.")
 
     def test_mermaid_malformed_frontmatter(self) -> None:
-        with self.assertRaises(ValueError):
+        with self.assertRaises(JsonTypeError):
             Scanner().fetch_mermaid_properties(mermaid_malformed_front_matter)
 
 if __name__ == "__main__":

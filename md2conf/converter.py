@@ -13,7 +13,6 @@ import logging
 import os.path
 import re
 import uuid
-import yaml
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +21,7 @@ from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
 from strong_typing.core import JsonType
+from strong_typing.deserializer import JsonTypeError
 
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
@@ -33,7 +33,7 @@ from .extra import override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .metadata import ConfluenceSiteMetadata
-from .scanner import ScannedDocument, Scanner, MermaidRenderProperties
+from .scanner import ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -833,10 +833,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """Extract scale from Mermaid YAML front matter configuration."""
         try:
             properties = self.scanner.fetch_mermaid_properties(content)
-        except ValueError as ex:
+        except JsonTypeError as ex:
             LOGGER.warning("Failed to extract Mermaid properties: %s", ex)
             return None
-        return properties.scale
+        return properties.config.scale
 
     def _transform_external_mermaid(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for a Mermaid diagram read from an external file."

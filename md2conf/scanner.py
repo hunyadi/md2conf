@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
@@ -85,14 +85,26 @@ class DocumentProperties:
 
 
 @dataclass
-class MermaidRenderProperties:
+class MermaidConfigProperties:
     """
-    An object that holds properties for Mermaid diagram rendering controlled by the CLI.
+    Configuration properties for Mermaid diagrams extracted from YAML front matter.
     
-    :param scale: Scaling factor for the rendered diagram (e.g., "1", "2.5").
+    :param scale: Scaling factor for the rendered diagram.
     """
-    
     scale: Optional[float] = None
+
+
+@dataclass
+class MermaidProperties:
+    """
+    An object that holds the Front-matter properties structure for Mermaid diagrams.
+    
+    :param title: The title of the diagram.
+    :param config: Configuration options for rendering.
+    """
+    title: Optional[str] = None
+    config: Optional[MermaidConfigProperties] = field(default_factory=MermaidConfigProperties)
+
 
 
 @dataclass
@@ -167,7 +179,7 @@ class Scanner:
             text=text,
         )
 
-    def fetch_mermaid_properties(self, content: str) -> MermaidRenderProperties:
+    def fetch_mermaid_properties(self, content: str) -> MermaidProperties:
         """
         Extracts rendering preferences from a Mermaid front-matter content.
         ---
@@ -180,17 +192,14 @@ class Scanner:
             B --> C[Component C]
         """
 
-        scale = None
         properties, text = extract_frontmatter_properties(content)
         if properties is not None:
+            front_matter = _json_to_object(MermaidProperties, properties)
+            config = front_matter.config or MermaidConfigProperties()
             
-            # Check for scale in `config` section
-            if isinstance(properties, dict) and 'config' in properties:
-                config_section = properties['config']
-                if isinstance(config_section, dict):
-                    scale = config_section.get('scale')
-                    if scale is not None and not isinstance(scale, (int, float)):
-                        raise ValueError("'scale' property must be a decimal number.")
-        return MermaidRenderProperties(
-            scale=scale
-        )
+            return MermaidProperties(
+                title=front_matter.title,
+                config=config
+            )
+        
+        return MermaidProperties()
