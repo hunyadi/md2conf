@@ -10,14 +10,39 @@ import logging
 import unittest
 from pathlib import Path
 
+from strong_typing.exception import JsonTypeError
+
 from md2conf.extra import override
-from md2conf.scanner import Scanner
+from md2conf.scanner import MermaidScanner, Scanner
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
+
+mermaid_front_matter = """---
+title: Tiny flow diagram
+config:
+  scale: 1
+---
+flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
+mermaid_no_front_matter = """flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
+mermaid_malformed_front_matter = """---
+title: Tiny flow diagram
+config:
+  scale: 1.2.5
+---
+flowchart LR
+    A[Component A] --> B[Component B]
+    B --> C[Component C]
+"""
 
 
 class TestScanner(TypedTestCase):
@@ -51,6 +76,22 @@ class TestScanner(TypedTestCase):
         self.assertEqual(document.generated_by, "This page has been generated with md2conf.")
         self.assertEqual(document.title, "Markdown example document")
         self.assertEqual(document.tags, ["markdown", "confluence", "md", "wiki"])
+
+    def test_mermaid_frontmatter(self) -> None:
+        properties = MermaidScanner().read(mermaid_front_matter)
+        if properties.config is None:
+            self.fail("Front-matter shall build a dataclass structure and return the specified value for `scale`")
+        self.assertEqual(properties.config.scale, 1)
+
+    def test_mermaid_no_frontmatter(self) -> None:
+        properties = MermaidScanner().read(mermaid_no_front_matter)
+        if properties.config is None:
+            self.fail("No front-matter shall build a dataclass structure and return `None` for the `scale` property.")
+        self.assertIsNone(properties.config.scale)
+
+    def test_mermaid_malformed_frontmatter(self) -> None:
+        with self.assertRaises(JsonTypeError):
+            MermaidScanner().read(mermaid_malformed_front_matter)
 
 
 if __name__ == "__main__":

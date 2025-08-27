@@ -15,6 +15,8 @@ import yaml
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_to_object
 
+from .mermaid import MermaidConfigProperties
+
 T = TypeVar("T")
 
 
@@ -155,3 +157,47 @@ class Scanner:
             properties=properties,
             text=text,
         )
+
+
+@dataclass
+class MermaidProperties:
+    """
+    An object that holds the front-matter properties structure for Mermaid diagrams.
+
+    :param title: The title of the diagram.
+    :param config: Configuration options for rendering.
+    """
+
+    title: Optional[str] = None
+    config: Optional[MermaidConfigProperties] = None
+
+
+class MermaidScanner:
+    """
+    Extracts properties from the JSON/YAML front-matter of a Mermaid diagram.
+    """
+
+    def read(self, content: str) -> MermaidProperties:
+        """
+        Extracts rendering preferences from a Mermaid front-matter content.
+
+        ```
+        ---
+        title: Tiny flow diagram
+        config:
+            scale: 1
+        ---
+        flowchart LR
+            A[Component A] --> B[Component B]
+            B --> C[Component C]
+        ```
+        """
+
+        properties, text = extract_frontmatter_properties(content)
+        if properties is not None:
+            front_matter = _json_to_object(MermaidProperties, properties)
+            config = front_matter.config or MermaidConfigProperties()
+
+            return MermaidProperties(title=front_matter.title, config=config)
+
+        return MermaidProperties()

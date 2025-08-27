@@ -21,6 +21,7 @@ from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
 from strong_typing.core import JsonType
+from strong_typing.exception import JsonTypeError
 
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
@@ -31,8 +32,9 @@ from .environment import PageError
 from .extra import override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
+from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
-from .scanner import ScannedDocument, Scanner
+from .scanner import MermaidScanner, ScannedDocument, Scanner
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -827,6 +829,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("plain-text-body", ET.CDATA(content)),
         )
 
+    def _extract_mermaid_config(self, content: str) -> Optional[MermaidConfigProperties]:
+        """Extract scale from Mermaid YAML front matter configuration."""
+        try:
+            properties = MermaidScanner().read(content)
+            return properties.config
+        except JsonTypeError as ex:
+            LOGGER.warning("Failed to extract Mermaid properties: %s", ex)
+            return None
+
     def _transform_external_mermaid(self, absolute_path: Path, attrs: ImageAttributes) -> ET._Element:
         "Emits Confluence Storage Format XHTML for a Mermaid diagram read from an external file."
 
@@ -837,7 +848,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_mermaid:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
+            config = self._extract_mermaid_config(content)
+            image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
             self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
             return self._create_attached_image(image_filename, attrs)
@@ -850,7 +862,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a fenced code block."
 
         if self.options.render_mermaid:
-            image_data = mermaid.render_diagram(content, self.options.diagram_output_format)
+            config = self._extract_mermaid_config(content)
+            image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_files[image_filename] = EmbeddedFileData(image_data)
