@@ -80,14 +80,12 @@ class TestScanner(TypedTestCase):
     def test_mermaid_frontmatter(self) -> None:
         properties = MermaidScanner().read(mermaid_front_matter)
         if properties.config is None:
-            self.fail("Front-matter shall build a dataclass structure and return the specified value for `scale`")
+            self.fail()
         self.assertEqual(properties.config.scale, 1)
 
     def test_mermaid_no_frontmatter(self) -> None:
         properties = MermaidScanner().read(mermaid_no_front_matter)
-        if properties.config is None:
-            self.fail("No front-matter shall build a dataclass structure and return `None` for the `scale` property.")
-        self.assertIsNone(properties.config.scale)
+        self.assertIsNone(properties.config)
 
     def test_mermaid_malformed_frontmatter(self) -> None:
         with self.assertRaises(JsonTypeError):
