@@ -10,10 +10,11 @@ import logging
 import unittest
 from pathlib import Path
 
+from strong_typing.exception import JsonTypeError
+
 from md2conf.extra import override
-from md2conf.scanner import Scanner
+from md2conf.scanner import MermaidScanner, Scanner
 from tests.utility import TypedTestCase
-from strong_typing.deserializer import JsonTypeError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,6 +43,7 @@ flowchart LR
     A[Component A] --> B[Component B]
     B --> C[Component C]
 """
+
 
 class TestScanner(TypedTestCase):
     sample_dir: Path
@@ -76,16 +78,21 @@ class TestScanner(TypedTestCase):
         self.assertEqual(document.tags, ["markdown", "confluence", "md", "wiki"])
 
     def test_mermaid_frontmatter(self) -> None:
-        properties = Scanner().fetch_mermaid_properties(mermaid_front_matter)
+        properties = MermaidScanner().read(mermaid_front_matter)
+        if properties.config is None:
+            self.fail("Front-matter shall build a dataclass structure and return the specified value for `scale`")
         self.assertEqual(properties.config.scale, 1)
 
     def test_mermaid_no_frontmatter(self) -> None:
-        properties = Scanner().fetch_mermaid_properties(mermaid_no_front_matter)
-        self.assertIsNone(properties.config.scale, "No front-matter shall build a dataclass structure and return `None` to the 'scale' property.")
+        properties = MermaidScanner().read(mermaid_no_front_matter)
+        if properties.config is None:
+            self.fail("No front-matter shall build a dataclass structure and return `None` for the `scale` property.")
+        self.assertIsNone(properties.config.scale)
 
     def test_mermaid_malformed_frontmatter(self) -> None:
         with self.assertRaises(JsonTypeError):
-            Scanner().fetch_mermaid_properties(mermaid_malformed_front_matter)
+            MermaidScanner().read(mermaid_malformed_front_matter)
+
 
 if __name__ == "__main__":
     unittest.main()

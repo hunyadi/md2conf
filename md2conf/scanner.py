@@ -7,13 +7,15 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
 import yaml
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_to_object
+
+from .mermaid import MermaidConfigProperties
 
 T = TypeVar("T")
 
@@ -82,29 +84,6 @@ class DocumentProperties:
     tags: Optional[list[str]]
     synchronized: Optional[bool]
     properties: Optional[dict[str, JsonType]]
-
-
-@dataclass
-class MermaidConfigProperties:
-    """
-    Configuration properties for Mermaid diagrams extracted from YAML front matter.
-    
-    :param scale: Scaling factor for the rendered diagram.
-    """
-    scale: Optional[float] = None
-
-
-@dataclass
-class MermaidProperties:
-    """
-    An object that holds the Front-matter properties structure for Mermaid diagrams.
-    
-    :param title: The title of the diagram.
-    :param config: Configuration options for rendering.
-    """
-    title: Optional[str] = None
-    config: Optional[MermaidConfigProperties] = field(default_factory=MermaidConfigProperties)
-
 
 
 @dataclass
@@ -179,9 +158,30 @@ class Scanner:
             text=text,
         )
 
-    def fetch_mermaid_properties(self, content: str) -> MermaidProperties:
+
+@dataclass
+class MermaidProperties:
+    """
+    An object that holds the front-matter properties structure for Mermaid diagrams.
+
+    :param title: The title of the diagram.
+    :param config: Configuration options for rendering.
+    """
+
+    title: Optional[str] = None
+    config: Optional[MermaidConfigProperties] = None
+
+
+class MermaidScanner:
+    """
+    Extracts properties from the JSON/YAML front-matter of a Mermaid diagram.
+    """
+
+    def read(self, content: str) -> MermaidProperties:
         """
         Extracts rendering preferences from a Mermaid front-matter content.
+
+        ```
         ---
         title: Tiny flow diagram
         config:
@@ -190,16 +190,14 @@ class Scanner:
         flowchart LR
             A[Component A] --> B[Component B]
             B --> C[Component C]
+        ```
         """
 
         properties, text = extract_frontmatter_properties(content)
         if properties is not None:
             front_matter = _json_to_object(MermaidProperties, properties)
             config = front_matter.config or MermaidConfigProperties()
-            
-            return MermaidProperties(
-                title=front_matter.title,
-                config=config
-            )
-        
+
+            return MermaidProperties(title=front_matter.title, config=config)
+
         return MermaidProperties()
