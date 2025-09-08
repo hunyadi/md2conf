@@ -17,7 +17,7 @@ import typing
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
@@ -71,16 +71,24 @@ def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
 LOGGER = logging.getLogger(__name__)
 
 
-def response_cast(response_type: type[T], response: requests.Response) -> T:
+@overload
+def response_cast(response_type: None, response: requests.Response) -> None: ...
+
+
+@overload
+def response_cast(response_type: type[T], response: requests.Response) -> T: ...
+
+
+def response_cast(response_type: Optional[type[T]], response: requests.Response) -> Optional[T]:
     "Converts a response body into the expected type."
 
     if response.text:
         LOGGER.debug("Received HTTP payload:\n%s", response.text)
     response.raise_for_status()
-    if response_type is not type(None):
-        return _json_to_object(response_type, response.json())
-    else:
+    if response_type is None:
         return None
+    else:
+        return _json_to_object(response_type, response.json())
 
 
 @enum.unique
@@ -450,7 +458,7 @@ class ConfluenceSession:
 
             if not domain or not base_path:
                 data = self._get(ConfluenceVersion.VERSION_2, "/spaces", ConfluenceResultSet, query={"limit": "1"})
-                base_url = data._links.base
+                base_url = data._links.base  # pyright: ignore[reportPrivateUsage]
 
                 _, domain, base_path, _, _, _ = urlparse(base_url)
                 if not base_path.endswith("/"):
@@ -548,23 +556,23 @@ class ConfluenceSession:
 
         return items
 
-    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> tuple[str, dict[str, str], bytes]:
+    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> tuple[str, dict[str, str], bytes]:
         "Generates URL, headers and raw payload for a typed request/response."
 
         url = self._build_url(version, path)
-        if response_type is not type(None):
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-                "Accept": "application/json",
-            }
-        else:
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-            }
+        headers = {"Content-Type": "application/json"}
+        if response_type is not None:
+            headers["Accept"] = "application/json"
         data = json_dump_string(object_to_json(body)).encode("utf-8")
         return url, headers, data
 
-    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
+    @overload
+    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: None) -> None: ...
+
+    @overload
+    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T: ...
+
+    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> Optional[T]:
         "Creates a new object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
@@ -572,7 +580,13 @@ class ConfluenceSession:
         response.raise_for_status()
         return response_cast(response_type, response)
 
-    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T:
+    @overload
+    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: None) -> None: ...
+
+    @overload
+    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T: ...
+
+    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> Optional[T]:
         "Updates an existing object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
@@ -806,7 +820,7 @@ class ConfluenceSession:
         )
 
         LOGGER.info("Updating attachment: %s", attachment_id)
-        self._put(ConfluenceVersion.VERSION_1, path, request, type(None))
+        self._put(ConfluenceVersion.VERSION_1, path, request, None)
 
     def get_page_properties_by_title(
         self,
@@ -899,7 +913,7 @@ class ConfluenceSession:
             version=ConfluenceContentVersion(number=version, minorEdit=True),
         )
         LOGGER.info("Updating page: %s", page_id)
-        self._put(ConfluenceVersion.VERSION_2, path, request, type(None))
+        self._put(ConfluenceVersion.VERSION_2, path, request, None)
 
     def create_page(
         self,
@@ -934,7 +948,7 @@ class ConfluenceSession:
             url,
             data=json_dump_string(object_to_json(request)).encode("utf-8"),
             headers={
-                "Content-Type": "application/json; charset=utf-8",
+                "Content-Type": "application/json",
                 "Accept": "application/json",
             },
             verify=True,
@@ -995,7 +1009,7 @@ class ConfluenceSession:
             url,
             params=query,
             headers={
-                "Content-Type": "application/json; charset=utf-8",
+                "Content-Type": "application/json",
                 "Accept": "application/json",
             },
             verify=True,
@@ -1048,7 +1062,7 @@ class ConfluenceSession:
         """
 
         path = f"/content/{page_id}/label"
-        self._post(ConfluenceVersion.VERSION_1, path, labels, type(None))
+        self._post(ConfluenceVersion.VERSION_1, path, labels, None)
 
     def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
         """

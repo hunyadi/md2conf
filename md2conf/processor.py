@@ -140,7 +140,7 @@ class Processor:
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_tree(self, node: DocumentNode, page_id: Optional[ConfluencePageID]) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 

@@ -27,6 +27,8 @@ from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
 FEATURE_TEST_PAGE_ID = ConfluencePageID("1933314")
@@ -36,7 +38,7 @@ IMAGE_TEST_PAGE_ID = ConfluencePageID("26837000")
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
 
-    def transform(self, child: ET._Element) -> Optional[ET._Element]:
+    def transform(self, child: ElementType) -> Optional[ElementType]:
         if child.tag in get_volatile_elements():
             child.clear(keep_tail=True)
         for name in get_volatile_attributes():
@@ -177,7 +179,7 @@ class TestAPI(TypedTestCase):
             relative_path = absolute_path.relative_to(source_dir).as_posix()
 
             with open(absolute_path, "w", encoding="utf-8") as f:
-                content = [
+                content: list[str] = [
                     f"# {relative_path}: A sample document",
                     "",
                     "This is a document without an explicitly assigned Confluence page ID or space key.",
@@ -185,7 +187,7 @@ class TestAPI(TypedTestCase):
                     "UTF-8 test sequence: árvíztűrő tükörfúrógép.",
                 ]
 
-                frontmatter = []
+                frontmatter: list[str] = []
                 if absolute_path.name != "index.md":
                     unique_string = f"md2conf/{relative_path}"
                     digest = hashlib.sha1(unique_string.encode("utf-8")).hexdigest()

@@ -14,6 +14,8 @@ from typing import Callable, TypeVar
 import lxml.etree as ET
 from lxml.builder import ElementMaker
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+
 # XML namespaces typically associated with Confluence Storage Format documents
 _namespaces = {
     "ac": "http://atlassian.com/content",
@@ -54,7 +56,7 @@ def with_entities(func: Callable[[Path], R]) -> R:
         return func(dtd_path)
 
 
-def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
+def _elements_from_strings(dtd_path: Path, items: list[str]) -> ElementType:
     """
     Creates an XML document tree from XML fragment strings.
 
@@ -90,7 +92,7 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ET._Element:
         raise ParseError() from ex
 
 
-def elements_from_strings(items: list[str]) -> ET._Element:
+def elements_from_strings(items: list[str]) -> ElementType:
     """
     Creates a Confluence Storage Format XML document tree from XML fragment strings.
 
@@ -103,7 +105,7 @@ def elements_from_strings(items: list[str]) -> ET._Element:
     return with_entities(lambda dtd_path: _elements_from_strings(dtd_path, items))
 
 
-def elements_from_string(content: str) -> ET._Element:
+def elements_from_string(content: str) -> ElementType:
     """
     Creates a Confluence Storage Format XML document tree from an XML string.
 
@@ -135,7 +137,7 @@ def content_to_string(content: str) -> str:
     return with_entities(lambda dtd_path: _content_to_string(dtd_path, content))
 
 
-def elements_to_string(root: ET._Element) -> str:
+def elements_to_string(root: ElementType) -> str:
     """
     Converts a Confluence Storage Format element tree into an XML string to push to Confluence REST API.
 
@@ -151,11 +153,11 @@ def elements_to_string(root: ET._Element) -> str:
         raise ValueError("expected: Confluence content")
 
 
-def is_block_like(elem: ET._Element) -> bool:
+def is_block_like(elem: ElementType) -> bool:
     return elem.tag in ["div", "li", "ol", "p", "pre", "td", "th", "ul"]
 
 
-def normalize_inline(elem: ET._Element) -> None:
+def normalize_inline(elem: ElementType) -> None:
     """
     Ensures that inline elements are direct children of an eligible block element.
 
@@ -179,7 +181,7 @@ def normalize_inline(elem: ET._Element) -> None:
     if not is_block_like(elem):
         raise ValueError(f"expected: block element; got: {elem.tag!s}")
 
-    contents: list[ET._Element] = []
+    contents: list[ElementType] = []
 
     paragraph = HTML.p()
     contents.append(paragraph)

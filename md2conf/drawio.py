@@ -20,6 +20,8 @@ from urllib.parse import unquote_to_bytes
 
 import lxml.etree as ET
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -49,7 +51,7 @@ def inflate(data: bytes) -> bytes:
     return zlib.decompress(data, -zlib.MAX_WBITS)
 
 
-def decompress_diagram(xml_data: typing.Union[bytes, str]) -> ET._Element:
+def decompress_diagram(xml_data: typing.Union[bytes, str]) -> ElementType:
     """
     Decompresses the text content of the `<diagram>` element in a draw.io XML document.
 
@@ -129,7 +131,7 @@ def decompress_diagram(xml_data: typing.Union[bytes, str]) -> ET._Element:
     return root
 
 
-def extract_xml_from_png(png_data: bytes) -> ET._Element:
+def extract_xml_from_png(png_data: bytes) -> ElementType:
     """
     Extracts an editable draw.io diagram from a PNG file.
 
@@ -190,7 +192,7 @@ def extract_xml_from_png(png_data: bytes) -> ET._Element:
     raise DrawioError("not a PNG file made with draw.io")
 
 
-def extract_xml_from_svg(svg_data: bytes) -> ET._Element:
+def extract_xml_from_svg(svg_data: bytes) -> ElementType:
     """
     Extracts an editable draw.io diagram from an SVG file.
 

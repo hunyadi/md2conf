@@ -141,7 +141,7 @@ class SynchronizingProcessor(Processor):
         title = None
         if document.title is not None:
             meta = self.page_metadata.get(path)
-            if meta is not None and meta.space_key is not None and meta.title != document.title:
+            if meta is not None and meta.title != document.title:
                 conflicting_page_id = self.api.page_exists(document.title, space_id=self.api.space_key_to_id(meta.space_key))
                 if conflicting_page_id is None:
                     title = document.title

@@ -40,7 +40,7 @@ else:
 
     matplotlib.rcParams["mathtext.fontset"] = "cm"  # change font to "Computer Modern"
 
-    LATEX_ENABLED = True
+    LATEX_ENABLED = True  # pyright: ignore[reportConstantRedefinition]
 
     def _render_latex(expression: str, f: BinaryIO, *, format: Literal["png", "svg"], dpi: int, font_size: int) -> None:
         # create a figure with no axis
@@ -219,7 +219,7 @@ def _get_png_dimensions(source_file: BinaryIO) -> tuple[int, int]:
     if ihdr.name != b"IHDR":
         raise ValueError(f"expected: IHDR chunk; got: {ihdr.name!r}")
 
-    (width, height, bit_depth, color_type, compression, filter, interlace) = unpack(">IIBBBBB", ihdr.data)
+    (width, height, bit_depth, color_type, compression, filter, interlace) = unpack(">IIBBBBB", ihdr.data)  # pyright: ignore[reportUnusedVariable]
     return width, height
 
 

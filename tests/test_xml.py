@@ -16,6 +16,8 @@ from md2conf.csf import elements_from_string, normalize_inline
 from md2conf.xml import is_xml_equal, unwrap_substitute
 from tests.utility import TypedTestCase
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
@@ -25,8 +27,8 @@ logging.basicConfig(
 class TestXml(TypedTestCase):
     def assertXmlEqual(
         self,
-        tree1: ET._Element,
-        tree2: ET._Element,
+        tree1: ElementType,
+        tree2: ElementType,
         *,
         skip_attributes: Optional[Iterable[str]] = None,
         skip_elements: Optional[Iterable[str]] = None,
@@ -37,7 +39,7 @@ class TestXml(TypedTestCase):
             xml2 = ET.tostring(tree2, encoding="utf8", method="xml").decode("utf8")
             self.assertMultiLineEqual(xml1, xml2, msg)
 
-    def assertXmlNotEqual(self, tree1: ET._Element, tree2: ET._Element, msg: Optional[str] = None) -> None:
+    def assertXmlNotEqual(self, tree1: ElementType, tree2: ElementType, msg: Optional[str] = None) -> None:
         if is_xml_equal(tree1, tree2):
             xml1 = ET.tostring(tree1, encoding="utf8", method="xml").decode("utf8")
             xml2 = ET.tostring(tree2, encoding="utf8", method="xml").decode("utf8")

@@ -105,10 +105,8 @@ class MatcherOptions:
 def _entry_name_dir(entry: Union[Entry, os.DirEntry[str]]) -> tuple[str, bool]:
     if isinstance(entry, Entry):
         return entry.name, entry.is_dir
-    elif isinstance(entry, os.DirEntry):
-        return entry.name, entry.is_dir()
     else:
-        raise NotImplementedError("type match not exhaustive")
+        return entry.name, entry.is_dir()
 
 
 class Matcher:

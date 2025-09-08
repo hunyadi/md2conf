@@ -10,8 +10,11 @@ from typing import Iterable, Optional
 
 import lxml.etree as ET
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+AttribType = ET._Attrib  # pyright: ignore[reportPrivateUsage]
 
-def _attrs_equal_excluding(attrs1: ET._Attrib, attrs2: ET._Attrib, exclude: set[str]) -> bool:
+
+def _attrs_equal_excluding(attrs1: AttribType, attrs2: AttribType, exclude: set[str]) -> bool:
     """
     Compares two dictionary objects, excluding keys in the skip set.
 
@@ -47,7 +50,7 @@ class ElementComparator:
         self.skip_attributes = set(skip_attributes) if skip_attributes else set()
         self.skip_elements = set(skip_elements) if skip_elements else set()
 
-    def is_equal(self, e1: ET._Element, e2: ET._Element) -> bool:
+    def is_equal(self, e1: ElementType, e2: ElementType) -> bool:
         """
         Recursively check if two XML elements are equal.
         """
@@ -82,7 +85,7 @@ class ElementComparator:
 
 
 def is_xml_equal(
-    tree1: ET._Element, tree2: ET._Element, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None
+    tree1: ElementType, tree2: ElementType, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None
 ) -> bool:
     """
     Compare two XML documents for equivalence, ignoring leading/trailing whitespace differences and attribute definition order.
@@ -99,13 +102,13 @@ def is_xml_equal(
     return ElementComparator(skip_attributes=skip_attributes, skip_elements=skip_elements).is_equal(tree1, tree2)
 
 
-def element_to_text(node: ET._Element) -> str:
+def element_to_text(node: ElementType) -> str:
     "Returns all text contained in an element as a concatenated string."
 
     return "".join(node.itertext()).strip()
 
 
-def unwrap_substitute(name: str, root: ET._Element) -> None:
+def unwrap_substitute(name: str, root: ElementType) -> None:
     """
     Substitutes all occurrences of an element with its contents.
 

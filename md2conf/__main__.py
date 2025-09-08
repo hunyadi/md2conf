@@ -74,7 +74,7 @@ class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
         self,
         usage: Optional[str],
         actions: Iterable[argparse.Action],
-        groups: Iterable[argparse._MutuallyExclusiveGroup],
+        groups: Iterable[argparse._MutuallyExclusiveGroup],  # pyright: ignore[reportPrivateUsage]
         prefix: Optional[str],
     ) -> str:
         # filter only positional arguments

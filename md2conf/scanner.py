@@ -7,6 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import re
+import typing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, TypeVar
@@ -45,7 +46,7 @@ def extract_frontmatter_block(text: str) -> tuple[Optional[str], str]:
     return extract_value(r"(?ms)\A---$(.+?)^---$", text)
 
 
-def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, Any]], str]:
+def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, JsonType]], str]:
     "Extracts the front-matter from a Markdown document as a dictionary."
 
     block, text = extract_frontmatter_block(text)
@@ -54,7 +55,7 @@ def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, Any]],
     if block is not None:
         data = yaml.safe_load(block)
         if isinstance(data, dict):
-            properties = data
+            properties = typing.cast(dict[str, JsonType], data)
 
     return properties, text
 
@@ -193,7 +194,7 @@ class MermaidScanner:
         ```
         """
 
-        properties, text = extract_frontmatter_properties(content)
+        properties, _ = extract_frontmatter_properties(content)
         if properties is not None:
             front_matter = _json_to_object(MermaidProperties, properties)
             config = front_matter.config or MermaidConfigProperties()
