@@ -46,6 +46,7 @@ class Arguments(argparse.Namespace):
     local: bool
     headers: dict[str, str]
     webui_links: bool
+    alignment: Literal["center", "left", "right"]
 
 
 class KwargsAppendAction(argparse.Action):
@@ -242,6 +243,13 @@ def get_parser() -> argparse.ArgumentParser:
         default=False,
         help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
     )
+    parser.add_argument(
+        "--alignment",
+        dest="alignment",
+        choices=["center", "left", "right"],
+        default="center",
+        help="Alignment for block-level images and formulas (default: 'center').",
+    )
     return parser
 
 
@@ -275,6 +283,7 @@ def main() -> None:
         render_latex=args.render_latex,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
+        alignment=args.alignment,
     )
     if args.local:
         from .local import LocalConverter

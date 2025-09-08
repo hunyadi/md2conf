@@ -249,6 +249,15 @@ class FormattingContext(enum.Enum):
     INLINE = "inline"
 
 
+@enum.unique
+class ImageAlignment(enum.Enum):
+    "Determines whether to align block-level images to center, left or right."
+
+    CENTER = "center"
+    LEFT = "left"
+    RIGHT = "right"
+
+
 @dataclass
 class ImageAttributes:
     """
@@ -260,6 +269,7 @@ class ImageAttributes:
     :param alt: Alternate text.
     :param title: Title text (a.k.a. image tooltip).
     :param caption: Caption text (shown below figure).
+    :param alignment: Alignment for block-level images.
     """
 
     context: FormattingContext
@@ -268,6 +278,7 @@ class ImageAttributes:
     alt: Optional[str]
     title: Optional[str]
     caption: Optional[str]
+    alignment: ImageAlignment = ImageAlignment.CENTER
 
     def __post_init__(self) -> None:
         if self.caption is None and self.context is FormattingContext.BLOCK:
@@ -276,8 +287,16 @@ class ImageAttributes:
     def as_dict(self) -> dict[str, str]:
         attributes: dict[str, str] = {}
         if self.context is FormattingContext.BLOCK:
-            attributes[AC_ATTR("align")] = "center"
-            attributes[AC_ATTR("layout")] = "center"
+            if self.alignment is ImageAlignment.LEFT:
+                attributes[AC_ATTR("align")] = "left"
+                attributes[AC_ATTR("layout")] = "align-start"
+            elif self.alignment is ImageAlignment.RIGHT:
+                attributes[AC_ATTR("align")] = "right"
+                attributes[AC_ATTR("layout")] = "align-end"
+            else:
+                attributes[AC_ATTR("align")] = "center"
+                attributes[AC_ATTR("layout")] = "center"
+
             if self.width is not None:
                 attributes[AC_ATTR("original-width")] = str(self.width)
             if self.height is not None:
@@ -313,8 +332,12 @@ class ImageAttributes:
             raise NotImplementedError("match not exhaustive for enumeration")
 
 
-ImageAttributes.EMPTY_BLOCK = ImageAttributes(FormattingContext.BLOCK, None, None, None, None, None)
-ImageAttributes.EMPTY_INLINE = ImageAttributes(FormattingContext.INLINE, None, None, None, None, None)
+ImageAttributes.EMPTY_BLOCK = ImageAttributes(
+    FormattingContext.BLOCK, width=None, height=None, alt=None, title=None, caption=None, alignment=ImageAlignment.CENTER
+)
+ImageAttributes.EMPTY_INLINE = ImageAttributes(
+    FormattingContext.INLINE, width=None, height=None, alt=None, title=None, caption=None, alignment=ImageAlignment.CENTER
+)
 
 
 @dataclass
@@ -332,6 +355,7 @@ class ConfluenceConverterOptions:
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
+    :param alignment: Alignment for block-level images and formulas.
     """
 
     ignore_invalid_url: bool = False
@@ -342,6 +366,7 @@ class ConfluenceConverterOptions:
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
+    alignment: Literal["center", "left", "right"] = "center"
 
 
 @dataclass
@@ -603,7 +628,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         height = image.get("height")
         pixel_width = int(width) if width is not None and width.isdecimal() else None
         pixel_height = int(height) if height is not None and height.isdecimal() else None
-        attrs = ImageAttributes(context, pixel_width, pixel_height, alt, title, None)
+        attrs = ImageAttributes(
+            context, width=pixel_width, height=pixel_height, alt=alt, title=title, caption=None, alignment=ImageAlignment(self.options.alignment)
+        )
 
         if is_absolute_url(src):
             return self._transform_external_image(src, attrs)
@@ -1189,7 +1216,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.diagram_output_format == "png":
             width, height = get_png_dimensions(data=image_data)
             image_data = remove_png_chunks(["pHYs"], source_data=image_data)
-            attrs = ImageAttributes(context, width, height, content, None, "")
+            attrs = ImageAttributes(context, width=width, height=height, alt=content, title=None, caption="", alignment=ImageAlignment(self.options.alignment))
         else:
             attrs = ImageAttributes.empty(context)
 
@@ -1230,7 +1257,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.alignment),
         )
         return macro
 
@@ -1267,7 +1294,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.alignment),
         )
 
     def _transform_footnote_ref(self, elem: ElementType) -> None:
@@ -1712,13 +1739,13 @@ class ConfluenceDocument:
         except ParseError as ex:
             raise ConversionError(path) from ex
 
-        converter = ConfluenceStorageFormatConverter(
-            ConfluenceConverterOptions(**{field.name: getattr(self.options, field.name) for field in dataclasses.fields(ConfluenceConverterOptions)}),
-            path,
-            root_dir,
-            site_metadata,
-            page_metadata,
+        # configure HTML-to-Confluence converter
+        converter_options = ConfluenceConverterOptions(
+            **{field.name: getattr(self.options, field.name) for field in dataclasses.fields(ConfluenceConverterOptions)}
         )
+        if document.alignment is not None:
+            converter_options.alignment = document.alignment
+        converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter
         try:

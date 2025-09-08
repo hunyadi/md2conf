@@ -10,7 +10,7 @@ import re
 import typing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Literal, Optional, TypeVar
 
 import yaml
 from strong_typing.core import JsonType
@@ -74,6 +74,7 @@ class DocumentProperties:
     :param tags: A list of tags (content labels) extracted from front-matter.
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
+    :param alignment: Alignment for block-level images and formulas.
     """
 
     page_id: Optional[str]
@@ -85,6 +86,7 @@ class DocumentProperties:
     tags: Optional[list[str]]
     synchronized: Optional[bool]
     properties: Optional[dict[str, JsonType]]
+    alignment: Optional[Literal["center", "left", "right"]]
 
 
 @dataclass
@@ -99,6 +101,7 @@ class ScannedDocument:
     :param tags: A list of tags (content labels) extracted from front-matter.
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
+    :param alignment: Alignment for block-level images and formulas.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
@@ -109,6 +112,7 @@ class ScannedDocument:
     tags: Optional[list[str]]
     synchronized: Optional[bool]
     properties: Optional[dict[str, JsonType]]
+    alignment: Optional[Literal["center", "left", "right"]]
     text: str
 
 
@@ -135,6 +139,7 @@ class Scanner:
         tags: Optional[list[str]] = None
         synchronized: Optional[bool] = None
         properties: Optional[dict[str, JsonType]] = None
+        alignment: Optional[Literal["center", "left", "right"]] = None
 
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
@@ -147,6 +152,7 @@ class Scanner:
             tags = p.tags
             synchronized = p.synchronized
             properties = p.properties
+            alignment = p.alignment
 
         return ScannedDocument(
             page_id=page_id,
@@ -156,6 +162,7 @@ class Scanner:
             tags=tags,
             synchronized=synchronized,
             properties=properties,
+            alignment=alignment,
             text=text,
         )
 

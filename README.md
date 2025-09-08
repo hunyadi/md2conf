@@ -535,6 +535,8 @@ options:
   --headers KEY=VALUE [KEY=VALUE ...]
                         Apply custom headers to all Confluence API requests.
   --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
+  --alignment {center,left,right}
+                        Alignment for block-level images and formulas (default: 'center').
 ```
 
 ### Using the Docker container

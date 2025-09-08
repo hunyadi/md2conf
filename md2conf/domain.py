@@ -33,6 +33,7 @@ class ConfluenceDocumentOptions:
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
+    :param alignment: Alignment for block-level images and formulas.
     """
 
     ignore_invalid_url: bool = False
@@ -46,3 +47,4 @@ class ConfluenceDocumentOptions:
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
+    alignment: Literal["center", "left", "right"] = "center"

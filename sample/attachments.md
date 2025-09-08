@@ -1,5 +1,6 @@
 ---
 title: "Images and documents"
+alignment: left
 ---
 
 <!-- confluence-page-id: 26837000 -->

@@ -1,0 +1,10 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Alignment</h2>
+<ac:image ac:align="left" ac:layout="align-start" ac:alt="Image with caption">
+  <ri:attachment ri:filename="figure_raster.png"/>
+  <ac:caption>Image with caption</ac:caption>
+</ac:image>
