@@ -1034,8 +1034,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if match:
             skip = len(match.group(0))
             alert = match.group(1)
-            if alert == "NOTE":
-                class_name = "note"
+            if alert == "INFO":
+                class_name = "info"
             elif alert == "TIP":
                 class_name = "tip"
             elif alert == "IMPORTANT":
