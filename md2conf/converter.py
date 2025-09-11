@@ -1034,16 +1034,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if match:
             skip = len(match.group(0))
             alert = match.group(1)
-            if alert == "INFO":
+            if alert == "NOTE":
                 class_name = "info"
             elif alert == "TIP":
-                class_name = "tip"
+                class_name = "success"
             elif alert == "IMPORTANT":
-                class_name = "tip"
+                class_name = "note"
             elif alert == "WARNING":
                 class_name = "warning"
             elif alert == "CAUTION":
-                class_name = "warning"
+                class_name = "error"
             else:
                 raise DocumentError(f"unsupported GitHub alert: {alert}")
 
