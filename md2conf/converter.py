@@ -976,7 +976,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <div class="admonition note">
         class_list = elem.get("class", "").split(" ")
-        class_name: Optional[str] = None
+        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
         if "info" in class_list:
             class_name = "info"
         elif "tip" in class_list:
@@ -1026,7 +1026,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if content.text is None:
             raise DocumentError("empty content")
 
-        class_name: Optional[str] = None
+        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
         skip = 0
 
         pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
@@ -1064,7 +1064,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if content.text is None:
             raise DocumentError("empty content")
 
-        class_name: Optional[str] = None
+        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
         skip = 0
 
         pattern = re.compile(r"^(FLAG|NOTE|WARNING|DISCLAIMER):\s*")
@@ -1087,9 +1087,31 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
     def _transform_alert(self, blockquote: ElementType, class_name: Optional[str], skip: int) -> ElementType:
         """
-        Creates an info, tip, note or warning panel from a GitHub or GitLab alert.
+        Creates an `info`, `tip`, `note` or `warning` panel from a GitHub or GitLab alert.
 
-        Transforms GitHub alert or GitLab alert syntax into one of the Confluence structured macros *info*, *tip*, *note*, or *warning*.
+        Transforms GitHub alert or GitLab alert syntax into one of the Confluence structured macros `info`, `tip`, `note`, or `warning`.
+
+        Confusingly, these structured macros have completely different alternate names on the UI, namely: *Info*, *Success*, *Warning* and *Error* (in this
+        order). In other words, to get what is shown as *Error* on the UI, you have to pass `warning` in CSF, and to get *Success*, you have to pass `tip`.
+
+        Confluence UI also has an additional panel type called *Note*. *Note* is not a structured macro but corresponds to a different element tree, wrapped in
+        an element `ac:adf-extension`:
+
+        ```
+        <ac:adf-node type="panel">
+            <ac:adf-attribute key="panel-type">note</ac:adf-attribute>
+            <ac:adf-content>
+                <p><strong>A note</strong></p>
+                <p>This is a panel showing a note.</p>
+            </ac:adf-content>
+        </ac:adf-node>
+        ```
+
+        As of today, *md2conf* does not generate `ac:adf-extension` output, including *Note* and *Custom panel* (which shows an emoji selected by the user).
+
+        :param blockquote: HTML element tree to transform to Confluence Storage Format (CSF).
+        :param class_name: Corresponds to `name` attribute for CSF `structured-macro`.
+        :param skip: Number of initial characters to skip over in text content.
 
         :see: https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts
         :see: https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes
