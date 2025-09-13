@@ -13,3 +13,13 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 ```
+
+```csf
+<ac:structured-macro ac:name="noformat">
+  <ac:plain-text-body><![CDATA[
+This is preformatted text.
+  Indentation and
+line breaks are preserved.
+  ]]></ac:plain-text-body>
+</ac:structured-macro>
+```
