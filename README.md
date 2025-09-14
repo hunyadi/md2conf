@@ -537,6 +537,7 @@ options:
   --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
   --alignment {center,left,right}
                         Alignment for block-level images and formulas (default: 'center').
+  --use-panel           Transform admonitions and alerts into a Confluence custom panel.
 ```
 
 ### Using the Docker container

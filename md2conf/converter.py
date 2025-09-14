@@ -356,6 +356,7 @@ class ConfluenceConverterOptions:
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param alignment: Alignment for block-level images and formulas.
+    :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     """
 
     ignore_invalid_url: bool = False
@@ -367,6 +368,7 @@ class ConfluenceConverterOptions:
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
     alignment: Literal["center", "left", "right"] = "center"
+    use_panel: bool = False
 
 
 @dataclass
@@ -379,6 +381,26 @@ class ImageData:
 class EmbeddedFileData:
     data: bytes
     description: Optional[str] = None
+
+
+@dataclass
+class ConfluencePanel:
+    emoji: str
+    emoji_shortname: str
+    background_color: str
+
+    def __init__(self, emoji: str, emoji_shortname: str, background_color: str) -> None:
+        self.emoji = emoji
+        self.emoji_shortname = emoji_shortname
+        self.background_color = background_color
+
+    @property
+    def emoji_unicode(self) -> str:
+        return "-".join(f"{ord(ch):x}" for ch in self.emoji)
+
+    @property
+    def emoji_html(self) -> str:
+        return "".join(f"&#{ord(ch)};" for ch in self.emoji)
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -976,43 +998,58 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # <div class="admonition note">
         class_list = elem.get("class", "").split(" ")
-        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
-        if "info" in class_list:
-            class_name = "info"
-        elif "tip" in class_list:
-            class_name = "tip"
-        elif "note" in class_list:
-            class_name = "note"
-        elif "warning" in class_list:
-            class_name = "warning"
-
-        if class_name is None:
-            raise DocumentError(f"unsupported admonition label: {class_list}")
+        class_list.remove("admonition")
+        if len(class_list) > 1:
+            raise DocumentError(f"too many admonition types: {class_list}")
+        elif len(class_list) < 1:
+            raise DocumentError("missing specific admonition type")
+        admonition = class_list[0]
 
         for e in elem:
             self.visit(e)
 
         # <p class="admonition-title">Note</p>
         if "admonition-title" in elem[0].get("class", "").split(" "):
-            content = [
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "title"},
-                    elem[0].text or "",
-                ),
-                AC_ELEM("rich-text-body", {}, *list(elem[1:])),
-            ]
+            content = [HTML.p(HTML.strong(elem[0].text or "")), *list(elem[1:])]
         else:
-            content = [AC_ELEM("rich-text-body", {}, *list(elem))]
+            content = list(elem)
 
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): class_name,
-                AC_ATTR("schema-version"): "1",
-            },
-            *content,
-        )
+        if self.options.use_panel:
+            return self._transform_panel(content, admonition)
+        else:
+            if admonition == "attention":
+                class_name = "note"
+            elif admonition == "caution":
+                class_name = "warning"
+            elif admonition == "danger":
+                class_name = "warning"
+            elif admonition == "error":
+                class_name = "warning"
+            elif admonition == "hint":
+                class_name = "tip"
+            elif admonition == "important":
+                class_name = "note"
+            elif admonition == "info":
+                class_name = "info"
+            elif admonition == "note":
+                class_name = "info"
+            elif admonition == "tip":
+                class_name = "tip"
+            elif admonition == "note":
+                class_name = "info"
+            elif admonition == "warning":
+                class_name = "note"
+            else:
+                raise DocumentError(f"unsupported admonition type: {admonition}")
+
+            return AC_ELEM(
+                "structured-macro",
+                {
+                    AC_ATTR("name"): class_name,
+                    AC_ATTR("schema-version"): "1",
+                },
+                AC_ELEM("rich-text-body", {}, *content),
+            )
 
     def _transform_github_alert(self, blockquote: ElementType) -> ElementType:
         """
@@ -1026,28 +1063,35 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if content.text is None:
             raise DocumentError("empty content")
 
-        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
-        skip = 0
-
         pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
         match = pattern.match(content.text)
-        if match:
-            skip = len(match.group(0))
-            alert = match.group(1)
+        if not match:
+            raise DocumentError("not a GitHub alert")
+
+        # remove alert indicator prefix
+        content.text = content.text[len(match.group(0)) :]
+
+        for e in blockquote:
+            self.visit(e)
+
+        alert = match.group(1)
+        if self.options.use_panel:
+            return self._transform_panel(list(blockquote), alert.lower())
+        else:
             if alert == "NOTE":
-                class_name = "note"
+                class_name = "info"
             elif alert == "TIP":
                 class_name = "tip"
             elif alert == "IMPORTANT":
-                class_name = "tip"
+                class_name = "note"
             elif alert == "WARNING":
-                class_name = "warning"
+                class_name = "note"
             elif alert == "CAUTION":
                 class_name = "warning"
             else:
                 raise DocumentError(f"unsupported GitHub alert: {alert}")
 
-        return self._transform_alert(blockquote, class_name, skip)
+            return self._transform_alert(blockquote, class_name)
 
     def _transform_gitlab_alert(self, blockquote: ElementType) -> ElementType:
         """
@@ -1064,28 +1108,35 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if content.text is None:
             raise DocumentError("empty content")
 
-        class_name: Optional[str] = None  # corresponds to `name` attribute for Confluence Storage Format `structured-macro`
-        skip = 0
-
         pattern = re.compile(r"^(FLAG|NOTE|WARNING|DISCLAIMER):\s*")
         match = pattern.match(content.text)
-        if match:
-            skip = len(match.group(0))
-            alert = match.group(1)
+        if not match:
+            raise DocumentError("not a GitLab alert")
+
+        # remove alert indicator prefix
+        content.text = content.text[len(match.group(0)) :]
+
+        for e in blockquote:
+            self.visit(e)
+
+        alert = match.group(1)
+        if self.options.use_panel:
+            return self._transform_panel(list(blockquote), alert.lower())
+        else:
             if alert == "FLAG":
                 class_name = "note"
             elif alert == "NOTE":
-                class_name = "note"
+                class_name = "info"
             elif alert == "WARNING":
-                class_name = "warning"
+                class_name = "note"
             elif alert == "DISCLAIMER":
                 class_name = "info"
             else:
                 raise DocumentError(f"unsupported GitLab alert: {alert}")
 
-        return self._transform_alert(blockquote, class_name, skip)
+            return self._transform_alert(blockquote, class_name)
 
-    def _transform_alert(self, blockquote: ElementType, class_name: Optional[str], skip: int) -> ElementType:
+    def _transform_alert(self, blockquote: ElementType, class_name: str) -> ElementType:
         """
         Creates an `info`, `tip`, `note` or `warning` panel from a GitHub or GitLab alert.
 
@@ -1111,23 +1162,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         :param blockquote: HTML element tree to transform to Confluence Storage Format (CSF).
         :param class_name: Corresponds to `name` attribute for CSF `structured-macro`.
-        :param skip: Number of initial characters to skip over in text content.
 
         :see: https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts
         :see: https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes
         """
 
-        content = blockquote[0]
-        if content.text is None:
-            raise DocumentError("empty content")
-
-        if class_name is None:
-            raise DocumentError("not an alert")
-
-        for e in blockquote:
-            self.visit(e)
-
-        content.text = content.text[skip:]
         return AC_ELEM(
             "structured-macro",
             {
@@ -1135,6 +1174,45 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ATTR("schema-version"): "1",
             },
             AC_ELEM("rich-text-body", {}, *list(blockquote)),
+        )
+
+    def _transform_panel(self, content: list[ElementType], class_name: str) -> ElementType:
+        "Transforms a blockquote into a themed panel."
+
+        if class_name == "info":
+            panel = ConfluencePanel("ℹ️", "information_source", "#DDF4FF")
+        elif class_name == "note":
+            panel = ConfluencePanel("📝", "pencil", "#DDF4FF")
+        elif class_name == "tip":
+            panel = ConfluencePanel("💡", "bulb", "#DAFBE1")
+        elif class_name == "important":
+            panel = ConfluencePanel("❗", "exclamation", "#FBEFFF")
+        elif class_name == "warning":
+            panel = ConfluencePanel("⚠️", "warning", "#FFF8C5")
+        elif class_name == "caution":
+            panel = ConfluencePanel("❌", "x", "#FFEBE9")
+        elif class_name == "flag":  # GitLab
+            panel = ConfluencePanel("🚩", "triangular_flag_on_post", "#FDECEA")
+        elif class_name == "disclaimer":  # GitLab
+            panel = ConfluencePanel("❗", "exclamation", "#F9F9F9")
+        elif class_name == "danger":  # rST admonition
+            panel = ConfluencePanel("☠️", "skull_crossbones", "#FFE5E5")
+        else:
+            raise DocumentError(f"unsupported panel class: {class_name}")
+
+        macro_id = str(uuid.uuid4())
+        return AC_ELEM(
+            "structured-macro",
+            {
+                AC_ATTR("name"): "panel",
+                AC_ATTR("schema-version"): "1",
+                AC_ATTR("macro-id"): macro_id,
+            },
+            AC_ELEM("parameter", {AC_ATTR("name"): "panelIcon"}, f":{panel.emoji_shortname}:"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "panelIconId"}, panel.emoji_unicode),
+            AC_ELEM("parameter", {AC_ATTR("name"): "panelIconText"}, panel.emoji),
+            AC_ELEM("parameter", {AC_ATTR("name"): "bgColor"}, panel.background_color),
+            AC_ELEM("rich-text-body", {}, *content),
         )
 
     def _transform_collapsed(self, details: ElementType) -> ElementType:

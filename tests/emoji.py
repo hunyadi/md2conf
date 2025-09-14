@@ -8,7 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import pathlib
 
-import pymdownx.emoji1_db as emoji_db
+import pymdownx.emoji1_db as emoji_db  # pyright: ignore[reportMissingTypeStubs]
 
 from md2conf.emoticon import emoji_to_emoticon
 

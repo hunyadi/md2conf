@@ -6,7 +6,7 @@
 <h2>Alerts</h2>
 <h3>GitHub</h3>
 <p>Note:</p>
-<ac:structured-macro ac:name="note" ac:schema-version="1">
+<ac:structured-macro ac:name="info" ac:schema-version="1">
   <ac:rich-text-body>
     <p>Useful information that users should know, even when skimming content.</p>
   </ac:rich-text-body>
@@ -18,13 +18,13 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <p>Important:</p>
-<ac:structured-macro ac:name="tip" ac:schema-version="1">
+<ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
     <p>Key information users need to know to achieve their goal.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <p>Warning:</p>
-<ac:structured-macro ac:name="warning" ac:schema-version="1">
+<ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
     <p>Urgent info that needs immediate user attention to avoid problems.</p>
   </ac:rich-text-body>
@@ -45,13 +45,13 @@ This feature is available for testing, but not ready for production use.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <p>Note:</p>
-<ac:structured-macro ac:name="note" ac:schema-version="1">
+<ac:structured-macro ac:name="info" ac:schema-version="1">
   <ac:rich-text-body>
     <p>This is something to note.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <p>Warning:</p>
-<ac:structured-macro ac:name="warning" ac:schema-version="1">
+<ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
     <p>This is something to be warned about.</p>
   </ac:rich-text-body>
@@ -64,4 +64,3 @@ It is important to note that the information presented is for informational purp
 Please do not rely on this information for purchasing or planning purposes.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
-

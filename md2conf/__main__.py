@@ -47,6 +47,7 @@ class Arguments(argparse.Namespace):
     headers: dict[str, str]
     webui_links: bool
     alignment: Literal["center", "left", "right"]
+    use_panel: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -250,6 +251,12 @@ def get_parser() -> argparse.ArgumentParser:
         default="center",
         help="Alignment for block-level images and formulas (default: 'center').",
     )
+    parser.add_argument(
+        "--use-panel",
+        action="store_true",
+        default=False,
+        help="Transform admonitions and alerts into a Confluence custom panel.",
+    )
     return parser
 
 
@@ -284,6 +291,7 @@ def main() -> None:
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
         alignment=args.alignment,
+        use_panel=args.use_panel,
     )
     if args.local:
         from .local import LocalConverter

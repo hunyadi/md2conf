@@ -5,33 +5,33 @@
 </ac:structured-macro>
 <h2>Admonitions</h2>
 <ac:structured-macro ac:name="info" ac:schema-version="1">
-  <ac:parameter ac:name="title">Info</ac:parameter>
   <ac:rich-text-body>
+    <p><strong>Info</strong></p>
     <p>This is an information panel.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="info" ac:schema-version="1">
-  <ac:parameter ac:name="title">Optional explicit title</ac:parameter>
   <ac:rich-text-body>
+    <p><strong>Optional explicit title</strong></p>
     <p>This is an information panel with an explicit title.</p>
     <p>This is the second paragraph with a <a href="https://example.com/">link</a>.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="tip" ac:schema-version="1">
-  <ac:parameter ac:name="title">Tip of the day</ac:parameter>
   <ac:rich-text-body>
+    <p><strong>Tip of the day</strong></p>
     <p>This is a structured macro panel showing a tip.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
-<ac:structured-macro ac:name="note" ac:schema-version="1">
-  <ac:parameter ac:name="title">A note</ac:parameter>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
   <ac:rich-text-body>
+    <p><strong>A note</strong></p>
     <p>This is a structured macro panel showing a note.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
-<ac:structured-macro ac:name="warning" ac:schema-version="1">
-  <ac:parameter ac:name="title">A warning message</ac:parameter>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
+    <p><strong>A warning message</strong></p>
     <p>This is a structured macro panel showing a warning.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
