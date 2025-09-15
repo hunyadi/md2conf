@@ -35,3 +35,39 @@
     <p>This is a structured macro panel showing a warning.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Attention</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Caution</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Danger</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Error</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Hint</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Important</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>

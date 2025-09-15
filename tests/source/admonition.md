@@ -18,3 +18,21 @@
 
 !!! warning "A warning message"
     This is a structured macro panel showing a warning.
+
+!!! attention
+    This is a structured macro panel defined in rST syntax.
+
+!!! caution
+    This is a structured macro panel defined in rST syntax.
+
+!!! danger
+    This is a structured macro panel defined in rST syntax.
+
+!!! error
+    This is a structured macro panel defined in rST syntax.
+
+!!! hint
+    This is a structured macro panel defined in rST syntax.
+
+!!! important
+    This is a structured macro panel defined in rST syntax.

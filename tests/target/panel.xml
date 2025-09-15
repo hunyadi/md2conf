@@ -1,0 +1,112 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Admonitions</h2>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">2139-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIconText">ℹ️</ac:parameter>
+  <ac:parameter ac:name="bgColor">#DDF4FF</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Info</strong></p>
+    <p>This is an information panel.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">2139-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIconText">ℹ️</ac:parameter>
+  <ac:parameter ac:name="bgColor">#DDF4FF</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Optional explicit title</strong></p>
+    <p>This is an information panel with an explicit title.</p>
+    <p>This is the second paragraph with a <a href="https://example.com/">link</a>.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">1f4a1</ac:parameter>
+  <ac:parameter ac:name="panelIconText">💡</ac:parameter>
+  <ac:parameter ac:name="bgColor">#DAFBE1</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Tip of the day</strong></p>
+    <p>This is a structured macro panel showing a tip.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:pencil:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">1f4dd</ac:parameter>
+  <ac:parameter ac:name="panelIconText">📝</ac:parameter>
+  <ac:parameter ac:name="bgColor">#DDF4FF</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>A note</strong></p>
+    <p>This is a structured macro panel showing a note.</p>
+  </ac:rich-text-body>
+</ac:structured-macro><ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:warning:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">26a0-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIconText">⚠️</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFF8C5</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>A warning message</strong></p>
+    <p>This is a structured macro panel showing a warning.</p>
+  </ac:rich-text-body>
+</ac:structured-macro><ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">2757</ac:parameter>
+  <ac:parameter ac:name="panelIconText">❗</ac:parameter>
+  <ac:parameter ac:name="bgColor">#F9F9F9</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Attention</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro><ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">274c</ac:parameter>
+  <ac:parameter ac:name="panelIconText">❌</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFEBE9</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Caution</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro><ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:skull_crossbones:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">2620-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIconText">☠️</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFE5E5</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Danger</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro><ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">274c</ac:parameter>
+  <ac:parameter ac:name="panelIconText">❌</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFEBE9</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Error</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">1f4a1</ac:parameter>
+  <ac:parameter ac:name="panelIconText">💡</ac:parameter>
+  <ac:parameter ac:name="bgColor">#DAFBE1</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Hint</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
+  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">2757</ac:parameter>
+  <ac:parameter ac:name="panelIconText">❗</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FBEFFF</ac:parameter>
+  <ac:rich-text-body>
+    <p><strong>Important</strong></p>
+    <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>

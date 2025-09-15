@@ -118,6 +118,22 @@ class TestConversion(TypedTestCase):
 
                 self.assertEqual(actual, expected)
 
+    def test_admonitions(self) -> None:
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "admonition.md",
+            ConfluenceDocumentOptions(use_panel=True),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(doc.title, "Admonitions")
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "panel.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
     def test_broken_links(self) -> None:
         with self.assertLogs(level=logging.WARNING) as cm:
             _, doc = ConfluenceDocument.create(

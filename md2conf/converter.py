@@ -388,6 +388,7 @@ class ConfluencePanel:
     emoji: str
     emoji_shortname: str
     background_color: str
+    from_class: ClassVar[dict[str, "ConfluencePanel"]]
 
     def __init__(self, emoji: str, emoji_shortname: str, background_color: str) -> None:
         self.emoji = emoji
@@ -401,6 +402,22 @@ class ConfluencePanel:
     @property
     def emoji_html(self) -> str:
         return "".join(f"&#{ord(ch)};" for ch in self.emoji)
+
+
+ConfluencePanel.from_class = {
+    "attention": ConfluencePanel("❗", "exclamation", "#F9F9F9"),  # rST admonition
+    "caution": ConfluencePanel("❌", "x", "#FFEBE9"),
+    "danger": ConfluencePanel("☠️", "skull_crossbones", "#FFE5E5"),  # rST admonition
+    "disclaimer": ConfluencePanel("❗", "exclamation", "#F9F9F9"),  # GitLab
+    "error": ConfluencePanel("❌", "x", "#FFEBE9"),  # rST admonition
+    "flag": ConfluencePanel("🚩", "triangular_flag_on_post", "#FDECEA"),  # GitLab
+    "hint": ConfluencePanel("💡", "bulb", "#DAFBE1"),  # rST admonition
+    "info": ConfluencePanel("ℹ️", "information_source", "#DDF4FF"),
+    "note": ConfluencePanel("📝", "pencil", "#DDF4FF"),
+    "tip": ConfluencePanel("💡", "bulb", "#DAFBE1"),
+    "important": ConfluencePanel("❗", "exclamation", "#FBEFFF"),
+    "warning": ConfluencePanel("⚠️", "warning", "#FFF8C5"),
+}
 
 
 class ConfluenceStorageFormatConverter(NodeVisitor):
@@ -1017,29 +1034,20 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.use_panel:
             return self._transform_panel(content, admonition)
         else:
-            if admonition == "attention":
-                class_name = "note"
-            elif admonition == "caution":
-                class_name = "warning"
-            elif admonition == "danger":
-                class_name = "warning"
-            elif admonition == "error":
-                class_name = "warning"
-            elif admonition == "hint":
-                class_name = "tip"
-            elif admonition == "important":
-                class_name = "note"
-            elif admonition == "info":
-                class_name = "info"
-            elif admonition == "note":
-                class_name = "info"
-            elif admonition == "tip":
-                class_name = "tip"
-            elif admonition == "note":
-                class_name = "info"
-            elif admonition == "warning":
-                class_name = "note"
-            else:
+            admonition_to_csf = {
+                "attention": "note",
+                "caution": "warning",
+                "danger": "warning",
+                "error": "warning",
+                "hint": "tip",
+                "important": "note",
+                "info": "info",
+                "note": "info",
+                "tip": "tip",
+                "warning": "note",
+            }
+            class_name = admonition_to_csf.get(admonition)
+            if class_name is None:
                 raise DocumentError(f"unsupported admonition type: {admonition}")
 
             return AC_ELEM(
@@ -1078,17 +1086,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.use_panel:
             return self._transform_panel(list(blockquote), alert.lower())
         else:
-            if alert == "NOTE":
-                class_name = "info"
-            elif alert == "TIP":
-                class_name = "tip"
-            elif alert == "IMPORTANT":
-                class_name = "note"
-            elif alert == "WARNING":
-                class_name = "note"
-            elif alert == "CAUTION":
-                class_name = "warning"
-            else:
+            alert_to_csf = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
+            class_name = alert_to_csf.get(alert)
+            if class_name is None:
                 raise DocumentError(f"unsupported GitHub alert: {alert}")
 
             return self._transform_alert(blockquote, class_name)
@@ -1123,15 +1123,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.use_panel:
             return self._transform_panel(list(blockquote), alert.lower())
         else:
-            if alert == "FLAG":
-                class_name = "note"
-            elif alert == "NOTE":
-                class_name = "info"
-            elif alert == "WARNING":
-                class_name = "note"
-            elif alert == "DISCLAIMER":
-                class_name = "info"
-            else:
+            alert_to_csf = {"FLAG": "note", "NOTE": "info", "WARNING": "note", "DISCLAIMER": "info"}
+            class_name = alert_to_csf.get(alert)
+            if class_name is None:
                 raise DocumentError(f"unsupported GitLab alert: {alert}")
 
             return self._transform_alert(blockquote, class_name)
@@ -1179,25 +1173,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_panel(self, content: list[ElementType], class_name: str) -> ElementType:
         "Transforms a blockquote into a themed panel."
 
-        if class_name == "info":
-            panel = ConfluencePanel("ℹ️", "information_source", "#DDF4FF")
-        elif class_name == "note":
-            panel = ConfluencePanel("📝", "pencil", "#DDF4FF")
-        elif class_name == "tip":
-            panel = ConfluencePanel("💡", "bulb", "#DAFBE1")
-        elif class_name == "important":
-            panel = ConfluencePanel("❗", "exclamation", "#FBEFFF")
-        elif class_name == "warning":
-            panel = ConfluencePanel("⚠️", "warning", "#FFF8C5")
-        elif class_name == "caution":
-            panel = ConfluencePanel("❌", "x", "#FFEBE9")
-        elif class_name == "flag":  # GitLab
-            panel = ConfluencePanel("🚩", "triangular_flag_on_post", "#FDECEA")
-        elif class_name == "disclaimer":  # GitLab
-            panel = ConfluencePanel("❗", "exclamation", "#F9F9F9")
-        elif class_name == "danger":  # rST admonition
-            panel = ConfluencePanel("☠️", "skull_crossbones", "#FFE5E5")
-        else:
+        panel = ConfluencePanel.from_class.get(class_name)
+        if panel is None:
             raise DocumentError(f"unsupported panel class: {class_name}")
 
         macro_id = str(uuid.uuid4())
