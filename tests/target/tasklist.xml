@@ -4,6 +4,7 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Tasklist</h2>
+<h3>Examples</h3>
 <ac:task-list>
   <ac:task>
     <ac:task-id>1</ac:task-id>
@@ -18,3 +19,14 @@
     <ac:task-body><strong>Unfinished</strong> action</ac:task-body>
   </ac:task>
 </ac:task-list>
+<h3>Counter-examples</h3>
+<ul>
+  <li><p>first item is not a task</p></li>
+  <li><p>[x] <strong>finished</strong> action</p></li>
+  <li><p>[ ] <strong>unfinished</strong> action</p></li>
+</ul>
+<ul>
+  <li><p>[x] <strong>finished</strong> action</p></li>
+  <li><p>[ ] <strong>unfinished</strong> action</p></li>
+  <li><p>last item is not a task</p></li>
+</ul>

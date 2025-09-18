@@ -1650,7 +1650,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         #   <li>[x] ...</li>
         # </ul>
         elif child.tag == "ul":
-            if len(child) > 0 and element_text_starts_with_any(child[0], ["[ ]", "[x]", "[X]"]):
+            if len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
                 return self._transform_tasklist(child)
 
             return None
