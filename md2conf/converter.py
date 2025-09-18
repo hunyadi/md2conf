@@ -405,18 +405,18 @@ class ConfluencePanel:
 
 
 ConfluencePanel.from_class = {
-    "attention": ConfluencePanel("❗", "exclamation", "#F9F9F9"),  # rST admonition
-    "caution": ConfluencePanel("❌", "x", "#FFEBE9"),
-    "danger": ConfluencePanel("☠️", "skull_crossbones", "#FFE5E5"),  # rST admonition
-    "disclaimer": ConfluencePanel("❗", "exclamation", "#F9F9F9"),  # GitLab
-    "error": ConfluencePanel("❌", "x", "#FFEBE9"),  # rST admonition
-    "flag": ConfluencePanel("🚩", "triangular_flag_on_post", "#FDECEA"),  # GitLab
-    "hint": ConfluencePanel("💡", "bulb", "#DAFBE1"),  # rST admonition
-    "info": ConfluencePanel("ℹ️", "information_source", "#DDF4FF"),
-    "note": ConfluencePanel("📝", "pencil", "#DDF4FF"),
-    "tip": ConfluencePanel("💡", "bulb", "#DAFBE1"),
-    "important": ConfluencePanel("❗", "exclamation", "#FBEFFF"),
-    "warning": ConfluencePanel("⚠️", "warning", "#FFF8C5"),
+    "attention": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-gray-subtlest)"),  # rST admonition
+    "caution": ConfluencePanel("❌", "x", "var(--ds-background-accent-orange-subtlest)"),
+    "danger": ConfluencePanel("☠️", "skull_crossbones", "var(--ds-background-accent-red-subtlest)"),  # rST admonition
+    "disclaimer": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-gray-subtlest)"),  # GitLab
+    "error": ConfluencePanel("❌", "x", "var(--ds-background-accent-red-subtlest)"),  # rST admonition
+    "flag": ConfluencePanel("🚩", "triangular_flag_on_post", "var(--ds-background-accent-orange-subtlest"),  # GitLab
+    "hint": ConfluencePanel("💡", "bulb", "var(--ds-background-accent-green-subtlest)"),  # rST admonition
+    "info": ConfluencePanel("ℹ️", "information_source", "var(--ds-background-accent-blue-subtlest)"),
+    "note": ConfluencePanel("📝", "pencil", "var(--ds-background-accent-teal-subtlest)"),
+    "tip": ConfluencePanel("💡", "bulb", "var(--ds-background-accent-green-subtlest)"),
+    "important": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-purple-subtlest)"),
+    "warning": ConfluencePanel("⚠️", "warning", "var(--ds-background-accent-yellow-subtlest)"),
 }
 
 
