@@ -455,7 +455,7 @@ You can add [Mermaid diagrams](https://mermaid.js.org/) to your Markdown documen
 
 *md2conf* offers two options to publish the diagram:
 
-1. Pre-render into an image (command-line option `--render-mermaid`). The source file or code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page. This is the approach we use and support.
+1. Pre-render into an image (command-line option `--render-mermaid`). The source file or code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page.
 2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://stratus-addons.atlassian.net/wiki/spaces/MDFC/overview), which is processed by Confluence. You need a separate [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence) to turn macro definitions into images when a Confluence page is visited.
 
 If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
@@ -465,6 +465,8 @@ mmdc -i sample.mmd -o sample.png -b transparent --scale 2
 ```
 
 Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
+
+Note that `mermaid-cli` has some implicit dependencies (e.g. a headless browser) that may not be immediately available in a CI/CD environment such as GitHub Actions. Refer to the `Dockerfile` in the *md2conf* project root, or [mermaid-cli documentation](https://github.com/mermaid-js/mermaid-cli) on how to install these dependencies such as a `chromium-browser` and various fonts.
 
 ### Links to attachments
 
