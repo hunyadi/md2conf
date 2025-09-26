@@ -468,6 +468,12 @@ Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
 
 Note that `mermaid-cli` has some implicit dependencies (e.g. a headless browser) that may not be immediately available in a CI/CD environment such as GitHub Actions. Refer to the `Dockerfile` in the *md2conf* project root, or [mermaid-cli documentation](https://github.com/mermaid-js/mermaid-cli) on how to install these dependencies such as a `chromium-browser` and various fonts.
 
+### Alignment
+
+You can configure diagram and image alignment using the JSON/YAML front-matter attribute `alignment` or the command-line argument of the same name. Possible values are `center` (default), `left` and `right`. The value configured in the Markdown file front-matter takes precedence.
+
+Unfortunately, not every third-party app supports every alignment variant. For example, the draw\.io marketplace app supports left and center but not right alignment; and diagrams produced by the Mermaid marketplace app are always centered, ignoring the setting for alignment.
+
 ### Links to attachments
 
 If *md2conf* encounters a Markdown link that points to a file in the directory hierarchy being synchronized, it automatically uploads the file as an attachment to the Confluence page. Activating the link in Confluence downloads the file. Typical examples include PDFs (`*.pdf`), word processor documents (`*.docx`), spreadsheets (`*.xlsx`), plain text files (`*.txt`) or logs (`*.log`). The MIME type is set based on the file type.

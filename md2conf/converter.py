@@ -817,6 +817,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     str(attrs.height),
                 ),
             )
+        if attrs.alignment is ImageAlignment.CENTER:
+            parameters.append(
+                AC_ELEM(
+                    "parameter",
+                    {AC_ATTR("name"): "pCenter"},
+                    str(1),
+                ),
+            )
 
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())
