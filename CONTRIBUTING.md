@@ -10,6 +10,8 @@ Before you request a feature or report an issue, verify whether the proposal has
 pip install git+https://github.com/hunyadi/md2conf.git@master
 ```
 
+Due to constrained capacity, we only support the latest release of *md2conf*.
+
 ## Pull requests
 
 We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix or a single feature.
@@ -28,7 +30,7 @@ Python is installed. Minimum version we support is Python 3.9.
    git clone git@github.com:<your github username>/md2conf.git
    python -m venv ".venv"
    source .venv/bin/activate
-   pip install -r requirements.txt
+   python -m pip install ".[formulas,dev]"
    ```
 
 4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.

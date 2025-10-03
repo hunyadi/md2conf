@@ -1,5 +1,6 @@
 # skip comments
 
+docs
 [i][g][n][!abcdefghijklmn]?[e].md*
 anchors.md
 missing.md

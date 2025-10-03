@@ -50,7 +50,7 @@ dev = [
     "types-PyYAML >= 6.0",
     "types-requests >= 2.32",
     "mypy >= 1.18",
-    "ruff >= 0.12"
+    "ruff >= 0.13"
 ]
 formulas = [
     "matplotlib >= 3.9"
