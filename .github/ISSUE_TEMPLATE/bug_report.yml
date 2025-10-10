@@ -1,0 +1,26 @@
+name: Bug Report
+description: Report an issue or unexpected behavior
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ Please make sure the issue persists with the latest version of *md2conf*
+        (either the version in [PyPI](https://pypi.org/project/markdown-to-confluence/) or cloned from the [main branch](https://github.com/hunyadi/md2conf)).
+
+  - type: checkboxes
+    id: latest-version
+    attributes:
+      label: Latest version check
+      options:
+        - label: I confirm I can reproduce the issue with the **latest version** of *md2conf*.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: What happened? What did you expect to happen?
+      placeholder: |
+        Briefly describe the problem and how someone could reproduce it.
