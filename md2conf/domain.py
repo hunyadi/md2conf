@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 
 @dataclass
@@ -39,8 +39,8 @@ class ConfluenceDocumentOptions:
 
     ignore_invalid_url: bool = False
     heading_anchors: bool = False
-    generated_by: Optional[str] = "This page has been generated with a tool."
-    root_page_id: Optional[ConfluencePageID] = None
+    generated_by: str | None = "This page has been generated with a tool."
+    root_page_id: ConfluencePageID | None = None
     keep_hierarchy: bool = False
     prefer_raster: bool = True
     render_drawio: bool = False

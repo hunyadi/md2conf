@@ -51,7 +51,7 @@ def inflate(data: bytes) -> bytes:
     return zlib.decompress(data, -zlib.MAX_WBITS)
 
 
-def decompress_diagram(xml_data: typing.Union[bytes, str]) -> ElementType:
+def decompress_diagram(xml_data: bytes | str) -> ElementType:
     """
     Decompresses the text content of the `<diagram>` element in a draw.io XML document.
 

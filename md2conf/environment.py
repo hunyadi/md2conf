@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import os
-from typing import Optional, overload
+from typing import overload
 
 
 class ArgumentError(ValueError):
@@ -27,10 +27,10 @@ def _validate_domain(domain: str) -> str: ...
 
 
 @overload
-def _validate_domain(domain: Optional[str]) -> Optional[str]: ...
+def _validate_domain(domain: str | None) -> str | None: ...
 
 
-def _validate_domain(domain: Optional[str]) -> Optional[str]:
+def _validate_domain(domain: str | None) -> str | None:
     if domain is None:
         return None
 
@@ -45,10 +45,10 @@ def _validate_base_path(base_path: str) -> str: ...
 
 
 @overload
-def _validate_base_path(base_path: Optional[str]) -> Optional[str]: ...
+def _validate_base_path(base_path: str | None) -> str | None: ...
 
 
-def _validate_base_path(base_path: Optional[str]) -> Optional[str]:
+def _validate_base_path(base_path: str | None) -> str | None:
     if base_path is None:
         return None
 
@@ -61,13 +61,13 @@ def _validate_base_path(base_path: Optional[str]) -> Optional[str]:
 class ConfluenceSiteProperties:
     domain: str
     base_path: str
-    space_key: Optional[str]
+    space_key: str | None
 
     def __init__(
         self,
-        domain: Optional[str] = None,
-        base_path: Optional[str] = None,
-        space_key: Optional[str] = None,
+        domain: str | None = None,
+        base_path: str | None = None,
+        space_key: str | None = None,
     ) -> None:
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
         opt_base_path = base_path or os.getenv("CONFLUENCE_PATH")
@@ -93,24 +93,24 @@ class ConfluenceConnectionProperties:
     :param headers: Additional HTTP headers to pass to Confluence REST API calls.
     """
 
-    domain: Optional[str]
-    base_path: Optional[str]
-    space_key: Optional[str]
-    api_url: Optional[str]
-    user_name: Optional[str]
+    domain: str | None
+    base_path: str | None
+    space_key: str | None
+    api_url: str | None
+    user_name: str | None
     api_key: str
-    headers: Optional[dict[str, str]]
+    headers: dict[str, str] | None
 
     def __init__(
         self,
         *,
-        api_url: Optional[str] = None,
-        domain: Optional[str] = None,
-        base_path: Optional[str] = None,
-        user_name: Optional[str] = None,
-        api_key: Optional[str] = None,
-        space_key: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        api_url: str | None = None,
+        domain: str | None = None,
+        base_path: str | None = None,
+        user_name: str | None = None,
+        api_key: str | None = None,
+        space_key: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         opt_api_url = api_url or os.getenv("CONFLUENCE_API_URL")
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")

@@ -7,7 +7,7 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 from pathlib import Path
-from typing import Generic, Iterable, Optional, TypeVar
+from typing import Generic, Iterable, TypeVar
 
 from .metadata import ConfluencePageMetadata
 
@@ -27,7 +27,7 @@ class KeyValueCollection(Generic[K, V]):
     def add(self, key: K, data: V) -> None:
         self._collection[key] = data
 
-    def get(self, key: K) -> Optional[V]:
+    def get(self, key: K) -> V | None:
         return self._collection.get(key)
 
     def items(self) -> Iterable[tuple[K, V]]:

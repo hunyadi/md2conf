@@ -16,7 +16,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Literal, Optional, Union
+from typing import ClassVar, Literal
 from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
@@ -202,7 +202,7 @@ class NodeVisitor(ABC):
                 self.visit(source)
 
     @abstractmethod
-    def transform(self, child: ElementType) -> Optional[ElementType]: ...
+    def transform(self, child: ElementType) -> ElementType | None: ...
 
 
 def title_to_identifier(title: str) -> str:
@@ -273,11 +273,11 @@ class ImageAttributes:
     """
 
     context: FormattingContext
-    width: Optional[int]
-    height: Optional[int]
-    alt: Optional[str]
-    title: Optional[str]
-    caption: Optional[str]
+    width: int | None
+    height: int | None
+    alt: str | None
+    title: str | None
+    caption: str | None
     alignment: ImageAlignment = ImageAlignment.CENTER
 
     def __post_init__(self) -> None:
@@ -374,13 +374,13 @@ class ConfluenceConverterOptions:
 @dataclass
 class ImageData:
     path: Path
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @dataclass
 class EmbeddedFileData:
     data: bytes
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @dataclass
@@ -506,7 +506,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         else:
             raise DocumentError(msg)
 
-    def _transform_link(self, anchor: ElementType) -> Optional[ElementType]:
+    def _transform_link(self, anchor: ElementType) -> ElementType | None:
         """
         Transforms links (HTML anchor `<a>`).
 
@@ -559,7 +559,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         else:
             return self._transform_attachment_link(anchor, absolute_path)
 
-    def _transform_page_link(self, anchor: ElementType, relative_url: ParseResult, absolute_path: Path) -> Optional[ElementType]:
+    def _transform_page_link(self, anchor: ElementType, relative_url: ParseResult, absolute_path: Path) -> ElementType | None:
         """
         Transforms links to other Markdown documents (Confluence pages).
         """
@@ -596,7 +596,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         anchor.set("href", transformed_url.geturl())
         return None
 
-    def _transform_attachment_link(self, anchor: ElementType, absolute_path: Path) -> Optional[ElementType]:
+    def _transform_attachment_link(self, anchor: ElementType, absolute_path: Path) -> ElementType | None:
         """
         Transforms links to document binaries such as PDF, DOCX or XLSX.
         """
@@ -713,7 +713,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         else:
             raise DocumentError(msg)
 
-    def _verify_image_path(self, path: Path) -> Optional[Path]:
+    def _verify_image_path(self, path: Path) -> Path | None:
         "Checks whether an image path is safe to use."
 
         # resolve relative path into absolute path w.r.t. base dir
@@ -905,7 +905,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("plain-text-body", ET.CDATA(content)),
         )
 
-    def _extract_mermaid_config(self, content: str) -> Optional[MermaidConfigProperties]:
+    def _extract_mermaid_config(self, content: str) -> MermaidConfigProperties | None:
         """Extract scale from Mermaid YAML front matter configuration."""
         try:
             properties = MermaidScanner().read(content)
@@ -1558,7 +1558,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return AC_ELEM("task-list", {}, *tasks)
 
     @override
-    def transform(self, child: ElementType) -> Optional[ElementType]:
+    def transform(self, child: ElementType) -> ElementType | None:
         """
         Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
         """
@@ -1742,9 +1742,9 @@ class ConversionError(RuntimeError):
 class ConfluenceDocument:
     "Encapsulates an element tree for a Confluence document created by parsing a Markdown document."
 
-    title: Optional[str]
-    labels: Optional[list[str]]
-    properties: Optional[dict[str, JsonType]]
+    title: str | None
+    labels: list[str] | None
+    properties: dict[str, JsonType] | None
 
     links: list[str]
     images: list[ImageData]
@@ -1852,7 +1852,7 @@ class ConfluenceDocument:
         return elements_to_string(self.root)
 
 
-def attachment_name(ref: Union[Path, str]) -> str:
+def attachment_name(ref: Path | str) -> str:
     """
     Safe name for use with attachment uploads.
 

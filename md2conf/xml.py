@@ -6,7 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from typing import Iterable, Optional
+from typing import Iterable
 
 import lxml.etree as ET
 
@@ -39,7 +39,7 @@ class ElementComparator:
     skip_attributes: set[str]
     skip_elements: set[str]
 
-    def __init__(self, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None):
+    def __init__(self, *, skip_attributes: Iterable[str] | None = None, skip_elements: Iterable[str] | None = None):
         """
         Initializes a new element tree comparator.
 
@@ -81,12 +81,10 @@ class ElementComparator:
         # compare children recursively
         if len(e1) != len(e2):
             return False
-        return all(self.is_equal(c1, c2) for c1, c2 in zip(e1, e2))
+        return all(self.is_equal(c1, c2) for c1, c2 in zip(e1, e2, strict=True))
 
 
-def is_xml_equal(
-    tree1: ElementType, tree2: ElementType, *, skip_attributes: Optional[Iterable[str]] = None, skip_elements: Optional[Iterable[str]] = None
-) -> bool:
+def is_xml_equal(tree1: ElementType, tree2: ElementType, *, skip_attributes: Iterable[str] | None = None, skip_elements: Iterable[str] | None = None) -> bool:
     """
     Compare two XML documents for equivalence, ignoring leading/trailing whitespace differences and attribute definition order.
 

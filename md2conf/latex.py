@@ -10,7 +10,7 @@ import importlib.util
 from io import BytesIO
 from pathlib import Path
 from struct import unpack
-from typing import BinaryIO, Iterable, Literal, Optional, Union, overload
+from typing import BinaryIO, Iterable, Literal, overload
 
 
 def render_latex(expression: str, *, format: Literal["png", "svg"] = "png", dpi: int = 100, font_size: int = 12) -> bytes:
@@ -71,10 +71,10 @@ def get_png_dimensions(*, data: bytes) -> tuple[int, int]: ...
 
 
 @overload
-def get_png_dimensions(*, path: Union[str, Path]) -> tuple[int, int]: ...
+def get_png_dimensions(*, path: str | Path) -> tuple[int, int]: ...
 
 
-def get_png_dimensions(*, data: Optional[bytes] = None, path: Union[str, Path, None] = None) -> tuple[int, int]:
+def get_png_dimensions(*, data: bytes | None = None, path: str | Path | None = None) -> tuple[int, int]:
     """
     Returns the width and height of a PNG image inspecting its header.
 
@@ -100,20 +100,20 @@ def remove_png_chunks(names: Iterable[str], *, source_data: bytes) -> bytes: ...
 
 
 @overload
-def remove_png_chunks(names: Iterable[str], *, source_path: Union[str, Path]) -> bytes: ...
+def remove_png_chunks(names: Iterable[str], *, source_path: str | Path) -> bytes: ...
 
 
 @overload
-def remove_png_chunks(names: Iterable[str], *, source_data: bytes, target_path: Union[str, Path]) -> None: ...
+def remove_png_chunks(names: Iterable[str], *, source_data: bytes, target_path: str | Path) -> None: ...
 
 
 @overload
-def remove_png_chunks(names: Iterable[str], *, source_path: Union[str, Path], target_path: Union[str, Path]) -> None: ...
+def remove_png_chunks(names: Iterable[str], *, source_path: str | Path, target_path: str | Path) -> None: ...
 
 
 def remove_png_chunks(
-    names: Iterable[str], *, source_data: Optional[bytes] = None, source_path: Union[str, Path, None] = None, target_path: Union[str, Path, None] = None
-) -> Optional[bytes]:
+    names: Iterable[str], *, source_data: bytes | None = None, source_path: str | Path | None = None, target_path: str | Path | None = None
+) -> bytes | None:
     """
     Rewrites a PNG file by removing chunks with the specified names.
 
@@ -168,7 +168,7 @@ def _read_signature(f: BinaryIO) -> None:
         raise ValueError("not a valid PNG file")
 
 
-def _read_chunk(f: BinaryIO) -> Optional[_Chunk]:
+def _read_chunk(f: BinaryIO) -> _Chunk | None:
     "Reads and parses a PNG chunk such as `IHDR` or `tEXt`."
 
     length_bytes = f.read(4)

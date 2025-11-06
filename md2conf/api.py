@@ -12,15 +12,15 @@ import io
 import logging
 import mimetypes
 import ssl
-import sys
 import typing
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Optional, TypeVar, overload
+from typing import Any, TypeVar, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+import truststore
 from requests.adapters import HTTPAdapter
 from strong_typing.core import JsonType
 from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
@@ -28,11 +28,6 @@ from strong_typing.serialization import DeserializerOptions, json_dump_string, j
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 from .extra import override
 from .metadata import ConfluenceSiteMetadata
-
-if sys.version_info >= (3, 10):
-    import truststore
-else:
-    import certifi
 
 T = TypeVar("T")
 
@@ -52,7 +47,7 @@ def _json_to_object(
     return json_to_object(typ, data, options=DeserializerOptions(skip_unassigned=True))
 
 
-def build_url(base_url: str, query: Optional[dict[str, str]] = None) -> str:
+def build_url(base_url: str, query: dict[str, str] | None = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
 
     scheme, netloc, path, params, query_str, fragment = urlparse(base_url)
@@ -79,7 +74,7 @@ def response_cast(response_type: None, response: requests.Response) -> None: ...
 def response_cast(response_type: type[T], response: requests.Response) -> T: ...
 
 
-def response_cast(response_type: Optional[type[T]], response: requests.Response) -> Optional[T]:
+def response_cast(response_type: type[T] | None, response: requests.Response) -> T | None:
     "Converts a response body into the expected type."
 
     if response.text:
@@ -155,9 +150,9 @@ class ConfluenceResultSet:
 class ConfluenceContentVersion:
     number: int
     minorEdit: bool = False
-    createdAt: Optional[datetime.datetime] = None
-    message: Optional[str] = None
-    authorId: Optional[str] = None
+    createdAt: datetime.datetime | None = None
+    message: str | None = None
+    authorId: str | None = None
 
 
 @dataclass(frozen=True)
@@ -182,12 +177,12 @@ class ConfluenceAttachment:
 
     id: str
     status: ConfluenceStatus
-    title: Optional[str]
+    title: str | None
     createdAt: datetime.datetime
     pageId: str
     mediaType: str
-    mediaTypeDescription: Optional[str]
-    comment: Optional[str]
+    mediaTypeDescription: str | None
+    comment: str | None
     fileId: str
     fileSize: int
     webuiLink: str
@@ -218,12 +213,12 @@ class ConfluencePageProperties:
     status: ConfluenceStatus
     title: str
     spaceId: str
-    parentId: Optional[str]
-    parentType: Optional[ConfluencePageParentContentType]
-    position: Optional[int]
+    parentId: str | None
+    parentType: ConfluencePageParentContentType | None
+    position: int | None
     authorId: str
     ownerId: str
-    lastOwnerId: Optional[str]
+    lastOwnerId: str | None
     createdAt: datetime.datetime
     version: ConfluenceContentVersion
 
@@ -329,9 +324,9 @@ class ConfluenceIdentifiedContentProperty(ConfluenceVersionedContentProperty):
 @dataclass(frozen=True)
 class ConfluenceCreatePageRequest:
     spaceId: str
-    status: Optional[ConfluenceStatus]
-    title: Optional[str]
-    parentId: Optional[str]
+    status: ConfluenceStatus | None
+    title: str | None
+    parentId: str | None
     body: ConfluencePageBody
 
 
@@ -368,10 +363,7 @@ class TruststoreAdapter(HTTPAdapter):
         Adapts the pool manager to use the provided SSL context instead of the default.
         """
 
-        if sys.version_info >= (3, 10):
-            ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        else:
-            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=certifi.where())
+        ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = True
         ctx.verify_mode = ssl.CERT_REQUIRED
         super().init_poolmanager(connections, maxsize, block, ssl_context=ctx, **pool_kwargs)  # type: ignore[no-untyped-call]
@@ -383,9 +375,9 @@ class ConfluenceAPI:
     """
 
     properties: ConfluenceConnectionProperties
-    session: Optional["ConfluenceSession"] = None
+    session: "ConfluenceSession | None" = None
 
-    def __init__(self, properties: Optional[ConfluenceConnectionProperties] = None) -> None:
+    def __init__(self, properties: ConfluenceConnectionProperties | None = None) -> None:
         self.properties = properties or ConfluenceConnectionProperties()
 
     def __enter__(self) -> "ConfluenceSession":
@@ -415,9 +407,9 @@ class ConfluenceAPI:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """
         Closes an open connection.
@@ -444,10 +436,10 @@ class ConfluenceSession:
         self,
         session: requests.Session,
         *,
-        api_url: Optional[str],
-        domain: Optional[str],
-        base_path: Optional[str],
-        space_key: Optional[str],
+        api_url: str | None,
+        domain: str | None,
+        base_path: str | None,
+        space_key: str | None,
     ) -> None:
         self.session = session
         self._space_id_to_key = {}
@@ -503,7 +495,7 @@ class ConfluenceSession:
         self,
         version: ConfluenceVersion,
         path: str,
-        query: Optional[dict[str, str]] = None,
+        query: dict[str, str] | None = None,
     ) -> str:
         """
         Builds a full URL for invoking the Confluence API.
@@ -523,7 +515,7 @@ class ConfluenceSession:
         path: str,
         response_type: type[T],
         *,
-        query: Optional[dict[str, str]] = None,
+        query: dict[str, str] | None = None,
     ) -> T:
         "Executes an HTTP request via Confluence API."
 
@@ -534,7 +526,7 @@ class ConfluenceSession:
         response.raise_for_status()
         return _json_to_object(response_type, response.json())
 
-    def _fetch(self, path: str, query: Optional[dict[str, str]] = None) -> list[JsonType]:
+    def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
         "Retrieves all results of a REST API v2 paginated result-set."
 
         items: list[JsonType] = []
@@ -556,7 +548,7 @@ class ConfluenceSession:
 
         return items
 
-    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> tuple[str, dict[str, str], bytes]:
+    def _build_request(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T] | None) -> tuple[str, dict[str, str], bytes]:
         "Generates URL, headers and raw payload for a typed request/response."
 
         url = self._build_url(version, path)
@@ -572,7 +564,7 @@ class ConfluenceSession:
     @overload
     def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T: ...
 
-    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> Optional[T]:
+    def _post(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T] | None) -> T | None:
         "Creates a new object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
@@ -586,7 +578,7 @@ class ConfluenceSession:
     @overload
     def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T]) -> T: ...
 
-    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: Optional[type[T]]) -> Optional[T]:
+    def _put(self, version: ConfluenceVersion, path: str, body: Any, response_type: type[T] | None) -> T | None:
         "Updates an existing object via Confluence REST API."
 
         url, headers, data = self._build_request(version, path, body, response_type)
@@ -638,7 +630,7 @@ class ConfluenceSession:
 
         return id
 
-    def get_space_id(self, *, space_id: Optional[str] = None, space_key: Optional[str] = None) -> Optional[str]:
+    def get_space_id(self, *, space_id: str | None = None, space_key: str | None = None) -> str | None:
         """
         Coalesces a space ID or space key into a space ID, accounting for site default.
 
@@ -678,10 +670,10 @@ class ConfluenceSession:
         page_id: str,
         attachment_name: str,
         *,
-        attachment_path: Optional[Path] = None,
-        raw_data: Optional[bytes] = None,
-        content_type: Optional[str] = None,
-        comment: Optional[str] = None,
+        attachment_path: Path | None = None,
+        raw_data: bytes | None = None,
+        content_type: str | None = None,
+        comment: str | None = None,
         force: bool = False,
     ) -> None:
         """
@@ -739,7 +731,7 @@ class ConfluenceSession:
 
         if attachment_path is not None:
             with open(attachment_path, "rb") as attachment_file:
-                file_to_upload: dict[str, tuple[Optional[str], Any, str, dict[str, str]]] = {
+                file_to_upload: dict[str, tuple[str | None, Any, str, dict[str, str]]] = {
                     "comment": (
                         None,
                         comment,
@@ -826,8 +818,8 @@ class ConfluenceSession:
         self,
         title: str,
         *,
-        space_id: Optional[str] = None,
-        space_key: Optional[str] = None,
+        space_id: str | None = None,
+        space_key: str | None = None,
     ) -> ConfluencePageProperties:
         """
         Looks up a Confluence wiki page ID by title.
@@ -984,9 +976,9 @@ class ConfluenceSession:
         self,
         title: str,
         *,
-        space_id: Optional[str] = None,
-        space_key: Optional[str] = None,
-    ) -> Optional[str]:
+        space_id: str | None = None,
+        space_key: str | None = None,
+    ) -> str | None:
         """
         Checks if a Confluence page exists with the given title.
 

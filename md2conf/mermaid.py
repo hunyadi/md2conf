@@ -12,7 +12,7 @@ import os.path
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class MermaidConfigProperties:
     :param scale: Scaling factor for the rendered diagram.
     """
 
-    scale: Optional[float] = None
+    scale: float | None = None
 
 
 def is_docker() -> bool:
@@ -56,7 +56,7 @@ def has_mmdc() -> bool:
     return shutil.which(executable) is not None
 
 
-def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", config: Optional[MermaidConfigProperties] = None) -> bytes:
+def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", config: MermaidConfigProperties | None = None) -> bytes:
     "Generates a PNG or SVG image from a Mermaid diagram source."
 
     if config is None:

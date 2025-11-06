@@ -10,7 +10,7 @@ import os.path
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterable, Optional, Union, final, overload
+from typing import Iterable, final, overload
 
 
 @dataclass(frozen=True, eq=True)
@@ -95,14 +95,14 @@ class MatcherOptions:
     """
 
     source: str
-    extension: Optional[str] = None
+    extension: str | None = None
 
     def __post_init__(self) -> None:
         if self.extension is not None and not self.extension.startswith("."):
             self.extension = f".{self.extension}"
 
 
-def _entry_name_dir(entry: Union[Entry, os.DirEntry[str]]) -> tuple[str, bool]:
+def _entry_name_dir(entry: Entry | os.DirEntry[str]) -> tuple[str, bool]:
     if isinstance(entry, Entry):
         return entry.name, entry.is_dir
     else:
@@ -155,7 +155,7 @@ class Matcher:
 
         ...
 
-    def is_excluded(self, entry: Union[Entry, os.DirEntry[str]]) -> bool:
+    def is_excluded(self, entry: Entry | os.DirEntry[str]) -> bool:
         name, is_dir = _entry_name_dir(entry)
 
         # skip hidden files and directories
@@ -192,7 +192,7 @@ class Matcher:
         """
         ...
 
-    def is_included(self, entry: Union[Entry, os.DirEntry[str]]) -> bool:
+    def is_included(self, entry: Entry | os.DirEntry[str]) -> bool:
         return not self.is_excluded(entry)
 
     def filter(self, entries: Iterable[Entry]) -> list[Entry]:

@@ -10,7 +10,7 @@ import re
 import typing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional, TypeVar
+from typing import Any, Literal, TypeVar
 
 import yaml
 from strong_typing.core import JsonType
@@ -28,7 +28,7 @@ def _json_to_object(
     return json_to_object(typ, data, options=DeserializerOptions(skip_unassigned=True))
 
 
-def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
+def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
     values: list[str] = []
 
     def _repl_func(matchobj: re.Match[str]) -> str:
@@ -40,18 +40,18 @@ def extract_value(pattern: str, text: str) -> tuple[Optional[str], str]:
     return value, text
 
 
-def extract_frontmatter_block(text: str) -> tuple[Optional[str], str]:
+def extract_frontmatter_block(text: str) -> tuple[str | None, str]:
     "Extracts the front-matter from a Markdown document as a blob of unparsed text."
 
     return extract_value(r"(?ms)\A---$(.+?)^---$", text)
 
 
-def extract_frontmatter_properties(text: str) -> tuple[Optional[dict[str, JsonType]], str]:
+def extract_frontmatter_properties(text: str) -> tuple[dict[str, JsonType] | None, str]:
     "Extracts the front-matter from a Markdown document as a dictionary."
 
     block, text = extract_frontmatter_block(text)
 
-    properties: Optional[dict[str, Any]] = None
+    properties: dict[str, Any] | None = None
     if block is not None:
         data = yaml.safe_load(block)
         if isinstance(data, dict):
@@ -77,16 +77,16 @@ class DocumentProperties:
     :param alignment: Alignment for block-level images and formulas.
     """
 
-    page_id: Optional[str]
-    space_key: Optional[str]
-    confluence_page_id: Optional[str]
-    confluence_space_key: Optional[str]
-    generated_by: Optional[str]
-    title: Optional[str]
-    tags: Optional[list[str]]
-    synchronized: Optional[bool]
-    properties: Optional[dict[str, JsonType]]
-    alignment: Optional[Literal["center", "left", "right"]]
+    page_id: str | None
+    space_key: str | None
+    confluence_page_id: str | None
+    confluence_space_key: str | None
+    generated_by: str | None
+    title: str | None
+    tags: list[str] | None
+    synchronized: bool | None
+    properties: dict[str, JsonType] | None
+    alignment: Literal["center", "left", "right"] | None
 
 
 @dataclass
@@ -105,14 +105,14 @@ class ScannedDocument:
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
-    page_id: Optional[str]
-    space_key: Optional[str]
-    generated_by: Optional[str]
-    title: Optional[str]
-    tags: Optional[list[str]]
-    synchronized: Optional[bool]
-    properties: Optional[dict[str, JsonType]]
-    alignment: Optional[Literal["center", "left", "right"]]
+    page_id: str | None
+    space_key: str | None
+    generated_by: str | None
+    title: str | None
+    tags: list[str] | None
+    synchronized: bool | None
+    properties: dict[str, JsonType] | None
+    alignment: Literal["center", "left", "right"] | None
     text: str
 
 
@@ -135,11 +135,11 @@ class Scanner:
         # extract 'generated-by' tag text
         generated_by, text = extract_value(r"<!--\s+generated[-_]by:\s*(.*)\s+-->", text)
 
-        title: Optional[str] = None
-        tags: Optional[list[str]] = None
-        synchronized: Optional[bool] = None
-        properties: Optional[dict[str, JsonType]] = None
-        alignment: Optional[Literal["center", "left", "right"]] = None
+        title: str | None = None
+        tags: list[str] | None = None
+        synchronized: bool | None = None
+        properties: dict[str, JsonType] | None = None
+        alignment: Literal["center", "left", "right"] | None = None
 
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
@@ -176,8 +176,8 @@ class MermaidProperties:
     :param config: Configuration options for rendering.
     """
 
-    title: Optional[str] = None
-    config: Optional[MermaidConfigProperties] = None
+    title: str | None = None
+    config: MermaidConfigProperties | None = None
 
 
 class MermaidScanner:

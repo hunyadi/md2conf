@@ -7,7 +7,6 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(eq=True)
@@ -24,7 +23,7 @@ class TableOfContentsEntry:
     text: str
     children: list["TableOfContentsEntry"]
 
-    def __init__(self, level: int, text: str, children: Optional[list["TableOfContentsEntry"]] = None) -> None:
+    def __init__(self, level: int, text: str, children: list["TableOfContentsEntry"] | None = None) -> None:
         self.level = level
         self.text = text
         self.children = children or []
@@ -74,7 +73,7 @@ class TableOfContentsBuilder:
         # push new level onto the stack
         self._stack.append(item)
 
-    def get_title(self) -> Optional[str]:
+    def get_title(self) -> str | None:
         """
         Returns a proposed document title.
 

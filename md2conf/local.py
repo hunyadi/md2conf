@@ -9,7 +9,6 @@ Copyright 2022-2025, Levente Hunyadi
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from .converter import ConfluenceDocument
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
@@ -30,7 +29,7 @@ class LocalProcessor(Processor):
         options: ConfluenceDocumentOptions,
         site: ConfluenceSiteMetadata,
         *,
-        out_dir: Optional[Path],
+        out_dir: Path | None,
         root_dir: Path,
     ) -> None:
         """
@@ -46,7 +45,7 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     @override
-    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index.
 
@@ -89,13 +88,13 @@ class LocalProcessor(Processor):
 
 
 class LocalProcessorFactory(ProcessorFactory):
-    out_dir: Optional[Path]
+    out_dir: Path | None
 
     def __init__(
         self,
         options: ConfluenceDocumentOptions,
         site: ConfluenceSiteMetadata,
-        out_dir: Optional[Path] = None,
+        out_dir: Path | None = None,
     ) -> None:
         super().__init__(options, site)
         self.out_dir = out_dir
@@ -113,6 +112,6 @@ class LocalConverter(Converter):
         self,
         options: ConfluenceDocumentOptions,
         site: ConfluenceSiteMetadata,
-        out_dir: Optional[Path] = None,
+        out_dir: Path | None = None,
     ) -> None:
         super().__init__(LocalProcessorFactory(options, site, out_dir))

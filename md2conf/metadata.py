@@ -7,7 +7,6 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -22,7 +21,7 @@ class ConfluenceSiteMetadata:
 
     domain: str
     base_path: str
-    space_key: Optional[str]
+    space_key: str | None
 
 
 @dataclass

@@ -11,7 +11,7 @@ import logging
 import os
 from abc import abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
@@ -26,9 +26,9 @@ LOGGER = logging.getLogger(__name__)
 
 class DocumentNode:
     absolute_path: Path
-    page_id: Optional[str]
-    space_key: Optional[str]
-    title: Optional[str]
+    page_id: str | None
+    space_key: str | None
+    title: str | None
     synchronized: bool
 
     _children: list["DocumentNode"]
@@ -36,9 +36,9 @@ class DocumentNode:
     def __init__(
         self,
         absolute_path: Path,
-        page_id: Optional[str],
-        space_key: Optional[str],
-        title: Optional[str],
+        page_id: str | None,
+        space_key: str | None,
+        title: str | None,
         synchronized: bool,
     ):
         self.absolute_path = absolute_path
@@ -140,7 +140,7 @@ class Processor:
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -157,7 +157,7 @@ class Processor:
         """
         ...
 
-    def _index_directory(self, local_dir: Path, parent: Optional[DocumentNode]) -> DocumentNode:
+    def _index_directory(self, local_dir: Path, parent: DocumentNode | None) -> DocumentNode:
         """
         Indexes Markdown files in a directory hierarchy recursively.
         """
@@ -181,7 +181,7 @@ class Processor:
         directories.sort()
 
         # make page act as parent node
-        parent_doc: Optional[Path] = None
+        parent_doc: Path | None = None
         if FileEntry("index.md") in files:
             parent_doc = local_dir / "index.md"
         elif FileEntry("README.md") in files:
@@ -277,7 +277,7 @@ class Converter:
         else:
             raise ArgumentError(f"expected: valid file or directory path; got: {path}")
 
-    def process_directory(self, local_dir: Path, root_dir: Optional[Path] = None) -> None:
+    def process_directory(self, local_dir: Path, root_dir: Path | None = None) -> None:
         """
         Recursively scans a directory hierarchy for Markdown files, and processes each, resolving cross-references.
         """
@@ -290,7 +290,7 @@ class Converter:
 
         self.factory.create(root_dir).process_directory(local_dir)
 
-    def process_page(self, path: Path, root_dir: Optional[Path] = None) -> None:
+    def process_page(self, path: Path, root_dir: Path | None = None) -> None:
         """
         Processes a single Markdown file.
         """

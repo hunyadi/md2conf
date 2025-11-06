@@ -8,7 +8,6 @@ Copyright 2022-2025, Levente Hunyadi
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
 from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes, get_volatile_elements
@@ -43,7 +42,7 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _synchronize_tree(self, root: DocumentNode, root_id: Optional[ConfluencePageID]) -> None:
+    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 

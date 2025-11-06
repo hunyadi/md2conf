@@ -16,7 +16,7 @@ import sys
 import typing
 from io import StringIO
 from pathlib import Path
-from typing import Any, Iterable, Literal, Optional, Sequence, Union
+from typing import Any, Iterable, Literal, Sequence
 
 from . import __version__
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
@@ -27,18 +27,18 @@ from .metadata import ConfluenceSiteMetadata
 
 class Arguments(argparse.Namespace):
     mdpath: Path
-    domain: Optional[str]
-    path: Optional[str]
-    api_url: Optional[str]
-    username: Optional[str]
-    api_key: Optional[str]
-    space: Optional[str]
+    domain: str | None
+    path: str | None
+    api_url: str | None
+    username: str | None
+    api_key: str | None
+    space: str | None
     loglevel: str
     ignore_invalid_url: bool
     heading_anchors: bool
-    root_page: Optional[str]
+    root_page: str | None
     keep_hierarchy: bool
-    generated_by: Optional[str]
+    generated_by: str | None
     render_drawio: bool
     render_mermaid: bool
     render_latex: bool
@@ -58,8 +58,8 @@ class KwargsAppendAction(argparse.Action):
         self,
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
-        values: Union[None, str, Sequence[Any]],
-        option_string: Optional[str] = None,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
     ) -> None:
         try:
             d = dict(map(lambda x: x.split("="), typing.cast(Sequence[str], values)))
@@ -74,10 +74,10 @@ class KwargsAppendAction(argparse.Action):
 class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
     def _format_usage(
         self,
-        usage: Optional[str],
+        usage: str | None,
         actions: Iterable[argparse.Action],
         groups: Iterable[argparse._MutuallyExclusiveGroup],  # pyright: ignore[reportPrivateUsage]
-        prefix: Optional[str],
+        prefix: str | None,
     ) -> str:
         # filter only positional arguments
         positional_actions = [a for a in actions if not a.option_strings]

@@ -18,7 +18,7 @@ We actively welcome your pull requests. Keep changes concise to help reviewers. 
 
 ### Prerequisites
 
-Python is installed. Minimum version we support is Python 3.9.
+Python is installed. Minimum version we support is Python 3.10.
 
 ### Helping you get set up
 

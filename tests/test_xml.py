@@ -8,7 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import logging
 import unittest
-from typing import Iterable, Optional
+from typing import Iterable
 
 import lxml.etree as ET
 
@@ -30,16 +30,16 @@ class TestXml(TypedTestCase):
         tree1: ElementType,
         tree2: ElementType,
         *,
-        skip_attributes: Optional[Iterable[str]] = None,
-        skip_elements: Optional[Iterable[str]] = None,
-        msg: Optional[str] = None,
+        skip_attributes: Iterable[str] | None = None,
+        skip_elements: Iterable[str] | None = None,
+        msg: str | None = None,
     ) -> None:
         if not is_xml_equal(tree1, tree2, skip_attributes=skip_attributes, skip_elements=skip_elements):
             xml1 = ET.tostring(tree1, encoding="utf8", method="xml").decode("utf8")
             xml2 = ET.tostring(tree2, encoding="utf8", method="xml").decode("utf8")
             self.assertMultiLineEqual(xml1, xml2, msg)
 
-    def assertXmlNotEqual(self, tree1: ElementType, tree2: ElementType, msg: Optional[str] = None) -> None:
+    def assertXmlNotEqual(self, tree1: ElementType, tree2: ElementType, msg: str | None = None) -> None:
         if is_xml_equal(tree1, tree2):
             xml1 = ET.tostring(tree1, encoding="utf8", method="xml").decode("utf8")
             xml2 = ET.tostring(tree2, encoding="utf8", method="xml").decode("utf8")

@@ -12,7 +12,6 @@ import os.path
 import shutil
 import unittest
 from pathlib import Path
-from typing import Optional
 
 import lxml.etree as ET
 
@@ -38,7 +37,7 @@ IMAGE_TEST_PAGE_ID = ConfluencePageID("26837000")
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
 
-    def transform(self, child: ElementType) -> Optional[ElementType]:
+    def transform(self, child: ElementType) -> ElementType | None:
         if child.tag in get_volatile_elements():
             child.clear(keep_tail=True)
         for name in get_volatile_attributes():
