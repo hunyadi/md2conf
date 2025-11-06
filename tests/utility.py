@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import sys
 import unittest
 from collections.abc import Container, Iterable
 from typing import TypeVar
@@ -30,12 +31,14 @@ class TypedTestCase(unittest.TestCase):
     def assertListEqual(self, list1: list[T], list2: list[T], msg: str | None = None) -> None:
         super().assertListEqual(list1, list2, msg=msg)
 
-    def assertStartsWith(self, text: str, prefix: str, msg: str | None = None) -> None:
-        """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
+    if sys.version_info < (3, 14):
 
-        if not text.startswith(prefix):
-            standardMsg = "%s does not start with %s" % (
-                safe_repr(text),
-                safe_repr(prefix),
-            )
-            self.fail(self._formatMessage(msg, standardMsg))
+        def assertStartsWith(self, text: str, prefix: str, msg: str | None = None) -> None:
+            """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
+
+            if not text.startswith(prefix):
+                standardMsg = "%s does not start with %s" % (
+                    safe_repr(text),
+                    safe_repr(prefix),
+                )
+                self.fail(self._formatMessage(msg, standardMsg))
