@@ -10,7 +10,7 @@ import logging
 import unittest
 from pathlib import Path
 
-from strong_typing.exception import JsonTypeError
+from cattrs import BaseValidationError
 
 from md2conf.extra import override
 from md2conf.scanner import MermaidScanner, Scanner
@@ -88,7 +88,7 @@ class TestScanner(TypedTestCase):
         self.assertIsNone(properties.config)
 
     def test_mermaid_malformed_frontmatter(self) -> None:
-        with self.assertRaises(JsonTypeError):
+        with self.assertRaises(BaseValidationError):
             MermaidScanner().read(mermaid_malformed_front_matter)
 
 

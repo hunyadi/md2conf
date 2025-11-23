@@ -20,8 +20,7 @@ from typing import ClassVar, Literal
 from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
-from strong_typing.core import JsonType
-from strong_typing.exception import JsonTypeError
+from cattrs import BaseValidationError
 
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
@@ -35,6 +34,7 @@ from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
 from .scanner import MermaidScanner, ScannedDocument, Scanner
+from .serializer import JsonType
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -910,7 +910,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         try:
             properties = MermaidScanner().read(content)
             return properties.config
-        except JsonTypeError as ex:
+        except BaseValidationError as ex:
             LOGGER.warning("Failed to extract Mermaid properties: %s", ex)
             return None
 

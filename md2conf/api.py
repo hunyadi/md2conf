@@ -22,12 +22,11 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 import truststore
 from requests.adapters import HTTPAdapter
-from strong_typing.core import JsonType
-from strong_typing.serialization import DeserializerOptions, json_dump_string, json_to_object, object_to_json
 
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
 from .extra import override
 from .metadata import ConfluenceSiteMetadata
+from .serializer import JsonType, json_to_object, object_to_json_payload
 
 T = TypeVar("T")
 
@@ -38,13 +37,6 @@ mimetypes.add_type("application/vnd.oasis.opendocument.spreadsheet", ".ods", str
 mimetypes.add_type("application/vnd.oasis.opendocument.text", ".odt", strict=True)
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx", strict=True)
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", strict=True)
-
-
-def _json_to_object(
-    typ: type[T],
-    data: JsonType,
-) -> T:
-    return json_to_object(typ, data, options=DeserializerOptions(skip_unassigned=True))
 
 
 def build_url(base_url: str, query: dict[str, str] | None = None) -> str:
@@ -83,7 +75,7 @@ def response_cast(response_type: type[T] | None, response: requests.Response) ->
     if response_type is None:
         return None
     else:
-        return _json_to_object(response_type, response.json())
+        return json_to_object(response_type, response.json())
 
 
 @enum.unique
@@ -524,7 +516,7 @@ class ConfluenceSession:
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
-        return _json_to_object(response_type, response.json())
+        return json_to_object(response_type, response.json())
 
     def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
         "Retrieves all results of a REST API v2 paginated result-set."
@@ -555,7 +547,7 @@ class ConfluenceSession:
         headers = {"Content-Type": "application/json"}
         if response_type is not None:
             headers["Accept"] = "application/json"
-        data = json_dump_string(object_to_json(body)).encode("utf-8")
+        data = object_to_json_payload(body)
         return url, headers, data
 
     @overload
@@ -663,7 +655,7 @@ class ConfluenceSession:
         if len(results) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
         result = typing.cast(dict[str, JsonType], results[0])
-        return _json_to_object(ConfluenceAttachment, result)
+        return json_to_object(ConfluenceAttachment, result)
 
     def upload_attachment(
         self,
@@ -844,7 +836,7 @@ class ConfluenceSession:
         if len(results) != 1:
             raise ConfluenceError(f"unique page not found with title: {title}")
 
-        page = _json_to_object(ConfluencePageProperties, results[0])
+        page = json_to_object(ConfluencePageProperties, results[0])
         return page
 
     def get_page(self, page_id: str) -> ConfluencePage:
@@ -938,7 +930,7 @@ class ConfluenceSession:
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         response = self.session.post(
             url,
-            data=json_dump_string(object_to_json(request)).encode("utf-8"),
+            data=object_to_json_payload(request),
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -946,7 +938,7 @@ class ConfluenceSession:
             verify=True,
         )
         response.raise_for_status()
-        return _json_to_object(ConfluencePage, response.json())
+        return json_to_object(ConfluencePage, response.json())
 
     def delete_page(self, page_id: str, *, purge: bool = False) -> None:
         """
@@ -1008,7 +1000,7 @@ class ConfluenceSession:
         )
         response.raise_for_status()
         data = typing.cast(dict[str, JsonType], response.json())
-        results = _json_to_object(list[ConfluencePageProperties], data["results"])
+        results = json_to_object(list[ConfluencePageProperties], data["results"])
 
         if len(results) == 1:
             return results[0].id
@@ -1043,7 +1035,7 @@ class ConfluenceSession:
 
         path = f"/pages/{page_id}/labels"
         results = self._fetch(path)
-        return _json_to_object(list[ConfluenceIdentifiedLabel], results)
+        return json_to_object(list[ConfluenceIdentifiedLabel], results)
 
     def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
         """
@@ -1105,7 +1097,7 @@ class ConfluenceSession:
 
         path = f"/pages/{page_id}/properties"
         results = self._fetch(path)
-        return _json_to_object(list[ConfluenceIdentifiedContentProperty], results)
+        return json_to_object(list[ConfluenceIdentifiedContentProperty], results)
 
     def add_content_property_to_page(self, page_id: str, property: ConfluenceContentProperty) -> ConfluenceIdentifiedContentProperty:
         """

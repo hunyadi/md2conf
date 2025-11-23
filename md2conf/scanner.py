@@ -13,19 +13,11 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 
 import yaml
-from strong_typing.core import JsonType
-from strong_typing.serialization import DeserializerOptions, json_to_object
 
 from .mermaid import MermaidConfigProperties
+from .serializer import JsonType, json_to_object
 
 T = TypeVar("T")
-
-
-def _json_to_object(
-    typ: type[T],
-    data: JsonType,
-) -> T:
-    return json_to_object(typ, data, options=DeserializerOptions(skip_unassigned=True))
 
 
 def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
@@ -77,16 +69,16 @@ class DocumentProperties:
     :param alignment: Alignment for block-level images and formulas.
     """
 
-    page_id: str | None
-    space_key: str | None
-    confluence_page_id: str | None
-    confluence_space_key: str | None
-    generated_by: str | None
-    title: str | None
-    tags: list[str] | None
-    synchronized: bool | None
-    properties: dict[str, JsonType] | None
-    alignment: Literal["center", "left", "right"] | None
+    page_id: str | None = None
+    space_key: str | None = None
+    confluence_page_id: str | None = None
+    confluence_space_key: str | None = None
+    generated_by: str | None = None
+    title: str | None = None
+    tags: list[str] | None = None
+    synchronized: bool | None = None
+    properties: dict[str, JsonType] | None = None
+    alignment: Literal["center", "left", "right"] | None = None
 
 
 @dataclass
@@ -144,7 +136,7 @@ class Scanner:
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
         if data is not None:
-            p = _json_to_object(DocumentProperties, data)
+            p = json_to_object(DocumentProperties, data)
             page_id = page_id or p.confluence_page_id or p.page_id
             space_key = space_key or p.confluence_space_key or p.space_key
             generated_by = generated_by or p.generated_by
@@ -203,7 +195,7 @@ class MermaidScanner:
 
         properties, _ = extract_frontmatter_properties(content)
         if properties is not None:
-            front_matter = _json_to_object(MermaidProperties, properties)
+            front_matter = json_to_object(MermaidProperties, properties)
             config = front_matter.config or MermaidConfigProperties()
 
             return MermaidProperties(title=front_matter.title, config=config)
