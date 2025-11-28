@@ -11,6 +11,7 @@ import logging
 import os.path
 import shutil
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 import lxml.etree as ET
@@ -117,6 +118,7 @@ class TestAPI(TypedTestCase):
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
             page = api.get_page_properties_by_title(TEST_PAGE_TITLE)
+            self.assertGreater(datetime.now(timezone.utc), page.createdAt)
             self.assertEqual(page.id, FEATURE_TEST_PAGE_ID.page_id)
 
     def test_get_page(self) -> None:

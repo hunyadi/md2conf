@@ -8,9 +8,11 @@ Copyright 2022-2025, Levente Hunyadi
 
 import logging
 import unittest
+from datetime import datetime
 
 from md2conf.converter import attachment_name, title_to_identifier
 from md2conf.latex import LATEX_ENABLED, get_png_dimensions, remove_png_chunks, render_latex
+from md2conf.serializer import json_to_object, object_to_json_payload
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from tests.utility import TypedTestCase
 
@@ -22,6 +24,9 @@ logging.basicConfig(
 
 class TestUnit(TypedTestCase):
     "Simple unit tests without set-up or tear-down requirements."
+
+    def test_datetime(self) -> None:
+        self.assertEqual(object_to_json_payload(json_to_object(datetime, "2004-03-01T23:59:59Z")), b'"2004-03-01T23:59:59+00:00"')
 
     def test_attachment(self) -> None:
         self.assertEqual(attachment_name("image"), "image")

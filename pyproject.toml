@@ -33,6 +33,7 @@ dependencies = [
     "cattrs >= 25.3",
     "lxml >= 6.0",
     "markdown >= 3.10",
+    "orjson >= 3.11",
     "pymdown-extensions >= 10.17",
     "PyYAML >= 6.0",
     "requests >= 2.32",

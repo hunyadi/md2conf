@@ -6,9 +6,11 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import sys
+from datetime import datetime
 from typing import TypeVar
 
-from cattrs.preconf.json import make_converter
+from cattrs.preconf.orjson import make_converter
 
 JsonType = None | bool | int | float | str | dict[str, "JsonType"] | list["JsonType"]
 JsonComposite = dict[str, "JsonType"] | list["JsonType"]
@@ -17,6 +19,16 @@ T = TypeVar("T")
 
 
 _converter = make_converter(forbid_extra_keys=False)
+
+
+if sys.version_info < (3, 11):
+
+    @_converter.register_structure_hook
+    def datetime_structure_hook(value: str, cls: type[datetime]) -> datetime:
+        if value.endswith("Z"):
+            # fromisoformat() prior to Python version 3.11 does not support military time zones like "Zulu" for UTC
+            value = f"{value[:-1]}+00:00"
+        return datetime.fromisoformat(value)
 
 
 @_converter.register_structure_hook
@@ -49,4 +61,4 @@ def object_to_json_payload(data: object) -> bytes:
     :returns: JSON string encoded in UTF-8.
     """
 
-    return _converter.dumps(data).encode("utf-8")
+    return _converter.dumps(data)
