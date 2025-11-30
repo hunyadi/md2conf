@@ -5,7 +5,7 @@ Parses Markdown files, converts Markdown content into the Confluence Storage For
 Confluence API endpoints to upload images and content.
 """
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 __author__ = "Levente Hunyadi"
 __copyright__ = "Copyright 2022-2025, Levente Hunyadi"
 __license__ = "MIT"
