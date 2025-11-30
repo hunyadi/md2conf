@@ -1,6 +1,6 @@
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.13
 
-FROM python:${PYTHON_VERSION}-alpine as host
+FROM python:${PYTHON_VERSION}-alpine AS host
 
 # set environment for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/Dockerfile
@@ -18,7 +18,7 @@ USER md2conf
 WORKDIR /home/md2conf
 RUN npm install @mermaid-js/mermaid-cli
 
-FROM host as runner
+FROM host AS runner
 
 COPY dist/*.whl dist/
 RUN python3 -m pip install `ls -1 dist/*.whl`

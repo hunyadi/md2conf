@@ -7,4 +7,5 @@ __pycache__
 /build
 /dist
 /docs
+/wheel
 /*.egg-info

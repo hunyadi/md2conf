@@ -9,5 +9,5 @@ __pycache__
 /.venv
 /*.egg-info
 /build
-/dist
 /docs
+/wheel

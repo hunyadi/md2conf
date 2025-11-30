@@ -1,10 +1,21 @@
-# Example commands how to use this `Dockerfile`:
-# > docker build --tag md2conf .
-# > docker run --rm --env-file .env -v %CD%/tests/source:/data md2conf --render-mermaid --local /data/mermaid.md
+# Publish Markdown files to Confluence wiki.
+#
+# Copyright 2022-2025, Levente Hunyadi
+# https://github.com/hunyadi/md2conf
 
-ARG PYTHON_VERSION=3.10
+# How do I use this `Dockerfile`?
+#
+# 1. Build image:
+#    > docker build --tag md2conf .
+#
+# 2. Run application, mapping a local volume to a container volume:
+#    > docker run --rm --env-file .env -v $PWD/tests/source:/data md2conf --render-mermaid --local /data/mermaid.md
+#
+# Replace `$PWD` with `%CD%` on Windows.
+
+ARG PYTHON_VERSION=3.13
 ARG ALPINE_VERSION=3.22
-ARG MERMAID_VERSION=11.6
+ARG MERMAID_VERSION=11.12
 
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
@@ -12,7 +23,7 @@ COPY ./ ./
 
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
     pip install build
-RUN python -m build --wheel
+RUN python -m build --wheel --outdir wheel
 
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS host
 
@@ -36,9 +47,9 @@ RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
 
 FROM host AS runner
 
-COPY --from=builder /dist/*.whl dist/
+COPY --from=builder /wheel/*.whl wheel/
 
-RUN python3 -m pip install `ls -1 dist/*.whl`
+RUN python3 -m pip install `ls -1 wheel/*.whl`
 
 WORKDIR /data
 ENTRYPOINT ["python3", "-m", "md2conf"]
