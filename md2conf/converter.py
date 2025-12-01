@@ -81,6 +81,12 @@ def is_directory_within(absolute_path: Path, base_path: Path) -> bool:
     return absolute_path.as_posix().startswith(base_path.as_posix())
 
 
+def fix_absolute_path(path: Path, root_path: Path) -> Path:
+    "Make absolute path relative to another root path."
+
+    return root_path / path.relative_to(path.root)
+
+
 def encode_title(text: str) -> str:
     "Converts a title string such that it is safe to embed into a Confluence URL."
 
@@ -545,9 +551,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # discard original value: relative links always require transformation
         anchor.attrib.pop("href")
-
-        # convert the relative URL to absolute path based on the base path value
-        absolute_path = (self.base_dir / relative_url.path).resolve()
+        if relative_url.path.startswith("/"):
+            absolute_path = fix_absolute_path(path=Path(relative_url.path), root_path=self.root_dir).resolve()
+        else:
+            # convert the relative URL to absolute path based on the base path value
+            absolute_path = (self.base_dir / relative_url.path).resolve()
 
         # look up the absolute path in the page metadata dictionary to discover the relative path within Confluence that should be used
         if not is_directory_within(absolute_path, self.root_dir):
@@ -716,8 +724,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _verify_image_path(self, path: Path) -> Path | None:
         "Checks whether an image path is safe to use."
 
-        # resolve relative path into absolute path w.r.t. base dir
-        absolute_path = (self.base_dir / path).resolve()
+        if path.is_absolute():
+            absolute_path = fix_absolute_path(path=path, root_path=self.root_dir).resolve()
+        else:
+            # resolve relative path into absolute path w.r.t. base dir
+            absolute_path = (self.base_dir / path).resolve()
 
         if not absolute_path.exists():
             self._warn_or_raise(f"path to image {path} does not exist")
