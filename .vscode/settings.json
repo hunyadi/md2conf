@@ -17,6 +17,7 @@
     "cSpell.words": [
         "arithmatex",
         "árvíztűrő",
+        "backref",
         "blockquote",
         "eazy",
         "fnref",
@@ -27,8 +28,10 @@
         "magiclink",
         "Matplotlib",
         "mdignore",
+        "mdpath",
         "mmdc",
         "mxfile",
+        "nbsp",
         "pymdownx",
         "scandir",
         "superfences",

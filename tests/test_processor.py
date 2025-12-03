@@ -70,6 +70,7 @@ class TestProcessor(TypedTestCase):
 
     def test_generated_by(self) -> None:
         options = ConfluenceDocumentOptions(
+            title_prefix="[PAGE]",  # impacts only Confluence title
             generated_by="<&> This page has been **generated** with [md2conf](https://github.com/hunyadi/md2conf)",
             root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
         )
@@ -89,6 +90,7 @@ class TestProcessor(TypedTestCase):
             "</ac:structured-macro>"
         )
         self.assertStartsWith(content, generated_by_html)
+        self.assertNotIn("[PAGE]", content)
 
 
 if __name__ == "__main__":

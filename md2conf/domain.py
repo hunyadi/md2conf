@@ -20,10 +20,11 @@ class ConfluenceDocumentOptions:
     """
     Options that control the generated page content.
 
-    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
-        plain text; when false, raise an exception.
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
+    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
+        plain text; when false, raise an exception.
+    :param title_prefix: String to prepend to Confluence page title for each published page.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param root_page_id: Confluence page to assume root page role for publishing a directory of Markdown files.
     :param keep_hierarchy: Whether to maintain source directory structure when exporting to Confluence.
@@ -37,8 +38,9 @@ class ConfluenceDocumentOptions:
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     """
 
-    ignore_invalid_url: bool = False
     heading_anchors: bool = False
+    ignore_invalid_url: bool = False
+    title_prefix: str | None = None
     generated_by: str | None = "This page has been generated with a tool."
     root_page_id: ConfluencePageID | None = None
     keep_hierarchy: bool = False

@@ -34,10 +34,11 @@ class Arguments(argparse.Namespace):
     api_key: str | None
     space: str | None
     loglevel: str
-    ignore_invalid_url: bool
     heading_anchors: bool
+    ignore_invalid_url: bool
     root_page: str | None
     keep_hierarchy: bool
+    title_prefix: str | None
     generated_by: str | None
     render_drawio: bool
     render_mermaid: bool
@@ -149,8 +150,15 @@ def get_parser() -> argparse.ArgumentParser:
         help="Flatten directories with no index.md or README.md when exporting to Confluence.",
     )
     parser.add_argument(
+        "--title-prefix",
+        default=None,
+        metavar="TEXT",
+        help="String to prepend to Confluence page title for each published page.",
+    )
+    parser.add_argument(
         "--generated-by",
         default="This page has been generated with a tool.",
+        metavar="MARKDOWN",
         help="Add prompt to pages (default: 'This page has been generated with a tool.').",
     )
     parser.add_argument(
@@ -282,6 +290,7 @@ def main() -> None:
     options = ConfluenceDocumentOptions(
         heading_anchors=args.heading_anchors,
         ignore_invalid_url=args.ignore_invalid_url,
+        title_prefix=args.title_prefix,
         generated_by=args.generated_by,
         root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
         keep_hierarchy=args.keep_hierarchy,

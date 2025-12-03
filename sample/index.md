@@ -92,6 +92,8 @@ Code blocks with language `math` are also supported:
 
 Footnote with numeric notation [^1] and string identifier [^string].
 
+Multiple references to the same footnote: first [^multi], second [^multi], third [^multi].
+
 ## Sections
 
 [Link to Subsection 1](#subsection-1) | [Link to Subsection 2](#subsection-2) | Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam dignissim sem vel tortor scelerisque sodales. Quisque id faucibus massa. Integer enim nulla, cursus vel facilisis id, convallis in nunc. Suspendisse potenti. Aenean vehicula semper fringilla. Nulla pretium vitae enim sed feugiat. Integer molestie a elit ac fermentum.
@@ -197,6 +199,7 @@ puts "Hello World"
 
 [^1]: This is a footnote with *numeric* notation.
 [^string]: This is a footnote with a *string identifier*.
+[^multi]: **[External Link](https://example.com)**. This footnote is referenced multiple times.
 
 ## Colors
 

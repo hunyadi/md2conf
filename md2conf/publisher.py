@@ -81,6 +81,9 @@ class SynchronizingProcessor(Processor):
                 digest = self._generate_hash(node.absolute_path)
                 title = f"{node.absolute_path.stem} [{digest}]"
 
+            if self.options.title_prefix is not None:
+                title = f"{self.options.title_prefix} {title}"
+
             # look up page by (possibly auto-generated) title
             page = self.api.get_or_create_page(title, parent_id.page_id)
 
