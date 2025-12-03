@@ -11,7 +11,9 @@ import enum
 import io
 import logging
 import mimetypes
+import random
 import ssl
+import time
 import typing
 from dataclasses import dataclass
 from pathlib import Path
@@ -839,16 +841,38 @@ class ConfluenceSession:
         page = json_to_object(ConfluencePageProperties, results[0])
         return page
 
-    def get_page(self, page_id: str) -> ConfluencePage:
+    def get_page(self, page_id: str, *, retries: int = 3, retry_delay: float = 1.0) -> ConfluencePage:
         """
         Retrieves Confluence wiki page details and content.
 
+        Includes retry logic to handle eventual consistency issues when fetching
+        a newly created page that may not be immediately available via the API.
+
         :param page_id: The Confluence page ID.
+        :param retries: Number of retry attempts for 404 errors (default: 3).
+        :param retry_delay: Initial delay in seconds between retries, doubles each attempt (default: 1.0).
         :returns: Confluence page info and content.
         """
 
         path = f"/pages/{page_id}"
-        return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePage, query={"body-format": "storage"})
+        last_error: requests.HTTPError | None = None
+
+        for attempt in range(retries + 1):
+            try:
+                return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePage, query={"body-format": "storage"})
+            except requests.HTTPError as e:
+                if e.response is not None and e.response.status_code == 404 and attempt < retries:
+                    delay = retry_delay * (2**attempt) + random.uniform(0, 1)
+                    LOGGER.debug("Page %s not found, retrying in %.1f seconds (attempt %d/%d)", page_id, delay, attempt + 1, retries)
+                    time.sleep(delay)
+                    last_error = e
+                else:
+                    raise
+
+        # This should not be reached, but satisfies type checker
+        if last_error is not None:
+            raise last_error
+        raise ConfluenceError(f"Failed to get page {page_id}")
 
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
         """
