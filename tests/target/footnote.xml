@@ -5,6 +5,7 @@
 </ac:structured-macro>
 <h2>Footnotes</h2>
 <p>Footnote with numeric notation <sup><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-ref-1</ac:parameter></ac:structured-macro><ac:link ac:anchor="footnote-def-1"><ac:link-body>1</ac:link-body></ac:link></sup> and string identifier <sup><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-ref-string</ac:parameter></ac:structured-macro><ac:link ac:anchor="footnote-def-string"><ac:link-body>2</ac:link-body></ac:link></sup>.</p>
+<p>Multiple references to the same footnote: first <sup><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-ref-multi</ac:parameter></ac:structured-macro><ac:link ac:anchor="footnote-def-multi"><ac:link-body>3</ac:link-body></ac:link></sup>, second <sup><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-ref-multi-2</ac:parameter></ac:structured-macro><ac:link ac:anchor="footnote-def-multi"><ac:link-body>3</ac:link-body></ac:link></sup>, third <sup><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-ref-multi-3</ac:parameter></ac:structured-macro><ac:link ac:anchor="footnote-def-multi"><ac:link-body>3</ac:link-body></ac:link></sup>.</p>
 <div class="footnote">
   <hr/>
   <ol start="1">
@@ -13,6 +14,9 @@
     </li>
     <li>
       <p><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-def-string</ac:parameter></ac:structured-macro>This is a footnote with a <em>string identifier</em>.&nbsp;<ac:link ac:anchor="footnote-ref-string"><ac:link-body>↩</ac:link-body></ac:link></p>
+    </li>
+    <li>
+      <p><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">footnote-def-multi</ac:parameter></ac:structured-macro><strong><a href="https://example.com">External Link</a></strong>. This footnote is referenced multiple times.&nbsp;<ac:link ac:anchor="footnote-ref-multi"><ac:link-body>↩</ac:link-body></ac:link> <ac:link ac:anchor="footnote-ref-multi-2"><ac:link-body>↩²</ac:link-body></ac:link> <ac:link ac:anchor="footnote-ref-multi-3"><ac:link-body>↩³</ac:link-body></ac:link></p>
     </li>
   </ol>
 </div>
