@@ -35,7 +35,7 @@ from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
 from .scanner import MermaidScanner, ScannedDocument, Scanner
 from .serializer import JsonType
-from .svg import get_svg_dimensions, get_svg_dimensions_from_bytes, fix_svg_dimensions
+from .svg import fix_svg_dimensions, get_svg_dimensions, get_svg_dimensions_from_bytes
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
