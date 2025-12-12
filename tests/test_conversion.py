@@ -263,6 +263,41 @@ class TestConversion(TypedTestCase):
         )
         self.assertEqual(len(document.embedded_files), 4)
 
+    def test_max_image_width(self) -> None:
+        "Test that max_image_width constrains display width while preserving original dimensions."
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "images.md",
+            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=100),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        xhtml = doc.xhtml()
+
+        # The vector.svg has natural dimensions of 200x200
+        # With max_image_width=100, display width should be constrained to 100
+        # but original-width should still be 200
+        self.assertIn('ac:original-width="200"', xhtml)
+        self.assertIn('ac:original-height="200"', xhtml)
+        self.assertIn('ac:width="100"', xhtml)
+
+    def test_max_image_width_no_constraint(self) -> None:
+        "Test that images smaller than max_image_width are not constrained."
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "images.md",
+            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=500),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        xhtml = doc.xhtml()
+
+        # The vector.svg has natural dimensions of 200x200
+        # With max_image_width=500, no constraint should be applied
+        # so ac:width should equal the natural width
+        self.assertIn('ac:original-width="200"', xhtml)
+        self.assertIn('ac:width="200"', xhtml)
+
 
 if __name__ == "__main__":
     unittest.main()

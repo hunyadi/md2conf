@@ -36,6 +36,8 @@ class ConfluenceDocumentOptions:
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param alignment: Alignment for block-level images and formulas.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
+    :param max_image_width: Maximum display width for images in pixels. Images wider than this
+        will be scaled down for display while preserving the original size for full-size viewing.
     """
 
     heading_anchors: bool = False
@@ -52,3 +54,4 @@ class ConfluenceDocumentOptions:
     webui_links: bool = False
     alignment: Literal["center", "left", "right"] = "center"
     use_panel: bool = False
+    max_image_width: int | None = None
