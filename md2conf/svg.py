@@ -17,6 +17,41 @@ LOGGER = logging.getLogger(__name__)
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 
 
+def _extract_dimensions_from_root(root: ET._Element) -> tuple[int | None, int | None]:
+    """
+    Extracts width and height from an SVG root element.
+
+    Attempts to read dimensions from:
+    1. Explicit width/height attributes on the root <svg> element
+    2. The viewBox attribute if width/height are not specified
+
+    :param root: The root element of the SVG document.
+    :returns: A tuple of (width, height) in pixels, or (None, None) if dimensions cannot be determined.
+    """
+
+    # Handle namespaced and non-namespaced SVG
+    if root.tag != f"{{{SVG_NAMESPACE}}}svg" and root.tag != "svg":
+        return None, None
+
+    width_attr = root.get("width")
+    height_attr = root.get("height")
+
+    width = _parse_svg_length(width_attr) if width_attr else None
+    height = _parse_svg_length(height_attr) if height_attr else None
+
+    # If width/height not specified, try to derive from viewBox
+    if width is None or height is None:
+        viewbox = root.get("viewBox")
+        if viewbox:
+            vb_width, vb_height = _parse_viewbox(viewbox)
+            if width is None:
+                width = vb_width
+            if height is None:
+                height = vb_height
+
+    return width, height
+
+
 def get_svg_dimensions(path: Path) -> tuple[int | None, int | None]:
     """
     Extracts width and height from an SVG file.
@@ -32,28 +67,9 @@ def get_svg_dimensions(path: Path) -> tuple[int | None, int | None]:
     try:
         tree = ET.parse(str(path))
         root = tree.getroot()
-
-        # Handle namespaced and non-namespaced SVG
-        if root.tag != f"{{{SVG_NAMESPACE}}}svg" and root.tag != "svg":
+        width, height = _extract_dimensions_from_root(root)
+        if width is None and height is None:
             LOGGER.warning("SVG file %s does not have an <svg> root element", path)
-            return None, None
-
-        width_attr = root.get("width")
-        height_attr = root.get("height")
-
-        width = _parse_svg_length(width_attr) if width_attr else None
-        height = _parse_svg_length(height_attr) if height_attr else None
-
-        # If width/height not specified, try to derive from viewBox
-        if width is None or height is None:
-            viewbox = root.get("viewBox")
-            if viewbox:
-                vb_width, vb_height = _parse_viewbox(viewbox)
-                if width is None:
-                    width = vb_width
-                if height is None:
-                    height = vb_height
-
         return width, height
 
     except ET.XMLSyntaxError as ex:
@@ -62,6 +78,104 @@ def get_svg_dimensions(path: Path) -> tuple[int | None, int | None]:
     except Exception as ex:
         LOGGER.warning("Unexpected error reading SVG dimensions from %s: %s", path, ex)
         return None, None
+
+
+def get_svg_dimensions_from_bytes(data: bytes) -> tuple[int | None, int | None]:
+    """
+    Extracts width and height from SVG data in memory.
+
+    Attempts to read dimensions from:
+    1. Explicit width/height attributes on the root <svg> element
+    2. The viewBox attribute if width/height are not specified
+
+    :param data: The SVG content as bytes.
+    :returns: A tuple of (width, height) in pixels, or (None, None) if dimensions cannot be determined.
+    """
+
+    try:
+        root = ET.fromstring(data)
+        return _extract_dimensions_from_root(root)
+
+    except ET.XMLSyntaxError as ex:
+        LOGGER.warning("Failed to parse SVG data: %s", ex)
+        return None, None
+    except Exception as ex:
+        LOGGER.warning("Unexpected error reading SVG dimensions from data: %s", ex)
+        return None, None
+
+
+def fix_svg_dimensions(data: bytes) -> bytes:
+    """
+    Fixes SVG data by setting explicit width/height attributes based on viewBox.
+
+    Mermaid generates SVGs with width="100%" which Confluence doesn't handle well.
+    This function replaces percentage-based dimensions with explicit pixel values
+    derived from the viewBox.
+
+    Note: SVGs containing foreignObject elements are NOT modified, as Confluence
+    has rendering issues with foreignObject when explicit dimensions are set.
+
+    Uses regex replacement to preserve the original SVG structure exactly,
+    avoiding potential issues from XML re-serialization.
+
+    :param data: The SVG content as bytes.
+    :returns: The modified SVG content with explicit dimensions, or original data if modification fails.
+    """
+
+    try:
+        text = data.decode("utf-8")
+
+        # Skip SVGs with foreignObject - Confluence has issues rendering
+        # foreignObject content when explicit width/height are set on the SVG
+        if "<foreignObject" in text:
+            LOGGER.debug("Skipping dimension fix for SVG with foreignObject elements")
+            return data
+
+        # Extract the SVG opening tag
+        svg_tag_match = re.search(r"<svg[^>]+>", text)
+        if not svg_tag_match:
+            return data
+
+        svg_tag = svg_tag_match.group(0)
+
+        # Check if we need to fix (has width="100%" or similar percentage)
+        if 'width="100%"' not in svg_tag:
+            # Check if it already has a valid numeric width
+            if re.search(r'\swidth="\d+(?:\.\d+)?"', svg_tag):
+                return data  # Already has numeric width
+
+        # Extract viewBox dimensions
+        viewbox_match = re.search(r'viewBox="([^"]+)"', svg_tag)
+        if not viewbox_match:
+            return data
+
+        vb_width, vb_height = _parse_viewbox(viewbox_match.group(1))
+        if vb_width is None or vb_height is None:
+            return data
+
+        # Replace width="100%" with explicit width
+        text = re.sub(r'(<svg[^>]*)\swidth="100%"', rf'\1 width="{vb_width}"', text)
+
+        # Re-extract the SVG tag after width replacement
+        svg_tag_match = re.search(r"<svg[^>]+>", text)
+        svg_tag = svg_tag_match.group(0) if svg_tag_match else ""
+
+        # Add height attribute if missing from SVG tag, or replace percentage height
+        if not re.search(r'\sheight="', svg_tag):
+            # Add height after width in SVG tag only
+            text = re.sub(r'(<svg[^>]*\swidth="\d+(?:\.\d+)?")', rf'\1 height="{vb_height}"', text)
+        elif 'height="100%"' in svg_tag:
+            # Replace percentage height in SVG tag
+            def replace_svg_height(m: re.Match[str]) -> str:
+                return re.sub(r'height="100%"', f'height="{vb_height}"', m.group(0))
+
+            text = re.sub(r"<svg[^>]+>", replace_svg_height, text, count=1)
+
+        return text.encode("utf-8")
+
+    except Exception as ex:
+        LOGGER.warning("Unexpected error fixing SVG dimensions: %s", ex)
+        return data
 
 
 def _parse_svg_length(value: str) -> int | None:

@@ -35,7 +35,7 @@ from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
 from .scanner import MermaidScanner, ScannedDocument, Scanner
 from .serializer import JsonType
-from .svg import get_svg_dimensions
+from .svg import get_svg_dimensions, get_svg_dimensions_from_bytes, fix_svg_dimensions
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -952,8 +952,28 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 content = f.read()
             config = self._extract_mermaid_config(content)
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
+
+            # Extract dimensions and fix SVG if that's the output format
+            if self.options.diagram_output_format == "svg":
+                # Fix SVG to have explicit width/height instead of percentages
+                image_data = fix_svg_dimensions(image_data)
+
+                if attrs.width is None and attrs.height is None:
+                    svg_width, svg_height = get_svg_dimensions_from_bytes(image_data)
+                    if svg_width is not None or svg_height is not None:
+                        attrs = ImageAttributes(
+                            context=attrs.context,
+                            width=svg_width,
+                            height=svg_height,
+                            alt=attrs.alt,
+                            title=attrs.title,
+                            caption=attrs.caption,
+                            alignment=attrs.alignment,
+                        )
+
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
             self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
+
             return self._create_attached_image(image_filename, attrs)
         else:
             self.images.append(ImageData(absolute_path, attrs.alt))
@@ -966,10 +986,30 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_mermaid:
             config = self._extract_mermaid_config(content)
             image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
+
+            # Extract dimensions and fix SVG if that's the output format
+            attrs = ImageAttributes.EMPTY_BLOCK
+            if self.options.diagram_output_format == "svg":
+                # Fix SVG to have explicit width/height instead of percentages
+                image_data = fix_svg_dimensions(image_data)
+
+                svg_width, svg_height = get_svg_dimensions_from_bytes(image_data)
+                if svg_width is not None or svg_height is not None:
+                    attrs = ImageAttributes(
+                        context=FormattingContext.BLOCK,
+                        width=svg_width,
+                        height=svg_height,
+                        alt=None,
+                        title=None,
+                        caption=None,
+                        alignment=ImageAlignment(self.options.alignment),
+                    )
+
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_files[image_filename] = EmbeddedFileData(image_data)
-            return self._create_attached_image(image_filename, ImageAttributes.EMPTY_BLOCK)
+
+            return self._create_attached_image(image_filename, attrs)
         else:
             mermaid_data = content.encode("utf-8")
             mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
