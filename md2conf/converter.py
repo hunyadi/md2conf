@@ -35,6 +35,7 @@ from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
 from .scanner import MermaidScanner, ScannedDocument, Scanner
 from .serializer import JsonType
+from .svg import get_svg_dimensions
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -748,6 +749,20 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             png_file = absolute_path.with_suffix(".png")
             if png_file.exists():
                 absolute_path = png_file
+
+        # infer SVG dimensions if not already specified
+        if absolute_path.suffix == ".svg" and attrs.width is None and attrs.height is None:
+            svg_width, svg_height = get_svg_dimensions(absolute_path)
+            if svg_width is not None or svg_height is not None:
+                attrs = ImageAttributes(
+                    context=attrs.context,
+                    width=svg_width,
+                    height=svg_height,
+                    alt=attrs.alt,
+                    title=attrs.title,
+                    caption=attrs.caption,
+                    alignment=attrs.alignment,
+                )
 
         self.images.append(ImageData(absolute_path, attrs.alt))
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))

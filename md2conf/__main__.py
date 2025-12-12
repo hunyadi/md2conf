@@ -38,6 +38,7 @@ class Arguments(argparse.Namespace):
     ignore_invalid_url: bool
     root_page: str | None
     keep_hierarchy: bool
+    prefer_raster: bool
     title_prefix: str | None
     generated_by: str | None
     render_drawio: bool
@@ -215,6 +216,19 @@ def get_parser() -> argparse.ArgumentParser:
         help="Format for rendering Mermaid and draw.io diagrams (default: 'png').",
     )
     parser.add_argument(
+        "--prefer-raster",
+        dest="prefer_raster",
+        action="store_true",
+        default=True,
+        help="Prefer PNG over SVG when both exist (default: enabled).",
+    )
+    parser.add_argument(
+        "--no-prefer-raster",
+        dest="prefer_raster",
+        action="store_false",
+        help="Use SVG files directly instead of preferring PNG equivalents.",
+    )
+    parser.add_argument(
         "--heading-anchors",
         action="store_true",
         default=False,
@@ -294,6 +308,7 @@ def main() -> None:
         generated_by=args.generated_by,
         root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
         keep_hierarchy=args.keep_hierarchy,
+        prefer_raster=args.prefer_raster,
         render_drawio=args.render_drawio,
         render_mermaid=args.render_mermaid,
         render_latex=args.render_latex,
