@@ -277,6 +277,7 @@ class ImageAttributes:
     :param title: Title text (a.k.a. image tooltip).
     :param caption: Caption text (shown below figure).
     :param alignment: Alignment for block-level images.
+    :param display_width: Constrained display width in pixels (if different from natural width).
     """
 
     context: FormattingContext
@@ -286,6 +287,7 @@ class ImageAttributes:
     title: str | None
     caption: str | None
     alignment: ImageAlignment = ImageAlignment.CENTER
+    display_width: int | None = None
 
     def __post_init__(self) -> None:
         if self.caption is None and self.context is FormattingContext.BLOCK:
@@ -310,7 +312,9 @@ class ImageAttributes:
                 attributes[AC_ATTR("original-height")] = str(self.height)
             if self.width is not None:
                 attributes[AC_ATTR("custom-width")] = "true"
-                attributes[AC_ATTR("width")] = str(self.width)
+                # Use display_width if set, otherwise use natural width
+                effective_width = self.display_width if self.display_width is not None else self.width
+                attributes[AC_ATTR("width")] = str(effective_width)
 
         elif self.context is FormattingContext.INLINE:
             if self.width is not None:
@@ -364,6 +368,7 @@ class ConfluenceConverterOptions:
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param alignment: Alignment for block-level images and formulas.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
+    :param max_image_width: Maximum display width for images in pixels.
     """
 
     ignore_invalid_url: bool = False
@@ -376,6 +381,7 @@ class ConfluenceConverterOptions:
     webui_links: bool = False
     alignment: Literal["center", "left", "right"] = "center"
     use_panel: bool = False
+    max_image_width: int | None = None
 
 
 @dataclass
@@ -464,6 +470,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.embedded_files = {}
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
+
+    def _calculate_display_width(self, natural_width: int | None) -> int | None:
+        """
+        Calculate the display width for an image, applying max_image_width constraint if set.
+
+        :param natural_width: The natural width of the image in pixels.
+        :returns: The constrained display width, or None if no constraint is needed.
+        """
+        if natural_width is None or self.options.max_image_width is None:
+            return None
+        if natural_width <= self.options.max_image_width:
+            return None  # No constraint needed, image is already within limits
+        return self.options.max_image_width
 
     def _transform_heading(self, heading: ElementType) -> None:
         """
@@ -677,7 +696,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         pixel_width = int(width) if width is not None and width.isdecimal() else None
         pixel_height = int(height) if height is not None and height.isdecimal() else None
         attrs = ImageAttributes(
-            context, width=pixel_width, height=pixel_height, alt=alt, title=title, caption=None, alignment=ImageAlignment(self.options.alignment)
+            context,
+            width=pixel_width,
+            height=pixel_height,
+            alt=alt,
+            title=title,
+            caption=None,
+            alignment=ImageAlignment(self.options.alignment),
+            display_width=self._calculate_display_width(pixel_width),
         )
 
         if is_absolute_url(src):
@@ -762,6 +788,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     title=attrs.title,
                     caption=attrs.caption,
                     alignment=attrs.alignment,
+                    display_width=self._calculate_display_width(svg_width),
                 )
 
         self.images.append(ImageData(absolute_path, attrs.alt))
@@ -969,6 +996,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                             title=attrs.title,
                             caption=attrs.caption,
                             alignment=attrs.alignment,
+                            display_width=self._calculate_display_width(svg_width),
                         )
 
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
@@ -1003,6 +1031,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                         title=None,
                         caption=None,
                         alignment=ImageAlignment(self.options.alignment),
+                        display_width=self._calculate_display_width(svg_width),
                     )
 
             image_hash = hashlib.md5(image_data).hexdigest()
@@ -1367,7 +1396,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.diagram_output_format == "png":
             width, height = get_png_dimensions(data=image_data)
             image_data = remove_png_chunks(["pHYs"], source_data=image_data)
-            attrs = ImageAttributes(context, width=width, height=height, alt=content, title=None, caption="", alignment=ImageAlignment(self.options.alignment))
+            attrs = ImageAttributes(
+                context,
+                width=width,
+                height=height,
+                alt=content,
+                title=None,
+                caption="",
+                alignment=ImageAlignment(self.options.alignment),
+                display_width=self._calculate_display_width(width),
+            )
         else:
             attrs = ImageAttributes.empty(context)
 

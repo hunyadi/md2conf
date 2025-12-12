@@ -50,6 +50,7 @@ class Arguments(argparse.Namespace):
     webui_links: bool
     alignment: Literal["center", "left", "right"]
     use_panel: bool
+    max_image_width: int | None
 
 
 class KwargsAppendAction(argparse.Action):
@@ -279,6 +280,14 @@ def get_parser() -> argparse.ArgumentParser:
         default=False,
         help="Transform admonitions and alerts into a Confluence custom panel.",
     )
+    parser.add_argument(
+        "--max-image-width",
+        dest="max_image_width",
+        type=int,
+        default=None,
+        help="Maximum display width for images in pixels. Images wider than this will be scaled down "
+        "for display while preserving the original size for full-size viewing.",
+    )
     return parser
 
 
@@ -316,6 +325,7 @@ def main() -> None:
         webui_links=args.webui_links,
         alignment=args.alignment,
         use_panel=args.use_panel,
+        max_image_width=args.max_image_width,
     )
     if args.local:
         from .local import LocalConverter

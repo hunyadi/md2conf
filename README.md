@@ -575,6 +575,10 @@ options:
                         (default: 'center').
   --use-panel           Transform admonitions and alerts into a Confluence
                         custom panel.
+  --max-image-width MAX_IMAGE_WIDTH
+                        Maximum display width for images in pixels. Images
+                        wider than this will be scaled down for display while
+                        preserving the original size for full-size viewing.
 ```
 
 ### Confluence REST API v1 vs. v2
