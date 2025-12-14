@@ -104,6 +104,54 @@ def get_svg_dimensions_from_bytes(data: bytes) -> tuple[int | None, int | None]:
         return None, None
 
 
+def _serialize_svg_opening_tag(root: ET._Element) -> str:
+    """
+    Serializes just the opening tag of an SVG element (without children or closing tag).
+
+    :param root: The root SVG element.
+    :returns: The opening tag string, e.g., '<svg width="100" height="200" ...>'.
+    """
+    # Build the opening tag from element name and attributes
+    tag_name = root.tag
+    # Handle namespaced tag - extract local name for the tag but preserve namespace declarations
+    if tag_name.startswith("{"):
+        # Extract namespace and local name
+        ns_end = tag_name.index("}")
+        tag_name = "svg"  # Use simple tag name; namespace will be in attributes
+
+    parts = [f"<{tag_name}"]
+
+    # Add namespace declarations (nsmap)
+    for prefix, uri in root.nsmap.items():
+        if prefix is None:
+            parts.append(f' xmlns="{uri}"')
+        else:
+            parts.append(f' xmlns:{prefix}="{uri}"')
+
+    # Add attributes
+    for name, value in root.attrib.items():
+        # Handle namespaced attributes
+        if name.startswith("{"):
+            ns_end = name.index("}")
+            ns_uri = name[1:ns_end]
+            local_name = name[ns_end + 1:]
+            # Find prefix for this namespace
+            prefix = None
+            for p, u in root.nsmap.items():
+                if u == ns_uri and p is not None:
+                    prefix = p
+                    break
+            if prefix:
+                parts.append(f' {prefix}:{local_name}="{value}"')
+            else:
+                parts.append(f' {local_name}="{value}"')
+        else:
+            parts.append(f' {name}="{value}"')
+
+    parts.append(">")
+    return "".join(parts)
+
+
 def fix_svg_dimensions(data: bytes) -> bytes:
     """
     Fixes SVG data by setting explicit width/height attributes based on viewBox.
@@ -115,8 +163,8 @@ def fix_svg_dimensions(data: bytes) -> bytes:
     Note: SVGs containing foreignObject elements are NOT modified, as Confluence
     has rendering issues with foreignObject when explicit dimensions are set.
 
-    Uses regex replacement to preserve the original SVG structure exactly,
-    avoiding potential issues from XML re-serialization.
+    Uses lxml to parse and modify the root element's attributes, then replaces
+    just the opening tag in the original document to preserve the rest exactly.
 
     :param data: The SVG content as bytes.
     :returns: The modified SVG content with explicit dimensions, or original data if modification fails.
@@ -131,45 +179,49 @@ def fix_svg_dimensions(data: bytes) -> bytes:
             LOGGER.debug("Skipping dimension fix for SVG with foreignObject elements")
             return data
 
-        # Extract the SVG opening tag
-        svg_tag_match = re.search(r"<svg\b[^>]+>", text)
-        if not svg_tag_match:
-            return data
+        # Parse the SVG to extract root element attributes
+        root = ET.fromstring(data)
 
-        svg_tag = svg_tag_match.group(0)
+        # Verify it's an SVG element
+        if root.tag != f"{{{SVG_NAMESPACE}}}svg" and root.tag != "svg":
+            return data
 
         # Check if we need to fix (has width="100%" or similar percentage)
-        if 'width="100%"' not in svg_tag:
+        width_attr = root.get("width")
+        if width_attr != "100%":
             # Check if it already has a valid numeric width
-            if re.search(r'\swidth="\d+(?:\.\d+)?"', svg_tag):
+            if width_attr is not None and _parse_svg_length(width_attr) is not None:
                 return data  # Already has numeric width
 
-        # Extract viewBox dimensions
-        viewbox_match = re.search(r'\sviewBox="([^"]+)"', svg_tag)
-        if not viewbox_match:
+        # Get viewBox dimensions
+        viewbox = root.get("viewBox")
+        if not viewbox:
             return data
 
-        vb_width, vb_height = _parse_viewbox(viewbox_match.group(1))
+        vb_width, vb_height = _parse_viewbox(viewbox)
         if vb_width is None or vb_height is None:
             return data
 
-        # Replace width="100%" with explicit width
-        text = re.sub(r'(<svg[^>]*)\swidth="100%"', rf'\1 width="{vb_width}"', text)
+        # Extract the original opening tag from the text
+        svg_tag_match = re.search(r"<svg\b[^>]*>", text)
+        if not svg_tag_match:
+            return data
 
-        # Re-extract the SVG tag after width replacement
-        svg_tag_match = re.search(r"<svg[^>]+>", text)
-        svg_tag = svg_tag_match.group(0) if svg_tag_match else ""
+        original_tag = svg_tag_match.group(0)
 
-        # Add height attribute if missing from SVG tag, or replace percentage height
-        if not re.search(r'\sheight="', svg_tag):
-            # Add height after width in SVG tag only
-            text = re.sub(r'(<svg[^>]*\swidth="\d+(?:\.\d+)?")', rf'\1 height="{vb_height}"', text)
-        elif 'height="100%"' in svg_tag:
-            # Replace percentage height in SVG tag
-            def replace_svg_height(m: re.Match[str]) -> str:
-                return re.sub(r'height="100%"', f'height="{vb_height}"', m.group(0))
+        # Modify the root element's attributes
+        root.set("width", str(vb_width))
 
-            text = re.sub(r"<svg[^>]+>", replace_svg_height, text, count=1)
+        # Set height if missing or if it's a percentage
+        height_attr = root.get("height")
+        if height_attr is None or height_attr == "100%":
+            root.set("height", str(vb_height))
+
+        # Serialize just the opening tag with modified attributes
+        new_tag = _serialize_svg_opening_tag(root)
+
+        # Replace the original opening tag with the new one
+        text = text.replace(original_tag, new_tag, 1)
 
         return text.encode("utf-8")
 
