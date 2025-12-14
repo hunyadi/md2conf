@@ -132,7 +132,7 @@ def fix_svg_dimensions(data: bytes) -> bytes:
             return data
 
         # Extract the SVG opening tag
-        svg_tag_match = re.search(r"<svg[^>]+>", text)
+        svg_tag_match = re.search(r"<svg\b[^>]+>", text)
         if not svg_tag_match:
             return data
 
