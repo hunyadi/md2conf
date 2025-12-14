@@ -779,7 +779,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         # infer SVG dimensions if not already specified
         if absolute_path.suffix == ".svg" and attrs.width is None and attrs.height is None:
             svg_width, svg_height = get_svg_dimensions(absolute_path)
-            if svg_width is not None or svg_height is not None:
+            if svg_width is not None:
                 attrs = ImageAttributes(
                     context=attrs.context,
                     width=svg_width,
