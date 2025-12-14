@@ -313,7 +313,7 @@ class ImageAttributes:
             if self.width is not None:
                 attributes[AC_ATTR("custom-width")] = "true"
                 # Use display_width if set, otherwise use natural width
-                effective_width = self.display_width if self.display_width is not None else self.width
+                effective_width = self.display_width or self.width
                 attributes[AC_ATTR("width")] = str(effective_width)
 
         elif self.context is FormattingContext.INLINE:
