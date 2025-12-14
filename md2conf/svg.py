@@ -145,7 +145,7 @@ def fix_svg_dimensions(data: bytes) -> bytes:
                 return data  # Already has numeric width
 
         # Extract viewBox dimensions
-        viewbox_match = re.search(r'viewBox="([^"]+)"', svg_tag)
+        viewbox_match = re.search(r'\sviewBox="([^"]+)"', svg_tag)
         if not viewbox_match:
             return data
 
