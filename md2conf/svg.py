@@ -258,27 +258,28 @@ def _parse_svg_length(value: str) -> int | None:
         return None
 
     # Convert to pixels (assuming 96 DPI, 16px base font)
-    if unit is None or unit.lower() == "px":
-        pixels = num
-    elif unit.lower() == "pt":
-        pixels = num * 96 / 72  # 1pt = 1/72 inch
-    elif unit.lower() == "in":
-        pixels = num * 96
-    elif unit.lower() == "cm":
-        pixels = num * 96 / 2.54
-    elif unit.lower() == "mm":
-        pixels = num * 96 / 25.4
-    elif unit.lower() == "pc":
-        pixels = num * 96 / 6  # 1pc = 12pt = 1/6 inch
-    elif unit.lower() == "em":
-        pixels = num * 16  # assume 16px base font
-    elif unit.lower() == "ex":
-        pixels = num * 8  # assume ex ≈ 0.5em
-    elif unit == "%":
-        # Percentage values can't be resolved without a container; skip
-        return None
-    else:
-        return None
+    match unit.lower() if unit else None:
+        case None | "px":
+            pixels = num
+        case "pt":
+            pixels = num * 96 / 72  # 1pt = 1/72 inch
+        case "in":
+            pixels = num * 96
+        case "cm":
+            pixels = num * 96 / 2.54
+        case "mm":
+            pixels = num * 96 / 25.4
+        case "pc":
+            pixels = num * 96 / 6  # 1pc = 12pt = 1/6 inch
+        case "em":
+            pixels = num * 16  # assume 16px base font
+        case "ex":
+            pixels = num * 8  # assume ex ≈ 0.5em
+        case "%":
+            # Percentage values can't be resolved without a container; skip
+            return None
+        case _:
+            return None
 
     return int(round(pixels))
 
