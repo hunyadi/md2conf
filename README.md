@@ -171,8 +171,8 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 
 The generated-by text can also be templated with the following variables:
 
-- `%{filename}`: the name of the markdown file
-- `%{filepath}`: the path of the markdown file relative to the root
+- `%{filename}`: the name of the Markdown file
+- `%{filepath}`: the path of the Markdown file relative to the source directory. When [publishing a single page](#publishing-a-single-page), it's the same as the filename.
 
 It can be used with the CLI `--generated-by` option or directly in the files:
 
