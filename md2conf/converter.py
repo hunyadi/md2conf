@@ -2061,7 +2061,7 @@ class ConfluenceDocument:
         # Find the first heading element (h1-h6) in the root
         heading_pattern = re.compile(r"^h[1-6]$", re.IGNORECASE)
 
-        for child in self.root:
+        for idx, child in enumerate(self.root):
             if heading_pattern.match(child.tag) is None:
                 continue
 
@@ -2071,13 +2071,22 @@ class ConfluenceDocument:
             # Remove the heading
             self.root.remove(child)
 
-            # If there was tail text, attach it to the next element
-            if tail and len(self.root) > 0:
-                next_elem = self.root[0]
-                if next_elem.text:
-                    next_elem.text = tail + next_elem.text
+            # If there was tail text, attach it to the previous sibling's tail
+            # or to the parent's text if this was the first child
+            if tail:
+                if idx > 0:
+                    # Append to previous sibling's tail
+                    prev_sibling = self.root[idx - 1]
+                    if prev_sibling.tail:
+                        prev_sibling.tail += tail
+                    else:
+                        prev_sibling.tail = tail
                 else:
-                    next_elem.text = tail
+                    # No previous sibling, append to parent's text
+                    if self.root.text:
+                        self.root.text += tail
+                    else:
+                        self.root.text = tail
 
             # Only remove the FIRST heading, then stop
             break
