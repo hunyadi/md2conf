@@ -380,6 +380,23 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_skip_title_heading_abstract(self) -> None:
+        """Test that abstract text before heading flows into content when heading is removed."""
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "skip_title_heading_abstract.md",
+            ConfluenceDocumentOptions(skip_title_heading=True),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(doc.title, "Document Title")
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "skip_title_heading_abstract_removed.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

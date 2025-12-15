@@ -452,6 +452,28 @@ Same Markdown source, but Confluence displays:
 - Page title: "Installation Guide"
 - Content: Starts directly with "Follow these steps..." (heading removed)
 
+**Edge case: Abstract or introductory text before the title:**
+
+When a document has content before the first heading (like an abstract), removing the heading eliminates the visual separator between the introductory text and the main content:
+
+```markdown
+This is an abstract paragraph providing context.
+
+# Document Title
+
+This is the main document content.
+```
+
+With `--skip-title-heading`, the output becomes:
+- Page title: "Document Title"
+- Content: "This is an abstract paragraph..." flows directly into "This is the main document content..." (no heading separator)
+
+While the structure remains semantically correct, the visual separation is lost. If you need to maintain separation, consider these workarounds:
+
+1. **Use a horizontal rule:** Add `---` after the abstract to create visual separation
+2. **Use an admonition block:** Wrap the abstract in an info/note block
+3. **Use front-matter title:** Set `title` in front-matter to keep the heading in the body
+
 ### Labels
 
 If a Markdown document has the front-matter attribute `tags`, *md2conf* assigns the specified tags to the Confluence page as labels.
