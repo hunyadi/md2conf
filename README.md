@@ -169,6 +169,19 @@ Provide generated-by prompt text in the Markdown file with a tag:
 
 Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
 
+The generated-by text can also be templated with the following variables:
+
+- `%{filename}`: the name of the Markdown file
+- `%{filepath}`: the path of the Markdown file relative to the *source root*
+
+When publishing a directory hierarchy, the *source root* is the directory in which *md2conf* is launched. When publishing a single file, this is the directory in which the Markdown file resides.
+
+It can be used with the CLI `--generated-by` option or directly in the files:
+
+```markdown
+<!-- generated-by: Do not edit! Check out the file %{filepath} in the repo -->
+```
+
 ### Publishing a single page
 
 *md2conf* has two modes of operation: *single-page mode* and *directory mode*.
@@ -550,7 +563,7 @@ options:
                         Alignment for block-level images and formulas (default: 'center').
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --max-image-width MAX_IMAGE_WIDTH
-                        Maximum display width for images in pixels. Images wider than this will be scaled down for display while preserving the original size for full-size viewing.
+                        Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
 ```
 
 ### Confluence REST API v1 vs. v2
