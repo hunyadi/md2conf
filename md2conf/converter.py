@@ -43,6 +43,24 @@ from .xml import element_to_text
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 
+def apply_generated_by_template(template: str, path: Path) -> str:
+    """Apply template substitution to the generated_by string.
+
+    Supported placeholders:
+    - {filepath}: Full path to the file (relative to the root directory)
+    - {filename}: Just the filename
+
+    :param template: The template string with placeholders
+    :param path: The path to the file being converted
+    :return: The template string with placeholders replaced
+    """
+
+    return template.format(
+        filepath=path.as_posix(),
+        filename=path.name,
+    )
+
+
 def get_volatile_attributes() -> list[str]:
     "Returns a list of volatile attributes that frequently change as a Confluence storage format XHTML document is updated."
 
@@ -1972,6 +1990,7 @@ class ConfluenceDocument:
             generated_by = None
 
         if generated_by is not None:
+            generated_by = apply_generated_by_template(generated_by, path.relative_to(root_dir))
             generated_by_html = markdown_to_html(generated_by)
 
             content = [
