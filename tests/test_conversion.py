@@ -303,7 +303,7 @@ class TestConversion(TypedTestCase):
         test_file_path = self.source_dir / "basic.md"
         _, doc = ConfluenceDocument.create(
             test_file_path,
-            ConfluenceDocumentOptions(generated_by="File: {filename} | Path: {filepath}"),
+            ConfluenceDocumentOptions(generated_by="File: %{filename} | Path: %{filepath}"),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -311,19 +311,6 @@ class TestConversion(TypedTestCase):
         xhtml = doc.xhtml()
         self.assertIn("File: basic.md", xhtml)
         self.assertIn(f"Path: {test_file_path.relative_to(self.source_dir).as_posix()}", xhtml)
-
-    def test_generated_by_template_invalid_variable(self) -> None:
-        "Test that generated_by option throws if it tries to template a not-supported variables"
-        test_file_path = self.source_dir / "basic.md"
-        _, doc = ConfluenceDocument.create(
-            test_file_path,
-            ConfluenceDocumentOptions(generated_by="{template}"),
-            self.source_dir,
-            self.site_metadata,
-            self.page_metadata,
-        )
-        with self.assertRaises(KeyError):
-            doc.xhtml()
 
 
 if __name__ == "__main__":

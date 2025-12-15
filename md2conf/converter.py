@@ -47,17 +47,20 @@ def apply_generated_by_template(template: str, path: Path) -> str:
     """Apply template substitution to the generated_by string.
 
     Supported placeholders:
-    - {filepath}: Full path to the file (relative to the root directory)
-    - {filename}: Just the filename
+    - %{filepath}: Full path to the file (relative to the root directory)
+    - %{filename}: Just the filename
 
     :param template: The template string with placeholders
     :param path: The path to the file being converted
     :return: The template string with placeholders replaced
     """
 
-    return template.format(
-        filepath=path.as_posix(),
-        filename=path.name,
+    return template.replace(
+        "%{filepath}",
+        path.as_posix(),
+    ).replace(
+        "%{filename}",
+        path.name,
     )
 
 

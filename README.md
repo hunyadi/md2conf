@@ -171,13 +171,13 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 
 The generated-by text can also be templated with the following variables:
 
-- `filename`: the name of the markdown file
-- `filepath`: the path of the markdown file relative to the root
+- `%{filename}`: the name of the markdown file
+- `%{filepath}`: the path of the markdown file relative to the root
 
-To template with the variables use the standard python string templating: 
+It can be used with the CLI `--generated-by` option or directly in the files:
 
 ```markdown
-<!-- generated-by: Do not edit! Check out this file {filepath} in the repo-->
+<!-- generated-by: Do not edit! Check out this file %{filepath} in the repo-->
 ```
 
 ### Publishing a single page
