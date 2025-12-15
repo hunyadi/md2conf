@@ -537,6 +537,8 @@ options:
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
                         Format for rendering Mermaid and draw.io diagrams (default: 'png').
+  --prefer-raster       Prefer PNG over SVG when both exist (default: enabled).
+  --no-prefer-raster    Use SVG files directly instead of preferring PNG equivalents.
   --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --no-heading-anchors  Don't place an anchor at each section heading.
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
@@ -548,9 +550,7 @@ options:
                         Alignment for block-level images and formulas (default: 'center').
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --max-image-width MAX_IMAGE_WIDTH
-                       Maximum display width for images in pixels. Images
-                       wider than this will be scaled down for display while
-                       preserving the original size for full-size viewing. 
+                        Maximum display width for images in pixels. Images wider than this will be scaled down for display while preserving the original size for full-size viewing.
 ```
 
 ### Confluence REST API v1 vs. v2

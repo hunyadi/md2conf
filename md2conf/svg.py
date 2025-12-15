@@ -12,12 +12,26 @@ from pathlib import Path
 
 import lxml.etree as ET
 
+ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+
 LOGGER = logging.getLogger(__name__)
 
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 
 
-def _extract_dimensions_from_root(root: ET._Element) -> tuple[int | None, int | None]:
+def _check_svg(root: ElementType) -> bool:
+    "Tests if the element is a plain or scoped SVG element."
+
+    root_tag = root.tag
+    if not isinstance(root_tag, str):
+        raise TypeError("expected: tag names as `str`")
+
+    # Handle namespaced and non-namespaced SVG
+    qname = ET.QName(root_tag)
+    return qname.localname == "svg" and (not qname.namespace or qname.namespace == SVG_NAMESPACE)
+
+
+def _extract_dimensions_from_root(root: ElementType) -> tuple[int | None, int | None]:
     """
     Extracts width and height from an SVG root element.
 
@@ -29,8 +43,7 @@ def _extract_dimensions_from_root(root: ET._Element) -> tuple[int | None, int | 
     :returns: A tuple of (width, height) in pixels, or (None, None) if dimensions cannot be determined.
     """
 
-    # Handle namespaced and non-namespaced SVG
-    if root.tag != f"{{{SVG_NAMESPACE}}}svg" and root.tag != "svg":
+    if not _check_svg(root):
         return None, None
 
     width_attr = root.get("width")
@@ -104,21 +117,19 @@ def get_svg_dimensions_from_bytes(data: bytes) -> tuple[int | None, int | None]:
         return None, None
 
 
-def _serialize_svg_opening_tag(root: ET._Element) -> str:
+def _serialize_svg_opening_tag(root: ElementType) -> str:
     """
     Serializes just the opening tag of an SVG element (without children or closing tag).
 
     :param root: The root SVG element.
     :returns: The opening tag string, e.g., '<svg width="100" height="200" ...>'.
     """
-    # Build the opening tag from element name and attributes
-    tag_name = root.tag
-    # Handle namespaced tag - extract local name for the tag but preserve namespace declarations
-    if tag_name.startswith("{"):
-        # Extract namespace and local name
-        ns_end = tag_name.index("}")
-        tag_name = "svg"  # Use simple tag name; namespace will be in attributes
 
+    # Build the opening tag from element name and attributes
+    root_tag = root.tag
+    if not isinstance(root_tag, str):
+        raise TypeError("expected: tag names as `str`")
+    tag_name = ET.QName(root_tag).localname
     parts = [f"<{tag_name}"]
 
     # Add namespace declarations (nsmap)
@@ -130,21 +141,20 @@ def _serialize_svg_opening_tag(root: ET._Element) -> str:
 
     # Add attributes
     for name, value in root.attrib.items():
+        qname = ET.QName(name)
+
         # Handle namespaced attributes
-        if name.startswith("{"):
-            ns_end = name.index("}")
-            ns_uri = name[1:ns_end]
-            local_name = name[ns_end + 1:]
+        if qname.namespace:
             # Find prefix for this namespace
             prefix = None
             for p, u in root.nsmap.items():
-                if u == ns_uri and p is not None:
+                if u == qname.namespace and p is not None:
                     prefix = p
                     break
             if prefix:
-                parts.append(f' {prefix}:{local_name}="{value}"')
+                parts.append(f' {prefix}:{qname.localname}="{value}"')
             else:
-                parts.append(f' {local_name}="{value}"')
+                parts.append(f' {qname.localname}="{value}"')
         else:
             parts.append(f' {name}="{value}"')
 
@@ -183,7 +193,7 @@ def fix_svg_dimensions(data: bytes) -> bytes:
         root = ET.fromstring(data)
 
         # Verify it's an SVG element
-        if root.tag != f"{{{SVG_NAMESPACE}}}svg" and root.tag != "svg":
+        if not _check_svg(root):
             return data
 
         # Check if we need to fix (has width="100%" or similar percentage)
@@ -234,7 +244,7 @@ def _parse_svg_length(value: str) -> int | None:
     """
     Parses an SVG length value and converts it to pixels.
 
-    Supports: px, pt, em, ex, in, cm, mm, pc, and unitless values.
+    Supports: px, pt, em, ex, in, cm, mm, pc, and unit-less values.
     For simplicity, assumes 96 DPI and 16px base font size.
 
     :param value: The SVG length string (e.g., "100", "100px", "10em").

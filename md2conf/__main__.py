@@ -285,8 +285,7 @@ def get_parser() -> argparse.ArgumentParser:
         dest="max_image_width",
         type=int,
         default=None,
-        help="Maximum display width for images in pixels. Images wider than this will be scaled down "
-        "for display while preserving the original size for full-size viewing.",
+        help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
     )
     return parser
 

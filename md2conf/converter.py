@@ -383,6 +383,20 @@ class ConfluenceConverterOptions:
     use_panel: bool = False
     max_image_width: int | None = None
 
+    def calculate_display_width(self, natural_width: int | None) -> int | None:
+        """
+        Calculate the display width for an image, applying max_image_width constraint if set.
+
+        :param natural_width: The natural width of the image in pixels.
+        :returns: The constrained display width, or None if no constraint is needed.
+        """
+
+        if natural_width is None or self.max_image_width is None:
+            return None
+        if natural_width <= self.max_image_width:
+            return None  # no constraint needed, image is already within limits
+        return self.max_image_width
+
 
 @dataclass
 class ImageData:
@@ -470,19 +484,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.embedded_files = {}
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
-
-    def _calculate_display_width(self, natural_width: int | None) -> int | None:
-        """
-        Calculate the display width for an image, applying max_image_width constraint if set.
-
-        :param natural_width: The natural width of the image in pixels.
-        :returns: The constrained display width, or None if no constraint is needed.
-        """
-        if natural_width is None or self.options.max_image_width is None:
-            return None
-        if natural_width <= self.options.max_image_width:
-            return None  # No constraint needed, image is already within limits
-        return self.options.max_image_width
 
     def _transform_heading(self, heading: ElementType) -> None:
         """
@@ -703,7 +704,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             title=title,
             caption=None,
             alignment=ImageAlignment(self.options.alignment),
-            display_width=self._calculate_display_width(pixel_width),
+            display_width=self.options.calculate_display_width(pixel_width),
         )
 
         if is_absolute_url(src):
@@ -788,7 +789,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     title=attrs.title,
                     caption=attrs.caption,
                     alignment=attrs.alignment,
-                    display_width=self._calculate_display_width(svg_width),
+                    display_width=self.options.calculate_display_width(svg_width),
                 )
 
         self.images.append(ImageData(absolute_path, attrs.alt))
@@ -996,7 +997,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                             title=attrs.title,
                             caption=attrs.caption,
                             alignment=attrs.alignment,
-                            display_width=self._calculate_display_width(svg_width),
+                            display_width=self.options.calculate_display_width(svg_width),
                         )
 
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
@@ -1031,7 +1032,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                         title=None,
                         caption=None,
                         alignment=ImageAlignment(self.options.alignment),
-                        display_width=self._calculate_display_width(svg_width),
+                        display_width=self.options.calculate_display_width(svg_width),
                     )
 
             image_hash = hashlib.md5(image_data).hexdigest()
@@ -1404,7 +1405,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 title=None,
                 caption="",
                 alignment=ImageAlignment(self.options.alignment),
-                display_width=self._calculate_display_width(width),
+                display_width=self.options.calculate_display_width(width),
             )
         else:
             attrs = ImageAttributes.empty(context)
