@@ -169,6 +169,17 @@ Provide generated-by prompt text in the Markdown file with a tag:
 
 Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
 
+The generated-by text can also be templated with the following variables:
+
+- `filename`: the name of the markdown file
+- `filepath`: the path of the markdown file relative to the root
+
+To template with the variables use the standard python string templating: 
+
+```markdown
+<!-- generated-by: Do not edit! Check out this file {filepath} in the repo-->
+```
+
 ### Publishing a single page
 
 *md2conf* has two modes of operation: *single-page mode* and *directory mode*.
