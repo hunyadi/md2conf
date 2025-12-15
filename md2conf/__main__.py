@@ -51,6 +51,7 @@ class Arguments(argparse.Namespace):
     alignment: Literal["center", "left", "right"]
     use_panel: bool
     max_image_width: int | None
+    skip_title_heading: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -287,6 +288,18 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
         help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
     )
+    parser.add_argument(
+        "--skip-title-heading",
+        action="store_true",
+        default=False,
+        help="Skip the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
+    )
+    parser.add_argument(
+        "--no-skip-title-heading",
+        dest="skip_title_heading",
+        action="store_false",
+        help="Keep the first heading in document body even when used as page title (default).",
+    )
     return parser
 
 
@@ -325,6 +338,7 @@ def main() -> None:
         alignment=args.alignment,
         use_panel=args.use_panel,
         max_image_width=args.max_image_width,
+        skip_title_heading=args.skip_title_heading,
     )
     if args.local:
         from .local import LocalConverter

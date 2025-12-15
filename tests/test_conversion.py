@@ -312,6 +312,74 @@ class TestConversion(TypedTestCase):
         self.assertIn("File: basic.md", xhtml)
         self.assertIn(f"Path: {test_file_path.relative_to(self.source_dir).as_posix()}", xhtml)
 
+    def test_skip_title_heading_enabled(self) -> None:
+        """Test that the first heading is removed when skip_title_heading is enabled."""
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "skip_title_heading.md",
+            ConfluenceDocumentOptions(skip_title_heading=True),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(doc.title, "Document Title")
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "skip_title_heading_removed.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
+    def test_skip_title_heading_disabled(self) -> None:
+        """Test that the first heading is preserved when skip_title_heading is disabled (default)."""
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "skip_title_heading.md",
+            ConfluenceDocumentOptions(skip_title_heading=False),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(doc.title, "Document Title")
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "skip_title_heading_preserved.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
+    def test_skip_title_heading_frontmatter(self) -> None:
+        """Test that heading is preserved when title comes from front-matter, even with flag enabled."""
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "skip_title_heading_frontmatter.md",
+            ConfluenceDocumentOptions(skip_title_heading=True),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(doc.title, "Title from Front-matter")
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "skip_title_heading_frontmatter.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
+    def test_skip_title_heading_multiple(self) -> None:
+        """Test that headings are preserved when there are multiple top-level headings."""
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "skip_title_heading_multiple.md",
+            ConfluenceDocumentOptions(skip_title_heading=True),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertIsNone(doc.title)  # No unique title can be extracted
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "skip_title_heading_multiple.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -390,6 +390,7 @@ class ConfluenceConverterOptions:
     :param alignment: Alignment for block-level images and formulas.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param max_image_width: Maximum display width for images in pixels.
+    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
     """
 
     ignore_invalid_url: bool = False
@@ -403,6 +404,7 @@ class ConfluenceConverterOptions:
     alignment: Literal["center", "left", "right"] = "center"
     use_panel: bool = False
     max_image_width: int | None = None
+    skip_title_heading: bool = False
 
     def calculate_display_width(self, natural_width: int | None) -> int | None:
         """
@@ -2034,6 +2036,49 @@ class ConfluenceDocument:
         self.title = document.title or converter.toc.get_title()
         self.labels = document.tags
         self.properties = document.properties
+
+        # Remove the first heading if:
+        # 1. The option is enabled
+        # 2. Title was NOT from front-matter (document.title is None)
+        # 3. A title was successfully extracted from heading (self.title is not None)
+        if (
+            converter_options.skip_title_heading
+            and document.title is None
+            and self.title is not None
+        ):
+            self._remove_first_heading()
+
+    def _remove_first_heading(self) -> None:
+        """
+        Removes the first heading element from the document root.
+
+        This is used when the title was extracted from the first unique top-level heading
+        and the user has requested to skip it from the body to avoid duplication.
+
+        Handles the case where a generated-by info panel may be present as the first child.
+        """
+
+        # Find the first heading element (h1-h6) in the root
+        heading_pattern = re.compile(r"^h[1-6]$", re.IGNORECASE)
+
+        for child in self.root:
+            if heading_pattern.match(child.tag):
+                # Preserve any text that comes after the heading (tail text)
+                tail = child.tail
+
+                # Remove the heading
+                self.root.remove(child)
+
+                # If there was tail text, attach it to the next element
+                if tail and len(self.root) > 0:
+                    next_elem = self.root[0]
+                    if next_elem.text:
+                        next_elem.text = tail + next_elem.text
+                    else:
+                        next_elem.text = tail
+
+                # Only remove the FIRST heading, then stop
+                break
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)
