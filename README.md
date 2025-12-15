@@ -422,6 +422,36 @@ This is useful if you have a page in a hierarchy that participates in parent-chi
 
 If the `title` attribute (in the front-matter) or the topmost unique heading (in the document body) changes, the Confluence page title is updated. A warning is raised if the new title conflicts with the title of another page, and thus cannot be updated.
 
+#### Avoiding duplicate titles
+
+By default, when *md2conf* extracts a page title from the first unique heading in a Markdown document, the heading remains in the document body. This means the title appears twice on the Confluence page: once as the page title at the top, and once as the first heading in the content.
+
+To avoid this duplication, use the `--skip-title-heading` option. When enabled, *md2conf* removes the first heading from the document body if it was used as the page title. This option only takes effect when:
+
+1. The title was extracted from the document's first unique heading (not from front-matter), AND
+2. There is exactly one top-level heading in the document.
+
+If the title comes from the `title` attribute in front-matter, the heading is preserved in the document body regardless of this setting, as the heading and title are considered separate.
+
+**Example without `--skip-title-heading` (default):**
+
+Markdown:
+```markdown
+# Installation Guide
+
+Follow these steps...
+```
+
+Confluence displays:
+- Page title: "Installation Guide"
+- Content: Starts with heading "Installation Guide", followed by "Follow these steps..."
+
+**Example with `--skip-title-heading`:**
+
+Same Markdown source, but Confluence displays:
+- Page title: "Installation Guide"
+- Content: Starts directly with "Follow these steps..." (heading removed)
+
 ### Labels
 
 If a Markdown document has the front-matter attribute `tags`, *md2conf* assigns the specified tags to the Confluence page as labels.
@@ -554,6 +584,9 @@ options:
   --no-prefer-raster    Use SVG files directly instead of preferring PNG equivalents.
   --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --no-heading-anchors  Don't place an anchor at each section heading.
+  --skip-title-heading  Skip the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).
+  --no-skip-title-heading
+                        Keep the first heading in document body even when used as page title (default).
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
