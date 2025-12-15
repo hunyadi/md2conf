@@ -2062,23 +2062,25 @@ class ConfluenceDocument:
         heading_pattern = re.compile(r"^h[1-6]$", re.IGNORECASE)
 
         for child in self.root:
-            if heading_pattern.match(child.tag):
-                # Preserve any text that comes after the heading (tail text)
-                tail = child.tail
+            if heading_pattern.match(child.tag) is None:
+                continue
 
-                # Remove the heading
-                self.root.remove(child)
+            # Preserve any text that comes after the heading (tail text)
+            tail = child.tail
 
-                # If there was tail text, attach it to the next element
-                if tail and len(self.root) > 0:
-                    next_elem = self.root[0]
-                    if next_elem.text:
-                        next_elem.text = tail + next_elem.text
-                    else:
-                        next_elem.text = tail
+            # Remove the heading
+            self.root.remove(child)
 
-                # Only remove the FIRST heading, then stop
-                break
+            # If there was tail text, attach it to the next element
+            if tail and len(self.root) > 0:
+                next_elem = self.root[0]
+                if next_elem.text:
+                    next_elem.text = tail + next_elem.text
+                else:
+                    next_elem.text = tail
+
+            # Only remove the FIRST heading, then stop
+            break
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)
