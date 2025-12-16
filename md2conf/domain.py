@@ -38,6 +38,7 @@ class ConfluenceDocumentOptions:
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param max_image_width: Maximum display width for images [px]. Wider images are scaled down for page display.
         Original size kept for full-size viewing.
+    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
     """
 
     heading_anchors: bool = False
@@ -55,3 +56,4 @@ class ConfluenceDocumentOptions:
     alignment: Literal["center", "left", "right"] = "center"
     use_panel: bool = False
     max_image_width: int | None = None
+    skip_title_heading: bool = False
