@@ -2,16 +2,27 @@ name: Publish Docker image
 
 on:
   push:
+    branches:
+      - master
     # Pattern matched against refs/tags
     tags:
       - '*'
 
 jobs:
   publish_docker:
+    if: github.ref_name == 'master' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Set publish tags
+        id: set-tags
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tags=unstable,latest,${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=unstable" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
@@ -19,4 +30,4 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: Dockerfile
-          tags: "latest,${{ github.ref_name }}"
+          tags: ${{ steps.set-tags.outputs.tags }}

@@ -631,6 +631,8 @@ If you are restricted to an environment with Confluence REST API v1, we recommen
 
 You can run the Docker container via `docker run` or via `Dockerfile`. Either can accept the environment variables or arguments similar to the Python options. The final argument `./` corresponds to `mdpath` in the command-line utility.
 
+Published images are tagged in three ways: `unstable` follows the latest commit on `master`, `latest` is produced for each release build, and every git tag (for example, `v0.3.0`) is published as a matching Docker tag.
+
 With `docker run`, you can pass Confluence domain, user, API and space key directly to `docker run`:
 
 ```sh
