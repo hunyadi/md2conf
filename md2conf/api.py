@@ -32,6 +32,7 @@ from .serializer import JsonType, json_to_object, object_to_json_payload
 
 T = TypeVar("T")
 
+# spellchecker: disable
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx", strict=True)
 mimetypes.add_type("text/vnd.mermaid", ".mmd", strict=True)
 mimetypes.add_type("application/vnd.oasis.opendocument.presentation", ".odp", strict=True)
@@ -39,6 +40,7 @@ mimetypes.add_type("application/vnd.oasis.opendocument.spreadsheet", ".ods", str
 mimetypes.add_type("application/vnd.oasis.opendocument.text", ".odt", strict=True)
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx", strict=True)
 mimetypes.add_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx", strict=True)
+# spellchecker: enable
 
 
 def build_url(base_url: str, query: dict[str, str] | None = None) -> str:

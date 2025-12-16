@@ -44,16 +44,16 @@ else:
 
     def _render_latex(expression: str, f: BinaryIO, *, format: Literal["png", "svg"], dpi: int, font_size: int) -> None:
         # create a figure with no axis
-        fig = plt.figure(dpi=dpi)
+        fig = plt.figure(dpi=dpi)  # pyright: ignore[reportUnknownMemberType]
 
         # transparent background
         fig.patch.set_alpha(0)
 
         # add LaTeX text
-        fig.text(x=0, y=0, s=f"${expression}$", fontsize=font_size)
+        fig.text(x=0, y=0, s=f"${expression}$", fontsize=font_size)  # pyright: ignore[reportUnknownMemberType]
 
         # save the image
-        fig.savefig(
+        fig.savefig(  # pyright: ignore[reportUnknownMemberType]
             f,
             transparent=True,
             format=format,
@@ -209,7 +209,7 @@ def _get_png_dimensions(source_file: BinaryIO) -> tuple[int, int]:
 
     _read_signature(source_file)
 
-    # validate IHDR chunk
+    # validate IHDR (Image Header) chunk
     ihdr = _read_chunk(source_file)
     if ihdr is None:
         raise ValueError("missing IHDR chunk")

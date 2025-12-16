@@ -23,8 +23,8 @@ T = TypeVar("T")
 def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
     values: list[str] = []
 
-    def _repl_func(matchobj: re.Match[str]) -> str:
-        values.append(matchobj.group(1))
+    def _repl_func(match: re.Match[str]) -> str:
+        values.append(match.group(1))
         return ""
 
     text = re.sub(pattern, _repl_func, text, count=1, flags=re.ASCII)

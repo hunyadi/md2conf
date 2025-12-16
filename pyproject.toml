@@ -34,7 +34,7 @@ dependencies = [
     "lxml >= 6.0",
     "markdown >= 3.10",
     "orjson >= 3.11",
-    "pymdown-extensions >= 10.17",
+    "pymdown-extensions >= 10.19",
     "PyYAML >= 6.0",
     "requests >= 2.32",
     "truststore >= 0.10",
@@ -44,12 +44,12 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "markdown_doc >= 0.1.5",
-    "types-lxml >= 2025.8.25",
+    "markdown_doc >= 0.1.6",
+    "types-lxml >= 2025.11.25",
     "types-markdown >= 3.10",
     "types-PyYAML >= 6.0",
     "types-requests >= 2.32",
-    "mypy >= 1.18",
+    "mypy >= 1.19",
     "ruff >= 0.14"
 ]
 formulas = [

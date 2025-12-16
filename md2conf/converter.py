@@ -52,7 +52,7 @@ def apply_generated_by_template(template: str, path: Path) -> str:
 
     :param template: The template string with placeholders
     :param path: The path to the file being converted
-    :return: The template string with placeholders replaced
+    :returns: The template string with placeholders replaced
     """
 
     return template.replace(
@@ -123,6 +123,7 @@ def encode_title(text: str) -> str:
 
 
 # supported code block languages, for which syntax highlighting is available
+# spellchecker: disable
 _LANGUAGES = {
     "abap": "abap",
     "actionscript3": "actionscript3",
@@ -207,6 +208,7 @@ _LANGUAGES = {
     "xquery": "xquery",
     "yaml": "yaml",
 }
+# spellchecker: enable
 
 
 class NodeVisitor(ABC):
@@ -381,6 +383,7 @@ class ConfluenceConverterOptions:
         plain text; when false, raise an exception.
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
+    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
@@ -388,13 +391,13 @@ class ConfluenceConverterOptions:
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param alignment: Alignment for block-level images and formulas.
-    :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param max_image_width: Maximum display width for images in pixels.
-    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
+    :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     """
 
     ignore_invalid_url: bool = False
     heading_anchors: bool = False
+    skip_title_heading: bool = False
     prefer_raster: bool = True
     render_drawio: bool = False
     render_mermaid: bool = False
@@ -402,9 +405,8 @@ class ConfluenceConverterOptions:
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
     alignment: Literal["center", "left", "right"] = "center"
-    use_panel: bool = False
     max_image_width: int | None = None
-    skip_title_heading: bool = False
+    use_panel: bool = False
 
     def calculate_display_width(self, natural_width: int | None) -> int | None:
         """
@@ -2041,11 +2043,7 @@ class ConfluenceDocument:
         # 1. The option is enabled
         # 2. Title was NOT from front-matter (document.title is None)
         # 3. A title was successfully extracted from heading (self.title is not None)
-        if (
-            converter_options.skip_title_heading
-            and document.title is None
-            and self.title is not None
-        ):
+        if converter_options.skip_title_heading and document.title is None and self.title is not None:
             self._remove_first_heading()
 
     def _remove_first_heading(self) -> None:
@@ -2062,6 +2060,9 @@ class ConfluenceDocument:
         heading_pattern = re.compile(r"^h[1-6]$", re.IGNORECASE)
 
         for idx, child in enumerate(self.root):
+            if not isinstance(child.tag, str):
+                continue
+
             if heading_pattern.match(child.tag) is None:
                 continue
 

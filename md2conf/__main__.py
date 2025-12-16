@@ -38,9 +38,10 @@ class Arguments(argparse.Namespace):
     ignore_invalid_url: bool
     root_page: str | None
     keep_hierarchy: bool
-    prefer_raster: bool
+    skip_title_heading: bool
     title_prefix: str | None
     generated_by: str | None
+    prefer_raster: bool
     render_drawio: bool
     render_mermaid: bool
     render_latex: bool
@@ -49,9 +50,8 @@ class Arguments(argparse.Namespace):
     headers: dict[str, str]
     webui_links: bool
     alignment: Literal["center", "left", "right"]
-    use_panel: bool
     max_image_width: int | None
-    skip_title_heading: bool
+    use_panel: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -153,12 +153,6 @@ def get_parser() -> argparse.ArgumentParser:
         help="Flatten directories with no index.md or README.md when exporting to Confluence.",
     )
     parser.add_argument(
-        "--title-prefix",
-        default=None,
-        metavar="TEXT",
-        help="String to prepend to Confluence page title for each published page.",
-    )
-    parser.add_argument(
         "--generated-by",
         default="This page has been generated with a tool.",
         metavar="MARKDOWN",
@@ -249,18 +243,22 @@ def get_parser() -> argparse.ArgumentParser:
         help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.",
     )
     parser.add_argument(
-        "--local",
+        "--skip-title-heading",
         action="store_true",
         default=False,
-        help="Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.",
+        help="Skip the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
     )
     parser.add_argument(
-        "--headers",
-        nargs="+",
-        required=False,
-        action=KwargsAppendAction,
-        metavar="KEY=VALUE",
-        help="Apply custom headers to all Confluence API requests.",
+        "--no-skip-title-heading",
+        dest="skip_title_heading",
+        action="store_false",
+        help="Keep the first heading in document body even when used as page title (default).",
+    )
+    parser.add_argument(
+        "--title-prefix",
+        default=None,
+        metavar="TEXT",
+        help="String to prepend to Confluence page title for each published page.",
     )
     parser.add_argument(
         "--webui-links",
@@ -276,12 +274,6 @@ def get_parser() -> argparse.ArgumentParser:
         help="Alignment for block-level images and formulas (default: 'center').",
     )
     parser.add_argument(
-        "--use-panel",
-        action="store_true",
-        default=False,
-        help="Transform admonitions and alerts into a Confluence custom panel.",
-    )
-    parser.add_argument(
         "--max-image-width",
         dest="max_image_width",
         type=int,
@@ -289,16 +281,24 @@ def get_parser() -> argparse.ArgumentParser:
         help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
     )
     parser.add_argument(
-        "--skip-title-heading",
+        "--use-panel",
         action="store_true",
         default=False,
-        help="Skip the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
+        help="Transform admonitions and alerts into a Confluence custom panel.",
     )
     parser.add_argument(
-        "--no-skip-title-heading",
-        dest="skip_title_heading",
-        action="store_false",
-        help="Keep the first heading in document body even when used as page title (default).",
+        "--local",
+        action="store_true",
+        default=False,
+        help="Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.",
+    )
+    parser.add_argument(
+        "--headers",
+        nargs="+",
+        required=False,
+        action=KwargsAppendAction,
+        metavar="KEY=VALUE",
+        help="Apply custom headers to all Confluence API requests.",
     )
     return parser
 
@@ -325,6 +325,7 @@ def main() -> None:
     options = ConfluenceDocumentOptions(
         heading_anchors=args.heading_anchors,
         ignore_invalid_url=args.ignore_invalid_url,
+        skip_title_heading=args.skip_title_heading,
         title_prefix=args.title_prefix,
         generated_by=args.generated_by,
         root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
@@ -336,9 +337,8 @@ def main() -> None:
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
         alignment=args.alignment,
-        use_panel=args.use_panel,
         max_image_width=args.max_image_width,
-        skip_title_heading=args.skip_title_heading,
+        use_panel=args.use_panel,
     )
     if args.local:
         from .local import LocalConverter
