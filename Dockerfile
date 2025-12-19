@@ -35,13 +35,19 @@ ENV CHROME_BIN="/usr/bin/chromium-browser" \
 # install dependencies for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/install-dependencies.sh
 RUN apk upgrade \
-    && apk add --update nodejs npm \
+    && apk add --update nodejs npm curl openjdk17-jre-headless graphviz \
     && apk add chromium font-noto-cjk font-noto-emoji terminus-font ttf-dejavu ttf-freefont ttf-font-awesome ttf-inconsolata ttf-linux-libertine \
     && fc-cache -f
 
 RUN addgroup md2conf && adduser -D -G md2conf md2conf
 USER md2conf
 WORKDIR /home/md2conf
+
+# Copy plantuml.sh script and set it up
+COPY --chown=md2conf:md2conf plantuml.sh /home/md2conf/
+RUN chmod +x /home/md2conf/plantuml.sh \
+    && /home/md2conf/plantuml.sh --version
+
 RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
     && node_modules/.bin/mmdc --version
 
