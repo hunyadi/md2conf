@@ -16,6 +16,7 @@
 ARG PYTHON_VERSION=3.13
 ARG ALPINE_VERSION=3.22
 ARG MERMAID_VERSION=11.12
+ARG PLANTUML_VERSION=1.2025.10
 
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
@@ -43,13 +44,13 @@ RUN addgroup md2conf && adduser -D -G md2conf md2conf
 USER md2conf
 WORKDIR /home/md2conf
 
-# Copy plantuml.sh script and set it up
-COPY --chown=md2conf:md2conf plantuml.sh /home/md2conf/
-RUN chmod +x /home/md2conf/plantuml.sh \
-    && /home/md2conf/plantuml.sh --version
+# Download PlantUML JAR directly
+RUN curl -L -o /home/md2conf/plantuml.jar \
+       "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
+    && java -jar /home/md2conf/plantuml.jar -version
 
-# Add plantuml.sh to PATH
-ENV PATH="/home/md2conf:${PATH}"
+# Set MD2CONF_BASE_PATH for Docker environment
+ENV MD2CONF_BASE_PATH="/home/md2conf"
 
 RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
     && node_modules/.bin/mmdc --version

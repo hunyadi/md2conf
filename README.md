@@ -52,6 +52,20 @@ pip install markdown-to-confluence
 npm install -g @mermaid-js/mermaid-cli
 ```
 
+**Optional.** Converting PlantUML diagrams to PNG or SVG images before uploading to Confluence as attachments requires Java and PlantUML JAR. (Refer to `--render-plantuml`.)
+
+1. **Install Java**: Version 8 or later from [Adoptium](https://adoptium.net/) or [Oracle](https://www.oracle.com/java/technologies/downloads/)
+2. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and place in project root, or set `PLANTUML_JAR` environment variable to point to it
+
+Example:
+```sh
+# Download latest PlantUML JAR to project root
+curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+
+# Or set environment variable to custom location
+export PLANTUML_JAR=/path/to/plantuml.jar
+```
+
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
 ```sh
