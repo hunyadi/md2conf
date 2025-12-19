@@ -591,15 +591,17 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -d, --domain DOMAIN   Confluence organization domain.
-  -p, --path PATH       Base path for Confluence (default: '/wiki/').
+  -d DOMAIN, --domain DOMAIN
+                        Confluence organization domain.
+  -p PATH, --path PATH  Base path for Confluence (default: '/wiki/').
   --api-url API_URL     Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.
-  -u, --username USERNAME
+  -u USERNAME, --username USERNAME
                         Confluence user name.
-  -a, --api-key API_KEY
+  -a API_KEY, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
-  -s, --space SPACE     Confluence space key for pages to be published. If omitted, will default to user space.
-  -l, --loglevel {debug,info,warning,error,critical}
+  -s SPACE, --space SPACE
+                        Confluence space key for pages to be published. If omitted, will default to user space.
+  -l {debug,info,warning,error,critical}, --loglevel {debug,info,warning,error,critical}
                         Use this option to set the log verbosity.
   -r ROOT_PAGE          Root Confluence page to create new pages. If omitted, will raise exception when creating new pages.
   --keep-hierarchy      Maintain source directory structure when exporting to Confluence.
@@ -611,6 +613,8 @@ options:
   --no-render-drawio    Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-mermaid      Render Mermaid diagrams as image files. (Installed utility required to convert.)
   --no-render-mermaid   Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)
+  --render-plantuml     Render PlantUML diagrams as image files. (Installed utility required to convert.)
+  --no-render-plantuml  Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-latex        Render LaTeX formulas as image files. (Matplotlib required to convert.)
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
