@@ -300,17 +300,19 @@ class TestConversion(TypedTestCase):
 
     def test_generated_by_templated(self) -> None:
         "Test that generated_by option supports templating."
-        test_file_path = self.source_dir / "basic.md"
+        test_file_path = self.source_dir / "images" / "images.md"
         _, doc = ConfluenceDocument.create(
             test_file_path,
-            ConfluenceDocumentOptions(generated_by="File: %{filename} | Path: %{filepath}"),
+            ConfluenceDocumentOptions(generated_by="File: %{filename} | Path: %{filepath} | Stem: %{filestem} | Dirname: %{filedir}"),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
         )
         xhtml = doc.xhtml()
-        self.assertIn("File: basic.md", xhtml)
+        self.assertIn("File: images.md", xhtml)
         self.assertIn(f"Path: {test_file_path.relative_to(self.source_dir).as_posix()}", xhtml)
+        self.assertIn("Stem: images", xhtml)
+        self.assertIn("Dirname: images", xhtml)
 
     def test_skip_title_heading_enabled(self) -> None:
         """Test that the first heading is removed when skip_title_heading is enabled."""
