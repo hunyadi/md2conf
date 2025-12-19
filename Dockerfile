@@ -48,6 +48,9 @@ COPY --chown=md2conf:md2conf plantuml.sh /home/md2conf/
 RUN chmod +x /home/md2conf/plantuml.sh \
     && /home/md2conf/plantuml.sh --version
 
+# Add plantuml.sh to PATH
+ENV PATH="/home/md2conf:${PATH}"
+
 RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
     && node_modules/.bin/mmdc --version
 
