@@ -47,24 +47,27 @@ def setUpModule() -> None:
     global FEATURE_TEST_PAGE_ID, IMAGE_TEST_PAGE_ID
 
     space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+    
+    # Get parent page ID from environment or use default
+    parent_id = os.environ.get("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID")
+    
+    if not parent_id:
+        logging.warning(
+            "CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. "
+            "Tests require a parent page ID to create test pages. "
+            "Please set CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID environment variable "
+            "or manually create pages with IDs matching the tests."
+        )
+        return
+
     with ConfluenceAPI() as api:
         fixture = IntegrationTestFixture(api, space_key)
-
-        # Find or create root test page
-        root_title = "md2conf Integration Tests"
-        root_id = fixture._find_page_by_title(root_title, space_key)
-        if not root_id:
-            # Cannot create root page without parent - skip tests
-            logging.warning(
-                f"Root page '{root_title}' not found. Tests may fail."
-            )
-            return
 
         # Create main test page
         main_page_id = fixture.get_or_create_test_page(
             title=TEST_PAGE_TITLE,
             space_key=space_key,
-            parent_id=root_id,
+            parent_id=parent_id,
             body="<p>Test page for md2conf integration tests</p>",
         )
         FEATURE_TEST_PAGE_ID = ConfluencePageID(main_page_id)

@@ -31,23 +31,24 @@ def setUpModule() -> None:
     global TEST_PAGE_ID
 
     space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+    
+    # Get parent page ID from environment or use default
+    parent_id = os.environ.get("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID")
+    
+    if not parent_id:
+        logging.warning(
+            "CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. Tests will be skipped."
+        )
+        return
+
     with ConfluenceAPI() as api:
         fixture = IntegrationTestFixture(api, space_key)
-
-        # Find or create root test page
-        root_title = "md2conf Integration Tests"
-        root_id = fixture._find_page_by_title(root_title, space_key)
-        if not root_id:
-            logging.warning(
-                f"Root page '{root_title}' not found. Tests may fail."
-            )
-            return
 
         # Create CSF test page
         page_id = fixture.get_or_create_test_page(
             title="Confluence Storage Format Tests",
             space_key=space_key,
-            parent_id=root_id,
+            parent_id=parent_id,
             body="<p>Test page for CSF tests</p>",
         )
         TEST_PAGE_ID = page_id
