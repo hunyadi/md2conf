@@ -23,12 +23,9 @@ def generate_page_url(domain: str, base_path: str, page_id: str) -> str:
     """
     # Remove trailing slash from base_path if present
     base_path = base_path.rstrip("/")
-    
+
     # Construct URL
-    return (
-        f"https://{domain}{base_path}"
-        f"/pages/viewpage.action?pageId={page_id}"
-    )
+    return f"https://{domain}{base_path}/pages/viewpage.action?pageId={page_id}"
 
 
 def get_page_title_from_cache_key(cache_key: str) -> str:
@@ -43,27 +40,24 @@ def get_page_title_from_cache_key(cache_key: str) -> str:
     return cache_key
 
 
-def main():
+def main() -> None:
     """Generate test summary and write to GitHub step summary."""
     # Get environment variables
     domain = os.getenv("CONFLUENCE_DOMAIN")
     base_path = os.getenv("CONFLUENCE_PATH", "/wiki/")
     space_key = os.getenv("CONFLUENCE_SPACE_KEY")
-    
+
     if not domain:
         print("Error: CONFLUENCE_DOMAIN not set", file=sys.stderr)
         sys.exit(1)
-    
+
     # Read test page cache
     cache_file = Path(__file__).parent / ".test_pages.json"
-    
+
     if not cache_file.exists():
         print("No test page cache found - tests may not have created pages")
         summary = "## Integration Test Results\n\n"
-        summary += (
-            "⚠️ No test pages found. "
-            "Tests may have failed before creating pages.\n"
-        )
+        summary += "⚠️ No test pages found. Tests may have failed before creating pages.\n"
     else:
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
@@ -71,40 +65,29 @@ def main():
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error reading cache file: {e}", file=sys.stderr)
             sys.exit(1)
-        
+
         # Generate summary
         summary = "## Integration Test Results\n\n"
-        
+
         if not page_cache:
             summary += "⚠️ No test pages were created during this run.\n"
         else:
             summary += f"### Test Pages in Space: `{space_key}`\n\n"
             summary += "The following pages were created/used for testing. "
             summary += "Click the links to view them in Confluence:\n\n"
-            
+
             # Sort by title for consistent output
-            sorted_pages = sorted(
-                page_cache.items(),
-                key=lambda x: get_page_title_from_cache_key(x[0])
-            )
-            
+            sorted_pages = sorted(page_cache.items(), key=lambda x: get_page_title_from_cache_key(x[0]))
+
             for cache_key, page_id in sorted_pages:
                 title = get_page_title_from_cache_key(cache_key)
                 url = generate_page_url(domain, base_path, page_id)
                 summary += f"- [{title}]({url}) (ID: `{page_id}`)\n"
-            
+
             summary += "\n### Quick Links\n\n"
-            summary += (
-                f"- [View Space]"
-                f"(https://{domain}{base_path.rstrip('/')}"
-                f"/spaces/{space_key}/overview)\n"
-            )
-            summary += (
-                f"- [Pages in Space]"
-                f"(https://{domain}{base_path.rstrip('/')}"
-                f"/spaces/{space_key}/pages)\n"
-            )
-    
+            summary += f"- [View Space](https://{domain}{base_path.rstrip('/')}/spaces/{space_key}/overview)\n"
+            summary += f"- [Pages in Space](https://{domain}{base_path.rstrip('/')}/spaces/{space_key}/pages)\n"
+
     # Write to GitHub step summary if available
     summary_file = os.getenv("GITHUB_STEP_SUMMARY")
     if summary_file:
@@ -118,7 +101,7 @@ def main():
     else:
         # Not in GitHub Actions, print to stdout
         print(summary)
-    
+
     print("\nTest Summary:")
     print("=" * 60)
     print(summary)

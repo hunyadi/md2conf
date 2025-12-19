@@ -51,9 +51,7 @@ class IntegrationTestFixture:
         """
         self.session = session
         self.default_space_key = space_key
-        cache_path = cache_file or (
-            Path(__file__).parent / ".test_pages.json"
-        )
+        cache_path = cache_file or (Path(__file__).parent / ".test_pages.json")
         self.cache_file = cache_path
         self.page_cache: dict[str, str] = self._load_cache()
 
@@ -62,7 +60,8 @@ class IntegrationTestFixture:
         if self.cache_file.exists():
             try:
                 with open(self.cache_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    cache: dict[str, str] = json.load(f)
+                    return cache
             except (json.JSONDecodeError, IOError) as e:
                 LOGGER.warning(f"Could not load cache file: {e}")
         return {}
@@ -84,9 +83,7 @@ class IntegrationTestFixture:
         except Exception:
             return False
 
-    def _find_page_by_title(
-        self, title: str, space_key: Optional[str] = None
-    ) -> Optional[str]:
+    def _find_page_by_title(self, title: str, space_key: Optional[str] = None) -> Optional[str]:
         """
         Find a page by title in the specified space.
 
@@ -96,9 +93,7 @@ class IntegrationTestFixture:
         """
         space = space_key or self.default_space_key
         try:
-            page = self.session.get_page_properties_by_title(
-                title=title, space_key=space
-            )
+            page = self.session.get_page_properties_by_title(title=title, space_key=space)
             return page.id
         except Exception as e:
             LOGGER.warning(f"Error searching for page '{title}': {e}")
@@ -135,9 +130,7 @@ class IntegrationTestFixture:
                 LOGGER.info(f"Using cached page: {title} (ID: {cached_id})")
                 return cached_id
             else:
-                LOGGER.info(
-                    f"Cached page {title} no longer exists, will recreate"
-                )
+                LOGGER.info(f"Cached page {title} no longer exists, will recreate")
                 del self.page_cache[cache_key]
 
         # Step 2: Search for existing page
@@ -154,9 +147,7 @@ class IntegrationTestFixture:
             # API requires parent_id; if not provided, needs different approach
             if parent_id is None:
                 raise ValueError(
-                    "parent_id is required to create a page. "
-                    "Please provide the parent page ID or use "
-                    "get_page_properties_by_title to find a suitable parent."
+                    "parent_id is required to create a page. Please provide the parent page ID or use get_page_properties_by_title to find a suitable parent."
                 )
             page = self.session.create_page(
                 parent_id=parent_id,
@@ -211,9 +202,7 @@ class IntegrationTestFixture:
             for cache_key, page_id in list(self.page_cache.items()):
                 try:
                     self.session.delete_page(page_id)
-                    LOGGER.info(
-                        f"Deleted test page: {cache_key} (ID: {page_id})"
-                    )
+                    LOGGER.info(f"Deleted test page: {cache_key} (ID: {page_id})")
                     del self.page_cache[cache_key]
                 except Exception as e:
                     LOGGER.warning(f"Could not delete page {cache_key}: {e}")
