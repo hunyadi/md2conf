@@ -32,6 +32,7 @@ class ConfluenceDocumentOptions:
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
+    :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -51,6 +52,7 @@ class ConfluenceDocumentOptions:
     prefer_raster: bool = True
     render_drawio: bool = False
     render_mermaid: bool = False
+    render_plantuml: bool = False
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False

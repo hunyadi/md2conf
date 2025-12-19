@@ -15,6 +15,7 @@ from typing import Any, Literal, TypeVar
 import yaml
 
 from .mermaid import MermaidConfigProperties
+from .plantuml import PlantUMLConfigProperties
 from .serializer import JsonType, json_to_object
 
 T = TypeVar("T")
@@ -201,3 +202,49 @@ class MermaidScanner:
             return MermaidProperties(title=front_matter.title, config=config)
 
         return MermaidProperties()
+
+
+@dataclass
+class PlantUMLProperties:
+    """
+    An object that holds the front-matter properties structure
+    for PlantUML diagrams.
+
+    :param title: The title of the diagram.
+    :param config: Configuration options for rendering.
+    """
+
+    title: str | None = None
+    config: PlantUMLConfigProperties | None = None
+
+
+class PlantUMLScanner:
+    """
+    Extracts properties from the JSON/YAML front-matter of a PlantUML diagram.
+    """
+
+    def read(self, content: str) -> PlantUMLProperties:
+        """
+        Extracts rendering preferences from a PlantUML front-matter content.
+
+        ```
+        ---
+        title: Class diagram
+        config:
+            scale: 1
+        ---
+        @startuml
+        class Example
+        @enduml
+        ```
+        """
+
+        properties, _ = extract_frontmatter_properties(content)
+        if properties is not None:
+            front_matter = json_to_object(PlantUMLProperties, properties)
+            config = front_matter.config or PlantUMLConfigProperties()
+
+            return PlantUMLProperties(title=front_matter.title, config=config)
+
+        return PlantUMLProperties()
+

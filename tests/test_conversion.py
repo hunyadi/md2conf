@@ -23,6 +23,7 @@ from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
+from md2conf.plantuml import has_plantuml
 from tests import emoji
 from tests.utility import TypedTestCase
 
@@ -234,6 +235,36 @@ class TestConversion(TypedTestCase):
             self.page_metadata,
         )
         self.assertEqual(len(document.embedded_files), 6)
+
+    @unittest.skipUnless(has_plantuml(), "plantuml is not available")
+    @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
+    def test_plantuml_embedded_svg(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "plantuml.md",
+            ConfluenceDocumentOptions(
+                render_plantuml=True,
+                diagram_output_format="svg",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 3)
+
+    @unittest.skipUnless(has_plantuml(), "plantuml is not available")
+    @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
+    def test_plantuml_embedded_png(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "plantuml.md",
+            ConfluenceDocumentOptions(
+                render_plantuml=True,
+                diagram_output_format="png",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 3)
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_latex_svg(self) -> None:

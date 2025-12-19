@@ -1,0 +1,17 @@
+@startuml
+class Entity {
+  +id: int
+  +name: string
+}
+
+class Product {
+  +price: decimal
+}
+
+class Customer {
+  +email: string
+}
+
+Entity <|-- Product
+Entity <|-- Customer
+@enduml

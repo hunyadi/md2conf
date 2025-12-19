@@ -22,7 +22,7 @@ from urllib.parse import ParseResult, quote_plus, urlparse
 import lxml.etree as ET
 from cattrs import BaseValidationError
 
-from . import drawio, mermaid
+from . import drawio, mermaid, plantuml
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
@@ -33,7 +33,8 @@ from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
-from .scanner import MermaidScanner, ScannedDocument, Scanner
+from .plantuml import PlantUMLConfigProperties
+from .scanner import MermaidScanner, PlantUMLScanner, ScannedDocument, Scanner
 from .serializer import JsonType
 from .svg import fix_svg_dimensions, get_svg_dimensions, get_svg_dimensions_from_bytes
 from .toc import TableOfContentsBuilder
@@ -167,6 +168,7 @@ _LANGUAGES = {
     "livescript": "livescript",
     "lua": "lua",
     "mermaid": "mermaid",
+    "plantuml": "plantuml",
     "mathematica": "mathematica",
     "matlab": "matlab",
     "objectivec": "objectivec",
@@ -387,6 +389,7 @@ class ConfluenceConverterOptions:
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
+    :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -401,6 +404,7 @@ class ConfluenceConverterOptions:
     prefer_raster: bool = True
     render_drawio: bool = False
     render_mermaid: bool = False
+    render_plantuml: bool = False
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
@@ -747,6 +751,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 return self._transform_drawio(absolute_path, attrs)
             elif absolute_path.name.endswith(".mmd") or absolute_path.name.endswith(".mermaid"):
                 return self._transform_external_mermaid(absolute_path, attrs)
+            elif absolute_path.name.endswith(".puml") or absolute_path.name.endswith(".plantuml"):
+                return self._transform_external_plantuml(absolute_path, attrs)
             else:
                 return self._transform_attached_image(absolute_path, attrs)
 
@@ -970,6 +976,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if language_id == "mermaid":
             return self._transform_fenced_mermaid(content)
 
+        if language_id == "plantuml":
+            return self._transform_fenced_plantuml(content)
+
         return AC_ELEM(
             "structured-macro",
             {
@@ -1102,6 +1111,157 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 "fit",
             ),
             AC_ELEM("parameter", {AC_ATTR("name"): "revision"}, "1"),
+        )
+
+    def _extract_plantuml_config(
+        self, content: str
+    ) -> PlantUMLConfigProperties | None:
+        """Extract config from PlantUML YAML front matter configuration."""
+        try:
+            properties = PlantUMLScanner().read(content)
+            return properties.config
+        except BaseValidationError as ex:
+            LOGGER.warning("Failed to extract PlantUML properties: %s", ex)
+            return None
+
+    def _transform_external_plantuml(
+        self, absolute_path: Path, attrs: ImageAttributes
+    ) -> ElementType:
+        """
+        Emits Confluence Storage Format XHTML for a PlantUML diagram
+        read from an external file.
+        """
+
+        if not absolute_path.name.endswith(
+            ".puml"
+        ) and not absolute_path.name.endswith(".plantuml"):
+            raise DocumentError(
+                "invalid image format; expected: `*.puml` or `*.plantuml`"
+            )
+
+        relative_path = path_relative_to(absolute_path, self.base_dir)
+        if self.options.render_plantuml:
+            with open(absolute_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            config = self._extract_plantuml_config(content)
+            image_data = plantuml.render_diagram(
+                content, self.options.diagram_output_format, config=config
+            )
+
+            # Extract dimensions and fix SVG if that's the output format
+            if self.options.diagram_output_format == "svg":
+                # Fix SVG to have explicit width/height instead of percentages
+                image_data = fix_svg_dimensions(image_data)
+
+                if attrs.width is None and attrs.height is None:
+                    svg_width, svg_height = get_svg_dimensions_from_bytes(
+                        image_data
+                    )
+                    if svg_width is not None or svg_height is not None:
+                        attrs = ImageAttributes(
+                            context=attrs.context,
+                            width=svg_width,
+                            height=svg_height,
+                            alt=attrs.alt,
+                            title=attrs.title,
+                            caption=attrs.caption,
+                            alignment=attrs.alignment,
+                            display_width=self.options.calculate_display_width(
+                                svg_width
+                            ),
+                        )
+
+            image_filename = attachment_name(
+                relative_path.with_suffix(
+                    f".{self.options.diagram_output_format}"
+                )
+            )
+            self.embedded_files[image_filename] = EmbeddedFileData(
+                image_data, attrs.alt
+            )
+
+            return self._create_attached_image(image_filename, attrs)
+        else:
+            self.images.append(ImageData(absolute_path, attrs.alt))
+            plantuml_filename = attachment_name(relative_path)
+            return self._create_plantuml_embed(plantuml_filename)
+
+    def _transform_fenced_plantuml(self, content: str) -> ElementType:
+        """
+        Emits Confluence Storage Format XHTML for a PlantUML diagram
+        defined in a fenced code block.
+        """
+
+        if self.options.render_plantuml:
+            config = self._extract_plantuml_config(content)
+            image_data = plantuml.render_diagram(
+                content, self.options.diagram_output_format, config=config
+            )
+
+            # Extract dimensions and fix SVG if that's the output format
+            attrs = ImageAttributes.EMPTY_BLOCK
+            if self.options.diagram_output_format == "svg":
+                # Fix SVG to have explicit width/height instead of percentages
+                image_data = fix_svg_dimensions(image_data)
+
+                svg_width, svg_height = get_svg_dimensions_from_bytes(
+                    image_data
+                )
+                if svg_width is not None or svg_height is not None:
+                    attrs = ImageAttributes(
+                        context=FormattingContext.BLOCK,
+                        width=svg_width,
+                        height=svg_height,
+                        alt=None,
+                        title=None,
+                        caption=None,
+                        alignment=ImageAlignment(self.options.alignment),
+                        display_width=self.options.calculate_display_width(
+                            svg_width
+                        ),
+                    )
+
+            image_hash = hashlib.md5(image_data).hexdigest()
+            image_filename = attachment_name(
+                f"embedded_{image_hash}.{self.options.diagram_output_format}"
+            )
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data)
+
+            return self._create_attached_image(image_filename, attrs)
+        else:
+            plantuml_data = content.encode("utf-8")
+            plantuml_hash = hashlib.md5(plantuml_data).hexdigest()
+            plantuml_filename = attachment_name(
+                f"embedded_{plantuml_hash}.puml"
+            )
+            self.embedded_files[plantuml_filename] = EmbeddedFileData(
+                plantuml_data
+            )
+            return self._create_plantuml_embed(plantuml_filename)
+
+    def _create_plantuml_embed(self, filename: str) -> ElementType:
+        """
+        A PlantUML diagram, linking to an attachment that captures
+        the PlantUML source.
+        """
+
+        local_id = str(uuid.uuid4())
+        macro_id = str(uuid.uuid4())
+        return AC_ELEM(
+            "structured-macro",
+            {
+                AC_ATTR("name"): "plantuml",
+                AC_ATTR("schema-version"): "1",
+                "data-layout": "default",
+                AC_ATTR("local-id"): local_id,
+                AC_ATTR("macro-id"): macro_id,
+            },
+            AC_ELEM(
+                "parameter",
+                {AC_ATTR("name"): "atlassian-macro-output-type"},
+                "INLINE",
+            ),
+            AC_ELEM("plain-text-body", ET.CDATA(filename)),
         )
 
     def _transform_toc(self, code: ElementType) -> ElementType:
