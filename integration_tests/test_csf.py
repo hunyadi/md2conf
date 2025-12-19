@@ -7,17 +7,61 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import logging
+import os
 import os.path
 import unittest
 from pathlib import Path
 
-from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
+from integration_tests.fixtures import IntegrationTestFixture
+from md2conf.api import (
+    ConfluenceAPI,
+    ConfluenceContentProperty,
+    ConfluenceLabel,
+)
 from md2conf.csf import content_to_string
 from md2conf.extra import override
 from tests.utility import TypedTestCase
 
 TEST_SPACE = "~hunyadi"
-TEST_PAGE_ID = "65713"
+TEST_PAGE_ID: str | None = None
+
+
+def setUpModule() -> None:
+    """Create test pages before running tests."""
+    global TEST_PAGE_ID
+
+    space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+    with ConfluenceAPI() as api:
+        fixture = IntegrationTestFixture(api, space_key)
+
+        # Find or create root test page
+        root_title = "md2conf Integration Tests"
+        root_id = fixture._find_page_by_title(root_title, space_key)
+        if not root_id:
+            logging.warning(
+                f"Root page '{root_title}' not found. Tests may fail."
+            )
+            return
+
+        # Create CSF test page
+        page_id = fixture.get_or_create_test_page(
+            title="Confluence Storage Format Tests",
+            space_key=space_key,
+            parent_id=root_id,
+            body="<p>Test page for CSF tests</p>",
+        )
+        TEST_PAGE_ID = page_id
+
+        logging.info(f"CSF test setup complete: page={page_id}")
+
+
+def tearDownModule() -> None:
+    """Clean up test pages if requested."""
+    if os.environ.get("CLEANUP_TEST_PAGES", "false").lower() == "true":
+        space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+        with ConfluenceAPI() as api:
+            fixture = IntegrationTestFixture(api, space_key)
+            fixture.cleanup(delete_pages=True)
 
 
 class TestConfluenceStorageFormat(TypedTestCase):
@@ -31,6 +75,8 @@ class TestConfluenceStorageFormat(TypedTestCase):
         self.sample_dir = parent_dir / "sample"
 
     def test_markdown(self) -> None:
+        if TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             page = api.get_page(TEST_PAGE_ID)
 
@@ -38,6 +84,8 @@ class TestConfluenceStorageFormat(TypedTestCase):
             f.write(content_to_string(page.content))
 
     def test_labels(self) -> None:
+        if TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             expected_labels = [
                 ConfluenceLabel(name="advanced", prefix="global"),
@@ -51,6 +99,8 @@ class TestConfluenceStorageFormat(TypedTestCase):
             self.assertListEqual(assigned_labels, expected_labels)
 
     def test_properties(self) -> None:
+        if TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             properties = api.get_content_properties_for_page(TEST_PAGE_ID)
             self.assertGreater(len(properties), 0)

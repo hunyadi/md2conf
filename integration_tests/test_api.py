@@ -8,6 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import hashlib
 import logging
+import os
 import os.path
 import shutil
 import unittest
@@ -16,9 +17,15 @@ from pathlib import Path
 
 import lxml.etree as ET
 
+from integration_tests.fixtures import IntegrationTestFixture
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes, get_volatile_elements
+from md2conf.converter import (
+    ConfluenceDocument,
+    NodeVisitor,
+    get_volatile_attributes,
+    get_volatile_elements,
+)
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
@@ -31,8 +38,56 @@ ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 TEST_SPACE = "~hunyadi"
-FEATURE_TEST_PAGE_ID = ConfluencePageID("1933314")
-IMAGE_TEST_PAGE_ID = ConfluencePageID("26837000")
+FEATURE_TEST_PAGE_ID: ConfluencePageID | None = None
+IMAGE_TEST_PAGE_ID: ConfluencePageID | None = None
+
+
+def setUpModule() -> None:
+    """Create test pages before running tests."""
+    global FEATURE_TEST_PAGE_ID, IMAGE_TEST_PAGE_ID
+
+    space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+    with ConfluenceAPI() as api:
+        fixture = IntegrationTestFixture(api, space_key)
+
+        # Find or create root test page
+        root_title = "md2conf Integration Tests"
+        root_id = fixture._find_page_by_title(root_title, space_key)
+        if not root_id:
+            # Cannot create root page without parent - skip tests
+            logging.warning(
+                f"Root page '{root_title}' not found. Tests may fail."
+            )
+            return
+
+        # Create main test page
+        main_page_id = fixture.get_or_create_test_page(
+            title=TEST_PAGE_TITLE,
+            space_key=space_key,
+            parent_id=root_id,
+            body="<p>Test page for md2conf integration tests</p>",
+        )
+        FEATURE_TEST_PAGE_ID = ConfluencePageID(main_page_id)
+
+        # Create image test page as child
+        image_page_id = fixture.get_or_create_test_page(
+            title="Test Page for Attachments",
+            space_key=space_key,
+            parent_id=main_page_id,
+            body="<p>Test page for attachment testing</p>",
+        )
+        IMAGE_TEST_PAGE_ID = ConfluencePageID(image_page_id)
+
+        logging.info(f"Setup: main={main_page_id}, image={image_page_id}")
+
+
+def tearDownModule() -> None:
+    """Clean up test pages if requested."""
+    if os.environ.get("CLEANUP_TEST_PAGES", "false").lower() == "true":
+        space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
+        with ConfluenceAPI() as api:
+            fixture = IntegrationTestFixture(api, space_key)
+            fixture.cleanup(delete_pages=True)
 
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
@@ -116,12 +171,16 @@ class TestAPI(TypedTestCase):
             f.write(document.xhtml())
 
     def test_find_page_by_title(self) -> None:
+        if FEATURE_TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             page = api.get_page_properties_by_title(TEST_PAGE_TITLE)
             self.assertGreater(datetime.now(timezone.utc), page.createdAt)
             self.assertEqual(page.id, FEATURE_TEST_PAGE_ID.page_id)
 
     def test_get_page(self) -> None:
+        if FEATURE_TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             page = api.get_page(FEATURE_TEST_PAGE_ID.page_id)
             self.assertIsInstance(page, ConfluencePage)
@@ -130,11 +189,25 @@ class TestAPI(TypedTestCase):
             f.write(sanitize_confluence(page.content))
 
     def test_get_attachment(self) -> None:
+        if IMAGE_TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
+        # First upload the attachment so it exists
         with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png")
+            api.upload_attachment(
+                IMAGE_TEST_PAGE_ID.page_id,
+                "figure_interoperability.png",
+                attachment_path=self.sample_dir / "figure" / "interoperability.png",
+                comment="Test attachment",
+                force=True,
+            )
+            data = api.get_attachment_by_name(
+                IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png"
+            )
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
+        if IMAGE_TEST_PAGE_ID is None:
+            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             api.upload_attachment(
                 IMAGE_TEST_PAGE_ID.page_id,
