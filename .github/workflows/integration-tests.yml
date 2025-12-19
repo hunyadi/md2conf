@@ -18,8 +18,6 @@ env:
 jobs:
   integration-tests:
     runs-on: ubuntu-22.04
-    # Only run if Confluence API key is configured
-    if: secrets.CONFLUENCE_API_KEY != ''
     
     steps:
       - name: Check out repository
