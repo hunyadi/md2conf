@@ -8,9 +8,10 @@ Copyright 2022-2025, Levente Hunyadi
 
 import logging
 import shutil
-import subprocess
 from dataclasses import dataclass
 from typing import Literal
+
+from .diagram import render_diagram_subprocess
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,27 +70,4 @@ def render_diagram(
     if config.scale is not None:
         cmd.extend(["-scale", str(config.scale)])
 
-    LOGGER.debug("Executing: %s", " ".join(cmd))
-
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stdin=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=False,
-    )
-    stdout, stderr = proc.communicate(input=source.encode("utf-8"))
-    if proc.returncode:
-        messages = [
-            f"failed to convert PlantUML diagram; "
-            f"exit code: {proc.returncode}"
-        ]
-        console_output = stdout.decode("utf-8")
-        if console_output:
-            messages.append(f"output:\n{console_output}")
-        console_error = stderr.decode("utf-8")
-        if console_error:
-            messages.append(f"error:\n{console_error}")
-        raise RuntimeError("\n".join(messages))
-
-    return stdout
+    return render_diagram_subprocess(cmd, source, "PlantUML")
