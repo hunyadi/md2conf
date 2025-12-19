@@ -1031,9 +1031,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # Only update attributes if we successfully extracted dimensions
         # and the base attributes don't already have explicit dimensions
-        if (svg_width is not None or svg_height is not None) and (
-            base_attrs.width is None and base_attrs.height is None
-        ):
+        if (svg_width is not None or svg_height is not None) and (base_attrs.width is None and base_attrs.height is None):
             attrs = ImageAttributes(
                 context=base_attrs.context,
                 width=svg_width,
@@ -1127,9 +1125,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("parameter", {AC_ATTR("name"): "revision"}, "1"),
         )
 
-    def _extract_plantuml_config(
-        self, content: str
-    ) -> PlantUMLConfigProperties | None:
+    def _extract_plantuml_config(self, content: str) -> PlantUMLConfigProperties | None:
         """Extract config from PlantUML YAML front matter configuration."""
         try:
             properties = PlantUMLScanner().read(content)
@@ -1138,41 +1134,27 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             LOGGER.warning("Failed to extract PlantUML properties: %s", ex)
             return None
 
-    def _transform_external_plantuml(
-        self, absolute_path: Path, attrs: ImageAttributes
-    ) -> ElementType:
+    def _transform_external_plantuml(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         """
         Emits Confluence Storage Format XHTML for a PlantUML diagram
         read from an external file.
         """
 
-        if not absolute_path.name.endswith(
-            ".puml"
-        ) and not absolute_path.name.endswith(".plantuml"):
-            raise DocumentError(
-                "invalid image format; expected: `*.puml` or `*.plantuml`"
-            )
+        if not absolute_path.name.endswith(".puml") and not absolute_path.name.endswith(".plantuml"):
+            raise DocumentError("invalid image format; expected: `*.puml` or `*.plantuml`")
 
         relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render_plantuml:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 content = f.read()
             config = self._extract_plantuml_config(content)
-            image_data = plantuml.render_diagram(
-                content, self.options.diagram_output_format, config=config
-            )
+            image_data = plantuml.render_diagram(content, self.options.diagram_output_format, config=config)
 
             # Post-process SVG and update attributes
             image_data, attrs = self._post_process_svg_diagram(image_data, attrs)
 
-            image_filename = attachment_name(
-                relative_path.with_suffix(
-                    f".{self.options.diagram_output_format}"
-                )
-            )
-            self.embedded_files[image_filename] = EmbeddedFileData(
-                image_data, attrs.alt
-            )
+            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
+            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
 
             return self._create_attached_image(image_filename, attrs)
         else:
@@ -1188,29 +1170,21 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         if self.options.render_plantuml:
             config = self._extract_plantuml_config(content)
-            image_data = plantuml.render_diagram(
-                content, self.options.diagram_output_format, config=config
-            )
+            image_data = plantuml.render_diagram(content, self.options.diagram_output_format, config=config)
 
             # Post-process SVG and update attributes
             image_data, attrs = self._post_process_svg_diagram(image_data, ImageAttributes.EMPTY_BLOCK)
 
             image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(
-                f"embedded_{image_hash}.{self.options.diagram_output_format}"
-            )
+            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
             self.embedded_files[image_filename] = EmbeddedFileData(image_data)
 
             return self._create_attached_image(image_filename, attrs)
         else:
             plantuml_data = content.encode("utf-8")
             plantuml_hash = hashlib.md5(plantuml_data).hexdigest()
-            plantuml_filename = attachment_name(
-                f"embedded_{plantuml_hash}.puml"
-            )
-            self.embedded_files[plantuml_filename] = EmbeddedFileData(
-                plantuml_data
-            )
+            plantuml_filename = attachment_name(f"embedded_{plantuml_hash}.puml")
+            self.embedded_files[plantuml_filename] = EmbeddedFileData(plantuml_data)
             return self._create_plantuml_embed(plantuml_filename)
 
     def _create_plantuml_embed(self, filename: str) -> ElementType:

@@ -46,10 +46,7 @@ def render_diagram_subprocess(
     stdout, stderr = proc.communicate(input=source.encode("utf-8"))
 
     if proc.returncode:
-        messages = [
-            f"failed to convert {diagram_type} diagram; "
-            f"exit code: {proc.returncode}"
-        ]
+        messages = [f"failed to convert {diagram_type} diagram; exit code: {proc.returncode}"]
         console_output = stdout.decode("utf-8")
         if console_output:
             messages.append(f"output:\n{console_output}")

@@ -110,12 +110,14 @@ def render_diagram(
     # -t<format>: output format (png or svg)
     # -charset utf-8: ensure UTF-8 encoding
     cmd = get_plantuml_command()
-    cmd.extend([
-        "-pipe",
-        f"-t{output_format}",
-        "-charset",
-        "utf-8",
-    ])
+    cmd.extend(
+        [
+            "-pipe",
+            f"-t{output_format}",
+            "-charset",
+            "utf-8",
+        ]
+    )
 
     # Add scale if specified
     if config.scale is not None:

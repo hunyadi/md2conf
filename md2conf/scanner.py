@@ -247,4 +247,3 @@ class PlantUMLScanner:
             return PlantUMLProperties(title=front_matter.title, config=config)
 
         return PlantUMLProperties()
-
