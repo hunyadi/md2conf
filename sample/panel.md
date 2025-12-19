@@ -2,8 +2,6 @@
 title: "Admonitions and alerts"
 ---
 
-<!-- confluence-page-id: 42139649 -->
-
 Run the following command to synchronize this page:
 
 ```sh
