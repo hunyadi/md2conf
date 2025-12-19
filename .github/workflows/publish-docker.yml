@@ -55,7 +55,7 @@ jobs:
           tags: |
             # For tags: create version and latest tags
             type=semver,pattern={{version}}${{ matrix.suffix }}
-            type=raw,value=latest${{ matrix.suffix }}
+            type=raw,value=latest${{ matrix.suffix }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
             # For manual dispatch: create sha tag
             type=sha,prefix=,suffix=${{ matrix.suffix }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
