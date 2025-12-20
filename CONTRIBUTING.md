@@ -36,6 +36,13 @@ Python is installed. Minimum version we support is Python 3.10.
 4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
    Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against.
 
+#### Test Organization
+
+- **`tests/`**: Unit tests that run without external dependencies
+  - **`tests/fixtures/`**: Markdown files with hardcoded Confluence page IDs used exclusively for unit tests (e.g., testing frontmatter and HTML comment parsing). These files should NOT be used by integration tests.
+  - **`sample/`**: Sample markdown files used by integration tests. These should NOT contain hardcoded `confluence-page-id` comments or `page_id` frontmatter properties, as integration tests dynamically create and manage pages.
+- **`integration_tests/`**: Tests that interact with a live Confluence instance
+
 ### Running unit tests
 
 ```

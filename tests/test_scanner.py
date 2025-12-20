@@ -46,34 +46,37 @@ flowchart LR
 
 
 class TestScanner(TypedTestCase):
-    sample_dir: Path
+    fixtures_dir: Path
 
     @override
     def setUp(self) -> None:
         self.maxDiff = 1024
 
         test_dir = Path(__file__).parent
-        parent_dir = test_dir.parent
-
-        self.sample_dir = parent_dir / "sample"
+        self.fixtures_dir = test_dir / "fixtures"
 
     def test_tag(self) -> None:
-        document = Scanner().read(self.sample_dir / "index.md")
+        document = Scanner().read(self.fixtures_dir / "scanner_test_tag.md")
         self.assertIsNotNone(document.page_id)
+        self.assertEqual(document.page_id, "1933314")
         self.assertIsNone(document.space_key)
         self.assertIsNone(document.title)
 
     def test_json_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "parent" / "index.md")
+        document = Scanner().read(self.fixtures_dir / "scanner_test_json_frontmatter.md")
         self.assertEqual(document.page_id, "1966122")
         self.assertEqual(document.space_key, "~hunyadi")
         self.assertEqual(document.title, "🏠 Markdown parent page")
 
     def test_yaml_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "sibling.md")
+        document = Scanner().read(self.fixtures_dir / "scanner_test_yaml_frontmatter.md")
         self.assertIsNotNone(document.page_id)
+        self.assertEqual(document.page_id, "1998850")
         self.assertIsNone(document.space_key)
-        self.assertEqual(document.generated_by, "This page has been generated with md2conf.")
+        self.assertEqual(
+            document.generated_by,
+            "This page has been generated with md2conf.",
+        )
         self.assertEqual(document.title, "Markdown example document")
         self.assertEqual(document.tags, ["markdown", "confluence", "md", "wiki"])
 
