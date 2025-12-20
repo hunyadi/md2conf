@@ -1,6 +1,14 @@
 name: checks
 on:
   push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
