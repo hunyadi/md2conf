@@ -143,6 +143,7 @@ def _write_page_ids_to_samples(
         "attachments.md": "Images and documents",
         "panel.md": "Admonitions and alerts",
         "plantuml.md": "PlantUML Diagrams",
+        "sibling.md": "Markdown example document",
         "parent/index.md": "🏠 Markdown parent page",
         "parent/child.md": "Markdown child page",
     }
