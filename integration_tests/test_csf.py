@@ -22,11 +22,12 @@ class TestConfluenceStorageFormat(TypedTestCase):
     test_page_id: ClassVar[str]
     test_dir: Path
 
+    @override
     @classmethod
     def setUpClass(cls) -> None:
         with ConfluenceAPI() as api:
             if api.site.space_key is None:
-                raise ValueError("expected: Confluence space key required to run integration tests")
+                raise ValueError("expected: Confluence space key to run integration tests")
 
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
