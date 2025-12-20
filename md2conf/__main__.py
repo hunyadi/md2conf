@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence
 
 from . import __version__
-from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
 from .extra import override
 from .metadata import ConfluenceSiteMetadata
@@ -336,9 +336,11 @@ def main() -> None:
         render_latex=args.render_latex,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
-        alignment=args.alignment,
-        max_image_width=args.max_image_width,
         use_panel=args.use_panel,
+        layout=LayoutOptions(
+            alignment=args.alignment,
+            max_image_width=args.max_image_width,
+        ),
     )
     if args.local:
         from .local import LocalConverter

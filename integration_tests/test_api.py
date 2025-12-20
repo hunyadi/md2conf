@@ -211,10 +211,11 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             for absolute_path in reversed(documents):
                 document = Scanner().read(absolute_path)
-                self.assertIsNotNone(document.page_id)
-                if document.page_id is None:
+                props = document.properties
+                self.assertIsNotNone(props.page_id)
+                if props.page_id is None:
                     continue
-                api.delete_page(document.page_id)
+                api.delete_page(props.page_id)
 
 
 if __name__ == "__main__":

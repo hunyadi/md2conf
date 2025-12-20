@@ -25,10 +25,10 @@ from cattrs import BaseValidationError
 from . import drawio, mermaid
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
-from .domain import ConfluenceDocumentOptions, ConfluencePageID
+from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
-from .extra import override, path_relative_to
+from .extra import merged, override, path_relative_to
 from .latex import get_png_dimensions, remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
@@ -58,22 +58,10 @@ def apply_generated_by_template(template: str, path: Path) -> str:
     """
 
     return (
-        template.replace(
-            "%{filepath}",
-            path.as_posix(),
-        )
-        .replace(
-            "%{filename}",
-            path.name,
-        )
-        .replace(
-            "%{filedir}",
-            path.parent.as_posix(),
-        )
-        .replace(
-            "%{filestem}",
-            path.stem,
-        )
+        template.replace("%{filepath}", path.as_posix())
+        .replace("%{filename}", path.name)
+        .replace("%{filedir}", path.parent.as_posix())
+        .replace("%{filestem}", path.stem)
     )
 
 
@@ -403,9 +391,8 @@ class ConfluenceConverterOptions:
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
-    :param alignment: Alignment for block-level images and formulas.
-    :param max_image_width: Maximum display width for images in pixels.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
+    :param layout: Layout options for content on a Confluence page.
     """
 
     ignore_invalid_url: bool = False
@@ -417,9 +404,8 @@ class ConfluenceConverterOptions:
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
-    alignment: Literal["center", "left", "right"] = "center"
-    max_image_width: int | None = None
     use_panel: bool = False
+    layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
 
     def calculate_display_width(self, natural_width: int | None) -> int | None:
         """
@@ -429,11 +415,11 @@ class ConfluenceConverterOptions:
         :returns: The constrained display width, or None if no constraint is needed.
         """
 
-        if natural_width is None or self.max_image_width is None:
+        if natural_width is None or self.layout.max_image_width is None:
             return None
-        if natural_width <= self.max_image_width:
+        if natural_width <= self.layout.max_image_width:
             return None  # no constraint needed, image is already within limits
-        return self.max_image_width
+        return self.layout.max_image_width
 
 
 @dataclass
@@ -741,7 +727,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             alt=alt,
             title=title,
             caption=None,
-            alignment=ImageAlignment(self.options.alignment),
+            alignment=ImageAlignment(self.options.layout.alignment or "center"),
             display_width=self.options.calculate_display_width(pixel_width),
         )
 
@@ -1069,7 +1055,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                         alt=None,
                         title=None,
                         caption=None,
-                        alignment=ImageAlignment(self.options.alignment),
+                        alignment=ImageAlignment(self.options.layout.alignment or "center"),
                         display_width=self.options.calculate_display_width(svg_width),
                     )
 
@@ -1442,7 +1428,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 alt=content,
                 title=None,
                 caption="",
-                alignment=ImageAlignment(self.options.alignment),
+                alignment=ImageAlignment(self.options.layout.alignment or "center"),
                 display_width=self.options.calculate_display_width(width),
             )
         else:
@@ -1485,7 +1471,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.alignment),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.alignment or "center"),
         )
         return macro
 
@@ -1522,7 +1508,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.alignment),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.alignment or "center"),
         )
 
     def _transform_footnote_ref(self, elem: ElementType) -> None:
@@ -1878,6 +1864,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             for td in child.iterdescendants("td", "th"):
                 normalize_inline(td)
             child.set("data-layout", "default")
+            if self.options.layout.table_display_mode == "fixed":
+                child.set("data-table-display-mode", "fixed")
+            if self.options.layout.table_width:
+                child.set("data-table-width", str(self.options.layout.table_width))
+
             return None
 
         # <img src="..." alt="..." />
@@ -1968,9 +1959,10 @@ class ConfluenceDocument:
         path = path.resolve(True)
 
         document = Scanner().read(path)
+        props = document.properties
 
-        if document.page_id is not None:
-            page_id = ConfluencePageID(document.page_id)
+        if props.page_id is not None:
+            page_id = ConfluencePageID(props.page_id)
         else:
             # look up Confluence page ID in metadata
             metadata = page_metadata.get(path)
@@ -1992,6 +1984,7 @@ class ConfluenceDocument:
     ) -> None:
         "Converts a single Markdown document to Confluence Storage Format."
 
+        props = document.properties
         self.options = options
 
         # register auxiliary URL substitutions
@@ -2005,7 +1998,7 @@ class ConfluenceDocument:
 
         # modify HTML as necessary
         if self.options.generated_by is not None:
-            generated_by = document.generated_by or self.options.generated_by
+            generated_by = props.generated_by or self.options.generated_by
         else:
             generated_by = None
 
@@ -2032,8 +2025,8 @@ class ConfluenceDocument:
         converter_options = ConfluenceConverterOptions(
             **{field.name: getattr(self.options, field.name) for field in dataclasses.fields(ConfluenceConverterOptions)}
         )
-        if document.alignment is not None:
-            converter_options.alignment = document.alignment
+        if props.layout is not None:
+            converter_options.layout = merged(props.layout, converter_options.layout)
         converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter
@@ -2048,15 +2041,15 @@ class ConfluenceDocument:
         self.embedded_files = converter.embedded_files
 
         # assign global properties for document
-        self.title = document.title or converter.toc.get_title()
-        self.labels = document.tags
-        self.properties = document.properties
+        self.title = props.title or converter.toc.get_title()
+        self.labels = props.tags
+        self.properties = props.properties
 
         # Remove the first heading if:
         # 1. The option is enabled
         # 2. Title was NOT from front-matter (document.title is None)
         # 3. A title was successfully extracted from heading (self.title is not None)
-        if converter_options.skip_title_heading and document.title is None and self.title is not None:
+        if converter_options.skip_title_heading and props.title is None and self.title is not None:
             self._remove_first_heading()
 
     def _remove_first_heading(self) -> None:

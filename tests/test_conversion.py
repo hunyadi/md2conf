@@ -17,7 +17,7 @@ from pathlib import Path
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import ConfluenceDocument, attachment_name
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.domain import ConfluenceDocumentOptions
+from md2conf.domain import ConfluenceDocumentOptions, LayoutOptions
 from md2conf.extra import override
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
@@ -267,7 +267,7 @@ class TestConversion(TypedTestCase):
         "Test that max_image_width constrains display width while preserving original dimensions."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=100),
+            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=100)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -285,7 +285,7 @@ class TestConversion(TypedTestCase):
         "Test that images smaller than max_image_width are not constrained."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=500),
+            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=500)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,

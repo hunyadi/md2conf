@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import dataclasses
 from dataclasses import dataclass
 from typing import Literal
 
@@ -13,6 +14,24 @@ from typing import Literal
 @dataclass
 class ConfluencePageID:
     page_id: str
+
+
+@dataclass
+class LayoutOptions:
+    """
+    Layout options for content on a Confluence page.
+
+    :param alignment: Alignment for block-level images and formulas.
+    :param max_image_width: Maximum display width for images [px]. Wider images are scaled down for page display.
+        Original size kept for full-size viewing.
+    :param table_width: Maximum table width in pixels.
+    :param table_display_mode: Whether to use fixed or responsive column widths.
+    """
+
+    alignment: Literal["center", "left", "right"] | None = None
+    max_image_width: int | None = None
+    table_width: int | None = None
+    table_display_mode: Literal["fixed", "responsive"] | None = None
 
 
 @dataclass
@@ -35,10 +54,8 @@ class ConfluenceDocumentOptions:
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
-    :param alignment: Alignment for block-level images and formulas.
-    :param max_image_width: Maximum display width for images [px]. Wider images are scaled down for page display.
-        Original size kept for full-size viewing.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
+    :param layout: Layout options for content on a Confluence page.
     """
 
     heading_anchors: bool = False
@@ -54,6 +71,5 @@ class ConfluenceDocumentOptions:
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
-    alignment: Literal["center", "left", "right"] = "center"
-    max_image_width: int | None = None
     use_panel: bool = False
+    layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)

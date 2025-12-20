@@ -15,6 +15,7 @@ from md2conf.converter import (
     attachment_name,
     title_to_identifier,
 )
+from md2conf.domain import LayoutOptions
 from md2conf.latex import LATEX_ENABLED, get_png_dimensions, remove_png_chunks, render_latex
 from md2conf.serializer import json_to_object, object_to_json_payload
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
@@ -136,27 +137,27 @@ class TestUnit(TypedTestCase):
 
     def test_calculate_display_width_no_constraint(self) -> None:
         "Test that no constraint is applied when max_image_width is None."
-        options = ConfluenceConverterOptions(max_image_width=None)
+        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=None))
         self.assertIsNone(options.calculate_display_width(None))
         self.assertIsNone(options.calculate_display_width(100))
         self.assertIsNone(options.calculate_display_width(1000))
 
     def test_calculate_display_width_within_limit(self) -> None:
         "Test that no constraint is applied when image is within max_image_width."
-        options = ConfluenceConverterOptions(max_image_width=800)
+        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
         self.assertIsNone(options.calculate_display_width(100))
         self.assertIsNone(options.calculate_display_width(800))
 
     def test_calculate_display_width_exceeds_limit(self) -> None:
         "Test that constraint is applied when image exceeds max_image_width."
-        options = ConfluenceConverterOptions(max_image_width=800)
+        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
         self.assertEqual(options.calculate_display_width(801), 800)
         self.assertEqual(options.calculate_display_width(1200), 800)
         self.assertEqual(options.calculate_display_width(2000), 800)
 
     def test_calculate_display_width_none_natural(self) -> None:
         "Test that None is returned when natural_width is None."
-        options = ConfluenceConverterOptions(max_image_width=800)
+        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
         self.assertIsNone(options.calculate_display_width(None))
 
 
