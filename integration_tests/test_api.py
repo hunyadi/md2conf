@@ -18,12 +18,10 @@ from typing import ClassVar
 import lxml.etree as ET
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
-from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, NodeVisitor, get_volatile_attributes, get_volatile_elements
+from md2conf.converter import NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
-from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
@@ -63,11 +61,12 @@ class TestAPI(TypedTestCase):
     feature_test_page_id: ClassVar[ConfluencePageID]
     image_test_page_id: ClassVar[ConfluencePageID]
 
+    @override
     @classmethod
     def setUpClass(cls) -> None:
         with ConfluenceAPI() as api:
             if api.site.space_key is None:
-                raise ValueError("expected: Confluence space key required to run integration tests")
+                raise ValueError("expected: Confluence space key to run integration tests")
 
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
@@ -87,47 +86,6 @@ class TestAPI(TypedTestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 
-    def test_markdown(self) -> None:
-        _, document = ConfluenceDocument.create(
-            self.sample_dir / "index.md",
-            ConfluenceDocumentOptions(),
-            self.sample_dir,
-            ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
-            ConfluencePageCollection(),
-        )
-        self.assertListEqual(document.links, [])
-        self.assertListEqual(document.images, [])
-
-        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
-            f.write(document.xhtml())
-
-    def test_markdown_attachments(self) -> None:
-        _, document = ConfluenceDocument.create(
-            self.sample_dir / "attachments.md",
-            ConfluenceDocumentOptions(),
-            self.sample_dir,
-            ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
-            ConfluencePageCollection(),
-        )
-        self.assertListEqual(document.links, [])
-        self.assertListEqual(
-            [item.path for item in document.images],
-            [
-                self.sample_dir / "figure" / "interoperability.png",
-                self.sample_dir / "figure" / "interoperability.png",  # preferred over `interoperability.svg`
-                self.sample_dir / "figure" / "diagram.drawio",
-                self.sample_dir / "figure" / "class.mmd",
-                self.sample_dir / "docs" / "sample.pdf",
-                self.sample_dir / "docs" / "sample.docx",
-                self.sample_dir / "docs" / "sample.xlsx",
-                self.sample_dir / "docs" / "sample.odt",
-                self.sample_dir / "docs" / "sample.ods",
-            ],
-        )
-
-        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
-            f.write(document.xhtml())
-
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
             page = api.get_page_properties_by_title(FEATURE_TEST_PAGE_TITLE)
@@ -142,12 +100,7 @@ class TestAPI(TypedTestCase):
         with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
             f.write(sanitize_confluence(page.content))
 
-    def test_get_attachment(self) -> None:
-        with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(self.image_test_page_id.page_id, "figure_interoperability.png")
-            self.assertIsInstance(data, ConfluenceAttachment)
-
-    def test_upload_attachment(self) -> None:
+    def test_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
                 self.image_test_page_id.page_id,
@@ -156,6 +109,10 @@ class TestAPI(TypedTestCase):
                 comment="A sample figure",
                 force=True,
             )
+
+        with ConfluenceAPI() as api:
+            data = api.get_attachment_by_name(self.image_test_page_id.page_id, "figure_interoperability.png")
+            self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
