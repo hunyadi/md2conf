@@ -8,7 +8,6 @@ tags:
 description: >
     this is
     a multiline string
-page_id: "1998850"
 properties:
   content-appearance-published: full-width
   content-appearance-draft: full-width
