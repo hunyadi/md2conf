@@ -52,7 +52,7 @@ pip install markdown-to-confluence
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-**Optional.** Converting PlantUML diagrams to PNG or SVG images before uploading to Confluence as attachments requires Java, Graphviz, and PlantUML JAR. (Refer to `--render-plantuml`.)
+**Optional but recommended.** PlantUML diagrams are embedded with compressed source data and will display using the [PlantUML Diagrams for Confluence](https://marketplace.atlassian.com/apps/1215115/plantuml-diagrams-for-confluence) app. For optimal display with dimensions and SVG attachments, install Java, Graphviz, and PlantUML JAR:
 
 1. **Install Java**: Version 8 or later from [Adoptium](https://adoptium.net/) or [Oracle](https://www.oracle.com/java/technologies/downloads/)
 2. **Install Graphviz**: Required for most diagram types (except sequence diagrams)
@@ -70,6 +70,8 @@ curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/dow
 # Or set environment variable to custom location
 export PLANTUML_JAR=/path/to/plantuml.jar
 ```
+
+Without PlantUML JAR, diagrams will still be embedded but may display without optimal dimensions.
 
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
@@ -618,8 +620,8 @@ options:
   --no-render-drawio    Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-mermaid      Render Mermaid diagrams as image files. (Installed utility required to convert.)
   --no-render-mermaid   Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)
-  --render-plantuml     Render PlantUML diagrams as image files. (Installed utility required to convert.)
-  --no-render-plantuml  Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)
+  --render-plantuml     Render PlantUML diagrams to SVG with dimensions for optimal display. (PlantUML JAR recommended.)
+  --no-render-plantuml  Embed PlantUML diagrams with compressed source only. (PlantUML Diagrams for Confluence app required.)
   --render-latex        Render LaTeX formulas as image files. (Matplotlib required to convert.)
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}

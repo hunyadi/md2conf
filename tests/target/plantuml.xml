@@ -8,19 +8,28 @@
 <h1>Example PlantUML Diagrams</h1>
 <h2>Class diagrams</h2>
 <p>Class diagrams are a type of UML diagram that visually represent the relationships between classes in a software system. They show the classes, their attributes, and the methods they contain, as well as the relationships between them, such as inheritance, association, and aggregation.</p>
-<ac:structured-macro ac:name="plantuml" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="atlassian-macro-output-type">INLINE</ac:parameter>
-  <ac:plain-text-body><![CDATA[EMBED(plantuml/class.puml)]]></ac:plain-text-body>
+<ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="data">DATA(plantuml/class.puml)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(plantuml/class.puml)</ac:parameter>
+  <ac:parameter ac:name="compressed">true</ac:parameter>
+  <ac:parameter ac:name="revision">1</ac:parameter>
+  <ac:parameter ac:name="toolbar">bottom</ac:parameter>
 </ac:structured-macro>
 <h2>Sequence diagrams</h2>
 <p>UML Sequence diagrams are a type of interaction diagram that shows how objects in a system interact with each other over time. They are used to model the dynamic behavior of a system.</p>
-<ac:structured-macro ac:name="plantuml" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="atlassian-macro-output-type">INLINE</ac:parameter>
-  <ac:plain-text-body><![CDATA[EMBED(plantuml/sequence.puml)]]></ac:plain-text-body>
+<ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="data">DATA(plantuml/sequence.puml)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(plantuml/sequence.puml)</ac:parameter>
+  <ac:parameter ac:name="compressed">true</ac:parameter>
+  <ac:parameter ac:name="revision">1</ac:parameter>
+  <ac:parameter ac:name="toolbar">bottom</ac:parameter>
 </ac:structured-macro>
 <h2>Use case diagrams</h2>
 <p>Use case diagrams show the interactions between actors and use cases in a system. They are used to capture the functional requirements of a system.</p>
-<ac:structured-macro ac:name="plantuml" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="atlassian-macro-output-type">INLINE</ac:parameter>
-  <ac:plain-text-body><![CDATA[EMBED(plantuml/usecase.puml)]]></ac:plain-text-body>
+<ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="data">DATA(plantuml/usecase.puml)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(plantuml/usecase.puml)</ac:parameter>
+  <ac:parameter ac:name="compressed">true</ac:parameter>
+  <ac:parameter ac:name="revision">1</ac:parameter>
+  <ac:parameter ac:name="toolbar">bottom</ac:parameter>
 </ac:structured-macro>

@@ -6,12 +6,16 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import base64
 import logging
 import os
+import re
 import shutil
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from .diagram import render_diagram_subprocess
 
@@ -124,3 +128,53 @@ def render_diagram(
         cmd.extend(["-scale", str(config.scale)])
 
     return render_diagram_subprocess(cmd, source, "PlantUML")
+
+
+def compress_plantuml_data(source: str) -> str:
+    """
+    Compress PlantUML source for embedding in plantumlcloud macro.
+
+    Implements the encoding used by PlantUML Diagrams for Confluence:
+    1. URI encode the source
+    2. Deflate with raw deflate (zlib)
+    3. Base64 encode
+
+    :param source: PlantUML diagram source code.
+    :return: Compressed and encoded data suitable for macro data parameter.
+    :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/
+          pages/1839333377
+    """
+    # Step 1: URI encode
+    encoded = quote(source, safe="")
+
+    # Step 2: Deflate with raw deflate (remove zlib header/trailer)
+    # zlib.compress() adds 2-byte header and 4-byte trailer
+    deflated = zlib.compress(encoded.encode("utf-8"))[2:-4]
+
+    # Step 3: Base64 encode
+    return base64.b64encode(deflated).decode("ascii")
+
+
+def extract_svg_dimensions(svg_data: bytes) -> tuple[int, int] | None:
+    """
+    Extract width and height from SVG data.
+
+    :param svg_data: SVG image data as bytes.
+    :return: Tuple of (width, height) in pixels, or None if not found.
+    """
+    try:
+        # Decode SVG data
+        svg_text = svg_data.decode("utf-8")
+
+        # Match width and height attributes in <svg> tag
+        # Look for patterns like width="123" or width="123px"
+        width_match = re.search(r'width="(\d+)(?:px)?"', svg_text)
+        height_match = re.search(r'height="(\d+)(?:px)?"', svg_text)
+
+        if width_match and height_match:
+            return (int(width_match.group(1)), int(height_match.group(1)))
+
+        return None
+    except Exception as e:
+        LOGGER.warning(f"Failed to extract SVG dimensions: {e}")
+        return None

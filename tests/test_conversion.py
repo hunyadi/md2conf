@@ -49,13 +49,60 @@ def substitute(root_dir: Path, content: str) -> str:
         relative_path = m.group(1)
         absolute_path = root_dir / relative_path
         with open(absolute_path, "r", encoding="utf-8") as f:
-            content = f.read().rstrip()
-        hash = hashlib.md5(content.encode("utf-8")).hexdigest()
-        extension = absolute_path.suffix
+            file_content = f.read().rstrip()
+        hash = hashlib.md5(file_content.encode("utf-8")).hexdigest()
+        extension = (
+            absolute_path.suffix if absolute_path.suffix != ".puml" else ".svg"
+        )
         return attachment_name(f"embedded_{hash}{extension}")
+
+    def _repl_data(m: re.Match[str]) -> str:
+        "Replaces a DATA placeholder with compressed PlantUML source."
+        from md2conf.plantuml import compress_plantuml_data
+
+        relative_path = m.group(1)
+        absolute_path = root_dir / relative_path
+        with open(absolute_path, "r", encoding="utf-8") as f:
+            file_content = f.read().rstrip()
+        return compress_plantuml_data(file_content)
+
+    def _repl_dimensions(m: re.Match[str]) -> str:
+        "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
+        from md2conf.plantuml import (
+            extract_svg_dimensions,
+            has_plantuml,
+            render_diagram,
+        )
+
+        dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
+        relative_path = m.group(2)
+        absolute_path = root_dir / relative_path
+
+        # Only extract dimensions if PlantUML is available
+        if not has_plantuml():
+            return dimension_type  # Return placeholder as-is
+
+        try:
+            with open(absolute_path, "r", encoding="utf-8") as f:
+                file_content = f.read().rstrip()
+            svg_data = render_diagram(file_content, "svg")
+            dimensions = extract_svg_dimensions(svg_data)
+            if dimensions:
+                width, height = dimensions
+                return str(width) if dimension_type == "WIDTH" else str(height)
+        except Exception:
+            pass
+
+        return dimension_type  # Return placeholder if extraction fails
 
     embed_pattern = re.compile(r"EMBED\(([^()]+)\)")
     content = embed_pattern.sub(_repl_embed, content)
+
+    data_pattern = re.compile(r"DATA\(([^()]+)\)")
+    content = data_pattern.sub(_repl_data, content)
+
+    dimension_pattern = re.compile(r"(WIDTH|HEIGHT)\(([^()]+)\)")
+    content = dimension_pattern.sub(_repl_dimensions, content)
 
     return canonicalize(content)
 
