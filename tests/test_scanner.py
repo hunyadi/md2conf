@@ -46,35 +46,31 @@ flowchart LR
 
 
 class TestScanner(TypedTestCase):
-    sample_dir: Path
+    test_dir: Path
 
     @override
     def setUp(self) -> None:
         self.maxDiff = 1024
-
-        test_dir = Path(__file__).parent
-        parent_dir = test_dir.parent
-
-        self.sample_dir = parent_dir / "sample"
+        self.test_dir = Path(__file__).parent / "scanner"
 
     def test_tag(self) -> None:
-        document = Scanner().read(self.sample_dir / "index.md")
+        document = Scanner().read(self.test_dir / "id_only.md")
         props = document.properties
-        self.assertIsNotNone(props.page_id)
+        self.assertEqual(props.page_id, "1234")
         self.assertIsNone(props.space_key)
         self.assertIsNone(props.title)
 
     def test_json_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "parent" / "index.md")
+        document = Scanner().read(self.test_dir / "id_space_title.md")
         props = document.properties
-        self.assertEqual(props.page_id, "1966122")
+        self.assertEqual(props.page_id, "1234567")
         self.assertEqual(props.space_key, "~hunyadi")
-        self.assertEqual(props.title, "🏠 Markdown parent page")
+        self.assertEqual(props.title, "🏠 árvíztűrő tükörfúrógép")
 
     def test_yaml_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "sibling.md")
+        document = Scanner().read(self.test_dir / "frontmatter.md")
         props = document.properties
-        self.assertIsNotNone(props.page_id)
+        self.assertEqual(props.page_id, "19840101")
         self.assertIsNone(props.space_key)
         self.assertEqual(props.generated_by, "This page has been generated with md2conf.")
         self.assertEqual(props.title, "Markdown example document")

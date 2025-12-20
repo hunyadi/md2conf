@@ -4,8 +4,6 @@ layout:
   alignment: left
 ---
 
-<!-- confluence-page-id: 26837000 -->
-
 ![PNG image with caption](figure/interoperability.png)
 
 Prefer PNG over SVG if both are available in the same directory:

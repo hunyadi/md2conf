@@ -13,6 +13,7 @@ import shutil
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import ClassVar
 
 import lxml.etree as ET
 
@@ -29,10 +30,8 @@ from tests.utility import TypedTestCase
 
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
-TEST_PAGE_TITLE = "Publish Markdown to Confluence"
-TEST_SPACE = "~hunyadi"
-FEATURE_TEST_PAGE_ID = ConfluencePageID("1933314")
-IMAGE_TEST_PAGE_ID = ConfluencePageID("26837000")
+FEATURE_TEST_PAGE_TITLE = "Publish Markdown to Confluence"
+IMAGE_TEST_PAGE_TITLE = "Images and documents"
 
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
@@ -60,6 +59,20 @@ def sanitize_confluence(html: str) -> str:
 class TestAPI(TypedTestCase):
     out_dir: Path
     sample_dir: Path
+
+    feature_test_page_id: ClassVar[ConfluencePageID]
+    image_test_page_id: ClassVar[ConfluencePageID]
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        with ConfluenceAPI() as api:
+            if api.site.space_key is None:
+                raise ValueError("expected: Confluence space key required to run integration tests")
+
+            space_id = api.space_key_to_id(api.site.space_key)
+            homepage_id = api.get_homepage_id(space_id)
+            cls.feature_test_page_id = ConfluencePageID(api.get_or_create_page(title=FEATURE_TEST_PAGE_TITLE, parent_id=homepage_id).id)
+            cls.image_test_page_id = ConfluencePageID(api.get_or_create_page(title=IMAGE_TEST_PAGE_TITLE, parent_id=cls.feature_test_page_id.page_id).id)
 
     @override
     def setUp(self) -> None:
@@ -117,13 +130,13 @@ class TestAPI(TypedTestCase):
 
     def test_find_page_by_title(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page_properties_by_title(TEST_PAGE_TITLE)
+            page = api.get_page_properties_by_title(FEATURE_TEST_PAGE_TITLE)
             self.assertGreater(datetime.now(timezone.utc), page.createdAt)
-            self.assertEqual(page.id, FEATURE_TEST_PAGE_ID.page_id)
+            self.assertEqual(page.id, self.feature_test_page_id.page_id)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(FEATURE_TEST_PAGE_ID.page_id)
+            page = api.get_page(self.feature_test_page_id.page_id)
             self.assertIsInstance(page, ConfluencePage)
 
         with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
@@ -131,13 +144,13 @@ class TestAPI(TypedTestCase):
 
     def test_get_attachment(self) -> None:
         with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png")
+            data = api.get_attachment_by_name(self.image_test_page_id.page_id, "figure_interoperability.png")
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
-                IMAGE_TEST_PAGE_ID.page_id,
+                self.image_test_page_id.page_id,
                 "figure_interoperability.png",
                 attachment_path=self.sample_dir / "figure" / "interoperability.png",
                 comment="A sample figure",
@@ -205,7 +218,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             Publisher(
                 api,
-                ConfluenceDocumentOptions(root_page_id=FEATURE_TEST_PAGE_ID),
+                ConfluenceDocumentOptions(root_page_id=self.feature_test_page_id),
             ).process_directory(source_dir)
 
         with ConfluenceAPI() as api:
