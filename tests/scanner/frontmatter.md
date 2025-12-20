@@ -8,13 +8,14 @@ tags:
 description: >
     this is
     a multiline string
-page_id: "1998850"
-generated_by: "This page has been generated with md2conf."
+page_id: "19840101"
 properties:
   content-appearance-published: full-width
   content-appearance-draft: full-width
 ---
 
-# Test Document for YAML Frontmatter
+<!-- generated-by: This page has been generated with md2conf. -->
 
-This test document has YAML frontmatter with page_id and other properties.
+# Title
+
+Text

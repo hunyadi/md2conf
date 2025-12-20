@@ -626,7 +626,16 @@ class ConfluenceSession:
 
         return id
 
+    @overload
+    def get_space_id(self, *, space_id: str | None = None) -> str | None: ...
+
+    @overload
+    def get_space_id(self, *, space_key: str | None = None) -> str | None: ...
+
     def get_space_id(self, *, space_id: str | None = None, space_key: str | None = None) -> str | None:
+        return self._get_space_id(space_id=space_id, space_key=space_key)
+
+    def _get_space_id(self, *, space_id: str | None = None, space_key: str | None = None) -> str | None:
         """
         Coalesces a space ID or space key into a space ID, accounting for site default.
 
@@ -646,6 +655,15 @@ class ConfluenceSession:
 
         # space ID and key are unset, and no default space is configured
         return None
+
+    def get_homepage_id(self, space_id: str) -> str:
+        """
+        Returns the page ID corresponding to the space home page.
+        """
+
+        path = f"/spaces/{space_id}"
+        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType])
+        return typing.cast(str, data["homepageId"])
 
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         """
@@ -831,7 +849,7 @@ class ConfluenceSession:
         query = {
             "title": title,
         }
-        space_id = self.get_space_id(space_id=space_id, space_key=space_key)
+        space_id = self._get_space_id(space_id=space_id, space_key=space_key)
         if space_id is not None:
             query["space-id"] = space_id
 
@@ -1006,7 +1024,7 @@ class ConfluenceSession:
         :returns: Confluence page ID of a matching page (if found), or `None`.
         """
 
-        space_id = self.get_space_id(space_id=space_id, space_key=space_key)
+        space_id = self._get_space_id(space_id=space_id, space_key=space_key)
         path = "/pages"
         query = {"title": title}
         if space_id is not None:

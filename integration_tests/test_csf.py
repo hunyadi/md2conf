@@ -7,64 +7,30 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import logging
-import os
 import os.path
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
-from integration_tests.fixtures import IntegrationTestFixture
-from md2conf.api import (
-    ConfluenceAPI,
-    ConfluenceContentProperty,
-    ConfluenceLabel,
-)
+from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
 from md2conf.csf import content_to_string
 from md2conf.extra import override
 from tests.utility import TypedTestCase
 
-TEST_SPACE = "~hunyadi"
-TEST_PAGE_ID: str | None = None
-
-
-def setUpModule() -> None:
-    """Create test pages before running tests."""
-    global TEST_PAGE_ID
-
-    space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
-
-    # Get parent page ID from environment or use default
-    parent_id = os.environ.get("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID")
-
-    if not parent_id:
-        logging.warning("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. Tests will be skipped.")
-        return
-
-    with ConfluenceAPI() as api:
-        fixture = IntegrationTestFixture(api, space_key)
-
-        # Create CSF test page
-        page_id = fixture.get_or_create_test_page(
-            title="Confluence Storage Format Tests",
-            space_key=space_key,
-            parent_id=parent_id,
-            body="<p>Test page for CSF tests</p>",
-        )
-        TEST_PAGE_ID = page_id
-
-        logging.info(f"CSF test setup complete: page={page_id}")
-
-
-def tearDownModule() -> None:
-    """Clean up test pages if requested."""
-    if os.environ.get("CLEANUP_TEST_PAGES", "false").lower() == "true":
-        space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
-        with ConfluenceAPI() as api:
-            fixture = IntegrationTestFixture(api, space_key)
-            fixture.cleanup(delete_pages=True)
-
 
 class TestConfluenceStorageFormat(TypedTestCase):
+    test_page_id: ClassVar[str]
     test_dir: Path
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        with ConfluenceAPI() as api:
+            if api.site.space_key is None:
+                raise ValueError("expected: Confluence space key required to run integration tests")
+
+            space_id = api.space_key_to_id(api.site.space_key)
+            homepage_id = api.get_homepage_id(space_id)
+            cls.test_page_id = api.get_or_create_page(title="Confluence Storage Format", parent_id=homepage_id).id
 
     @override
     def setUp(self) -> None:
@@ -74,38 +40,29 @@ class TestConfluenceStorageFormat(TypedTestCase):
         self.sample_dir = parent_dir / "sample"
 
     def test_markdown(self) -> None:
-        if TEST_PAGE_ID is None:
-            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
-            page = api.get_page(TEST_PAGE_ID)
+            page = api.get_page(self.test_page_id)
 
         with open(self.test_dir / "example.csf", "w") as f:
             f.write(content_to_string(page.content))
 
     def test_labels(self) -> None:
-        if TEST_PAGE_ID is None:
-            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
             expected_labels = [
                 ConfluenceLabel(name="advanced", prefix="global"),
                 ConfluenceLabel(name="code", prefix="global"),
             ]
-            api.update_labels(
-                TEST_PAGE_ID,
-                expected_labels,
-            )
-            assigned_labels = sorted(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in api.get_labels(TEST_PAGE_ID))
+            api.update_labels(self.test_page_id, expected_labels)
+            assigned_labels = sorted(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in api.get_labels(self.test_page_id))
             self.assertListEqual(assigned_labels, expected_labels)
 
     def test_properties(self) -> None:
-        if TEST_PAGE_ID is None:
-            self.skipTest("Test page not created")
         with ConfluenceAPI() as api:
-            properties = api.get_content_properties_for_page(TEST_PAGE_ID)
+            properties = api.get_content_properties_for_page(self.test_page_id)
             self.assertGreater(len(properties), 0)
 
             api.update_content_properties_for_page(
-                TEST_PAGE_ID,
+                self.test_page_id,
                 [
                     ConfluenceContentProperty(key="content-appearance-published", value="full-width"),
                     ConfluenceContentProperty(key="content-appearance-draft", value="full-width"),
