@@ -1,0 +1,88 @@
+name: Integration Tests
+
+# Run integration tests against a real Confluence instance
+# Tests automatically create pages under the space homepage
+
+on:
+  workflow_dispatch:
+    inputs:
+      cleanup_pages:
+        description: 'Clean up test pages after run'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[formulas,dev]"
+      
+      # Setup Java for PlantUML
+      - name: Set up Java for PlantUML
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Install Graphviz for PlantUML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          dot -V
+      
+      - name: Download PlantUML JAR
+        run: |
+          curl -L -o plantuml.jar \
+            https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          java -jar plantuml.jar -version
+      
+      # Setup Node.js for Mermaid
+      - name: Set up Node.js for Mermaid
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      
+      - name: Install Mermaid CLI
+        run: |
+          npm install -g @mermaid-js/mermaid-cli
+          mmdc --version
+      
+      # Run integration tests
+      - name: Run integration tests
+        id: run_tests
+        env:
+          CONFLUENCE_DOMAIN: ${{ vars.CONFLUENCE_DOMAIN }}
+          CONFLUENCE_PATH: ${{ vars.CONFLUENCE_PATH || '/wiki/' }}
+          CONFLUENCE_USER_NAME: ${{ vars.CONFLUENCE_USER_NAME }}
+          CONFLUENCE_API_KEY: ${{ secrets.CONFLUENCE_API_KEY }}
+          CONFLUENCE_SPACE_KEY: ${{ vars.CONFLUENCE_SPACE_KEY }}
+          TEST_MERMAID: 1
+          TEST_PLANTUML: 1
+          PLANTUML_JAR: plantuml.jar
+        run: |
+          python -m unittest discover -s integration_tests -v
+      
+      # Upload test output artifacts on failure for debugging
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-outputs
+          path: integration_tests/output/
+          retention-days: 7
