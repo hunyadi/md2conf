@@ -43,7 +43,14 @@ IMAGE_TEST_PAGE_ID: ConfluencePageID | None = None
 
 
 def setUpModule() -> None:
-    """Create test pages before running tests."""
+    """
+    Create test pages before running tests and inject page IDs into sample files.
+    
+    This function:
+    1. Creates test pages in Confluence (or reuses existing ones)
+    2. Writes page IDs back into sample markdown files
+    3. Makes tests runnable from scratch without manual setup
+    """
     global FEATURE_TEST_PAGE_ID, IMAGE_TEST_PAGE_ID
 
     space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
@@ -82,6 +89,9 @@ def setUpModule() -> None:
         IMAGE_TEST_PAGE_ID = ConfluencePageID(image_page_id)
 
         logging.info(f"Setup: main={main_page_id}, image={image_page_id}")
+        
+        # Write page IDs back to sample markdown files
+        _write_page_ids_to_samples(api, fixture, space_key, main_page_id)
 
 
 def tearDownModule() -> None:
@@ -91,6 +101,69 @@ def tearDownModule() -> None:
         with ConfluenceAPI() as api:
             fixture = IntegrationTestFixture(api, space_key)
             fixture.cleanup(delete_pages=True)
+
+
+def _write_page_ids_to_samples(
+    api: ConfluenceAPI,
+    fixture: IntegrationTestFixture,
+    space_key: str,
+    parent_id: str,
+) -> None:
+    """
+    Create pages for sample files and write IDs into markdown files.
+    
+    This function reuses the existing SynchronizingProcessor._update_markdown()
+    method to inject page IDs, maintaining consistency with the main codebase.
+    
+    :param api: Active Confluence API session
+    :param fixture: Test fixture for page management
+    :param space_key: Confluence space key
+    :param parent_id: Parent page ID for creating sample pages
+    """
+    from md2conf.domain import ConfluenceDocumentOptions
+    from md2conf.publisher import SynchronizingProcessor
+
+    # Get the sample directory
+    test_dir = Path(__file__).parent.resolve(True)
+    sample_dir = test_dir.parent / "sample"
+
+    # Create a processor instance to reuse _update_markdown method
+    processor = SynchronizingProcessor(
+        api=api,
+        options=ConfluenceDocumentOptions(),
+        root_dir=sample_dir,
+    )
+
+    # Define sample files and their expected titles
+    sample_files = {
+        "index.md": "Publish Markdown to Confluence",
+        "code.md": "Fenced code blocks",
+        "attachments.md": "Images and documents",
+        "panel.md": "Admonitions and alerts",
+        "plantuml.md": "PlantUML Diagrams",
+        "parent/index.md": "🏠 Markdown parent page",
+        "parent/child.md": "Markdown child page",
+    }
+
+    for file_rel_path, title in sample_files.items():
+        file_path = sample_dir / file_rel_path
+        if not file_path.exists():
+            logging.warning(f"Sample file not found: {file_rel_path}")
+            continue
+
+        # Create or find page for this sample file
+        page_id = fixture.get_or_create_test_page(
+            title=title,
+            space_key=space_key,
+            parent_id=parent_id,
+            body=f"<p>Sample page: {title}</p>",
+        )
+
+        # Reuse existing logic to write page ID into markdown file
+        processor._update_markdown(
+            file_path, page_id=page_id, space_key=space_key
+        )
+        logging.info(f"Wrote page ID {page_id} to {file_rel_path}")
 
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
