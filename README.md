@@ -193,7 +193,9 @@ Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes prece
 The generated-by text can also be templated with the following variables:
 
 - `%{filename}`: the name of the Markdown file
-- `%{filepath}`: the path of the Markdown file relative to the *source root*
+- `%{filestem}`: the name of the Markdown file without the extension
+- `%{filepath}`: the path of the Markdown file relative to the _source root_
+- `%{filedir}`: the dirname of the `%{filepath}` (the path without the filename)
 
 When publishing a directory hierarchy, the *source root* is the directory in which *md2conf* is launched. When publishing a single file, this is the directory in which the Markdown file resides.
 

@@ -228,12 +228,13 @@ class Processor:
         # extract information from a Markdown document found in a local directory.
         document = Scanner().read(path)
 
+        props = document.properties
         return DocumentNode(
             absolute_path=path,
-            page_id=document.page_id,
-            space_key=document.space_key,
-            title=document.title,
-            synchronized=document.synchronized if document.synchronized is not None else True,
+            page_id=props.page_id,
+            space_key=props.space_key,
+            title=props.title,
+            synchronized=props.synchronized if props.synchronized is not None else True,
         )
 
     def _generate_hash(self, absolute_path: Path) -> str:

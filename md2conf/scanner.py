@@ -10,10 +10,12 @@ import re
 import typing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
 import yaml
 
+from .domain import LayoutOptions
+from .extra import merged
 from .mermaid import MermaidConfigProperties
 from .plantuml import PlantUMLConfigProperties
 from .serializer import JsonType, json_to_object
@@ -54,32 +56,41 @@ def extract_frontmatter_properties(text: str) -> tuple[dict[str, JsonType] | Non
 
 
 @dataclass
+class AliasProperties:
+    """
+    An object that holds properties extracted from the front-matter of a Markdown document.
+
+    :param confluence_page_id: Confluence page ID. (Alternative name for JSON de-serialization.)
+    :param confluence_space_key: Confluence space key. (Alternative name for JSON de-serialization.)
+    """
+
+    confluence_page_id: str | None = None
+    confluence_space_key: str | None = None
+
+
+@dataclass
 class DocumentProperties:
     """
     An object that holds properties extracted from the front-matter of a Markdown document.
 
     :param page_id: Confluence page ID.
     :param space_key: Confluence space key.
-    :param confluence_page_id: Confluence page ID. (Alternative name for JSON de-serialization.)
-    :param confluence_space_key: Confluence space key. (Alternative name for JSON de-serialization.)
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
     :param tags: A list of tags (content labels) extracted from front-matter.
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
-    :param alignment: Alignment for block-level images and formulas.
+    :param layout: Layout options for content on a Confluence page.
     """
 
     page_id: str | None = None
     space_key: str | None = None
-    confluence_page_id: str | None = None
-    confluence_space_key: str | None = None
     generated_by: str | None = None
     title: str | None = None
     tags: list[str] | None = None
     synchronized: bool | None = None
     properties: dict[str, JsonType] | None = None
-    alignment: Literal["center", "left", "right"] | None = None
+    layout: LayoutOptions | None = None
 
 
 @dataclass
@@ -87,25 +98,11 @@ class ScannedDocument:
     """
     An object that holds properties extracted from a Markdown document, including remaining source text.
 
-    :param page_id: Confluence page ID.
-    :param space_key: Confluence space key.
-    :param generated_by: Text identifying the tool that generated the document.
-    :param title: The title extracted from front-matter.
-    :param tags: A list of tags (content labels) extracted from front-matter.
-    :param synchronized: True if the document content is parsed and synchronized with Confluence.
-    :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
-    :param alignment: Alignment for block-level images and formulas.
+    :param properties: Properties extracted from the front-matter of a Markdown document.
     :param text: Text that remains after front-matter and inline properties have been extracted.
     """
 
-    page_id: str | None
-    space_key: str | None
-    generated_by: str | None
-    title: str | None
-    tags: list[str] | None
-    synchronized: bool | None
-    properties: dict[str, JsonType] | None
-    alignment: Literal["center", "left", "right"] | None
+    properties: DocumentProperties
     text: str
 
 
@@ -128,36 +125,22 @@ class Scanner:
         # extract 'generated-by' tag text
         generated_by, text = extract_value(r"<!--\s+generated[-_]by:\s*(.*)\s+-->", text)
 
-        title: str | None = None
-        tags: list[str] | None = None
-        synchronized: bool | None = None
-        properties: dict[str, JsonType] | None = None
-        alignment: Literal["center", "left", "right"] | None = None
+        body_props = DocumentProperties(page_id=page_id, space_key=space_key, generated_by=generated_by)
 
         # extract front-matter
         data, text = extract_frontmatter_properties(text)
         if data is not None:
-            p = json_to_object(DocumentProperties, data)
-            page_id = page_id or p.confluence_page_id or p.page_id
-            space_key = space_key or p.confluence_space_key or p.space_key
-            generated_by = generated_by or p.generated_by
-            title = p.title
-            tags = p.tags
-            synchronized = p.synchronized
-            properties = p.properties
-            alignment = p.alignment
+            frontmatter_props = json_to_object(DocumentProperties, data)
+            alias_props = json_to_object(AliasProperties, data)
+            if alias_props.confluence_page_id is not None:
+                frontmatter_props.page_id = alias_props.confluence_page_id
+            if alias_props.confluence_space_key is not None:
+                frontmatter_props.space_key = alias_props.confluence_space_key
+            props = merged(body_props, frontmatter_props)
+        else:
+            props = body_props
 
-        return ScannedDocument(
-            page_id=page_id,
-            space_key=space_key,
-            generated_by=generated_by,
-            title=title,
-            tags=tags,
-            synchronized=synchronized,
-            properties=properties,
-            alignment=alignment,
-            text=text,
-        )
+        return ScannedDocument(properties=props, text=text)
 
 
 @dataclass

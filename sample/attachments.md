@@ -1,6 +1,7 @@
 ---
 title: "Images and documents"
-alignment: left
+layout:
+  alignment: left
 ---
 
 ![PNG image with caption](figure/interoperability.png)

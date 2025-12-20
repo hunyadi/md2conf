@@ -17,7 +17,7 @@ from pathlib import Path
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import ConfluenceDocument, attachment_name
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.domain import ConfluenceDocumentOptions
+from md2conf.domain import ConfluenceDocumentOptions, LayoutOptions
 from md2conf.extra import override
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
@@ -343,7 +343,7 @@ class TestConversion(TypedTestCase):
         "Test that max_image_width constrains display width while preserving original dimensions."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=100),
+            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=100)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -361,7 +361,7 @@ class TestConversion(TypedTestCase):
         "Test that images smaller than max_image_width are not constrained."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, max_image_width=500),
+            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=500)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -376,17 +376,19 @@ class TestConversion(TypedTestCase):
 
     def test_generated_by_templated(self) -> None:
         "Test that generated_by option supports templating."
-        test_file_path = self.source_dir / "basic.md"
+        test_file_path = self.source_dir / "images" / "images.md"
         _, doc = ConfluenceDocument.create(
             test_file_path,
-            ConfluenceDocumentOptions(generated_by="File: %{filename} | Path: %{filepath}"),
+            ConfluenceDocumentOptions(generated_by="File: %{filename} | Path: %{filepath} | Stem: %{filestem} | Dirname: %{filedir}"),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
         )
         xhtml = doc.xhtml()
-        self.assertIn("File: basic.md", xhtml)
+        self.assertIn("File: images.md", xhtml)
         self.assertIn(f"Path: {test_file_path.relative_to(self.source_dir).as_posix()}", xhtml)
+        self.assertIn("Stem: images", xhtml)
+        self.assertIn("Dirname: images", xhtml)
 
     def test_skip_title_heading_enabled(self) -> None:
         """Test that the first heading is removed when skip_title_heading is enabled."""
