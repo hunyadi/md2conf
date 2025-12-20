@@ -1134,21 +1134,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             LOGGER.warning("Failed to extract PlantUML properties: %s", ex)
             return None
 
-    def _transform_external_plantuml(
-        self, absolute_path: Path, attrs: ImageAttributes
-    ) -> ElementType:
+    def _transform_external_plantuml(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         """
         Emits Confluence Storage Format XHTML for a PlantUML diagram
         read from an external file.
 
         Uses plantumlcloud macro with embedded compressed source data.
         """
-        if not absolute_path.name.endswith(
-            ".puml"
-        ) and not absolute_path.name.endswith(".plantuml"):
-            raise DocumentError(
-                "invalid image format; expected: `*.puml` or `*.plantuml`"
-            )
+        if not absolute_path.name.endswith(".puml") and not absolute_path.name.endswith(".plantuml"):
+            raise DocumentError("invalid image format; expected: `*.puml` or `*.plantuml`")
 
         relative_path = path_relative_to(absolute_path, self.base_dir)
 
@@ -1157,9 +1151,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             content = f.read()
 
         # Generate hash-based filename for consistency
-        svg_filename = attachment_name(
-            relative_path.with_suffix(".svg")
-        )
+        svg_filename = attachment_name(relative_path.with_suffix(".svg"))
 
         width = None
         height = None
@@ -1168,9 +1160,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_plantuml and plantuml.has_plantuml():
             try:
                 config = self._extract_plantuml_config(content)
-                image_data = plantuml.render_diagram(
-                    content, "svg", config=config
-                )
+                image_data = plantuml.render_diagram(content, "svg", config=config)
 
                 # Extract dimensions from SVG
                 dimensions = plantuml.extract_svg_dimensions(image_data)
@@ -1178,27 +1168,17 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     width, height = dimensions
 
                 # Add SVG as attachment
-                self.embedded_files[svg_filename] = EmbeddedFileData(
-                    image_data, attrs.alt
-                )
+                self.embedded_files[svg_filename] = EmbeddedFileData(image_data, attrs.alt)
             except Exception as e:
-                LOGGER.warning(
-                    f"Failed to render PlantUML diagram from "
-                    f"{absolute_path}: {e}. Embedding without dimensions."
-                )
+                LOGGER.warning(f"Failed to render PlantUML diagram from {absolute_path}: {e}. Embedding without dimensions.")
         elif self.options.render_plantuml and not plantuml.has_plantuml():
-            LOGGER.warning(
-                "PlantUML JAR not available; diagrams will display without "
-                "dimensions. See README for installation."
-            )
+            LOGGER.warning("PlantUML JAR not available; diagrams will display without dimensions. See README for installation.")
 
         # Track original file as image for reference
         self.images.append(ImageData(absolute_path, attrs.alt))
 
         # Always create plantumlcloud macro with compressed source
-        return self._create_plantuml_macro(
-            svg_filename, content, width, height
-        )
+        return self._create_plantuml_macro(svg_filename, content, width, height)
 
     def _transform_fenced_plantuml(self, content: str) -> ElementType:
         """
@@ -1219,9 +1199,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.render_plantuml and plantuml.has_plantuml():
             try:
                 config = self._extract_plantuml_config(content)
-                image_data = plantuml.render_diagram(
-                    content, "svg", config=config
-                )
+                image_data = plantuml.render_diagram(content, "svg", config=config)
 
                 # Extract dimensions from SVG
                 dimensions = plantuml.extract_svg_dimensions(image_data)
@@ -1229,24 +1207,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                     width, height = dimensions
 
                 # Add SVG as attachment
-                self.embedded_files[svg_filename] = EmbeddedFileData(
-                    image_data
-                )
+                self.embedded_files[svg_filename] = EmbeddedFileData(image_data)
             except Exception as e:
-                LOGGER.warning(
-                    f"Failed to render PlantUML diagram: {e}. "
-                    f"Embedding without dimensions."
-                )
+                LOGGER.warning(f"Failed to render PlantUML diagram: {e}. Embedding without dimensions.")
         elif self.options.render_plantuml and not plantuml.has_plantuml():
-            LOGGER.warning(
-                "PlantUML JAR not available; diagrams will display without "
-                "dimensions. See README for installation."
-            )
+            LOGGER.warning("PlantUML JAR not available; diagrams will display without dimensions. See README for installation.")
 
         # Always create plantumlcloud macro with compressed source
-        return self._create_plantuml_macro(
-            svg_filename, content, width, height
-        )
+        return self._create_plantuml_macro(svg_filename, content, width, height)
 
     def _create_plantuml_macro(
         self,

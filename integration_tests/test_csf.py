@@ -31,14 +31,12 @@ def setUpModule() -> None:
     global TEST_PAGE_ID
 
     space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
-    
+
     # Get parent page ID from environment or use default
     parent_id = os.environ.get("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID")
-    
+
     if not parent_id:
-        logging.warning(
-            "CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. Tests will be skipped."
-        )
+        logging.warning("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. Tests will be skipped.")
         return
 
     with ConfluenceAPI() as api:

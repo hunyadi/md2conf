@@ -18,7 +18,12 @@ from pathlib import Path
 import lxml.etree as ET
 
 from integration_tests.fixtures import IntegrationTestFixture
-from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
+from md2conf.api import (
+    ConfluenceAPI,
+    ConfluenceAttachment,
+    ConfluencePage,
+    ConfluenceSession,
+)
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import (
     ConfluenceDocument,
@@ -30,7 +35,7 @@ from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
 from md2conf.extra import override
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.publisher import Publisher
+from md2conf.publisher import Publisher, SynchronizingProcessor
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
 
@@ -45,7 +50,7 @@ IMAGE_TEST_PAGE_ID: ConfluencePageID | None = None
 def setUpModule() -> None:
     """
     Create test pages before running tests and inject page IDs into sample files.
-    
+
     This function:
     1. Creates test pages in Confluence (or reuses existing ones)
     2. Writes page IDs back into sample markdown files
@@ -54,10 +59,10 @@ def setUpModule() -> None:
     global FEATURE_TEST_PAGE_ID, IMAGE_TEST_PAGE_ID
 
     space_key = os.environ.get("CONFLUENCE_SPACE_KEY", TEST_SPACE)
-    
+
     # Get parent page ID from environment or use default
     parent_id = os.environ.get("CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID")
-    
+
     if not parent_id:
         logging.warning(
             "CONFLUENCE_INTEGRATION_TEST_PARENT_PAGE_ID not set. "
@@ -89,7 +94,7 @@ def setUpModule() -> None:
         IMAGE_TEST_PAGE_ID = ConfluencePageID(image_page_id)
 
         logging.info(f"Setup: main={main_page_id}, image={image_page_id}")
-        
+
         # Write page IDs back to sample markdown files
         _write_page_ids_to_samples(api, fixture, space_key, main_page_id)
 
@@ -104,25 +109,22 @@ def tearDownModule() -> None:
 
 
 def _write_page_ids_to_samples(
-    api: ConfluenceAPI,
+    api: ConfluenceSession,
     fixture: IntegrationTestFixture,
     space_key: str,
     parent_id: str,
 ) -> None:
     """
     Create pages for sample files and write IDs into markdown files.
-    
+
     This function reuses the existing SynchronizingProcessor._update_markdown()
     method to inject page IDs, maintaining consistency with the main codebase.
-    
-    :param api: Active Confluence API session
+
+    :param api: Active Confluence session
     :param fixture: Test fixture for page management
     :param space_key: Confluence space key
     :param parent_id: Parent page ID for creating sample pages
     """
-    from md2conf.domain import ConfluenceDocumentOptions
-    from md2conf.publisher import SynchronizingProcessor
-
     # Get the sample directory
     test_dir = Path(__file__).parent.resolve(True)
     sample_dir = test_dir.parent / "sample"
@@ -160,9 +162,7 @@ def _write_page_ids_to_samples(
         )
 
         # Reuse existing logic to write page ID into markdown file
-        processor._update_markdown(
-            file_path, page_id=page_id, space_key=space_key
-        )
+        processor._update_markdown(file_path, page_id=page_id, space_key=space_key)
         logging.info(f"Wrote page ID {page_id} to {file_rel_path}")
 
 
@@ -276,9 +276,7 @@ class TestAPI(TypedTestCase):
                 comment="Test attachment",
                 force=True,
             )
-            data = api.get_attachment_by_name(
-                IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png"
-            )
+            data = api.get_attachment_by_name(IMAGE_TEST_PAGE_ID.page_id, "figure_interoperability.png")
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_upload_attachment(self) -> None:

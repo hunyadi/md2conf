@@ -620,8 +620,8 @@ options:
   --no-render-drawio    Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-mermaid      Render Mermaid diagrams as image files. (Installed utility required to convert.)
   --no-render-mermaid   Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)
-  --render-plantuml     Render PlantUML diagrams to SVG with dimensions for optimal display. (PlantUML JAR recommended.)
-  --no-render-plantuml  Embed PlantUML diagrams with compressed source only. (PlantUML Diagrams for Confluence app required.)
+  --render-plantuml     Render PlantUML diagrams as image files. (Installed utility required to convert.)
+  --no-render-plantuml  Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-latex        Render LaTeX formulas as image files. (Matplotlib required to convert.)
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
