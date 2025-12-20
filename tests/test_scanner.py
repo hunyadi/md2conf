@@ -46,33 +46,33 @@ flowchart LR
 
 
 class TestScanner(TypedTestCase):
-    sample_dir: Path
+    fixtures_dir: Path
 
     @override
     def setUp(self) -> None:
         self.maxDiff = 1024
 
         test_dir = Path(__file__).parent
-        parent_dir = test_dir.parent
-
-        self.sample_dir = parent_dir / "sample"
+        self.fixtures_dir = test_dir / "fixtures"
 
     def test_tag(self) -> None:
-        document = Scanner().read(self.sample_dir / "index.md")
+        document = Scanner().read(self.fixtures_dir / "scanner_test_tag.md")
         props = document.properties
         self.assertIsNotNone(props.page_id)
         self.assertIsNone(props.space_key)
         self.assertIsNone(props.title)
 
     def test_json_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "parent" / "index.md")
+        fixture_path = self.fixtures_dir / "scanner_test_json_frontmatter.md"
+        document = Scanner().read(fixture_path)
         props = document.properties
         self.assertEqual(props.page_id, "1966122")
         self.assertEqual(props.space_key, "~hunyadi")
         self.assertEqual(props.title, "🏠 Markdown parent page")
 
     def test_yaml_frontmatter(self) -> None:
-        document = Scanner().read(self.sample_dir / "sibling.md")
+        fixture_path = self.fixtures_dir / "scanner_test_yaml_frontmatter.md"
+        document = Scanner().read(fixture_path)
         props = document.properties
         self.assertIsNotNone(props.page_id)
         self.assertIsNone(props.space_key)
