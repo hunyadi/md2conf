@@ -10,4 +10,3 @@ __pycache__
 /wheel
 /*.egg-info
 plantuml.jar
-/integration_tests/.test_pages.json

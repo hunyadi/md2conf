@@ -1242,8 +1242,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         A PlantUML diagram using the plantumlcloud macro with embedded data.
 
         Generates a macro compatible with PlantUML Diagrams for Confluence app.
-        :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/
-              pages/1839333377/Programmatically+adding+PlantUML+diagrams
+        :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/pages/1839333377
         """
         local_id = str(uuid.uuid4())
         macro_id = str(uuid.uuid4())

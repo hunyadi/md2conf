@@ -135,14 +135,14 @@ def compress_plantuml_data(source: str) -> str:
     Compress PlantUML source for embedding in plantumlcloud macro.
 
     Implements the encoding used by PlantUML Diagrams for Confluence:
+
     1. URI encode the source
     2. Deflate with raw deflate (zlib)
     3. Base64 encode
 
     :param source: PlantUML diagram source code.
-    :return: Compressed and encoded data suitable for macro data parameter.
-    :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/
-          pages/1839333377
+    :returns: Compressed and encoded data suitable for macro data parameter.
+    :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/pages/1839333377
     """
     # Step 1: URI encode
     encoded = quote(source, safe="")

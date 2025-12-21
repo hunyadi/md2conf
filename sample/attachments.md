@@ -22,6 +22,10 @@ Editable Mermaid diagram with `render_mermaid=False`, static image with `render_
 
 ![Editable or rendered Mermaid diagram](figure/class.mmd)
 
+Editable PlantUML diagram with `render_plantuml=False`, static image with `render_plantuml=True`:
+
+![Editable or rendered PlantUML diagram](figure/class.puml)
+
 Static image hosted at an external location:
 
 ![External image](http://confluence.atlassian.com/images/logo/confluence_48_trans.png)
