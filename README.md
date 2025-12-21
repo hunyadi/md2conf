@@ -600,17 +600,17 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -d DOMAIN, --domain DOMAIN
+  -d, --domain DOMAIN
                         Confluence organization domain.
-  -p PATH, --path PATH  Base path for Confluence (default: '/wiki/').
+  -p, --path PATH  Base path for Confluence (default: '/wiki/').
   --api-url API_URL     Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.
-  -u USERNAME, --username USERNAME
+  -u, --username USERNAME
                         Confluence user name.
-  -a API_KEY, --api-key API_KEY
+  -a, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
-  -s SPACE, --space SPACE
+  -s, --space SPACE
                         Confluence space key for pages to be published. If omitted, will default to user space.
-  -l {debug,info,warning,error,critical}, --loglevel {debug,info,warning,error,critical}
+  -l, --loglevel {debug,info,warning,error,critical}
                         Use this option to set the log verbosity.
   -r ROOT_PAGE          Root Confluence page to create new pages. If omitted, will raise exception when creating new pages.
   --keep-hierarchy      Maintain source directory structure when exporting to Confluence.
