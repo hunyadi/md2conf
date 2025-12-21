@@ -9,8 +9,9 @@ Copyright 2022-2025, Levente Hunyadi
 import importlib.util
 from io import BytesIO
 from pathlib import Path
-from struct import unpack
 from typing import BinaryIO, Iterable, Literal, overload
+
+from .png import _Chunk, _read_chunk, _read_signature, extract_png_dimensions
 
 
 def render_latex(expression: str, *, format: Literal["png", "svg"] = "png", dpi: int = 100, font_size: int = 12) -> bytes:
@@ -83,16 +84,7 @@ def get_png_dimensions(*, data: bytes | None = None, path: str | Path | None = N
     :returns: A tuple of the image's width and height in pixels.
     """
 
-    if data is not None and path is not None:
-        raise TypeError("expected: either `data` or `path`; got: both")
-    elif data is not None:
-        with BytesIO(data) as f:
-            return _get_png_dimensions(f)
-    elif path is not None:
-        with open(path, "rb") as f:
-            return _get_png_dimensions(f)
-    else:
-        raise TypeError("expected: either `data` or `path`; got: neither")
+    return extract_png_dimensions(data=data, path=path)
 
 
 @overload
@@ -145,82 +137,11 @@ def remove_png_chunks(
             return None
 
 
-class _Chunk:
-    __slots__ = ("length", "name", "data", "crc")
-
-    length: int
-    name: bytes
-    data: bytes
-    crc: bytes
-
-    def __init__(self, length: int, name: bytes, data: bytes, crc: bytes):
-        self.length = length
-        self.name = name
-        self.data = data
-        self.crc = crc
-
-
-def _read_signature(f: BinaryIO) -> None:
-    "Reads and checks PNG signature (first 8 bytes)."
-
-    signature = f.read(8)
-    if signature != b"\x89PNG\r\n\x1a\n":
-        raise ValueError("not a valid PNG file")
-
-
-def _read_chunk(f: BinaryIO) -> _Chunk | None:
-    "Reads and parses a PNG chunk such as `IHDR` or `tEXt`."
-
-    length_bytes = f.read(4)
-    if not length_bytes:
-        return None
-
-    if len(length_bytes) != 4:
-        raise ValueError("insufficient bytes to read chunk length")
-
-    length = int.from_bytes(length_bytes, "big")
-
-    data_length = 4 + length + 4
-    data_bytes = f.read(data_length)
-    if len(data_bytes) != data_length:
-        raise ValueError(f"insufficient bytes to read chunk data of length {length}")
-
-    chunk_type = data_bytes[0:4]
-    chunk_data = data_bytes[4:-4]
-    crc = data_bytes[-4:]
-
-    return _Chunk(length, chunk_type, chunk_data, crc)
-
-
 def _write_chunk(f: BinaryIO, chunk: _Chunk) -> None:
     f.write(chunk.length.to_bytes(4, "big"))
     f.write(chunk.name)
     f.write(chunk.data)
     f.write(chunk.crc)
-
-
-def _get_png_dimensions(source_file: BinaryIO) -> tuple[int, int]:
-    """
-    Returns the width and height of a PNG image inspecting its header.
-
-    :param source_file: A binary file opened for reading that contains PNG image data.
-    :returns: A tuple of the image's width and height in pixels.
-    """
-
-    _read_signature(source_file)
-
-    # validate IHDR (Image Header) chunk
-    ihdr = _read_chunk(source_file)
-    if ihdr is None:
-        raise ValueError("missing IHDR chunk")
-
-    if ihdr.length != 13:
-        raise ValueError("invalid chunk length")
-    if ihdr.name != b"IHDR":
-        raise ValueError(f"expected: IHDR chunk; got: {ihdr.name!r}")
-
-    (width, height, bit_depth, color_type, compression, filter, interlace) = unpack(">IIBBBBB", ihdr.data)  # pyright: ignore[reportUnusedVariable]
-    return width, height
 
 
 def _remove_png_chunks(names: Iterable[str], source_file: BinaryIO, target_file: BinaryIO) -> None:

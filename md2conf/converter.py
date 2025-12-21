@@ -29,10 +29,11 @@ from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extra import merged, override, path_relative_to
-from .latex import get_png_dimensions, remove_png_chunks, render_latex
+from .latex import remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
+from .png import extract_png_dimensions
 from .plantuml import PlantUMLConfigProperties
 from .scanner import MermaidScanner, PlantUMLScanner, ScannedDocument, Scanner
 from .serializer import JsonType
@@ -1605,7 +1606,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         image_data = render_latex(content, format=self.options.diagram_output_format)
         if self.options.diagram_output_format == "png":
-            width, height = get_png_dimensions(data=image_data)
+            width, height = extract_png_dimensions(data=image_data)
             image_data = remove_png_chunks(["pHYs"], source_data=image_data)
             attrs = ImageAttributes(
                 context,
