@@ -66,11 +66,8 @@ def substitute(root_dir: Path, content: str) -> str:
 
     def _repl_dimensions(m: re.Match[str]) -> str:
         "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
-        from md2conf.plantuml import (
-            extract_svg_dimensions,
-            has_plantuml,
-            render_diagram,
-        )
+        from md2conf.plantuml import has_plantuml, render_diagram
+        from md2conf.svg import get_svg_dimensions_from_bytes
 
         dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
         relative_path = m.group(2)
@@ -84,9 +81,8 @@ def substitute(root_dir: Path, content: str) -> str:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 file_content = f.read().rstrip()
             svg_data = render_diagram(file_content, "svg")
-            dimensions = extract_svg_dimensions(svg_data)
-            if dimensions:
-                width, height = dimensions
+            width, height = get_svg_dimensions_from_bytes(svg_data)
+            if width and height:
                 return str(width) if dimension_type == "WIDTH" else str(height)
         except Exception:
             pass

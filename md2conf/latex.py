@@ -84,7 +84,12 @@ def get_png_dimensions(*, data: bytes | None = None, path: str | Path | None = N
     :returns: A tuple of the image's width and height in pixels.
     """
 
-    return extract_png_dimensions(data=data, path=path)
+    if data is not None:
+        return extract_png_dimensions(data=data)
+    elif path is not None:
+        return extract_png_dimensions(path=path)
+    else:
+        raise TypeError("expected: either `data` or `path`; got: neither")
 
 
 @overload

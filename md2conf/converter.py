@@ -33,8 +33,8 @@ from .latex import remove_png_chunks, render_latex
 from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
-from .png import extract_png_dimensions
 from .plantuml import PlantUMLConfigProperties
+from .png import extract_png_dimensions
 from .scanner import MermaidScanner, PlantUMLScanner, ScannedDocument, Scanner
 from .serializer import JsonType
 from .svg import fix_svg_dimensions, get_svg_dimensions, get_svg_dimensions_from_bytes
@@ -1179,9 +1179,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 image_data = plantuml.render_diagram(content, "svg", config=config)
 
                 # Extract dimensions from SVG
-                dimensions = plantuml.extract_svg_dimensions(image_data)
-                if dimensions:
-                    width, height = dimensions
+                width, height = get_svg_dimensions_from_bytes(image_data)
 
                 # Add SVG as attachment
                 self.embedded_files[svg_filename] = EmbeddedFileData(image_data, attrs.alt)
@@ -1218,9 +1216,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 image_data = plantuml.render_diagram(content, "svg", config=config)
 
                 # Extract dimensions from SVG
-                dimensions = plantuml.extract_svg_dimensions(image_data)
-                if dimensions:
-                    width, height = dimensions
+                width, height = get_svg_dimensions_from_bytes(image_data)
 
                 # Add SVG as attachment
                 self.embedded_files[svg_filename] = EmbeddedFileData(image_data)

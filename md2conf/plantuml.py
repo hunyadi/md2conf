@@ -9,7 +9,6 @@ Copyright 2022-2025, Levente Hunyadi
 import base64
 import logging
 import os
-import re
 import shutil
 import zlib
 from dataclasses import dataclass
@@ -153,28 +152,3 @@ def compress_plantuml_data(source: str) -> str:
 
     # Step 3: Base64 encode
     return base64.b64encode(deflated).decode("ascii")
-
-
-def extract_svg_dimensions(svg_data: bytes) -> tuple[int, int] | None:
-    """
-    Extract width and height from SVG data.
-
-    :param svg_data: SVG image data as bytes.
-    :return: Tuple of (width, height) in pixels, or None if not found.
-    """
-    try:
-        # Decode SVG data
-        svg_text = svg_data.decode("utf-8")
-
-        # Match width and height attributes in <svg> tag
-        # Look for patterns like width="123" or width="123px"
-        width_match = re.search(r'width="(\d+)(?:px)?"', svg_text)
-        height_match = re.search(r'height="(\d+)(?:px)?"', svg_text)
-
-        if width_match and height_match:
-            return (int(width_match.group(1)), int(height_match.group(1)))
-
-        return None
-    except Exception as e:
-        LOGGER.warning(f"Failed to extract SVG dimensions: {e}")
-        return None
