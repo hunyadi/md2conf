@@ -5,6 +5,31 @@ name: Integration Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      render_mermaid:
+        description: 'Render Mermaid diagrams to images'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      render_plantuml:
+        description: 'Render PlantUML diagrams to images'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      diagram_output_format:
+        description: 'Output format for rendered diagrams'
+        required: false
+        default: 'svg'
+        type: choice
+        options:
+          - 'svg'
+          - 'png'
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -69,6 +94,9 @@ jobs:
           TEST_MERMAID: 1
           TEST_PLANTUML: 1
           PLANTUML_JAR: plantuml.jar
+          RENDER_MERMAID: ${{ inputs.render_mermaid || 'false' }}
+          RENDER_PLANTUML: ${{ inputs.render_plantuml || 'false' }}
+          DIAGRAM_OUTPUT_FORMAT: ${{ inputs.diagram_output_format || 'svg' }}
         run: |
           python -m unittest discover -s integration_tests -v
 
