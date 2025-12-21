@@ -63,8 +63,68 @@ CONFLUENCE_SPACE_KEY='<your space key>'
 ```
 
 Running the tests:
-```
+
+```bash
 python -m unittest discover -s integration_tests
+```
+
+#### Running integration tests via GitHub Actions
+
+You can trigger integration tests remotely using GitHub Actions workflow. This is useful for testing different rendering modes without setting up local dependencies like PlantUML or Mermaid.
+
+**Important for forked repositories:** When running from a clone of a forked repository, you **must** specify the `--repo` option. Without it, `gh` will attempt to trigger the workflow on the upstream repository instead of your fork.
+
+Basic command structure:
+
+```bash
+gh workflow run integration-tests.yml \
+  --ref <branch-name> \
+  --repo <owner>/<repo-name> \
+  --field render_plantuml=<true|false> \
+  --field render_mermaid=<true|false> \
+  --field diagram_output_format=<png|svg>
+```
+
+Example for testing PlantUML with SVG rendering on a forked repository:
+
+```bash
+gh workflow run integration-tests.yml \
+  --ref add-plantuml-support \
+  --repo codemedic/hunyadi-md2conf \
+  --field render_plantuml=true \
+  --field diagram_output_format=svg
+```
+
+Available workflow inputs:
+
+- `render_plantuml`: Render PlantUML diagrams to images (true/false, default: false)
+- `render_mermaid`: Render Mermaid diagrams to images (true/false, default: false)
+- `diagram_output_format`: Output format for rendered diagrams (png/svg, default: svg)
+
+Test different scenarios:
+
+```bash
+# Test PlantUML macro mode (no rendering)
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo>
+
+# Test PlantUML with PNG rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_plantuml=true --field diagram_output_format=png
+
+# Test PlantUML with SVG rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_plantuml=true --field diagram_output_format=svg
+
+# Test both Mermaid and PlantUML rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_mermaid=true --field render_plantuml=true --field diagram_output_format=svg
+```
+
+Monitor workflow status:
+
+```bash
+gh run list --workflow=integration-tests.yml --repo <owner>/<repo>
+gh run watch <run-id> --repo <owner>/<repo>
 ```
 
 ### Running static code checks
