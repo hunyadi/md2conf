@@ -36,6 +36,14 @@ Python is installed. Minimum version we support is Python 3.10.
 4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
    Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against.
 
+#### Test Organization
+
+- `tests/`: Unit tests that run without external dependencies.
+- `tests/source/`: Markdown files with hardcoded Confluence page IDs used exclusively for unit tests (e.g., testing front-matter and HTML comment parsing). These files should *not* be used by integration tests.
+- `tests/target/`: Confluence Storage Format (XHTML) files used as reference to compare against.
+- `sample/`: Sample Markdown files used by integration tests. These should *not* contain hardcoded `confluence-page-id` comments or `page_id` front-matter properties, as integration tests dynamically create and manage pages.
+- `integration_tests/`: Tests that interact with a live Confluence instance.
+
 ### Running unit tests
 
 ```
@@ -55,8 +63,68 @@ CONFLUENCE_SPACE_KEY='<your space key>'
 ```
 
 Running the tests:
-```
+
+```bash
 python -m unittest discover -s integration_tests
+```
+
+#### Running integration tests via GitHub Actions
+
+You can trigger integration tests remotely using GitHub Actions workflow. This is useful for testing different rendering modes without setting up local dependencies like PlantUML or Mermaid.
+
+**Important for forked repositories:** When running from a clone of a forked repository, you **must** specify the `--repo` option. Without it, `gh` will attempt to trigger the workflow on the upstream repository instead of your fork.
+
+Basic command structure:
+
+```bash
+gh workflow run integration-tests.yml \
+  --ref <branch-name> \
+  --repo <owner>/<repo-name> \
+  --field render_plantuml=<true|false> \
+  --field render_mermaid=<true|false> \
+  --field diagram_output_format=<png|svg>
+```
+
+Example for testing PlantUML with SVG rendering on a forked repository:
+
+```bash
+gh workflow run integration-tests.yml \
+  --ref add-plantuml-support \
+  --repo codemedic/hunyadi-md2conf \
+  --field render_plantuml=true \
+  --field diagram_output_format=svg
+```
+
+Available workflow inputs:
+
+- `render_plantuml`: Render PlantUML diagrams to images (true/false, default: false)
+- `render_mermaid`: Render Mermaid diagrams to images (true/false, default: false)
+- `diagram_output_format`: Output format for rendered diagrams (png/svg, default: svg)
+
+Test different scenarios:
+
+```bash
+# Test PlantUML macro mode (no rendering)
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo>
+
+# Test PlantUML with PNG rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_plantuml=true --field diagram_output_format=png
+
+# Test PlantUML with SVG rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_plantuml=true --field diagram_output_format=svg
+
+# Test both Mermaid and PlantUML rendering
+gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
+  --field render_mermaid=true --field render_plantuml=true --field diagram_output_format=svg
+```
+
+Monitor workflow status:
+
+```bash
+gh run list --workflow=integration-tests.yml --repo <owner>/<repo>
+gh run watch <run-id> --repo <owner>/<repo>
 ```
 
 ### Running static code checks

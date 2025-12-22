@@ -9,3 +9,4 @@ __pycache__
 /docs
 /wheel
 /*.egg-info
+plantuml.jar

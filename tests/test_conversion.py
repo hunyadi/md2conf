@@ -23,6 +23,8 @@ from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
+from md2conf.plantuml import compress_plantuml_data, has_plantuml, render_diagram
+from md2conf.svg import get_svg_dimensions_from_bytes
 from tests import emoji
 from tests.utility import TypedTestCase
 
@@ -48,13 +50,51 @@ def substitute(root_dir: Path, content: str) -> str:
         relative_path = m.group(1)
         absolute_path = root_dir / relative_path
         with open(absolute_path, "r", encoding="utf-8") as f:
-            content = f.read().rstrip()
-        hash = hashlib.md5(content.encode("utf-8")).hexdigest()
-        extension = absolute_path.suffix
+            file_content = f.read().rstrip()
+        hash = hashlib.md5(file_content.encode("utf-8")).hexdigest()
+        extension = absolute_path.suffix if absolute_path.suffix != ".puml" else ".svg"
         return attachment_name(f"embedded_{hash}{extension}")
+
+    def _repl_data(m: re.Match[str]) -> str:
+        "Replaces a DATA placeholder with compressed PlantUML source."
+
+        relative_path = m.group(1)
+        absolute_path = root_dir / relative_path
+        with open(absolute_path, "r", encoding="utf-8") as f:
+            file_content = f.read().rstrip()
+        return compress_plantuml_data(file_content)
+
+    def _repl_dimensions(m: re.Match[str]) -> str:
+        "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
+
+        dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
+        relative_path = m.group(2)
+        absolute_path = root_dir / relative_path
+
+        # Only extract dimensions if PlantUML is available
+        if not has_plantuml():
+            return dimension_type  # Return placeholder as-is
+
+        try:
+            with open(absolute_path, "r", encoding="utf-8") as f:
+                file_content = f.read().rstrip()
+            svg_data = render_diagram(file_content, "svg")
+            width, height = get_svg_dimensions_from_bytes(svg_data)
+            if width and height:
+                return str(width) if dimension_type == "WIDTH" else str(height)
+        except Exception:
+            pass
+
+        return dimension_type  # Return placeholder if extraction fails
 
     embed_pattern = re.compile(r"EMBED\(([^()]+)\)")
     content = embed_pattern.sub(_repl_embed, content)
+
+    data_pattern = re.compile(r"DATA\(([^()]+)\)")
+    content = data_pattern.sub(_repl_data, content)
+
+    dimension_pattern = re.compile(r"(WIDTH|HEIGHT)\(([^()]+)\)")
+    content = dimension_pattern.sub(_repl_dimensions, content)
 
     return canonicalize(content)
 
@@ -234,6 +274,36 @@ class TestConversion(TypedTestCase):
             self.page_metadata,
         )
         self.assertEqual(len(document.embedded_files), 6)
+
+    @unittest.skipUnless(has_plantuml(), "plantuml is not available")
+    @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
+    def test_plantuml_embedded_svg(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "plantuml.md",
+            ConfluenceDocumentOptions(
+                render_plantuml=True,
+                diagram_output_format="svg",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 3)
+
+    @unittest.skipUnless(has_plantuml(), "plantuml is not available")
+    @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
+    def test_plantuml_embedded_png(self) -> None:
+        _, document = ConfluenceDocument.create(
+            self.source_dir / "plantuml.md",
+            ConfluenceDocumentOptions(
+                render_plantuml=True,
+                diagram_output_format="png",
+            ),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        self.assertEqual(len(document.embedded_files), 3)
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_latex_svg(self) -> None:

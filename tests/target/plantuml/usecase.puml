@@ -1,0 +1,6 @@
+@startuml
+:User: --> (Login)
+:User: --> (Browse Products)
+:Admin: --> (Manage Inventory)
+(Manage Inventory) ..> (Browse Products) : includes
+@enduml

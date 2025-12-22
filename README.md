@@ -52,6 +52,27 @@ pip install markdown-to-confluence
 npm install -g @mermaid-js/mermaid-cli
 ```
 
+**Optional but recommended.** PlantUML diagrams are embedded with compressed source data and will display using the [PlantUML Diagrams for Confluence](https://marketplace.atlassian.com/apps/1215115/plantuml-diagrams-for-confluence) app. For optimal display with dimensions and SVG attachments, install Java, Graphviz, and PlantUML JAR:
+
+1. **Install Java**: Version 8 or later from [Adoptium](https://adoptium.net/) or [Oracle](https://www.oracle.com/java/technologies/downloads/)
+2. **Install Graphviz**: Required for most diagram types (except sequence diagrams)
+   * **Ubuntu/Debian**: `sudo apt-get install graphviz`
+   * **macOS**: `brew install graphviz`
+   * **Windows**: Download from [graphviz.org](https://graphviz.org/download/)
+3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and place in project root, or set `PLANTUML_JAR` environment variable to point to it
+
+Example:
+
+```sh
+# Download latest PlantUML JAR to project root
+curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+
+# Or set environment variable to custom location
+export PLANTUML_JAR=/path/to/plantuml.jar
+```
+
+Without PlantUML JAR, diagrams will still be embedded but may display without optimal dimensions.
+
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
 ```sh
@@ -599,6 +620,8 @@ options:
   --no-render-drawio    Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-mermaid      Render Mermaid diagrams as image files. (Installed utility required to convert.)
   --no-render-mermaid   Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)
+  --render-plantuml     Render PlantUML diagrams as image files. (Installed utility required to convert.)
+  --no-render-plantuml  Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-latex        Render LaTeX formulas as image files. (Matplotlib required to convert.)
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
@@ -630,6 +653,77 @@ options:
 If you are restricted to an environment with Confluence REST API v1, we recommend *md2conf* [version 0.2.7](https://pypi.org/project/markdown-to-confluence/0.2.7/). Even though we don't actively support it, we are not aware of any major issues, making it a viable option in an on-premise environment with only Confluence REST API v1 support.
 
 ### Using the Docker container
+
+#### Building Docker images
+
+The Docker image can be customized to include only the dependencies you need, significantly reducing image size:
+
+**Build Targets:**
+
+Use `--target <stage>` to build specific variants:
+
+- **`base`** - Minimal image with no diagram rendering (~87MB)
+- **`mermaid`** - Include Mermaid diagram support only (~1.6GB)
+- **`plantuml`** - Include PlantUML diagram support only (~334MB)
+- **`all`** - Full image with both renderers (~1.8GB, default)
+
+**Examples:**
+
+Minimal image (no diagram rendering):
+```bash
+docker build --target base --tag md2conf:minimal .
+```
+
+Mermaid only:
+```bash
+docker build --target mermaid --tag md2conf:mermaid .
+```
+
+PlantUML only:
+```bash
+docker build --target plantuml --tag md2conf:plantuml .
+```
+
+Full image (default):
+```bash
+docker build --target all --tag md2conf:full .
+# or simply
+docker build --tag md2conf .
+```
+
+**Configuring GitHub Actions for Custom Docker Hub:**
+
+To publish images to your own Docker Hub account, configure the following in your GitHub repository:
+
+1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
+   - `DOCKER_USERNAME`: Your Docker Hub username
+   - `DOCKER_PASSWORD`: Your Docker Hub access token or password
+
+2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
+   - `DOCKER_IMAGE_NAME`: Your image name (e.g., `yourusername/md2conf`)
+
+If `DOCKER_IMAGE_NAME` is not set, it defaults to `leventehunyadi/md2conf`.
+
+**Triggering Docker Builds:**
+
+1. **Push a Git tag** (production release):
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+   Builds and pushes all variants with version and latest tags:
+   - `yourusername/md2conf:latest` & `yourusername/md2conf:1.0.0`
+   - `yourusername/md2conf:latest-minimal` & `yourusername/md2conf:1.0.0-minimal`
+   - `yourusername/md2conf:latest-plantuml` & `yourusername/md2conf:1.0.0-plantuml`
+   - `yourusername/md2conf:latest-mermaid` & `yourusername/md2conf:1.0.0-mermaid`
+
+2. **Manual workflow dispatch** (testing):
+   - Go to: **Actions** → **Publish Docker image** → **Run workflow**
+   - Select your branch
+   - Choose "Push images to Docker Hub" (true/false)
+   - Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`)
+
+#### Running Docker containers
 
 You can run the Docker container via `docker run` or via `Dockerfile`. Either can accept the environment variables or arguments similar to the Python options. The final argument `./` corresponds to `mdpath` in the command-line utility.
 

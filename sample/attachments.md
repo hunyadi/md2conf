@@ -20,7 +20,11 @@ Editable draw.io diagram with `render_drawio=False`, static image with `render_d
 
 Editable Mermaid diagram with `render_mermaid=False`, static image with `render_mermaid=True`:
 
-![Editable or rendered Mermaid diagram](figure/class.mmd)
+![Editable or rendered Mermaid diagram](figure/mermaid.mmd)
+
+Editable PlantUML diagram with `render_plantuml=False`, static image with `render_plantuml=True`:
+
+![Editable or rendered PlantUML diagram](figure/plantuml.puml)
 
 Static image hosted at an external location:
 
@@ -35,6 +39,33 @@ Entity <|-- Customer
 Entity <|-- Vendor
 Vendor <|-- Store
 Entity <|-- Project
+```
+
+Code block that produces an editable PlantUML diagram with `render_plantuml=False`, or a static image with `render_plantuml=True`:
+
+```plantuml
+@startuml
+abstract class Animal {
+  +name: String
+  +age: int
+  +makeSound(): void
+}
+
+class Dog {
+  +breed: String
+  +bark(): void
+  +makeSound(): void
+}
+
+class Cat {
+  +color: String
+  +meow(): void
+  +makeSound(): void
+}
+
+Animal <|-- Dog
+Animal <|-- Cat
+@enduml
 ```
 
 [PDF document](docs/sample.pdf)

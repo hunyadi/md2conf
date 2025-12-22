@@ -1,6 +1,14 @@
 name: checks
 on:
   push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -14,9 +22,9 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -24,7 +32,7 @@ jobs:
       - name: Run static type checker and verify formatting guidelines
         run: bash check.sh
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
       - name: Install dependencies for converting Mermaid diagrams
         run: npm install -g @mermaid-js/mermaid-cli
       - name: Run unit tests

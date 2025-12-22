@@ -116,15 +116,33 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            Publisher(api, ConfluenceDocumentOptions(root_page_id=self.feature_test_page_id)).process(self.sample_dir / "index.md")
+            options = ConfluenceDocumentOptions(
+                root_page_id=self.feature_test_page_id,
+                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+            )
+            Publisher(api, options).process(self.sample_dir / "index.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            Publisher(api, ConfluenceDocumentOptions(root_page_id=self.feature_test_page_id)).process_page(self.sample_dir / "index.md")
+            options = ConfluenceDocumentOptions(
+                root_page_id=self.feature_test_page_id,
+                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+            )
+            Publisher(api, options).process_page(self.sample_dir / "index.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            Publisher(api, ConfluenceDocumentOptions(root_page_id=self.feature_test_page_id)).process_directory(self.sample_dir)
+            options = ConfluenceDocumentOptions(
+                root_page_id=self.feature_test_page_id,
+                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+            )
+            Publisher(api, options).process_directory(self.sample_dir)
 
     def test_synchronize_create(self) -> None:
         """

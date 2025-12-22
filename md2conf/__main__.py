@@ -44,6 +44,7 @@ class Arguments(argparse.Namespace):
     prefer_raster: bool
     render_drawio: bool
     render_mermaid: bool
+    render_plantuml: bool
     render_latex: bool
     diagram_output_format: Literal["png", "svg"]
     local: bool
@@ -192,6 +193,19 @@ def get_parser() -> argparse.ArgumentParser:
         help="Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)",
     )
     parser.add_argument(
+        "--render-plantuml",
+        dest="render_plantuml",
+        action="store_true",
+        default=True,
+        help="Render PlantUML diagrams as image files. (Installed utility required to convert.)",
+    )
+    parser.add_argument(
+        "--no-render-plantuml",
+        dest="render_plantuml",
+        action="store_false",
+        help="Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+    )
+    parser.add_argument(
         "--render-latex",
         dest="render_latex",
         action="store_true",
@@ -333,6 +347,7 @@ def main() -> None:
         prefer_raster=args.prefer_raster,
         render_drawio=args.render_drawio,
         render_mermaid=args.render_mermaid,
+        render_plantuml=args.render_plantuml,
         render_latex=args.render_latex,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,
