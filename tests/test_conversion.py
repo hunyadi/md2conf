@@ -23,7 +23,8 @@ from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.plantuml import has_plantuml
+from md2conf.plantuml import compress_plantuml_data, has_plantuml, render_diagram
+from md2conf.svg import get_svg_dimensions_from_bytes
 from tests import emoji
 from tests.utility import TypedTestCase
 
@@ -56,7 +57,6 @@ def substitute(root_dir: Path, content: str) -> str:
 
     def _repl_data(m: re.Match[str]) -> str:
         "Replaces a DATA placeholder with compressed PlantUML source."
-        from md2conf.plantuml import compress_plantuml_data
 
         relative_path = m.group(1)
         absolute_path = root_dir / relative_path
@@ -66,8 +66,6 @@ def substitute(root_dir: Path, content: str) -> str:
 
     def _repl_dimensions(m: re.Match[str]) -> str:
         "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
-        from md2conf.plantuml import has_plantuml, render_diagram
-        from md2conf.svg import get_svg_dimensions_from_bytes
 
         dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
         relative_path = m.group(2)

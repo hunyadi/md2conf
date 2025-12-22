@@ -14,6 +14,8 @@
   <ac:parameter ac:name="compressed">true</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
+  <ac:parameter ac:name="originalWidth">262</ac:parameter>
+  <ac:parameter ac:name="originalHeight">222</ac:parameter>
 </ac:structured-macro>
 <h2>Sequence diagrams</h2>
 <p>UML Sequence diagrams are a type of interaction diagram that shows how objects in a system interact with each other over time. They are used to model the dynamic behavior of a system.</p>
@@ -23,6 +25,8 @@
   <ac:parameter ac:name="compressed">true</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
+  <ac:parameter ac:name="originalWidth">268</ac:parameter>
+  <ac:parameter ac:name="originalHeight">215</ac:parameter>
 </ac:structured-macro>
 <h2>Use case diagrams</h2>
 <p>Use case diagrams show the interactions between actors and use cases in a system. They are used to capture the functional requirements of a system.</p>
@@ -32,4 +36,6 @@
   <ac:parameter ac:name="compressed">true</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
+  <ac:parameter ac:name="originalWidth">247</ac:parameter>
+  <ac:parameter ac:name="originalHeight">340</ac:parameter>
 </ac:structured-macro>

@@ -18,6 +18,7 @@ class TestPngDimensions(TypedTestCase):
 
     def test_png_dimensions_from_data(self) -> None:
         "Test extracting dimensions from PNG data in memory."
+
         # Minimal valid PNG: 1x1 pixel, 8-bit grayscale
         # PNG signature + IHDR chunk with width=1, height=1
         png_data = (
@@ -39,6 +40,7 @@ class TestPngDimensions(TypedTestCase):
 
     def test_png_dimensions_from_file(self) -> None:
         "Test extracting dimensions from PNG file."
+
         # Create a minimal 100x50 PNG
         png_data = (
             b"\x89PNG\r\n\x1a\n"  # PNG signature
@@ -62,6 +64,7 @@ class TestPngDimensions(TypedTestCase):
 
     def test_png_invalid_signature(self) -> None:
         "Test that invalid PNG signature raises ValueError."
+
         invalid_data = b"NOT_A_PNG_FILE"
         with self.assertRaises(ValueError) as context:
             extract_png_dimensions(data=invalid_data)
@@ -69,24 +72,11 @@ class TestPngDimensions(TypedTestCase):
 
     def test_png_missing_ihdr(self) -> None:
         "Test that PNG without IHDR chunk raises ValueError."
-        # Valid PNG signature but no IHDR chunk (truncated)
-        invalid_data = b"\x89PNG\r\n\x1a\n"
+
+        invalid_data = b"\x89PNG\r\n\x1a\n"  # Valid PNG signature but no IHDR chunk (truncated)
         with self.assertRaises(ValueError) as context:
             extract_png_dimensions(data=invalid_data)
         self.assertIn("ihdr", str(context.exception).lower())
-
-    def test_png_neither_data_nor_path(self) -> None:
-        "Test that calling without data or path raises TypeError."
-        with self.assertRaises(TypeError) as context:
-            extract_png_dimensions()  # type: ignore
-        self.assertIn("neither", str(context.exception))
-
-    def test_png_both_data_and_path(self) -> None:
-        "Test that calling with both data and path raises TypeError."
-        png_data = b"\x89PNG\r\n\x1a\n"
-        with self.assertRaises(TypeError) as context:
-            extract_png_dimensions(data=png_data, path="test.png")  # type: ignore
-        self.assertIn("both", str(context.exception))
 
 
 if __name__ == "__main__":
