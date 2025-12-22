@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,9 +32,25 @@ jobs:
         run: pip install ".[formulas,dev]"
       - name: Run static type checker and verify formatting guidelines
         run: bash check.sh
-      - name: Set up Node.js
+      - name: Set up Java for PlantUML
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install Graphviz for PlantUML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          dot -V
+      - name: Download PlantUML JAR
+        run: |
+          curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          java -jar plantuml.jar -version
+      - name: Set up Node.js for Mermaid
         uses: actions/setup-node@v6
-      - name: Install dependencies for converting Mermaid diagrams
+        with:
+          node-version: '24'
+      - name: Install Mermaid CLI
         run: npm install -g @mermaid-js/mermaid-cli
       - name: Run unit tests
         env:

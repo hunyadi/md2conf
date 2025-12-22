@@ -67,15 +67,14 @@ jobs:
 
       - name: Download PlantUML JAR
         run: |
-          curl -L -o plantuml.jar \
-            https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
           java -jar plantuml.jar -version
 
       # Setup Node.js for Mermaid
       - name: Set up Node.js for Mermaid
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install Mermaid CLI
         run: |

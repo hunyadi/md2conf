@@ -12,6 +12,7 @@ import os
 import os.path
 import re
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 
 from md2conf.collection import ConfluencePageCollection
@@ -41,6 +42,12 @@ def canonicalize(content: str) -> str:
     return elements_to_string(root)
 
 
+@dataclass
+class Dimensions:
+    width: int | None
+    height: int | None
+
+
 def substitute(root_dir: Path, content: str) -> str:
     "Converts a Confluence Storage Format (CSF) expectation template into a concrete match."
 
@@ -55,6 +62,9 @@ def substitute(root_dir: Path, content: str) -> str:
         extension = absolute_path.suffix if absolute_path.suffix != ".puml" else ".svg"
         return attachment_name(f"embedded_{hash}{extension}")
 
+    embed_pattern = re.compile(r"EMBED\(([^()]+)\)")
+    content = embed_pattern.sub(_repl_embed, content)
+
     def _repl_data(m: re.Match[str]) -> str:
         "Replaces a DATA placeholder with compressed PlantUML source."
 
@@ -64,37 +74,43 @@ def substitute(root_dir: Path, content: str) -> str:
             file_content = f.read().rstrip()
         return compress_plantuml_data(file_content)
 
+    data_pattern = re.compile(r"DATA\(([^()]+)\)")
+    content = data_pattern.sub(_repl_data, content)
+
+    dims_cache: dict[Path, Dimensions] = {}
+
     def _repl_dimensions(m: re.Match[str]) -> str:
         "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
 
-        dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
         relative_path = m.group(2)
         absolute_path = root_dir / relative_path
 
-        # Only extract dimensions if PlantUML is available
-        if not has_plantuml():
-            return dimension_type  # Return placeholder as-is
-
-        try:
+        dims = dims_cache.get(absolute_path)
+        if dims is not None:
+            width = dims.width
+            height = dims.height
+        else:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 file_content = f.read().rstrip()
             svg_data = render_diagram(file_content, "svg")
             width, height = get_svg_dimensions_from_bytes(svg_data)
-            if width and height:
-                return str(width) if dimension_type == "WIDTH" else str(height)
-        except Exception:
-            pass
+            dims_cache[absolute_path] = Dimensions(width, height)
 
-        return dimension_type  # Return placeholder if extraction fails
+        dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
+        match dimension_type:
+            case "WIDTH":
+                return str(width)
+            case "HEIGHT":
+                return str(height)
+            case _:
+                return dimension_type  # return placeholder
 
-    embed_pattern = re.compile(r"EMBED\(([^()]+)\)")
-    content = embed_pattern.sub(_repl_embed, content)
-
-    data_pattern = re.compile(r"DATA\(([^()]+)\)")
-    content = data_pattern.sub(_repl_data, content)
-
-    dimension_pattern = re.compile(r"(WIDTH|HEIGHT)\(([^()]+)\)")
-    content = dimension_pattern.sub(_repl_dimensions, content)
+    if has_plantuml():
+        dimension_pattern = re.compile(r"(WIDTH|HEIGHT)\(([^()]+)\)")
+        content = dimension_pattern.sub(_repl_dimensions, content)
+    else:
+        plantuml_pattern = re.compile(r"<!-- if plantuml -->.*?<!-- endif plantuml -->", re.DOTALL)
+        content = plantuml_pattern.sub("", content)
 
     return canonicalize(content)
 

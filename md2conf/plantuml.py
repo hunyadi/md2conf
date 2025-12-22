@@ -83,8 +83,7 @@ def get_plantuml_command() -> list[str]:
 
     # JAR not found - fail with helpful message
     raise RuntimeError(
-        f"PlantUML JAR not found at {jar_path}. "
-        f"Please download plantuml.jar from https://github.com/plantuml/plantuml/releases "
+        f"PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases "
         f"and place it at {jar_path}, or set the PLANTUML_JAR environment variable to point to it."
     )
 
@@ -143,6 +142,7 @@ def compress_plantuml_data(source: str) -> str:
     :returns: Compressed and encoded data suitable for macro data parameter.
     :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/pages/1839333377
     """
+
     # Step 1: URI encode
     encoded = quote(source, safe="")
 
