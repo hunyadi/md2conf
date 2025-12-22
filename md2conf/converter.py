@@ -29,12 +29,12 @@ from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extra import merged, override, path_relative_to
-from .latex import remove_png_chunks, render_latex
+from .latex import render_latex
 from .markdown import markdown_to_html
 from .mermaid import MermaidConfigProperties
 from .metadata import ConfluenceSiteMetadata
 from .plantuml import PlantUMLConfigProperties
-from .png import extract_png_dimensions
+from .png import extract_png_dimensions, remove_png_chunks
 from .scanner import MermaidScanner, PlantUMLScanner, ScannedDocument, Scanner
 from .serializer import JsonType
 from .svg import fix_svg_dimensions, get_svg_dimensions, get_svg_dimensions_from_bytes

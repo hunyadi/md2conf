@@ -16,7 +16,8 @@ from md2conf.converter import (
     title_to_identifier,
 )
 from md2conf.domain import LayoutOptions
-from md2conf.latex import LATEX_ENABLED, get_png_dimensions, remove_png_chunks, render_latex
+from md2conf.latex import LATEX_ENABLED, render_latex
+from md2conf.png import extract_png_dimensions, remove_png_chunks
 from md2conf.serializer import json_to_object, object_to_json_payload
 from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from tests.utility import TypedTestCase
@@ -122,12 +123,12 @@ class TestUnit(TypedTestCase):
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:
         data = render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}")
-        width, height = get_png_dimensions(data=data)
+        width, height = extract_png_dimensions(data=data)
         self.assertGreater(width, 0)
         self.assertGreater(height, 0)
 
         data = render_latex(r"\underset{S}{\int\int}\ \vec{\nabla}\times\vec{B}\cdot d\vec{S}=\underset{C}{\oint}\ \vec{B}\cdot d\vec{l}")
-        width, height = get_png_dimensions(data=data)
+        width, height = extract_png_dimensions(data=data)
         self.assertGreater(width, 0)
         self.assertGreater(height, 0)
 

@@ -1,5 +1,5 @@
 """
-PNG dimension extraction utilities.
+PNG image utilities.
 
 Copyright 2022-2025, Levente Hunyadi
 
@@ -9,7 +9,7 @@ Copyright 2022-2025, Levente Hunyadi
 from io import BytesIO
 from pathlib import Path
 from struct import unpack
-from typing import BinaryIO, overload
+from typing import BinaryIO, Iterable, overload
 
 
 class _Chunk:
@@ -119,3 +119,82 @@ def extract_png_dimensions(*, data: bytes | None = None, path: str | Path | None
             return _extract_png_dimensions(f)
     else:
         raise TypeError("expected: either `data` or `path`; got: neither")
+
+
+@overload
+def remove_png_chunks(names: Iterable[str], *, source_data: bytes) -> bytes: ...
+
+
+@overload
+def remove_png_chunks(names: Iterable[str], *, source_path: str | Path) -> bytes: ...
+
+
+@overload
+def remove_png_chunks(names: Iterable[str], *, source_data: bytes, target_path: str | Path) -> None: ...
+
+
+@overload
+def remove_png_chunks(names: Iterable[str], *, source_path: str | Path, target_path: str | Path) -> None: ...
+
+
+def remove_png_chunks(
+    names: Iterable[str], *, source_data: bytes | None = None, source_path: str | Path | None = None, target_path: str | Path | None = None
+) -> bytes | None:
+    """
+    Rewrites a PNG file by removing chunks with the specified names.
+
+    :param source_data: PNG image data.
+    :param source_path: Path to the file to read from.
+    :param target_path: Path to the file to write to.
+    """
+
+    if source_data is not None and source_path is not None:
+        raise TypeError("expected: either `source_data` or `source_path`; got: both")
+    elif source_data is not None:
+
+        def source_reader() -> BinaryIO:
+            return BytesIO(source_data)
+    elif source_path is not None:
+
+        def source_reader() -> BinaryIO:
+            return open(source_path, "rb")
+    else:
+        raise TypeError("expected: either `source_data` or `source_path`; got: neither")
+
+    if target_path is None:
+        with source_reader() as source_file, BytesIO() as memory_file:
+            _remove_png_chunks(names, source_file, memory_file)
+            return memory_file.getvalue()
+    else:
+        with source_reader() as source_file, open(target_path, "wb") as target_file:
+            _remove_png_chunks(names, source_file, target_file)
+            return None
+
+
+def _write_chunk(f: BinaryIO, chunk: _Chunk) -> None:
+    f.write(chunk.length.to_bytes(4, "big"))
+    f.write(chunk.name)
+    f.write(chunk.data)
+    f.write(chunk.crc)
+
+
+def _remove_png_chunks(names: Iterable[str], source_file: BinaryIO, target_file: BinaryIO) -> None:
+    """
+    Rewrites a PNG file by removing chunks with the specified names.
+
+    :param source_file: A binary file opened for reading that contains PNG image data.
+    :param target_file: A binary file opened for writing to receive PNG image data.
+    """
+
+    exclude_set = set(name.encode("ascii") for name in names)
+
+    _read_signature(source_file)
+    target_file.write(b"\x89PNG\r\n\x1a\n")
+
+    while True:
+        chunk = _read_chunk(source_file)
+        if chunk is None:
+            break
+
+        if chunk.name not in exclude_set:
+            _write_chunk(target_file, chunk)
