@@ -99,10 +99,8 @@ def get_plantuml_command(include_path: str | None = None) -> list[str]:
 
     # JAR not found - fail with helpful message
     raise RuntimeError(
-        f"PlantUML JAR not found. Download `plantuml.jar` from "
-        f"https://github.com/plantuml/plantuml/releases "
-        f"and place it at {jar_path}, or set the PLANTUML_JAR "
-        f"environment variable to point to it."
+        f"PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases "
+        f"and place it at {jar_path}, or set the PLANTUML_JAR environment variable to point to it."
     )
 
 
