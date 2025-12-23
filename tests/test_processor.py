@@ -58,6 +58,7 @@ class TestProcessor(TypedTestCase):
     def test_process_directory(self) -> None:
         options = ConfluenceDocumentOptions(
             root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
+            plantuml_include_path=str(self.sample_dir / "plantuml-includes"),
         )
 
         self.create_converter(options).process(self.sample_dir)

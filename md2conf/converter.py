@@ -392,6 +392,9 @@ class ConfluenceConverterOptions:
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
+    :param plantuml_include_path: Include path for resolving PlantUML !include directives.
+    :param plantuml_include: File to pre-include before processing PlantUML diagrams.
+    :param plantuml_theme: Built-in PlantUML theme name to apply to all diagrams.
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -406,6 +409,9 @@ class ConfluenceConverterOptions:
     render_drawio: bool = False
     render_mermaid: bool = False
     render_plantuml: bool = False
+    plantuml_include_path: str | None = None
+    plantuml_include: str | None = None
+    plantuml_theme: str | None = None
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False
@@ -1137,15 +1143,32 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM("parameter", {AC_ATTR("name"): "revision"}, "1"),
         )
 
-    def _extract_plantuml_config(self, content: str) -> PlantUMLConfigProperties | None:
-        "Extract config from PlantUML YAML front matter configuration."
+    def _extract_plantuml_config(self, content: str) -> PlantUMLConfigProperties:
+        """
+        Extract and merge PlantUML config from YAML front matter and global options.
 
+        Global options (include_path, include_file, theme) apply to all diagrams.
+        Per-diagram option (scale) can be set in front-matter.
+        For per-diagram themes, use !theme directive in PlantUML source.
+        """
+
+        # Start with global config
+        config = PlantUMLConfigProperties(
+            scale=None,
+            include_path=self.options.plantuml_include_path,
+            include_file=self.options.plantuml_include,
+            theme=self.options.plantuml_theme,
+        )
+
+        # Try to extract per-diagram scale from front-matter
         try:
             properties = PlantUMLScanner().read(content)
-            return properties.config
+            if properties.config and properties.config.scale is not None:
+                config.scale = properties.config.scale
         except BaseValidationError as ex:
             LOGGER.warning("Failed to extract PlantUML properties: %s", ex)
-            return None
+
+        return config
 
     def _transform_external_plantuml(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         "Emits Confluence Storage Format XHTML for a PlantUML diagram read from an external file."
