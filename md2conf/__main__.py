@@ -45,6 +45,9 @@ class Arguments(argparse.Namespace):
     render_drawio: bool
     render_mermaid: bool
     render_plantuml: bool
+    plantuml_include_path: str | None
+    plantuml_include: str | None
+    plantuml_theme: str | None
     render_latex: bool
     diagram_output_format: Literal["png", "svg"]
     local: bool
@@ -206,6 +209,24 @@ def get_parser() -> argparse.ArgumentParser:
         help="Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)",
     )
     parser.add_argument(
+        "--plantuml-include-path",
+        dest="plantuml_include_path",
+        default=None,
+        help="Include path for resolving PlantUML !include directives (default: current working directory).",
+    )
+    parser.add_argument(
+        "--plantuml-include",
+        dest="plantuml_include",
+        default=None,
+        help="File to pre-include before processing PlantUML diagrams (relative to include path).",
+    )
+    parser.add_argument(
+        "--plantuml-theme",
+        dest="plantuml_theme",
+        default=None,
+        help="Built-in PlantUML theme name to apply to all diagrams.",
+    )
+    parser.add_argument(
         "--render-latex",
         dest="render_latex",
         action="store_true",
@@ -348,6 +369,9 @@ def main() -> None:
         render_drawio=args.render_drawio,
         render_mermaid=args.render_mermaid,
         render_plantuml=args.render_plantuml,
+        plantuml_include_path=args.plantuml_include_path,
+        plantuml_include=args.plantuml_include,
+        plantuml_theme=args.plantuml_theme,
         render_latex=args.render_latex,
         diagram_output_format=args.diagram_output_format,
         webui_links=args.webui_links,

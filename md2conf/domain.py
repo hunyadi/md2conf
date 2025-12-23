@@ -52,6 +52,9 @@ class ConfluenceDocumentOptions:
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
+    :param plantuml_include_path: Include path for resolving PlantUML !include directives.
+    :param plantuml_include: File to pre-include before processing PlantUML diagrams.
+    :param plantuml_theme: Built-in PlantUML theme name to apply to all diagrams.
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
@@ -70,6 +73,9 @@ class ConfluenceDocumentOptions:
     render_drawio: bool = False
     render_mermaid: bool = False
     render_plantuml: bool = False
+    plantuml_include_path: str | None = None
+    plantuml_include: str | None = None
+    plantuml_theme: str | None = None
     render_latex: bool = False
     diagram_output_format: Literal["png", "svg"] = "png"
     webui_links: bool = False

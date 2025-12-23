@@ -27,9 +27,17 @@ class PlantUMLConfigProperties:
     Configuration options for rendering PlantUML diagrams.
 
     :param scale: Scaling factor for the rendered diagram.
+    :param include_path: Include path for resolving !include directives
+        (sets plantuml.include.path Java property).
+    :param include_file: File to pre-include before processing diagram
+        (uses -I flag).
+    :param theme: Built-in PlantUML theme name (uses --theme flag).
     """
 
     scale: float | None = None
+    include_path: str | None = None
+    include_file: str | None = None
+    theme: str | None = None
 
 
 def get_base_path() -> Path:
@@ -68,10 +76,11 @@ def get_plantuml_jar_path() -> Path:
     return get_base_path() / "plantuml.jar"
 
 
-def get_plantuml_command() -> list[str]:
+def get_plantuml_command(include_path: str | None = None) -> list[str]:
     """
     Returns the command to invoke PlantUML.
 
+    :param include_path: Include path for resolving !include directives.
     Raises RuntimeError if plantuml.jar is not found.
     """
     jar_path = get_plantuml_jar_path()
@@ -79,12 +88,21 @@ def get_plantuml_command() -> list[str]:
     if jar_path.is_file():
         # Direct JAR invocation
         LOGGER.debug(f"Using PlantUML JAR at: {jar_path}")
-        return ["java", "-jar", str(jar_path)]
+        cmd = ["java"]
+
+        # Add include path Java property if specified
+        if include_path:
+            cmd.extend(["-Dplantuml.include.path=.:" + include_path])
+
+        cmd.extend(["-jar", str(jar_path)])
+        return cmd
 
     # JAR not found - fail with helpful message
     raise RuntimeError(
-        f"PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases "
-        f"and place it at {jar_path}, or set the PLANTUML_JAR environment variable to point to it."
+        f"PlantUML JAR not found. Download `plantuml.jar` from "
+        f"https://github.com/plantuml/plantuml/releases "
+        f"and place it at {jar_path}, or set the PLANTUML_JAR "
+        f"environment variable to point to it."
     )
 
 
@@ -111,7 +129,7 @@ def render_diagram(
     # -pipe: read from stdin and write to stdout
     # -t<format>: output format (png or svg)
     # -charset utf-8: ensure UTF-8 encoding
-    cmd = get_plantuml_command()
+    cmd = get_plantuml_command(include_path=config.include_path)
     cmd.extend(
         [
             "-pipe",
@@ -120,6 +138,19 @@ def render_diagram(
             "utf-8",
         ]
     )
+
+    # Add theme if specified
+    if config.theme is not None:
+        cmd.extend(["--theme", config.theme])
+
+    # Add include file if specified (resolve relative to include_path)
+    if config.include_file is not None:
+        if config.include_path:
+            include_path_obj = Path(config.include_path)
+        else:
+            include_path_obj = Path.cwd()
+        include_file_path = include_path_obj / config.include_file
+        cmd.extend(["-I", str(include_file_path)])
 
     # Add scale if specified
     if config.scale is not None:
