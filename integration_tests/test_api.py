@@ -163,10 +163,10 @@ class TestAPI(TypedTestCase):
                 root_page_id=self.feature_test_page_id,
                 render_plantuml=render_plantuml,
                 diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
-                plantuml_include_path=str(self.sample_dir),
+                plantuml_include_path=str(self.sample_dir / "plantuml-includes"),
                 plantuml_theme=os.getenv("PLANTUML_THEME"),
             )
-            Publisher(api, options).process_page(self.sample_dir / "plantuml-includes.md")
+            Publisher(api, options).process_page(self.sample_dir / "plantuml-includes" / "plantuml-includes.md")
 
     def test_synchronize_create(self) -> None:
         """
