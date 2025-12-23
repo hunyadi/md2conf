@@ -147,11 +147,13 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
+            include_path = self.sample_dir / "plantuml-includes"
             options = ConfluenceDocumentOptions(
                 root_page_id=self.feature_test_page_id,
                 render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                 render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
                 diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                plantuml_include_path=str(include_path),
             )
             Publisher(api, options).process_directory(self.sample_dir)
 
