@@ -30,6 +30,11 @@ on:
         options:
           - 'svg'
           - 'png'
+      plantuml_theme:
+        description: 'PlantUML built-in theme (e.g., cerulean, blueprint)'
+        required: false
+        default: ''
+        type: string
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -96,6 +101,7 @@ jobs:
           RENDER_MERMAID: ${{ inputs.render_mermaid || 'false' }}
           RENDER_PLANTUML: ${{ inputs.render_plantuml || 'false' }}
           DIAGRAM_OUTPUT_FORMAT: ${{ inputs.diagram_output_format || 'svg' }}
+          PLANTUML_THEME: ${{ inputs.plantuml_theme }}
         run: |
           python -m unittest discover -s integration_tests -v
 

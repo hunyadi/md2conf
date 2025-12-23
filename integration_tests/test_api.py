@@ -144,6 +144,25 @@ class TestAPI(TypedTestCase):
             )
             Publisher(api, options).process_directory(self.sample_dir)
 
+    def test_plantuml_with_includes_and_theme(self) -> None:
+        """Test PlantUML rendering with include path and theme support."""
+        with ConfluenceAPI() as api:
+            render_plantuml = (
+                os.getenv("RENDER_PLANTUML", "false").lower() == "true"
+            )
+            options = ConfluenceDocumentOptions(
+                root_page_id=self.feature_test_page_id,
+                render_plantuml=render_plantuml,
+                diagram_output_format=os.getenv(
+                    "DIAGRAM_OUTPUT_FORMAT", "svg"
+                ),  # type: ignore
+                plantuml_include_path=str(self.sample_dir),
+                plantuml_theme=os.getenv("PLANTUML_THEME"),
+            )
+            Publisher(api, options).process_page(
+                self.sample_dir / "plantuml-includes.md"
+            )
+
     def test_synchronize_create(self) -> None:
         """
         Creates a Confluence page hierarchy from a set of Markdown files.
