@@ -125,6 +125,15 @@ def render_diagram(
     if config is None:
         config = PlantUMLConfigProperties()
 
+    LOGGER.info(
+        "Rendering PlantUML diagram: format=%s, theme=%s, include_path=%s, include_file=%s, scale=%s",
+        output_format,
+        config.theme,
+        config.include_path,
+        config.include_file,
+        config.scale,
+    )
+
     # Build command for PlantUML with pipe mode
     # -pipe: read from stdin and write to stdout
     # -t<format>: output format (png or svg)

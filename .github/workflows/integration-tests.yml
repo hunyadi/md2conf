@@ -35,6 +35,16 @@ on:
         required: false
         default: ''
         type: string
+      log_level:
+        description: 'Logging level for integration tests'
+        required: false
+        default: 'INFO'
+        type: choice
+        options:
+          - 'DEBUG'
+          - 'INFO'
+          - 'WARNING'
+          - 'ERROR'
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -102,6 +112,7 @@ jobs:
           RENDER_PLANTUML: ${{ inputs.render_plantuml || 'false' }}
           DIAGRAM_OUTPUT_FORMAT: ${{ inputs.diagram_output_format || 'svg' }}
           PLANTUML_THEME: ${{ inputs.plantuml_theme }}
+          LOG_LEVEL: ${{ inputs.log_level || 'INFO' }}
         run: |
           python -m unittest discover -s integration_tests -v
 

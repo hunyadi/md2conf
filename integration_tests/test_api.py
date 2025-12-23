@@ -31,6 +31,17 @@ ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 FEATURE_TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 IMAGE_TEST_PAGE_TITLE = "Images and documents"
 
+# Configure logging for integration tests
+# Use environment variable to control level (default to INFO)
+_log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+_log_level = getattr(logging, _log_level_str, logging.INFO)
+
+logging.basicConfig(
+    level=_log_level,
+    format=("%(asctime)s - %(levelname)s - %(name)s - %(funcName)s [%(lineno)d] - %(message)s"),
+    force=True,  # Override any existing configuration
+)
+
 
 class ConfluenceStorageFormatCleaner(NodeVisitor):
     "Removes volatile attributes from a Confluence storage format XHTML document."
