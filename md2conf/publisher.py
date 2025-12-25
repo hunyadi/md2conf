@@ -10,7 +10,8 @@ import logging
 from pathlib import Path
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
-from .converter import ConfluenceDocument, attachment_name, get_volatile_attributes, get_volatile_elements
+from .attachment import attachment_name
+from .converter import ConfluenceDocument, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .environment import PageError

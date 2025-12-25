@@ -10,26 +10,16 @@ import logging
 import os
 import os.path
 import shutil
-from dataclasses import dataclass
 from typing import Literal
 
-from .diagram import render_diagram_subprocess
+from md2conf.external import execute_subprocess
+
+from .config import MermaidConfigProperties
 
 LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class MermaidConfigProperties:
-    """
-    Configuration options for rendering Mermaid diagrams.
-
-    :param scale: Scaling factor for the rendered diagram.
-    """
-
-    scale: float | None = None
-
-
-def is_docker() -> bool:
+def _is_docker() -> bool:
     "True if the application is running in a Docker container."
 
     return os.environ.get("CHROME_BIN") == "/usr/bin/chromium-browser" and os.environ.get("PUPPETEER_SKIP_DOWNLOAD") == "true"
@@ -38,7 +28,7 @@ def is_docker() -> bool:
 def get_mmdc() -> str:
     "Path to the Mermaid diagram converter."
 
-    if is_docker():
+    if _is_docker():
         full_path = "/home/md2conf/node_modules/.bin/mmdc"
         if os.path.exists(full_path):
             return full_path
@@ -77,7 +67,7 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
         str(config.scale or 2),
     ]
     root = os.path.dirname(__file__)
-    if is_docker():
+    if _is_docker():
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
 
-    return render_diagram_subprocess(cmd, source, "Mermaid")
+    return execute_subprocess(cmd, source.encode("utf-8"), application="Mermaid")

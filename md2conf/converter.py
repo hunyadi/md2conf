@@ -7,7 +7,6 @@ Copyright 2022-2025, Levente Hunyadi
 """
 
 import dataclasses
-import enum
 import hashlib
 import logging
 import os.path
@@ -20,24 +19,26 @@ from typing import ClassVar, Literal
 from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
-from cattrs import BaseValidationError
 
-from . import drawio, mermaid, plantuml
+from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
-from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
+from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions, TableLayoutOptions
+from .drawio.extension import DrawioExtension
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
+from .extension import ExtensionOptions
 from .extra import merged, override, path_relative_to
+from .formatting import FormattingContext, ImageAlignment, ImageAttributes
+from .image import ImageGenerator
 from .latex import render_latex
 from .markdown import markdown_to_html
-from .mermaid import MermaidConfigProperties
+from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
-from .plantuml import PlantUMLConfigProperties
+from .plantuml.extension import PlantUMLExtension
 from .png import extract_png_dimensions, remove_png_chunks
-from .scanner import MermaidScanner, PlantUMLScanner, ScannedDocument, Scanner
+from .scanner import ScannedDocument, Scanner
 from .serializer import JsonType
-from .svg import fix_svg_dimensions, get_svg_dimensions, get_svg_dimensions_from_bytes
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text
@@ -170,7 +171,6 @@ _LANGUAGES = {
     "livescript": "livescript",
     "lua": "lua",
     "mermaid": "mermaid",
-    "plantuml": "plantuml",
     "mathematica": "mathematica",
     "matlab": "matlab",
     "objectivec": "objectivec",
@@ -180,6 +180,7 @@ _LANGUAGES = {
     "pascal": "pascal",
     "perl": "perl",
     "php": "php",
+    "plantuml": "plantuml",
     "powershell": "powershell",
     "prolog": "prolog",
     "puppet": "puppet",
@@ -275,109 +276,6 @@ def is_placeholder_for(node: ElementType, name: str) -> bool:
     return True
 
 
-@enum.unique
-class FormattingContext(enum.Enum):
-    "Identifies the formatting context for the element."
-
-    BLOCK = "block"
-    INLINE = "inline"
-
-
-@enum.unique
-class ImageAlignment(enum.Enum):
-    "Determines whether to align block-level images to center, left or right."
-
-    CENTER = "center"
-    LEFT = "left"
-    RIGHT = "right"
-
-
-@dataclass
-class ImageAttributes:
-    """
-    Attributes applied to an `<img>` element.
-
-    :param context: Identifies the formatting context for the element (block or inline).
-    :param width: Natural image width in pixels.
-    :param height: Natural image height in pixels.
-    :param alt: Alternate text.
-    :param title: Title text (a.k.a. image tooltip).
-    :param caption: Caption text (shown below figure).
-    :param alignment: Alignment for block-level images.
-    :param display_width: Constrained display width in pixels (if different from natural width).
-    """
-
-    context: FormattingContext
-    width: int | None
-    height: int | None
-    alt: str | None
-    title: str | None
-    caption: str | None
-    alignment: ImageAlignment = ImageAlignment.CENTER
-    display_width: int | None = None
-
-    def __post_init__(self) -> None:
-        if self.caption is None and self.context is FormattingContext.BLOCK:
-            self.caption = self.title or self.alt
-
-    def as_dict(self) -> dict[str, str]:
-        attributes: dict[str, str] = {}
-        if self.context is FormattingContext.BLOCK:
-            if self.alignment is ImageAlignment.LEFT:
-                attributes[AC_ATTR("align")] = "left"
-                attributes[AC_ATTR("layout")] = "align-start"
-            elif self.alignment is ImageAlignment.RIGHT:
-                attributes[AC_ATTR("align")] = "right"
-                attributes[AC_ATTR("layout")] = "align-end"
-            else:
-                attributes[AC_ATTR("align")] = "center"
-                attributes[AC_ATTR("layout")] = "center"
-
-            if self.width is not None:
-                attributes[AC_ATTR("original-width")] = str(self.width)
-            if self.height is not None:
-                attributes[AC_ATTR("original-height")] = str(self.height)
-            if self.width is not None:
-                attributes[AC_ATTR("custom-width")] = "true"
-                # Use display_width if set, otherwise use natural width
-                effective_width = self.display_width or self.width
-                attributes[AC_ATTR("width")] = str(effective_width)
-
-        elif self.context is FormattingContext.INLINE:
-            if self.width is not None:
-                attributes[AC_ATTR("width")] = str(self.width)
-            if self.height is not None:
-                attributes[AC_ATTR("height")] = str(self.height)
-        else:
-            raise NotImplementedError("match not exhaustive for enumeration")
-
-        if self.alt is not None:
-            attributes.update({AC_ATTR("alt"): self.alt})
-        if self.title is not None:
-            attributes.update({AC_ATTR("title"): self.title})
-        return attributes
-
-    EMPTY_BLOCK: ClassVar["ImageAttributes"]
-    EMPTY_INLINE: ClassVar["ImageAttributes"]
-
-    @classmethod
-    def empty(cls, context: FormattingContext) -> "ImageAttributes":
-        if context is FormattingContext.BLOCK:
-            return cls.EMPTY_BLOCK
-        elif context is FormattingContext.INLINE:
-            return cls.EMPTY_INLINE
-        else:
-            raise NotImplementedError("match not exhaustive for enumeration")
-
-
-ImageAttributes.EMPTY_BLOCK = ImageAttributes(
-    FormattingContext.BLOCK, width=None, height=None, alt=None, title=None, caption=None, alignment=ImageAlignment.CENTER
-)
-ImageAttributes.EMPTY_INLINE = ImageAttributes(
-    FormattingContext.INLINE, width=None, height=None, alt=None, title=None, caption=None, alignment=ImageAlignment.CENTER
-)
-
-
 @dataclass
 class ConfluenceConverterOptions:
     """
@@ -397,6 +295,7 @@ class ConfluenceConverterOptions:
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param layout: Layout options for content on a Confluence page.
+    :param table_layout: Table layout options on a Confluence page.
     """
 
     ignore_invalid_url: bool = False
@@ -411,32 +310,7 @@ class ConfluenceConverterOptions:
     webui_links: bool = False
     use_panel: bool = False
     layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
-
-    def calculate_display_width(self, natural_width: int | None) -> int | None:
-        """
-        Calculate the display width for an image, applying max_image_width constraint if set.
-
-        :param natural_width: The natural width of the image in pixels.
-        :returns: The constrained display width, or None if no constraint is needed.
-        """
-
-        if natural_width is None or self.layout.max_image_width is None:
-            return None
-        if natural_width <= self.layout.max_image_width:
-            return None  # no constraint needed, image is already within limits
-        return self.layout.max_image_width
-
-
-@dataclass
-class ImageData:
-    path: Path
-    description: str | None = None
-
-
-@dataclass
-class EmbeddedFileData:
-    data: bytes
-    description: str | None = None
+    table_layout: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)
 
 
 @dataclass
@@ -485,10 +359,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     root_dir: Path
     toc: TableOfContentsBuilder
     links: list[str]
-    images: list[ImageData]
-    embedded_files: dict[str, EmbeddedFileData]
+    attachments: AttachmentCatalog
     site_metadata: ConfluenceSiteMetadata
     page_metadata: ConfluencePageCollection
+
+    image_generator: ImageGenerator
+    drawio: DrawioExtension
+    mermaid: MermaidExtension
+    plantuml: PlantUMLExtension
 
     def __init__(
         self,
@@ -509,10 +387,32 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.root_dir = root_dir
         self.toc = TableOfContentsBuilder()
         self.links = []
-        self.images = []
-        self.embedded_files = {}
+        self.attachments = AttachmentCatalog()
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
+
+        self.image_generator = ImageGenerator(self.base_dir, self.attachments, self.options.prefer_raster, self.options.layout.max_image_width)
+
+        diagram_output_format = self.options.diagram_output_format
+        alignment = ImageAlignment(self.options.layout.alignment or "center")
+        self.drawio = DrawioExtension(
+            self.base_dir,
+            self.attachments,
+            self.image_generator,
+            ExtensionOptions(render=self.options.render_drawio, output_format=diagram_output_format, alignment=alignment),
+        )
+        self.mermaid = MermaidExtension(
+            self.base_dir,
+            self.attachments,
+            self.image_generator,
+            ExtensionOptions(render=self.options.render_mermaid, output_format=diagram_output_format, alignment=alignment),
+        )
+        self.plantuml = PlantUMLExtension(
+            self.base_dir,
+            self.attachments,
+            self.image_generator,
+            ExtensionOptions(render=self.options.render_plantuml, output_format=diagram_output_format, alignment=alignment),
+        )
 
     def _transform_heading(self, heading: ElementType) -> None:
         """
@@ -664,7 +564,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             return None
 
         file_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
-        self.images.append(ImageData(absolute_path))
+        self.attachments.add_image(ImageData(absolute_path))
 
         link_body = AC_ELEM("link-body", {}, *list(anchor))
         link_body.text = anchor.text
@@ -733,7 +633,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             title=title,
             caption=None,
             alignment=ImageAlignment(self.options.layout.alignment or "center"),
-            display_width=self.options.calculate_display_width(pixel_width),
         )
 
         if is_absolute_url(src):
@@ -745,16 +644,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if absolute_path is None:
                 return self._create_missing(path, attrs)
 
-            if absolute_path.name.endswith(".drawio.png") or absolute_path.name.endswith(".drawio.svg"):
-                return self._transform_drawio_image(absolute_path, attrs)
-            elif absolute_path.name.endswith(".drawio.xml") or absolute_path.name.endswith(".drawio"):
-                return self._transform_drawio(absolute_path, attrs)
-            elif absolute_path.name.endswith(".mmd") or absolute_path.name.endswith(".mermaid"):
-                return self._transform_external_mermaid(absolute_path, attrs)
-            elif absolute_path.name.endswith(".puml") or absolute_path.name.endswith(".plantuml"):
-                return self._transform_external_plantuml(absolute_path, attrs)
+            if absolute_path.name.endswith((".drawio", ".drawio.png", ".drawio.svg", ".drawio.xml")):
+                return self.drawio.transform_image(absolute_path, attrs)
+            elif absolute_path.name.endswith((".mmd", ".mermaid")):
+                return self.mermaid.transform_image(absolute_path, attrs)
+            elif absolute_path.name.endswith((".puml", ".plantuml")):
+                return self.plantuml.transform_image(absolute_path, attrs)
             else:
-                return self._transform_attached_image(absolute_path, attrs)
+                return self.image_generator.transform_attached_image(absolute_path, attrs)
 
     def _transform_external_image(self, url: str, attrs: ImageAttributes) -> ElementType:
         "Emits Confluence Storage Format XHTML for an external image."
@@ -770,7 +667,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if attrs.caption:
             elements.append(AC_ELEM("caption", attrs.caption))
 
-        return AC_ELEM("image", attrs.as_dict(), *elements)
+        return AC_ELEM("image", attrs.as_dict(max_width=self.options.layout.max_image_width), *elements)
 
     def _warn_or_raise(self, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
@@ -798,132 +695,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             return None
 
         return absolute_path
-
-    def _transform_attached_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for an attached raster or vector image."
-
-        if self.options.prefer_raster and absolute_path.suffix == ".svg":
-            # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
-            png_file = absolute_path.with_suffix(".png")
-            if png_file.exists():
-                absolute_path = png_file
-
-        # infer SVG dimensions if not already specified
-        if absolute_path.suffix == ".svg" and attrs.width is None and attrs.height is None:
-            svg_width, svg_height = get_svg_dimensions(absolute_path)
-            if svg_width is not None:
-                attrs = ImageAttributes(
-                    context=attrs.context,
-                    width=svg_width,
-                    height=svg_height,
-                    alt=attrs.alt,
-                    title=attrs.title,
-                    caption=attrs.caption,
-                    alignment=attrs.alignment,
-                    display_width=self.options.calculate_display_width(svg_width),
-                )
-
-        self.images.append(ImageData(absolute_path, attrs.alt))
-        image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
-        return self._create_attached_image(image_name, attrs)
-
-    def _transform_drawio(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a draw.io diagram."
-
-        if not absolute_path.name.endswith(".drawio.xml") and not absolute_path.name.endswith(".drawio"):
-            raise DocumentError("invalid image format; expected: `*.drawio.xml` or `*.drawio`")
-
-        relative_path = path_relative_to(absolute_path, self.base_dir)
-        if self.options.render_drawio:
-            image_data = drawio.render_diagram(absolute_path, self.options.diagram_output_format)
-            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
-            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
-            return self._create_attached_image(image_filename, attrs)
-        else:
-            self.images.append(ImageData(absolute_path, attrs.alt))
-            image_filename = attachment_name(relative_path)
-            return self._create_drawio(image_filename, attrs)
-
-    def _transform_drawio_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a draw.io diagram embedded in a PNG or SVG image."
-
-        if not absolute_path.name.endswith(".drawio.png") and not absolute_path.name.endswith(".drawio.svg"):
-            raise DocumentError("invalid image format; expected: `*.drawio.png` or `*.drawio.svg`")
-
-        if self.options.render_drawio:
-            return self._transform_attached_image(absolute_path, attrs)
-        else:
-            # extract embedded editable diagram and upload as *.drawio
-            image_data = drawio.extract_diagram(absolute_path)
-            image_filename = attachment_name(path_relative_to(absolute_path.with_suffix(".xml"), self.base_dir))
-            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
-
-            return self._create_drawio(image_filename, attrs)
-
-    def _create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ElementType:
-        "An image embedded into the page, linking to an attachment."
-
-        elements: list[ElementType] = []
-        elements.append(
-            RI_ELEM(
-                "attachment",
-                # refers to an attachment uploaded alongside the page
-                {RI_ATTR("filename"): image_name},
-            )
-        )
-        if attrs.caption:
-            elements.append(AC_ELEM("caption", attrs.caption))
-
-        return AC_ELEM("image", attrs.as_dict(), *elements)
-
-    def _create_drawio(self, filename: str, attrs: ImageAttributes) -> ElementType:
-        "A draw.io diagram embedded into the page, linking to an attachment."
-
-        parameters: list[ElementType] = [
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "diagramName"},
-                filename,
-            ),
-        ]
-        if attrs.width is not None:
-            parameters.append(
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "width"},
-                    str(attrs.width),
-                ),
-            )
-        if attrs.height is not None:
-            parameters.append(
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "height"},
-                    str(attrs.height),
-                ),
-            )
-        if attrs.alignment is ImageAlignment.CENTER:
-            parameters.append(
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "pCenter"},
-                    str(1),
-                ),
-            )
-
-        local_id = str(uuid.uuid4())
-        macro_id = str(uuid.uuid4())
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "drawio",
-                AC_ATTR("schema-version"): "1",
-                "data-layout": "default",
-                AC_ATTR("local-id"): local_id,
-                AC_ATTR("macro-id"): macro_id,
-            },
-            *parameters,
-        )
 
     def _create_missing(self, path: Path, attrs: ImageAttributes) -> ElementType:
         "A warning panel for a missing image."
@@ -974,10 +745,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         content = content.rstrip()
 
         if language_id == "mermaid":
-            return self._transform_fenced_mermaid(content)
+            return self.mermaid.transform_fenced(content)
 
         if language_id == "plantuml":
-            return self._transform_fenced_plantuml(content)
+            return self.plantuml.transform_fenced(content)
 
         return AC_ELEM(
             "structured-macro",
@@ -991,305 +762,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 language_id or "none",
             ),
             AC_ELEM("plain-text-body", ET.CDATA(content)),
-        )
-
-    def _extract_mermaid_config(self, content: str) -> MermaidConfigProperties | None:
-        """Extract scale from Mermaid YAML front matter configuration."""
-        try:
-            properties = MermaidScanner().read(content)
-            return properties.config
-        except BaseValidationError as ex:
-            LOGGER.warning("Failed to extract Mermaid properties: %s", ex)
-            return None
-
-    def _post_process_svg_diagram(self, image_data: bytes, base_attrs: ImageAttributes) -> tuple[bytes, ImageAttributes]:
-        """
-        Post-processes SVG diagram data by fixing dimensions and extracting metadata.
-
-        This handles the common pattern for SVG diagrams:
-        1. Fixes SVG dimensions (converts percentage-based to explicit pixels)
-        2. Extracts width/height from the SVG
-        3. Creates updated ImageAttributes with extracted dimensions and calculated display width
-
-        :param image_data: Raw SVG data as bytes
-        :param base_attrs: Base attributes to use if dimensions cannot be extracted
-        :returns: Tuple of (processed_image_data, updated_attributes)
-        """
-
-        if self.options.diagram_output_format != "svg":
-            return image_data, base_attrs
-
-        # Fix SVG to have explicit width/height instead of percentages
-        image_data = fix_svg_dimensions(image_data)
-
-        # Extract dimensions from the fixed SVG
-        svg_width, svg_height = get_svg_dimensions_from_bytes(image_data)
-
-        # Only update attributes if we successfully extracted dimensions
-        # and the base attributes don't already have explicit dimensions
-        if (svg_width is not None or svg_height is not None) and (base_attrs.width is None and base_attrs.height is None):
-            attrs = ImageAttributes(
-                context=base_attrs.context,
-                width=svg_width,
-                height=svg_height,
-                alt=base_attrs.alt,
-                title=base_attrs.title,
-                caption=base_attrs.caption,
-                alignment=base_attrs.alignment,
-                display_width=self.options.calculate_display_width(svg_width),
-            )
-            return image_data, attrs
-
-        return image_data, base_attrs
-
-    def _transform_external_mermaid(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a Mermaid diagram read from an external file."
-
-        if not absolute_path.name.endswith(".mmd") and not absolute_path.name.endswith(".mermaid"):
-            raise DocumentError("invalid image format; expected: `*.mmd` or `*.mermaid`")
-
-        relative_path = path_relative_to(absolute_path, self.base_dir)
-        if self.options.render_mermaid:
-            with open(absolute_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            config = self._extract_mermaid_config(content)
-            image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
-
-            # Post-process SVG and update attributes
-            image_data, attrs = self._post_process_svg_diagram(image_data, attrs)
-
-            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
-            self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
-
-            return self._create_attached_image(image_filename, attrs)
-        else:
-            self.images.append(ImageData(absolute_path, attrs.alt))
-            mermaid_filename = attachment_name(relative_path)
-            return self._create_mermaid_embed(mermaid_filename)
-
-    def _transform_fenced_mermaid(self, content: str) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a Mermaid diagram defined in a fenced code block."
-
-        if self.options.render_mermaid:
-            config = self._extract_mermaid_config(content)
-            image_data = mermaid.render_diagram(content, self.options.diagram_output_format, config=config)
-
-            # Extract dimensions and fix SVG if that's the output format
-            attrs = ImageAttributes.EMPTY_BLOCK
-            if self.options.diagram_output_format == "svg":
-                # Fix SVG to have explicit width/height instead of percentages
-                image_data = fix_svg_dimensions(image_data)
-
-                svg_width, svg_height = get_svg_dimensions_from_bytes(image_data)
-                if svg_width is not None or svg_height is not None:
-                    attrs = ImageAttributes(
-                        context=FormattingContext.BLOCK,
-                        width=svg_width,
-                        height=svg_height,
-                        alt=None,
-                        title=None,
-                        caption=None,
-                        alignment=ImageAlignment(self.options.layout.alignment or "center"),
-                        display_width=self.options.calculate_display_width(svg_width),
-                    )
-
-            image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-            self.embedded_files[image_filename] = EmbeddedFileData(image_data)
-
-            return self._create_attached_image(image_filename, attrs)
-        else:
-            mermaid_data = content.encode("utf-8")
-            mermaid_hash = hashlib.md5(mermaid_data).hexdigest()
-            mermaid_filename = attachment_name(f"embedded_{mermaid_hash}.mmd")
-            self.embedded_files[mermaid_filename] = EmbeddedFileData(mermaid_data)
-            return self._create_mermaid_embed(mermaid_filename)
-
-    def _create_mermaid_embed(self, filename: str) -> ElementType:
-        "A Mermaid diagram, linking to an attachment that captures the Mermaid source."
-
-        local_id = str(uuid.uuid4())
-        macro_id = str(uuid.uuid4())
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "mermaid-cloud",
-                AC_ATTR("schema-version"): "1",
-                "data-layout": "default",
-                AC_ATTR("local-id"): local_id,
-                AC_ATTR("macro-id"): macro_id,
-            },
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "filename"},
-                filename,
-            ),
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "toolbar"},
-                "bottom",
-            ),
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "zoom"},
-                "fit",
-            ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "revision"}, "1"),
-        )
-
-    def _extract_plantuml_config(self, content: str) -> PlantUMLConfigProperties | None:
-        "Extract config from PlantUML YAML front matter configuration."
-
-        try:
-            properties = PlantUMLScanner().read(content)
-            return properties.config
-        except BaseValidationError as ex:
-            LOGGER.warning("Failed to extract PlantUML properties: %s", ex)
-            return None
-
-    def _transform_external_plantuml(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a PlantUML diagram read from an external file."
-
-        if not absolute_path.name.endswith(".puml") and not absolute_path.name.endswith(".plantuml"):
-            raise DocumentError("invalid image format; expected: `*.puml` or `*.plantuml`")
-
-        relative_path = path_relative_to(absolute_path, self.base_dir)
-
-        # read PlantUML source
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        return self._transform_plantuml(content, attrs, relative_path)
-
-    def _transform_fenced_plantuml(self, content: str) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a PlantUML diagram defined in a fenced code block."
-
-        return self._transform_plantuml(content, ImageAttributes.EMPTY_BLOCK)
-
-    def _transform_plantuml(self, content: str, attrs: ImageAttributes, relative_path: Path | None = None) -> ElementType:
-        """
-        Emits Confluence Storage Format XHTML for a PlantUML diagram read from an external file or defined in a fenced code block.
-
-        When `render_plantuml` is enabled, renders as an image attachment. Otherwise, uses the macro `plantumlcloud`
-        with embedded SVG and compressed source.
-        """
-
-        if self.options.render_plantuml:
-            # render diagram as image file (PNG or SVG based on diagram output format)
-            config = self._extract_plantuml_config(content)
-            image_data = plantuml.render_diagram(content, self.options.diagram_output_format, config=config)
-
-            # extract dimensions and update attributes based on format
-            width: int | None
-            height: int | None
-            match self.options.diagram_output_format:
-                case "svg":
-                    width, height = get_svg_dimensions_from_bytes(image_data)
-                case "png":
-                    width, height = extract_png_dimensions(data=image_data)
-
-            if width is not None or height is not None:
-                attrs = ImageAttributes(
-                    context=attrs.context,
-                    width=width,
-                    height=height,
-                    alt=attrs.alt,
-                    title=attrs.title,
-                    caption=attrs.caption,
-                    alignment=attrs.alignment,
-                    display_width=self.options.calculate_display_width(width),
-                )
-
-            # generate filename and add as attachment
-            if relative_path is not None:
-                image_filename = attachment_name(relative_path.with_suffix(f".{self.options.diagram_output_format}"))
-                self.embedded_files[image_filename] = EmbeddedFileData(image_data, attrs.alt)
-            else:
-                image_hash = hashlib.md5(image_data).hexdigest()
-                image_filename = attachment_name(f"embedded_{image_hash}.{self.options.diagram_output_format}")
-                self.embedded_files[image_filename] = EmbeddedFileData(image_data)
-
-            return self._create_attached_image(image_filename, attrs)
-        else:
-            if relative_path is not None:
-                absolute_path = self.base_dir / relative_path
-                self.images.append(ImageData(absolute_path, attrs.alt))
-
-            # use macro `plantumlcloud` with SVG attachment
-            if plantuml.has_plantuml():
-                # render to SVG for macro `plantumlcloud` (macro requires SVG)
-                config = self._extract_plantuml_config(content)
-                image_data = plantuml.render_diagram(content, "svg", config=config)
-
-                # extract dimensions from SVG
-                width, height = get_svg_dimensions_from_bytes(image_data)
-
-                # generate SVG filename and add as attachment
-                if relative_path is not None:
-                    svg_filename = attachment_name(relative_path.with_suffix(".svg"))
-                    self.embedded_files[svg_filename] = EmbeddedFileData(image_data, attrs.alt)
-                else:
-                    plantuml_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
-                    svg_filename = attachment_name(f"embedded_{plantuml_hash}.svg")
-                    self.embedded_files[svg_filename] = EmbeddedFileData(image_data)
-
-                return self._create_plantuml_macro(content, svg_filename, width, height)
-            else:
-                return self._create_plantuml_macro(content)
-
-    def _create_plantuml_macro(self, source: str, filename: str | None = None, width: int | None = None, height: int | None = None) -> ElementType:
-        """
-        A PlantUML diagram using the macro `plantumlcloud` with embedded data.
-
-        Generates a macro compatible with PlantUML Diagrams for Confluence app.
-
-        :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/pages/1839333377
-        """
-
-        local_id = str(uuid.uuid4())
-        macro_id = str(uuid.uuid4())
-
-        # Compress PlantUML source for embedding
-        compressed_data = plantuml.compress_plantuml_data(source)
-
-        # Build mandatory parameters
-        parameters: list[ElementType] = [
-            AC_ELEM("parameter", {AC_ATTR("name"): "data"}, compressed_data),
-            AC_ELEM("parameter", {AC_ATTR("name"): "compressed"}, "true"),
-            AC_ELEM("parameter", {AC_ATTR("name"): "revision"}, "1"),
-            AC_ELEM("parameter", {AC_ATTR("name"): "toolbar"}, "bottom"),
-        ]
-        if filename is not None:
-            parameters.append(AC_ELEM("parameter", {AC_ATTR("name"): "filename"}, filename))
-
-        # add optional dimension parameters if available
-        if width is not None:
-            parameters.append(
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "originalWidth"},
-                    str(width),
-                )
-            )
-        if height is not None:
-            parameters.append(
-                AC_ELEM(
-                    "parameter",
-                    {AC_ATTR("name"): "originalHeight"},
-                    str(height),
-                )
-            )
-
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "plantumlcloud",
-                AC_ATTR("schema-version"): "1",
-                "data-layout": "default",
-                AC_ATTR("local-id"): local_id,
-                AC_ATTR("macro-id"): macro_id,
-            },
-            *parameters,
         )
 
     def _transform_toc(self, code: ElementType) -> ElementType:
@@ -1618,15 +1090,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 title=None,
                 caption="",
                 alignment=ImageAlignment(self.options.layout.alignment or "center"),
-                display_width=self.options.calculate_display_width(width),
             )
         else:
             attrs = ImageAttributes.empty(context)
 
         image_hash = hashlib.md5(image_data).hexdigest()
         image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
-        self.embedded_files[image_filename] = EmbeddedFileData(image_data, content)
-        image = self._create_attached_image(image_filename, attrs)
+        self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, content))
+        image = self.image_generator.create_attached_image(image_filename, attrs)
         return image
 
     def _transform_inline_math(self, elem: ElementType) -> ElementType:
@@ -2053,10 +1524,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             for td in child.iterdescendants("td", "th"):
                 normalize_inline(td)
             child.set("data-layout", "default")
-            if self.options.layout.table_display_mode == "fixed":
+            if self.options.table_layout.display_mode == "fixed":
                 child.set("data-table-display-mode", "fixed")
-            if self.options.layout.table_width:
-                child.set("data-table-width", str(self.options.layout.table_width))
+            if self.options.table_layout.width:
+                child.set("data-table-width", str(self.options.table_layout.width))
 
             return None
 
@@ -2216,6 +1687,8 @@ class ConfluenceDocument:
         )
         if props.layout is not None:
             converter_options.layout = merged(props.layout, converter_options.layout)
+        if props.table_layout is not None:
+            converter_options.table_layout = merged(props.table_layout, converter_options.table_layout)
         converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter
@@ -2226,8 +1699,8 @@ class ConfluenceDocument:
 
         # extract information discovered by converter
         self.links = converter.links
-        self.images = converter.images
-        self.embedded_files = converter.embedded_files
+        self.images = converter.attachments.images
+        self.embedded_files = converter.attachments.embedded_files
 
         # assign global properties for document
         self.title = props.title or converter.toc.get_title()
@@ -2289,35 +1762,3 @@ class ConfluenceDocument:
 
     def xhtml(self) -> str:
         return elements_to_string(self.root)
-
-
-def attachment_name(ref: Path | str) -> str:
-    """
-    Safe name for use with attachment uploads.
-
-    Mutates a relative path such that it meets Confluence's attachment naming requirements.
-
-    Allowed characters:
-
-    * Alphanumeric characters: 0-9, a-z, A-Z
-    * Special characters: hyphen (-), underscore (_), period (.)
-    """
-
-    if isinstance(ref, Path):
-        path = ref
-    else:
-        path = Path(ref)
-
-    if path.drive or path.root:
-        raise ValueError(f"required: relative path; got: {ref}")
-
-    regexp = re.compile(r"[^\-0-9A-Za-z_.]", re.UNICODE)
-
-    def replace_part(part: str) -> str:
-        if part == "..":
-            return "PAR"
-        else:
-            return regexp.sub("_", part)
-
-    parts = [replace_part(p) for p in path.parts]
-    return Path(*parts).as_posix().replace("/", "_")

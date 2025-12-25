@@ -15,16 +15,17 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 
+from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection
-from md2conf.converter import ConfluenceDocument, attachment_name
+from md2conf.converter import ConfluenceDocument
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, LayoutOptions
 from md2conf.extra import override
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
-from md2conf.mermaid import has_mmdc
+from md2conf.mermaid.render import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.plantuml import compress_plantuml_data, has_plantuml, render_diagram
+from md2conf.plantuml.render import compress_plantuml_data, has_plantuml, render_diagram
 from md2conf.svg import get_svg_dimensions_from_bytes
 from tests import emoji
 from tests.utility import TypedTestCase

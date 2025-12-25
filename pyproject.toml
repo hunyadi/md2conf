@@ -65,8 +65,11 @@ md2conf = "md2conf.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["md2conf"]
 zip-safe = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["md2conf*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "md2conf.__version__" }

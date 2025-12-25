@@ -13,7 +13,8 @@ from pathlib import Path
 from cattrs import BaseValidationError
 
 from md2conf.extra import override
-from md2conf.scanner import MermaidScanner, Scanner
+from md2conf.mermaid.scanner import MermaidScanner
+from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
 
 logging.basicConfig(

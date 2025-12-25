@@ -24,14 +24,23 @@ class LayoutOptions:
     :param alignment: Alignment for block-level images and formulas.
     :param max_image_width: Maximum display width for images [px]. Wider images are scaled down for page display.
         Original size kept for full-size viewing.
-    :param table_width: Maximum table width in pixels.
-    :param table_display_mode: Whether to use fixed or responsive column widths.
     """
 
     alignment: Literal["center", "left", "right"] | None = None
     max_image_width: int | None = None
-    table_width: int | None = None
-    table_display_mode: Literal["fixed", "responsive"] | None = None
+
+
+@dataclass
+class TableLayoutOptions:
+    """
+    Table layout options on a Confluence page.
+
+    :param width: Maximum table width in pixels.
+    :param display_mode: Whether to use fixed or responsive column widths.
+    """
+
+    width: int | None = None
+    display_mode: Literal["fixed", "responsive"] | None = None
 
 
 @dataclass
@@ -57,6 +66,7 @@ class ConfluenceDocumentOptions:
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param layout: Layout options for content on a Confluence page.
+    :param table_layout: Table layout options on a Confluence page.
     """
 
     heading_anchors: bool = False
@@ -75,3 +85,4 @@ class ConfluenceDocumentOptions:
     webui_links: bool = False
     use_panel: bool = False
     layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
+    table_layout: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)

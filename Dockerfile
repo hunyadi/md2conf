@@ -108,9 +108,6 @@ RUN curl -L -o /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
 
-# Set MD2CONF_BASE_PATH for Docker environment
-ENV MD2CONF_BASE_PATH="/home/md2conf"
-
 WORKDIR /data
 
 # ===== Stage 5: all (default) =====
@@ -134,8 +131,7 @@ WORKDIR /home/md2conf
 
 # Set environment for both Mermaid and PlantUML
 ENV CHROME_BIN="/usr/bin/chromium-browser" \
-    PUPPETEER_SKIP_DOWNLOAD="true" \
-    MD2CONF_BASE_PATH="/home/md2conf"
+    PUPPETEER_SKIP_DOWNLOAD="true"
 
 # Install mermaid-cli
 ARG MERMAID_VERSION

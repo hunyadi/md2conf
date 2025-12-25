@@ -11,7 +11,7 @@ import os
 import unittest
 import xml.etree.ElementTree as ET
 
-from md2conf.mermaid import has_mmdc, render_diagram
+from md2conf.mermaid.render import has_mmdc, render_diagram
 from tests.utility import TypedTestCase
 
 logging.basicConfig(

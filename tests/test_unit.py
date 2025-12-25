@@ -10,12 +10,11 @@ import logging
 import unittest
 from datetime import datetime
 
+from md2conf.attachment import attachment_name
 from md2conf.converter import (
-    ConfluenceConverterOptions,
-    attachment_name,
     title_to_identifier,
 )
-from md2conf.domain import LayoutOptions
+from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
 from md2conf.serializer import json_to_object, object_to_json_payload
@@ -138,28 +137,28 @@ class TestUnit(TypedTestCase):
 
     def test_calculate_display_width_no_constraint(self) -> None:
         "Test that no constraint is applied when max_image_width is None."
-        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=None))
-        self.assertIsNone(options.calculate_display_width(None))
-        self.assertIsNone(options.calculate_display_width(100))
-        self.assertIsNone(options.calculate_display_width(1000))
+
+        self.assertIsNone(display_width(width=None, max_width=None))
+        self.assertIsNone(display_width(width=100, max_width=None))
+        self.assertIsNone(display_width(width=1000, max_width=None))
 
     def test_calculate_display_width_within_limit(self) -> None:
         "Test that no constraint is applied when image is within max_image_width."
-        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
-        self.assertIsNone(options.calculate_display_width(100))
-        self.assertIsNone(options.calculate_display_width(800))
+
+        self.assertIsNone(display_width(width=100, max_width=800))
+        self.assertIsNone(display_width(width=800, max_width=800))
 
     def test_calculate_display_width_exceeds_limit(self) -> None:
         "Test that constraint is applied when image exceeds max_image_width."
-        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
-        self.assertEqual(options.calculate_display_width(801), 800)
-        self.assertEqual(options.calculate_display_width(1200), 800)
-        self.assertEqual(options.calculate_display_width(2000), 800)
+
+        self.assertEqual(display_width(width=801, max_width=800), 800)
+        self.assertEqual(display_width(width=1200, max_width=800), 800)
+        self.assertEqual(display_width(width=2000, max_width=800), 800)
 
     def test_calculate_display_width_none_natural(self) -> None:
         "Test that None is returned when natural_width is None."
-        options = ConfluenceConverterOptions(layout=LayoutOptions(max_image_width=800))
-        self.assertIsNone(options.calculate_display_width(None))
+
+        self.assertIsNone(display_width(width=None, max_width=800))
 
 
 if __name__ == "__main__":

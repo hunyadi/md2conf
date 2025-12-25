@@ -11,70 +11,52 @@ import logging
 import os
 import shutil
 import zlib
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
 
-from .diagram import render_diagram_subprocess
+import md2conf
+from md2conf.external import execute_subprocess
+
+from .config import PlantUMLConfigProperties
 
 LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
-class PlantUMLConfigProperties:
+def _get_plantuml_jar_path() -> Path:
     """
-    Configuration options for rendering PlantUML diagrams.
-
-    :param scale: Scaling factor for the rendered diagram.
-    """
-
-    scale: float | None = None
-
-
-def get_base_path() -> Path:
-    """
-    Returns the base path for md2conf resources.
+    Returns the expected path to `plantuml.jar`.
 
     Priority:
-    1. MD2CONF_BASE_PATH environment variable
-    2. Directory containing the md2conf package
+
+    1. value of environment variable `PLANTUML_JAR`
+    2. path to `plantuml.jar` if found in parent directory of module `md2conf`
+    3. path to `plantuml.jar` if found in current directory
     """
-    # Check environment variable first
-    env_base = os.environ.get("MD2CONF_BASE_PATH")
-    if env_base:
-        return Path(env_base)
 
-    # Default: directory containing the md2conf package
-    # __file__ points to md2conf/plantuml.py
-    # Parent is md2conf/, parent.parent is project root
-    return Path(__file__).parent.parent
-
-
-def get_plantuml_jar_path() -> Path:
-    """
-    Returns the expected path to plantuml.jar.
-
-    Priority:
-    1. PLANTUML_JAR environment variable (explicit override)
-    2. {base_path}/plantuml.jar (default)
-    """
-    # Check environment variable first
+    # check environment variable
     env_jar = os.environ.get("PLANTUML_JAR")
     if env_jar:
         return Path(env_jar)
 
-    # Default: {base_path}/plantuml.jar
-    return get_base_path() / "plantuml.jar"
+    # check parent directory of module `md2conf`
+    base_path = Path(md2conf.__file__).parent.parent
+    jar_path = base_path / "plantuml.jar"
+    if jar_path.exists():
+        return jar_path
+
+    # check current directory
+    return Path("plantuml.jar")
 
 
-def get_plantuml_command() -> list[str]:
+def _get_plantuml_command() -> list[str]:
     """
     Returns the command to invoke PlantUML.
 
-    Raises RuntimeError if plantuml.jar is not found.
+    :raises RuntimeError: Raised when `plantuml.jar` is not found.
     """
-    jar_path = get_plantuml_jar_path()
+
+    jar_path = _get_plantuml_jar_path()
 
     if jar_path.is_file():
         # Direct JAR invocation
@@ -91,7 +73,7 @@ def get_plantuml_command() -> list[str]:
 def has_plantuml() -> bool:
     """True if PlantUML JAR is available and Java is installed."""
 
-    jar_path = get_plantuml_jar_path()
+    jar_path = _get_plantuml_jar_path()
 
     # Check if we have JAR file and Java is available
     return jar_path.is_file() and shutil.which("java") is not None
@@ -111,7 +93,7 @@ def render_diagram(
     # -pipe: read from stdin and write to stdout
     # -t<format>: output format (png or svg)
     # -charset utf-8: ensure UTF-8 encoding
-    cmd = get_plantuml_command()
+    cmd = _get_plantuml_command()
     cmd.extend(
         [
             "-pipe",
@@ -125,7 +107,7 @@ def render_diagram(
     if config.scale is not None:
         cmd.extend(["-scale", str(config.scale)])
 
-    return render_diagram_subprocess(cmd, source, "PlantUML")
+    return execute_subprocess(cmd, source.encode("utf-8"), application="PlantUML")
 
 
 def compress_plantuml_data(source: str) -> str:

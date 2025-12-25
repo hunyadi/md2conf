@@ -11,7 +11,7 @@ import os
 import unittest
 import xml.etree.ElementTree as ET
 
-from md2conf.plantuml import has_plantuml, render_diagram
+from md2conf.plantuml.render import has_plantuml, render_diagram
 from tests.utility import TypedTestCase
 
 logging.basicConfig(

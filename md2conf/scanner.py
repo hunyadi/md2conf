@@ -6,53 +6,16 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import re
-import typing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TypeVar
 
-import yaml
-
-from .domain import LayoutOptions
+from .domain import LayoutOptions, TableLayoutOptions
 from .extra import merged
-from .mermaid import MermaidConfigProperties
-from .plantuml import PlantUMLConfigProperties
+from .frontmatter import extract_frontmatter_json, extract_value
 from .serializer import JsonType, json_to_object
 
 T = TypeVar("T")
-
-
-def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
-    values: list[str] = []
-
-    def _repl_func(match: re.Match[str]) -> str:
-        values.append(match.group(1))
-        return ""
-
-    text = re.sub(pattern, _repl_func, text, count=1, flags=re.ASCII)
-    value = values[0] if values else None
-    return value, text
-
-
-def extract_frontmatter_block(text: str) -> tuple[str | None, str]:
-    "Extracts the front-matter from a Markdown document as a blob of unparsed text."
-
-    return extract_value(r"(?ms)\A---$(.+?)^---$", text)
-
-
-def extract_frontmatter_properties(text: str) -> tuple[dict[str, JsonType] | None, str]:
-    "Extracts the front-matter from a Markdown document as a dictionary."
-
-    block, text = extract_frontmatter_block(text)
-
-    properties: dict[str, Any] | None = None
-    if block is not None:
-        data = yaml.safe_load(block)
-        if isinstance(data, dict):
-            properties = typing.cast(dict[str, JsonType], data)
-
-    return properties, text
 
 
 @dataclass
@@ -81,6 +44,7 @@ class DocumentProperties:
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     :param layout: Layout options for content on a Confluence page.
+    :param table_layout: Table layout options on a Confluence page.
     """
 
     page_id: str | None = None
@@ -91,6 +55,7 @@ class DocumentProperties:
     synchronized: bool | None = None
     properties: dict[str, JsonType] | None = None
     layout: LayoutOptions | None = None
+    table_layout: TableLayoutOptions | None = None
 
 
 @dataclass
@@ -128,7 +93,7 @@ class Scanner:
         body_props = DocumentProperties(page_id=page_id, space_key=space_key, generated_by=generated_by)
 
         # extract front-matter
-        data, text = extract_frontmatter_properties(text)
+        data, text = extract_frontmatter_json(text)
         if data is not None:
             frontmatter_props = json_to_object(DocumentProperties, data)
             alias_props = json_to_object(AliasProperties, data)
@@ -141,92 +106,3 @@ class Scanner:
             props = body_props
 
         return ScannedDocument(properties=props, text=text)
-
-
-@dataclass
-class MermaidProperties:
-    """
-    An object that holds the front-matter properties structure for Mermaid diagrams.
-
-    :param title: The title of the diagram.
-    :param config: Configuration options for rendering.
-    """
-
-    title: str | None = None
-    config: MermaidConfigProperties | None = None
-
-
-class MermaidScanner:
-    """
-    Extracts properties from the JSON/YAML front-matter of a Mermaid diagram.
-    """
-
-    def read(self, content: str) -> MermaidProperties:
-        """
-        Extracts rendering preferences from a Mermaid front-matter content.
-
-        ```
-        ---
-        title: Tiny flow diagram
-        config:
-            scale: 1
-        ---
-        flowchart LR
-            A[Component A] --> B[Component B]
-            B --> C[Component C]
-        ```
-        """
-
-        properties, _ = extract_frontmatter_properties(content)
-        if properties is not None:
-            front_matter = json_to_object(MermaidProperties, properties)
-            config = front_matter.config or MermaidConfigProperties()
-
-            return MermaidProperties(title=front_matter.title, config=config)
-
-        return MermaidProperties()
-
-
-@dataclass
-class PlantUMLProperties:
-    """
-    An object that holds the front-matter properties structure
-    for PlantUML diagrams.
-
-    :param title: The title of the diagram.
-    :param config: Configuration options for rendering.
-    """
-
-    title: str | None = None
-    config: PlantUMLConfigProperties | None = None
-
-
-class PlantUMLScanner:
-    """
-    Extracts properties from the JSON/YAML front-matter of a PlantUML diagram.
-    """
-
-    def read(self, content: str) -> PlantUMLProperties:
-        """
-        Extracts rendering preferences from a PlantUML front-matter content.
-
-        ```
-        ---
-        title: Class diagram
-        config:
-            scale: 1
-        ---
-        @startuml
-        class Example
-        @enduml
-        ```
-        """
-
-        properties, _ = extract_frontmatter_properties(content)
-        if properties is not None:
-            front_matter = json_to_object(PlantUMLProperties, properties)
-            config = front_matter.config or PlantUMLConfigProperties()
-
-            return PlantUMLProperties(title=front_matter.title, config=config)
-
-        return PlantUMLProperties()
