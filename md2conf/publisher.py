@@ -11,11 +11,11 @@ from pathlib import Path
 
 from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
 from .attachment import attachment_name
+from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
 from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .environment import PageError
-from .extra import override, path_relative_to
 from .metadata import ConfluencePageMetadata
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .xml import is_xml_equal, unwrap_substitute

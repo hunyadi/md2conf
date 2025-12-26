@@ -13,10 +13,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from md2conf.attachment import attachment_name
-from md2conf.converter import (
-    title_to_identifier,
-)
-from md2conf.extra import merged
+from md2conf.coalesce import coalesce
+from md2conf.converter import title_to_identifier
 from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
@@ -55,10 +53,14 @@ class TestUnit(TypedTestCase):
             a: A = dataclasses.field(default_factory=A)
             i: int | None = None
 
-        self.assertEqual(merged(B(), B(a=A("a"))), B(a=A("a")))
-        self.assertEqual(merged(B(a=A("a")), B()), B(a=A("a")))
-        self.assertEqual(merged(B(a=A("a")), B(i=2)), B(a=A("a"), i=2))
-        self.assertEqual(merged(B(a=A("a", 1)), B(i=2)), B(a=A("a", 1), i=2))
+        self.assertEqual(coalesce(B(), B(a=A("a"))), B(a=A("a")))
+        self.assertEqual(coalesce(B(a=A("a")), B()), B(a=A("a")))
+        self.assertEqual(coalesce(B(a=A("a")), B(i=2)), B(a=A("a"), i=2))
+        self.assertEqual(coalesce(B(a=A("a")), B(a=A("a", 1))), B(a=A("a", 1)))
+        self.assertEqual(coalesce(B(a=A("a", 1)), B(a=A("a", 2))), B(a=A("a", 1)))
+        self.assertEqual(coalesce(B(a=A("a", 1)), B(i=2)), B(a=A("a", 1), i=2))
+        self.assertEqual(coalesce(B(i=2), B(i=3)), B(i=2))
+        self.assertEqual(coalesce(B(i=2), B(a=A("a", 1))), B(a=A("a", 1), i=2))
 
     def test_title_to_identifier(self) -> None:
         self.assertEqual(title_to_identifier("This is  a Heading  "), "this-is-a-heading")

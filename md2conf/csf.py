@@ -8,8 +8,9 @@ Copyright 2022-2025, Levente Hunyadi
 
 import importlib.resources as resources
 import re
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, TypeVar
 
 import lxml.etree as ET
 from lxml.builder import ElementMaker
@@ -45,15 +46,14 @@ def RI_ATTR(name: str) -> str:
     return _qname(_namespaces["ri"], name)
 
 
-R = TypeVar("R")
-
-
-def with_entities(func: Callable[[Path], R]) -> R:
+@contextmanager
+def entities() -> Generator[Path, None, None]:
     "Invokes a callable in the context of an entity definition file."
 
-    resource_path = resources.files(__package__).joinpath("entities.dtd")
-    with resources.as_file(resource_path) as dtd_path:
-        return func(dtd_path)
+    if __package__ is not None:  # always true at run time
+        resource_path = resources.files(__package__).joinpath("entities.dtd")
+        with resources.as_file(resource_path) as dtd_path:
+            yield dtd_path
 
 
 def _elements_from_strings(dtd_path: Path, items: list[str]) -> ElementType:
@@ -102,7 +102,8 @@ def elements_from_strings(items: list[str]) -> ElementType:
     :returns: An XML document as an element tree.
     """
 
-    return with_entities(lambda dtd_path: _elements_from_strings(dtd_path, items))
+    with entities() as dtd_path:
+        return _elements_from_strings(dtd_path, items)
 
 
 def elements_from_string(content: str) -> ElementType:
@@ -134,7 +135,8 @@ def content_to_string(content: str) -> str:
     :returns: XML as a string.
     """
 
-    return with_entities(lambda dtd_path: _content_to_string(dtd_path, content))
+    with entities() as dtd_path:
+        return _content_to_string(dtd_path, content)
 
 
 def elements_to_string(root: ElementType) -> str:

@@ -12,9 +12,9 @@ import unittest
 from pathlib import Path
 
 from md2conf.collection import ConfluencePageCollection
+from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.domain import ConfluenceDocumentOptions
-from md2conf.extra import override
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
 from tests.utility import TypedTestCase
 

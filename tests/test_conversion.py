@@ -17,10 +17,10 @@ from pathlib import Path
 
 from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection
+from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConverterOptions, ImageLayoutOptions, LayoutOptions
-from md2conf.extra import override
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid.render import has_mmdc

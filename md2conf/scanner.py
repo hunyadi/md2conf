@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
+from .coalesce import coalesce
 from .domain import LayoutOptions
-from .extra import merged
 from .frontmatter import extract_frontmatter_json, extract_value
 from .serializer import JsonType, json_to_object
 
@@ -99,7 +99,7 @@ class Scanner:
                 frontmatter_props.page_id = alias_props.confluence_page_id
             if alias_props.confluence_space_key is not None:
                 frontmatter_props.space_key = alias_props.confluence_space_key
-            props = merged(body_props, frontmatter_props)
+            props = coalesce(body_props, frontmatter_props)
         else:
             props = body_props
 

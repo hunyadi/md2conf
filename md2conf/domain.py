@@ -51,10 +51,15 @@ class LayoutOptions:
 
     :param image: Image layout options.
     :param table: Table layout options.
+    :param alignment: Default alignment (unless overridden with more specific setting).
     """
 
     image: ImageLayoutOptions = dataclasses.field(default_factory=ImageLayoutOptions)
     table: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)
+    alignment: Literal["center", "left", "right"] | None = None
+
+    def get_image_alignment(self) -> Literal["center", "left", "right"]:
+        return self.image.alignment or self.alignment or "center"
 
 
 @dataclass

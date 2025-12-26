@@ -25,8 +25,8 @@ import requests
 import truststore
 from requests.adapters import HTTPAdapter
 
+from .compatibility import override
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
-from .extra import override
 from .metadata import ConfluenceSiteMetadata
 from .serializer import JsonType, json_to_object, object_to_json_payload
 

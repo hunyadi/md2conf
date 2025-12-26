@@ -4,27 +4,27 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Block images</h2>
-<ac:image ac:align="center" ac:layout="center" ac:alt="PNG image with caption">
+<ac:image ac:align="left" ac:layout="align-start" ac:alt="PNG image with caption">
   <ri:attachment ri:filename="figure_raster.png"/>
   <ac:caption>PNG image with caption</ac:caption>
 </ac:image>
-<ac:image ac:align="center" ac:layout="center" ac:original-width="200" ac:original-height="200" ac:custom-width="true" ac:width="200" ac:alt="SVG image with caption" ac:title="A vector image">
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="200" ac:original-height="200" ac:custom-width="true" ac:width="200" ac:alt="SVG image with caption" ac:title="A vector image">
   <ri:attachment ri:filename="figure_vector.svg"/>
   <ac:caption>A vector image</ac:caption>
 </ac:image>
-<ac:image ac:align="center" ac:layout="center" ac:alt="draw.io image embedded in PNG">
+<ac:image ac:align="left" ac:layout="align-start" ac:alt="draw.io image embedded in PNG">
   <ri:attachment ri:filename="figure_diagram.drawio.png"/>
   <ac:caption>draw.io image embedded in PNG</ac:caption>
 </ac:image>
-<ac:image ac:align="center" ac:layout="center" ac:original-width="81" ac:original-height="121" ac:custom-width="true" ac:width="81" ac:alt="draw.io image embedded in SVG">
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="81" ac:original-height="121" ac:custom-width="true" ac:width="81" ac:alt="draw.io image embedded in SVG">
   <ri:attachment ri:filename="figure_diagram.drawio.svg"/>
   <ac:caption>draw.io image embedded in SVG</ac:caption>
 </ac:image>
-<ac:image ac:align="center" ac:layout="center" ac:alt="External image" ac:title="An image at an external location">
+<ac:image ac:align="left" ac:layout="align-start" ac:alt="External image" ac:title="An image at an external location">
   <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
   <ac:caption>An image at an external location</ac:caption>
 </ac:image>
-<ac:image ac:align="center" ac:layout="center" ac:original-width="24" ac:original-height="24" ac:custom-width="true" ac:width="24">
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="24" ac:original-height="24" ac:custom-width="true" ac:width="24">
   <ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/>
 </ac:image>
 <h2>Inline images</h2>

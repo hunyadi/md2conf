@@ -1,5 +1,5 @@
 """
-SVG dimension extraction utilities.
+Publish Markdown files to Confluence wiki.
 
 Copyright 2022-2025, Levente Hunyadi
 

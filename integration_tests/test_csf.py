@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import ClassVar
 
 from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
+from md2conf.compatibility import override
 from md2conf.csf import content_to_string
-from md2conf.extra import override
 from tests.utility import TypedTestCase
 
 

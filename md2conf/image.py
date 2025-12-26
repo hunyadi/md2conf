@@ -11,8 +11,8 @@ from pathlib import Path
 import lxml.etree as ET
 
 from .attachment import AttachmentCatalog, ImageData, attachment_name
+from .compatibility import path_relative_to
 from .csf import AC_ELEM, RI_ATTR, RI_ELEM
-from .extra import path_relative_to
 from .formatting import ImageAttributes
 from .svg import get_svg_dimensions
 

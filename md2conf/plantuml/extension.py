@@ -15,9 +15,9 @@ import lxml.etree as ET
 from cattrs import BaseValidationError
 
 from md2conf.attachment import EmbeddedFileData, ImageData, attachment_name
+from md2conf.compatibility import override, path_relative_to
 from md2conf.csf import AC_ATTR, AC_ELEM
 from md2conf.extension import MarketplaceExtension
-from md2conf.extra import override, path_relative_to
 from md2conf.formatting import ImageAttributes
 from md2conf.png import extract_png_dimensions
 from md2conf.svg import get_svg_dimensions_from_bytes

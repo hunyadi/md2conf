@@ -80,15 +80,18 @@ class ImageAttributes:
         attributes: dict[str, str] = {}
         match self.context:
             case FormattingContext.BLOCK:
-                if self.alignment is ImageAlignment.LEFT:
-                    attributes[AC_ATTR("align")] = "left"
-                    attributes[AC_ATTR("layout")] = "align-start"
-                elif self.alignment is ImageAlignment.RIGHT:
-                    attributes[AC_ATTR("align")] = "right"
-                    attributes[AC_ATTR("layout")] = "align-end"
-                else:
-                    attributes[AC_ATTR("align")] = "center"
-                    attributes[AC_ATTR("layout")] = "center"
+                match self.alignment:
+                    case ImageAlignment.LEFT:
+                        align = "left"
+                        layout = "align-start"
+                    case ImageAlignment.RIGHT:
+                        align = "right"
+                        layout = "align-end"
+                    case ImageAlignment.CENTER:
+                        align = "center"
+                        layout = "center"
+                attributes[AC_ATTR("align")] = align
+                attributes[AC_ATTR("layout")] = layout
 
                 if self.width is not None:
                     attributes[AC_ATTR("original-width")] = str(self.width)
@@ -117,12 +120,11 @@ class ImageAttributes:
 
     @classmethod
     def empty(cls, context: FormattingContext) -> "ImageAttributes":
-        if context is FormattingContext.BLOCK:
-            return cls.EMPTY_BLOCK
-        elif context is FormattingContext.INLINE:
-            return cls.EMPTY_INLINE
-        else:
-            raise NotImplementedError("match not exhaustive for enumeration")
+        match context:
+            case FormattingContext.BLOCK:
+                return cls.EMPTY_BLOCK
+            case FormattingContext.INLINE:
+                return cls.EMPTY_INLINE
 
 
 ImageAttributes.EMPTY_BLOCK = ImageAttributes(

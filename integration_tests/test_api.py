@@ -18,10 +18,10 @@ from typing import ClassVar
 import lxml.etree as ET
 
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
+from md2conf.compatibility import override
 from md2conf.converter import NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
-from md2conf.extra import override
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase

@@ -11,8 +11,8 @@ import shutil
 import unittest
 from pathlib import Path
 
+from md2conf.compatibility import override
 from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
-from md2conf.extra import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
 from tests.utility import TypedTestCase

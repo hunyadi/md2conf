@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence
 
 from . import __version__
+from .compatibility import override
 from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions, ImageLayoutOptions, LayoutOptions
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
-from .extra import override
 from .metadata import ConfluenceSiteMetadata
 
 

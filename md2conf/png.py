@@ -1,5 +1,5 @@
 """
-PNG image utilities.
+Publish Markdown files to Confluence wiki.
 
 Copyright 2022-2025, Levente Hunyadi
 
@@ -13,6 +13,8 @@ from typing import BinaryIO, Iterable, overload
 
 
 class _Chunk:
+    "Data chunk in binary data as per the PNG image format."
+
     __slots__ = ("length", "name", "data", "crc")
 
     length: int

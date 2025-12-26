@@ -21,14 +21,15 @@ from urllib.parse import ParseResult, quote_plus, urlparse
 import lxml.etree as ET
 
 from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
+from .coalesce import coalesce
 from .collection import ConfluencePageCollection
+from .compatibility import override, path_relative_to
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
 from .drawio.extension import DrawioExtension
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extension import ExtensionOptions, MarketplaceExtension
-from .extra import merged, override, path_relative_to
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
 from .image import ImageGenerator
 from .latex import render_latex
@@ -353,7 +354,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.image_generator = ImageGenerator(self.base_dir, self.attachments, self.options.prefer_raster, self.options.layout.image.max_width)
 
         diagram_output_format = self.options.diagram_output_format
-        alignment = ImageAlignment(self.options.layout.image.alignment or "center")
+        alignment = ImageAlignment(self.options.layout.get_image_alignment())
         self.extensions = [
             DrawioExtension(
                 self.base_dir,
@@ -593,7 +594,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             alt=alt,
             title=title,
             caption=None,
-            alignment=ImageAlignment(self.options.layout.image.alignment or "center"),
+            alignment=ImageAlignment(self.options.layout.get_image_alignment()),
         )
 
         if is_absolute_url(src):
@@ -1045,7 +1046,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 alt=content,
                 title=None,
                 caption="",
-                alignment=ImageAlignment(self.options.layout.image.alignment or "center"),
+                alignment=ImageAlignment(self.options.layout.get_image_alignment()),
             )
         else:
             attrs = ImageAttributes.empty(context)
@@ -1087,7 +1088,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.image.alignment or "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.get_image_alignment()),
         )
         return macro
 
@@ -1124,7 +1125,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.image.alignment or "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.get_image_alignment()),
         )
 
     def _transform_footnote_ref(self, elem: ElementType) -> None:
@@ -1376,167 +1377,174 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if not isinstance(child.tag, str):
             return None
 
-        # <p>...</p>
-        if child.tag == "p":
-            # <p><img src="..." /></p>
-            if len(child) == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
-                return self._transform_image(FormattingContext.BLOCK, child[0])
+        match child.tag:
+            # <p>...</p>
+            case "p":
+                # <p><img src="..." /></p>
+                if len(child) == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
+                    return self._transform_image(FormattingContext.BLOCK, child[0])
 
-            # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
-            elif is_placeholder_for(child, "TOC"):
-                return self._transform_toc(child)
+                # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
+                elif is_placeholder_for(child, "TOC"):
+                    return self._transform_toc(child)
 
-            # <p>[[<em>LISTING</em>]]</p> (represented in Markdown as `[[_LISTING_]]`)
-            elif is_placeholder_for(child, "LISTING"):
-                return self._transform_listing(child)
+                # <p>[[<em>LISTING</em>]]</p> (represented in Markdown as `[[_LISTING_]]`)
+                elif is_placeholder_for(child, "LISTING"):
+                    return self._transform_listing(child)
 
-        # <div>...</div>
-        elif child.tag == "div":
-            classes = child.get("class", "").split(" ")
+            # <div>...</div>
+            case "div":
+                classes = child.get("class", "").split(" ")
 
-            # <div class="arithmatex">...</div>
-            if "arithmatex" in classes:
-                return self._transform_block_math(child)
+                # <div class="arithmatex">...</div>
+                if "arithmatex" in classes:
+                    return self._transform_block_math(child)
 
-            # <div><ac:structured-macro ...>...</ac:structured-macro></div>
-            elif "csf" in classes:
-                if len(child) != 1:
-                    raise DocumentError("expected: single child in Confluence Storage Format block")
+                # <div><ac:structured-macro ...>...</ac:structured-macro></div>
+                elif "csf" in classes:
+                    if len(child) != 1:
+                        raise DocumentError("expected: single child in Confluence Storage Format block")
 
-                return child[0]
+                    return child[0]
 
-            # <div class="footnote">
-            #   <hr/>
-            #   <ol>
-            #     <li id="fn:NAME"><p>TEXT <a class="footnote-backref" href="#fnref:NAME">↩</a></p></li>
-            #   </ol>
-            # </div>
-            elif "footnote" in classes:
-                self._transform_footnote_def(child)
+                # <div class="footnote">
+                #   <hr/>
+                #   <ol>
+                #     <li id="fn:NAME"><p>TEXT <a class="footnote-backref" href="#fnref:NAME">↩</a></p></li>
+                #   </ol>
+                # </div>
+                elif "footnote" in classes:
+                    self._transform_footnote_def(child)
+                    return None
+
+                # <div class="admonition note">
+                # <p class="admonition-title">Note</p>
+                # <p>...</p>
+                # </div>
+                #
+                # --- OR ---
+                #
+                # <div class="admonition note">
+                # <p>...</p>
+                # </div>
+                elif "admonition" in classes:
+                    return self._transform_admonition(child)
+
+            # <blockquote>...</blockquote>
+            case "blockquote":
+                # Alerts in GitHub
+                # <blockquote>
+                #   <p>[!TIP] ...</p>
+                # </blockquote>
+                if len(child) > 0 and child[0].tag == "p" and child[0].text is not None and child[0].text.startswith("[!"):
+                    return self._transform_github_alert(child)
+
+                # Alerts in GitLab
+                # <blockquote>
+                #   <p>DISCLAIMER: ...</p>
+                # </blockquote>
+                elif len(child) > 0 and child[0].tag == "p" and element_text_starts_with_any(child[0], ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"]):
+                    return self._transform_gitlab_alert(child)
+
+            # <details markdown="1">
+            # <summary>...</summary>
+            # ...
+            # </details>
+            case "details" if len(child) > 1 and child[0].tag == "summary":
+                return self._transform_collapsed(child)
+
+            # <ol>...</ol>
+            case "ol":
+                # Confluence adds the attribute `start` for every ordered list
+                child.set("start", "1")
                 return None
 
-            # <div class="admonition note">
-            # <p class="admonition-title">Note</p>
-            # <p>...</p>
-            # </div>
-            #
-            # --- OR ---
-            #
-            # <div class="admonition note">
-            # <p>...</p>
-            # </div>
-            elif "admonition" in classes:
-                return self._transform_admonition(child)
+            # <ul>
+            #   <li>[ ] ...</li>
+            #   <li>[x] ...</li>
+            # </ul>
+            case "ul":
+                if len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
+                    return self._transform_tasklist(child)
 
-        # <blockquote>...</blockquote>
-        elif child.tag == "blockquote":
-            # Alerts in GitHub
-            # <blockquote>
-            #   <p>[!TIP] ...</p>
-            # </blockquote>
-            if len(child) > 0 and child[0].tag == "p" and child[0].text is not None and child[0].text.startswith("[!"):
-                return self._transform_github_alert(child)
-
-            # Alerts in GitLab
-            # <blockquote>
-            #   <p>DISCLAIMER: ...</p>
-            # </blockquote>
-            elif len(child) > 0 and child[0].tag == "p" and element_text_starts_with_any(child[0], ["FLAG:", "NOTE:", "WARNING:", "DISCLAIMER:"]):
-                return self._transform_gitlab_alert(child)
-
-        # <details markdown="1">
-        # <summary>...</summary>
-        # ...
-        # </details>
-        elif child.tag == "details" and len(child) > 1 and child[0].tag == "summary":
-            return self._transform_collapsed(child)
-
-        # <ol>...</ol>
-        elif child.tag == "ol":
-            # Confluence adds the attribute `start` for every ordered list
-            child.set("start", "1")
-            return None
-
-        # <ul>
-        #   <li>[ ] ...</li>
-        #   <li>[x] ...</li>
-        # </ul>
-        elif child.tag == "ul":
-            if len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
-                return self._transform_tasklist(child)
-
-            return None
-
-        elif child.tag == "li":
-            normalize_inline(child)
-            return None
-
-        # <pre><code class="language-java"> ... </code></pre>
-        elif child.tag == "pre" and len(child) == 1 and child[0].tag == "code":
-            return self._transform_code_block(child[0])
-
-        # <table>...</table>
-        elif child.tag == "table":
-            for td in child.iterdescendants("td", "th"):
-                normalize_inline(td)
-            child.set("data-layout", "default")
-            if self.options.layout.table.display_mode == "fixed":
-                child.set("data-table-display-mode", "fixed")
-            if self.options.layout.table.width:
-                child.set("data-table-width", str(self.options.layout.table.width))
-
-            return None
-
-        # <img src="..." alt="..." />
-        elif child.tag == "img":
-            return self._transform_image(FormattingContext.INLINE, child)
-
-        # <a href="..."> ... </a>
-        elif child.tag == "a":
-            return self._transform_link(child)
-
-        # <mark>...</mark>
-        elif child.tag == "mark":
-            return self._transform_mark(child)
-
-        # <span>...</span>
-        elif child.tag == "span":
-            classes = child.get("class", "").split(" ")
-
-            # <span class="arithmatex">...</span>
-            if "arithmatex" in classes:
-                return self._transform_inline_math(child)
-
-        # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
-        # Multiple references: <sup id="fnref2:NAME">...</sup>, <sup id="fnref3:NAME">...</sup>
-        elif child.tag == "sup" and re.match(r"^fnref\d*:", child.get("id", "")):
-            self._transform_footnote_ref(child)
-            return None
-
-        # <input type="date" value="1984-01-01" />
-        elif child.tag == "input" and child.get("type", "") == "date":
-            return HTML("time", {"datetime": child.get("value", "")})
-
-        # <ins>...</ins>
-        elif child.tag == "ins":
-            # Confluence prefers <u> over <ins> for underline, and replaces <ins> with <u>
-            child.tag = "u"
-
-        # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
-        elif child.tag == "x-emoji":
-            return self._transform_emoji(child)
-
-        # <h1>...</h1>
-        # <h2>...</h2> ...
-        m = re.match(r"^h([1-6])$", child.tag, flags=re.IGNORECASE)
-        if m is not None:
-            level = int(m.group(1))
-            title = element_to_text(child)
-            self.toc.add(level, title)
-
-            if self.options.heading_anchors:
-                self._transform_heading(child)
                 return None
+
+            case "li":
+                normalize_inline(child)
+                return None
+
+            # <pre><code class="language-java"> ... </code></pre>
+            case "pre" if len(child) == 1 and child[0].tag == "code":
+                return self._transform_code_block(child[0])
+
+            # <table>...</table>
+            case "table":
+                for td in child.iterdescendants("td", "th"):
+                    normalize_inline(td)
+                match self.options.layout.alignment:
+                    case "left":
+                        layout = "align-start"
+                    case _:
+                        layout = "default"
+                child.set("data-layout", layout)
+                if self.options.layout.table.display_mode == "fixed":
+                    child.set("data-table-display-mode", "fixed")
+                if self.options.layout.table.width:
+                    child.set("data-table-width", str(self.options.layout.table.width))
+
+                return None
+
+            # <img src="..." alt="..." />
+            case "img":
+                return self._transform_image(FormattingContext.INLINE, child)
+
+            # <a href="..."> ... </a>
+            case "a":
+                return self._transform_link(child)
+
+            # <mark>...</mark>
+            case "mark":
+                return self._transform_mark(child)
+
+            # <span>...</span>
+            case "span":
+                classes = child.get("class", "").split(" ")
+
+                # <span class="arithmatex">...</span>
+                if "arithmatex" in classes:
+                    return self._transform_inline_math(child)
+
+            # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
+            # Multiple references: <sup id="fnref2:NAME">...</sup>, <sup id="fnref3:NAME">...</sup>
+            case "sup" if re.match(r"^fnref\d*:", child.get("id", "")):
+                self._transform_footnote_ref(child)
+                return None
+
+            # <input type="date" value="1984-01-01" />
+            case "input" if child.get("type", "") == "date":
+                return HTML("time", {"datetime": child.get("value", "")})
+
+            # <ins>...</ins>
+            case "ins":
+                # Confluence prefers <u> over <ins> for underline, and replaces <ins> with <u>
+                child.tag = "u"
+
+            # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
+            case "x-emoji":
+                return self._transform_emoji(child)
+
+            # <h1>...</h1>
+            # <h2>...</h2> ...
+            case "h1" | "h2" | "h3" | "h4" | "h5" | "h6":
+                level = int(child.tag[1:])
+                title = element_to_text(child)
+                self.toc.add(level, title)
+
+                if self.options.heading_anchors:
+                    self._transform_heading(child)
+                    return None
+            case _:
+                pass
 
         return None
 
@@ -1640,7 +1648,7 @@ class ConfluenceDocument:
         # configure HTML-to-Confluence converter
         converter_options = copy.deepcopy(self.options.converter)
         if props.layout is not None:
-            converter_options.layout = merged(props.layout, converter_options.layout)
+            converter_options.layout = coalesce(props.layout, converter_options.layout)
         converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter

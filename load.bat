@@ -1,4 +1,8 @@
 @echo off
+rem Publish Markdown files to Confluence wiki.
+rem
+rem Copyright 2022-2025, Levente Hunyadi
+rem https://github.com/hunyadi/md2conf
 
 rem Load environment variable assignments from `.env`, and set them in the caller's context
 for /f "usebackq tokens=*" %%A in (".env") do (

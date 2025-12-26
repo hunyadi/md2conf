@@ -8,26 +8,7 @@ Copyright 2022-2025, Levente Hunyadi
 
 import copy
 import dataclasses
-import sys
 from typing import Any, ClassVar, Protocol, TypeVar
-
-if sys.version_info >= (3, 12):
-    from typing import override as override  # noqa: F401
-else:
-    from typing_extensions import override as override  # noqa: F401
-
-if sys.version_info >= (3, 12):
-    from pathlib import Path
-
-    def path_relative_to(destination: Path, origin: Path) -> Path:
-        return destination.relative_to(origin, walk_up=True)
-
-else:
-    import os.path
-    from pathlib import Path
-
-    def path_relative_to(destination: Path, origin: Path) -> Path:
-        return Path(os.path.relpath(destination, start=origin))
 
 
 class DataclassInstance(Protocol):
@@ -37,7 +18,7 @@ class DataclassInstance(Protocol):
 D = TypeVar("D", bound=DataclassInstance)
 
 
-def merged(target: D, source: D) -> D:
+def coalesce(target: D, source: D) -> D:
     """
     Implements nullish coalescing assignment on each field of a data-class.
 
@@ -57,6 +38,6 @@ def merged(target: D, source: D) -> D:
                 updates[field.name] = copy.deepcopy(source_field)
         elif dataclasses.is_dataclass(field.type):
             if source_field is not None:
-                updates[field.name] = merged(target_field, source_field)
+                updates[field.name] = coalesce(target_field, source_field)
 
     return dataclasses.replace(target, **updates)
