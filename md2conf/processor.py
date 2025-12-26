@@ -15,10 +15,10 @@ from typing import Iterable
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
-from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .environment import ArgumentError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
+from .options import ConfluencePageID, DocumentOptions
 from .scanner import Scanner
 
 LOGGER = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ class Processor:
     Processes a single Markdown page or a directory of Markdown pages.
     """
 
-    options: ConfluenceDocumentOptions
+    options: DocumentOptions
     site: ConfluenceSiteMetadata
     root_dir: Path
 
@@ -85,7 +85,7 @@ class Processor:
 
     def __init__(
         self,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         site: ConfluenceSiteMetadata,
         root_dir: Path,
     ) -> None:
@@ -248,10 +248,10 @@ class Processor:
 
 
 class ProcessorFactory:
-    options: ConfluenceDocumentOptions
+    options: DocumentOptions
     site: ConfluenceSiteMetadata
 
-    def __init__(self, options: ConfluenceDocumentOptions, site: ConfluenceSiteMetadata) -> None:
+    def __init__(self, options: DocumentOptions, site: ConfluenceSiteMetadata) -> None:
         self.options = options
         self.site = site
 

@@ -20,9 +20,9 @@ from typing import Any, Iterable, Literal, Sequence
 
 from . import __version__
 from .compatibility import override
-from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions, ImageLayoutOptions, LayoutOptions
-from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
+from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
+from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions
 
 
 class Arguments(argparse.Namespace):
@@ -336,7 +336,11 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
     )
 
-    options = ConfluenceDocumentOptions(
+    options = DocumentOptions(
+        root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
+        keep_hierarchy=args.keep_hierarchy,
+        title_prefix=args.title_prefix,
+        generated_by=args.generated_by,
         converter=ConverterOptions(
             heading_anchors=args.heading_anchors,
             ignore_invalid_url=args.ignore_invalid_url,
@@ -356,10 +360,6 @@ def main() -> None:
                 ),
             ),
         ),
-        title_prefix=args.title_prefix,
-        generated_by=args.generated_by,
-        root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
-        keep_hierarchy=args.keep_hierarchy,
     )
     if args.local:
         from .local import LocalConverter
@@ -385,7 +385,7 @@ def main() -> None:
         from .publisher import Publisher
 
         try:
-            properties = ConfluenceConnectionProperties(
+            properties = ConnectionProperties(
                 api_url=args.api_url,
                 domain=args.domain,
                 base_path=args.path,
@@ -398,10 +398,7 @@ def main() -> None:
             parser.error(str(e))
         try:
             with ConfluenceAPI(properties) as api:
-                Publisher(
-                    api,
-                    options,
-                ).process(args.mdpath)
+                Publisher(api, options).process(args.mdpath)
         except HTTPError as err:
             logging.error(err)
 

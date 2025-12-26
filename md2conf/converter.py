@@ -25,7 +25,6 @@ from .coalesce import coalesce
 from .collection import ConfluencePageCollection
 from .compatibility import override, path_relative_to
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
-from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
 from .drawio.extension import DrawioExtension
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
@@ -36,6 +35,7 @@ from .latex import render_latex
 from .markdown import markdown_to_html
 from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
+from .options import ConfluencePageID, ConverterOptions, DocumentOptions
 from .plantuml.extension import PlantUMLExtension
 from .png import extract_png_dimensions, remove_png_chunks
 from .scanner import ScannedDocument, Scanner
@@ -1568,14 +1568,14 @@ class ConfluenceDocument:
     images: list[ImageData]
     embedded_files: dict[str, EmbeddedFileData]
 
-    options: ConfluenceDocumentOptions
+    options: DocumentOptions
     root: ElementType
 
     @classmethod
     def create(
         cls,
         path: Path,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: ConfluencePageCollection,
@@ -1601,7 +1601,7 @@ class ConfluenceDocument:
         self,
         path: Path,
         document: ScannedDocument,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: ConfluencePageCollection,

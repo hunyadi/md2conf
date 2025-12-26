@@ -83,7 +83,7 @@ class ConfluenceSiteProperties:
         self.space_key = opt_space_key
 
 
-class ConfluenceConnectionProperties:
+class ConnectionProperties:
     """
     Properties related to connecting to Confluence.
 

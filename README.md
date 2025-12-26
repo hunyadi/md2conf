@@ -52,26 +52,14 @@ pip install markdown-to-confluence
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-**Optional but recommended.** PlantUML diagrams are embedded with compressed source data and will display using the [PlantUML Diagrams for Confluence](https://marketplace.atlassian.com/apps/1215115/plantuml-diagrams-for-confluence) app. For optimal display with dimensions and SVG attachments, install Java, Graphviz, and PlantUML JAR:
+**Optional.** Pre-rendering PlantUML diagrams into PNG or SVG images requires Java, Graphviz and [PlantUML](https://plantuml.com/). (Refer to `--render-plantuml`.)
 
 1. **Install Java**: Version 8 or later from [Adoptium](https://adoptium.net/) or [Oracle](https://www.oracle.com/java/technologies/downloads/)
-2. **Install Graphviz**: Required for most diagram types (except sequence diagrams)
+2. **Install Graphviz**: Required for most diagram types in PlantUML (except sequence diagrams)
    * **Ubuntu/Debian**: `sudo apt-get install graphviz`
    * **macOS**: `brew install graphviz`
    * **Windows**: Download from [graphviz.org](https://graphviz.org/download/)
-3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and place in project root, or set `PLANTUML_JAR` environment variable to point to it
-
-Example:
-
-```sh
-# Download latest PlantUML JAR to project root
-curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
-
-# Or set environment variable to custom location
-export PLANTUML_JAR=/path/to/plantuml.jar
-```
-
-Without PlantUML JAR, diagrams will still be embedded but may display without optimal dimensions.
+3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and set `PLANTUML_JAR` environment variable to point to it
 
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
@@ -87,7 +75,11 @@ As authors of *md2conf*, we don't endorse or support any particular Confluence m
 
 **Optional.** Displaying Mermaid diagrams in Confluence without pre-rendering in the synchronization phase requires a [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence). (Refer to `--no-render-mermaid`.)
 
-**Optional.** Displaying formulas and equations in Confluence requires [marketplace app](https://marketplace.atlassian.com/apps/1226109/latex-math-for-confluence-math-formula-equations), refer to [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
+**Optional.** PlantUML diagrams are embedded with compressed source data and are displayed using the [PlantUML Diagrams for Confluence](https://marketplace.atlassian.com/apps/1215115/plantuml-diagrams-for-confluence) app (if installed). (Refer to `--no-render-plantuml`.)
+
+Installing `plantuml.jar` (see above) helps display embedded diagrams with pre-calculated optimal dimensions.
+
+**Optional.** Displaying formulas and equations in Confluence requires [marketplace app](https://marketplace.atlassian.com/apps/1226109/latex-math-for-confluence-math-formula-equations), refer to [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/). (Refer to `--no-render-latex`.)
 
 ## Getting started
 
@@ -582,7 +574,9 @@ Specifically, image references for status labels (e.g. `![My label][STATUS-RED]`
 
 ### Running the tool
 
-You execute the command-line tool `md2conf` to synchronize the Markdown file with Confluence:
+#### Command line
+
+You can synchronize a (directory of) Markdown file(s) with Confluence using the command-line tool `md2conf`:
 
 ```sh
 $ python3 -m md2conf sample/index.md
@@ -644,6 +638,58 @@ options:
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
                         Apply custom headers to all Confluence API requests.
+```
+
+#### Python
+
+*md2conf* has a Python interface. Create a `ConnectionProperties` object to set connection parameters to the Confluence server, and a `DocumentOptions` object to configure how Markdown files are converted into pages on a Confluence wiki site. Open a connection to the Confluence server with the context manager `ConfluenceAPI`, and instantiate a `Publisher` to start converting documents.
+
+```python
+from md2conf.api import ConfluenceAPI
+from md2conf.environment import ConnectionProperties
+from md2conf.options import ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions, TableLayoutOptions
+from md2conf.publisher import Publisher
+
+properties = ConnectionProperties(
+    api_url=...,
+    domain=...,
+    base_path=...,
+    user_name=...,
+    api_key=...,
+    space_key=...,
+    headers=...,
+)
+options = DocumentOptions(
+    root_page_id=...,
+    keep_hierarchy=...,
+    title_prefix=...,
+    generated_by=...,
+    converter=ConverterOptions(
+        heading_anchors=...,
+        ignore_invalid_url=...,
+        skip_title_heading=...,
+        prefer_raster=...,
+        render_drawio=...,
+        render_mermaid=...,
+        render_plantuml=...,
+        render_latex=...,
+        diagram_output_format=...,
+        webui_links=...,
+        use_panel=...,
+        layout=LayoutOptions(
+            image=ImageLayoutOptions(
+                alignment=...,
+                max_width=...,
+            ),
+            table=TableLayoutOptions(
+                width=...,
+                display_mode=...,
+            ),
+        ),
+    ),
+)
+with ConfluenceAPI(properties) as api:
+    Publisher(api, options).process(mdpath)
 ```
 
 ### Confluence REST API v1 vs. v2

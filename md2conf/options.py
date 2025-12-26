@@ -98,7 +98,7 @@ class ConverterOptions:
 
 
 @dataclass
-class ConfluenceDocumentOptions:
+class DocumentOptions:
     """
     Options that control the generated page content.
 

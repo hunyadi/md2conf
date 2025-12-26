@@ -14,9 +14,9 @@ from .attachment import attachment_name
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
-from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
+from .options import ConfluencePageID, DocumentOptions
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 from .xml import is_xml_equal, unwrap_substitute
 
@@ -30,7 +30,7 @@ class SynchronizingProcessor(Processor):
 
     api: ConfluenceSession
 
-    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions, root_dir: Path) -> None:
+    def __init__(self, api: ConfluenceSession, options: DocumentOptions, root_dir: Path) -> None:
         """
         Initializes a new processor instance.
 
@@ -213,7 +213,7 @@ class SynchronizingProcessor(Processor):
 class SynchronizingProcessorFactory(ProcessorFactory):
     api: ConfluenceSession
 
-    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions) -> None:
+    def __init__(self, api: ConfluenceSession, options: DocumentOptions) -> None:
         super().__init__(options, api.site)
         self.api = api
 
@@ -228,5 +228,5 @@ class Publisher(Converter):
     This is the class instantiated by the command-line application.
     """
 
-    def __init__(self, api: ConfluenceSession, options: ConfluenceDocumentOptions) -> None:
+    def __init__(self, api: ConfluenceSession, options: DocumentOptions) -> None:
         super().__init__(SynchronizingProcessorFactory(api, options))

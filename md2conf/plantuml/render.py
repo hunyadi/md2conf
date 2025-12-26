@@ -9,6 +9,7 @@ Copyright 2022-2025, Levente Hunyadi
 import base64
 import logging
 import os
+import shlex
 import shutil
 import zlib
 from pathlib import Path
@@ -56,17 +57,19 @@ def _get_plantuml_command() -> list[str]:
     :raises RuntimeError: Raised when `plantuml.jar` is not found.
     """
 
-    jar_path = _get_plantuml_jar_path()
+    env_cmd = os.environ.get("PLANTUML_CMD")
+    if env_cmd:
+        LOGGER.debug(f"Using PlantUML command: {env_cmd}")
+        return shlex.split(env_cmd)
 
+    jar_path = _get_plantuml_jar_path()
     if jar_path.is_file():
-        # Direct JAR invocation
         LOGGER.debug(f"Using PlantUML JAR at: {jar_path}")
         return ["java", "-jar", str(jar_path)]
 
     # JAR not found - fail with helpful message
     raise RuntimeError(
-        f"PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases "
-        f"and place it at {jar_path}, or set the PLANTUML_JAR environment variable to point to it."
+        "PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases and set the PLANTUML_JAR environment variable."
     )
 
 

@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import TypeVar
 
 from .coalesce import coalesce
-from .domain import LayoutOptions
 from .frontmatter import extract_frontmatter_json, extract_value
+from .options import LayoutOptions
 from .serializer import JsonType, json_to_object
 
 T = TypeVar("T")

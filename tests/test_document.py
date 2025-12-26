@@ -14,8 +14,8 @@ from pathlib import Path
 from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
-from md2conf.domain import ConfluenceDocumentOptions
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
+from md2conf.options import DocumentOptions
 from tests.utility import TypedTestCase
 
 
@@ -50,7 +50,7 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            ConfluenceDocumentOptions(),
+            DocumentOptions(),
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,
@@ -75,7 +75,7 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            ConfluenceDocumentOptions(),
+            DocumentOptions(),
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,

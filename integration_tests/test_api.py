@@ -21,7 +21,7 @@ from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.compatibility import override
 from md2conf.converter import NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
+from md2conf.options import ConfluencePageID, ConverterOptions, DocumentOptions
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
@@ -116,7 +116,7 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            options = ConfluenceDocumentOptions(
+            options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
@@ -128,7 +128,7 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            options = ConfluenceDocumentOptions(
+            options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
@@ -140,7 +140,7 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            options = ConfluenceDocumentOptions(
+            options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
@@ -199,7 +199,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             Publisher(
                 api,
-                ConfluenceDocumentOptions(root_page_id=self.feature_test_page_id),
+                DocumentOptions(root_page_id=self.feature_test_page_id),
             ).process_directory(source_dir)
 
         with ConfluenceAPI() as api:

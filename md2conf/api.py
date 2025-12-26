@@ -26,7 +26,7 @@ import truststore
 from requests.adapters import HTTPAdapter
 
 from .compatibility import override
-from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceError, PageError
+from .environment import ArgumentError, ConfluenceError, ConnectionProperties, PageError
 from .metadata import ConfluenceSiteMetadata
 from .serializer import JsonType, json_to_object, object_to_json_payload
 
@@ -371,11 +371,11 @@ class ConfluenceAPI:
     Encapsulates operations that can be invoked via the [Confluence REST API](https://developer.atlassian.com/cloud/confluence/rest/v2/).
     """
 
-    properties: ConfluenceConnectionProperties
+    properties: ConnectionProperties
     session: "ConfluenceSession | None" = None
 
-    def __init__(self, properties: ConfluenceConnectionProperties | None = None) -> None:
-        self.properties = properties or ConfluenceConnectionProperties()
+    def __init__(self, properties: ConnectionProperties | None = None) -> None:
+        self.properties = properties or ConnectionProperties()
 
     def __enter__(self) -> "ConfluenceSession":
         """

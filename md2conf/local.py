@@ -12,8 +12,8 @@ from pathlib import Path
 
 from .compatibility import override
 from .converter import ConfluenceDocument
-from .domain import ConfluenceDocumentOptions, ConfluencePageID
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
+from .options import ConfluencePageID, DocumentOptions
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
 
 LOGGER = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class LocalProcessor(Processor):
 
     def __init__(
         self,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         site: ConfluenceSiteMetadata,
         *,
         out_dir: Path | None,
@@ -92,7 +92,7 @@ class LocalProcessorFactory(ProcessorFactory):
 
     def __init__(
         self,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         site: ConfluenceSiteMetadata,
         out_dir: Path | None = None,
     ) -> None:
@@ -110,7 +110,7 @@ class LocalConverter(Converter):
 
     def __init__(
         self,
-        options: ConfluenceDocumentOptions,
+        options: DocumentOptions,
         site: ConfluenceSiteMetadata,
         out_dir: Path | None = None,
     ) -> None:
