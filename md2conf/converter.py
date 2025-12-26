@@ -6,7 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import dataclasses
+import copy
 import hashlib
 import logging
 import os.path
@@ -15,7 +15,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar
 from urllib.parse import ParseResult, quote_plus, urlparse
 
 import lxml.etree as ET
@@ -23,11 +23,11 @@ import lxml.etree as ET
 from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
 from .collection import ConfluencePageCollection
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
-from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions, TableLayoutOptions
+from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
 from .drawio.extension import DrawioExtension
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
-from .extension import ExtensionOptions
+from .extension import ExtensionOptions, MarketplaceExtension
 from .extra import merged, override, path_relative_to
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
 from .image import ImageGenerator
@@ -170,7 +170,6 @@ _LANGUAGES = {
     "kotlin": "kotlin",
     "livescript": "livescript",
     "lua": "lua",
-    "mermaid": "mermaid",
     "mathematica": "mathematica",
     "matlab": "matlab",
     "objectivec": "objectivec",
@@ -180,7 +179,6 @@ _LANGUAGES = {
     "pascal": "pascal",
     "perl": "perl",
     "php": "php",
-    "plantuml": "plantuml",
     "powershell": "powershell",
     "prolog": "prolog",
     "puppet": "puppet",
@@ -277,43 +275,6 @@ def is_placeholder_for(node: ElementType, name: str) -> bool:
 
 
 @dataclass
-class ConfluenceConverterOptions:
-    """
-    Options for converting an HTML tree into Confluence storage format.
-
-    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
-        plain text; when false, raise an exception.
-    :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
-        conversion rules for the identifier.
-    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
-    :param prefer_raster: Whether to choose PNG files over SVG files when available.
-    :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
-    :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
-    :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
-    :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
-    :param diagram_output_format: Target image format for diagrams.
-    :param webui_links: When true, convert relative URLs to Confluence Web UI links.
-    :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
-    :param layout: Layout options for content on a Confluence page.
-    :param table_layout: Table layout options on a Confluence page.
-    """
-
-    ignore_invalid_url: bool = False
-    heading_anchors: bool = False
-    skip_title_heading: bool = False
-    prefer_raster: bool = True
-    render_drawio: bool = False
-    render_mermaid: bool = False
-    render_plantuml: bool = False
-    render_latex: bool = False
-    diagram_output_format: Literal["png", "svg"] = "png"
-    webui_links: bool = False
-    use_panel: bool = False
-    layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
-    table_layout: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)
-
-
-@dataclass
 class ConfluencePanel:
     emoji: str
     emoji_shortname: str
@@ -353,7 +314,7 @@ ConfluencePanel.from_class = {
 class ConfluenceStorageFormatConverter(NodeVisitor):
     "Transforms a plain HTML tree into Confluence Storage Format."
 
-    options: ConfluenceConverterOptions
+    options: ConverterOptions
     path: Path
     base_dir: Path
     root_dir: Path
@@ -364,13 +325,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     page_metadata: ConfluencePageCollection
 
     image_generator: ImageGenerator
-    drawio: DrawioExtension
-    mermaid: MermaidExtension
-    plantuml: PlantUMLExtension
+    extensions: list[MarketplaceExtension]
 
     def __init__(
         self,
-        options: ConfluenceConverterOptions,
+        options: ConverterOptions,
         path: Path,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
@@ -391,28 +350,30 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
 
-        self.image_generator = ImageGenerator(self.base_dir, self.attachments, self.options.prefer_raster, self.options.layout.max_image_width)
+        self.image_generator = ImageGenerator(self.base_dir, self.attachments, self.options.prefer_raster, self.options.layout.image.max_width)
 
         diagram_output_format = self.options.diagram_output_format
-        alignment = ImageAlignment(self.options.layout.alignment or "center")
-        self.drawio = DrawioExtension(
-            self.base_dir,
-            self.attachments,
-            self.image_generator,
-            ExtensionOptions(render=self.options.render_drawio, output_format=diagram_output_format, alignment=alignment),
-        )
-        self.mermaid = MermaidExtension(
-            self.base_dir,
-            self.attachments,
-            self.image_generator,
-            ExtensionOptions(render=self.options.render_mermaid, output_format=diagram_output_format, alignment=alignment),
-        )
-        self.plantuml = PlantUMLExtension(
-            self.base_dir,
-            self.attachments,
-            self.image_generator,
-            ExtensionOptions(render=self.options.render_plantuml, output_format=diagram_output_format, alignment=alignment),
-        )
+        alignment = ImageAlignment(self.options.layout.image.alignment or "center")
+        self.extensions = [
+            DrawioExtension(
+                self.base_dir,
+                self.attachments,
+                self.image_generator,
+                ExtensionOptions(render=self.options.render_drawio, output_format=diagram_output_format, alignment=alignment),
+            ),
+            MermaidExtension(
+                self.base_dir,
+                self.attachments,
+                self.image_generator,
+                ExtensionOptions(render=self.options.render_mermaid, output_format=diagram_output_format, alignment=alignment),
+            ),
+            PlantUMLExtension(
+                self.base_dir,
+                self.attachments,
+                self.image_generator,
+                ExtensionOptions(render=self.options.render_plantuml, output_format=diagram_output_format, alignment=alignment),
+            ),
+        ]
 
     def _transform_heading(self, heading: ElementType) -> None:
         """
@@ -632,7 +593,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             alt=alt,
             title=title,
             caption=None,
-            alignment=ImageAlignment(self.options.layout.alignment or "center"),
+            alignment=ImageAlignment(self.options.layout.image.alignment or "center"),
         )
 
         if is_absolute_url(src):
@@ -644,14 +605,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             if absolute_path is None:
                 return self._create_missing(path, attrs)
 
-            if absolute_path.name.endswith((".drawio", ".drawio.png", ".drawio.svg", ".drawio.xml")):
-                return self.drawio.transform_image(absolute_path, attrs)
-            elif absolute_path.name.endswith((".mmd", ".mermaid")):
-                return self.mermaid.transform_image(absolute_path, attrs)
-            elif absolute_path.name.endswith((".puml", ".plantuml")):
-                return self.plantuml.transform_image(absolute_path, attrs)
-            else:
-                return self.image_generator.transform_attached_image(absolute_path, attrs)
+            for extension in self.extensions:
+                if extension.matches_image(absolute_path):
+                    return extension.transform_image(absolute_path, attrs)
+
+            return self.image_generator.transform_attached_image(absolute_path, attrs)
 
     def _transform_external_image(self, url: str, attrs: ImageAttributes) -> ElementType:
         "Emits Confluence Storage Format XHTML for an external image."
@@ -667,7 +625,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if attrs.caption:
             elements.append(AC_ELEM("caption", attrs.caption))
 
-        return AC_ELEM("image", attrs.as_dict(max_width=self.options.layout.max_image_width), *elements)
+        return AC_ELEM("image", attrs.as_dict(max_width=self.options.layout.image.max_width), *elements)
 
     def _warn_or_raise(self, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
@@ -727,6 +685,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _transform_code_block(self, code: ElementType) -> ElementType:
         "Transforms a code block."
 
+        content: str = code.text or ""
+        content = content.rstrip()
+
         if language_class := code.get("class"):
             if m := re.match("^language-(.*)$", language_class):
                 language_name = m.group(1)
@@ -737,18 +698,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         # translate name to standard name for (programming) language
         if language_name is not None:
+            for extension in self.extensions:
+                if extension.matches_fenced(language_name, content):
+                    return extension.transform_fenced(content)
+
             language_id = _LANGUAGES.get(language_name)
         else:
             language_id = None
-
-        content: str = code.text or ""
-        content = content.rstrip()
-
-        if language_id == "mermaid":
-            return self.mermaid.transform_fenced(content)
-
-        if language_id == "plantuml":
-            return self.plantuml.transform_fenced(content)
 
         return AC_ELEM(
             "structured-macro",
@@ -1089,7 +1045,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 alt=content,
                 title=None,
                 caption="",
-                alignment=ImageAlignment(self.options.layout.alignment or "center"),
+                alignment=ImageAlignment(self.options.layout.image.alignment or "center"),
             )
         else:
             attrs = ImageAttributes.empty(context)
@@ -1131,7 +1087,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.alignment or "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.image.alignment or "center"),
         )
         return macro
 
@@ -1168,7 +1124,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {AC_ATTR("name"): "body"},
                 content,
             ),
-            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.alignment or "center"),
+            AC_ELEM("parameter", {AC_ATTR("name"): "align"}, self.options.layout.image.alignment or "center"),
         )
 
     def _transform_footnote_ref(self, elem: ElementType) -> None:
@@ -1524,10 +1480,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             for td in child.iterdescendants("td", "th"):
                 normalize_inline(td)
             child.set("data-layout", "default")
-            if self.options.table_layout.display_mode == "fixed":
+            if self.options.layout.table.display_mode == "fixed":
                 child.set("data-table-display-mode", "fixed")
-            if self.options.table_layout.width:
-                child.set("data-table-width", str(self.options.table_layout.width))
+            if self.options.layout.table.width:
+                child.set("data-table-width", str(self.options.layout.table.width))
 
             return None
 
@@ -1682,13 +1638,9 @@ class ConfluenceDocument:
             raise ConversionError(path) from ex
 
         # configure HTML-to-Confluence converter
-        converter_options = ConfluenceConverterOptions(
-            **{field.name: getattr(self.options, field.name) for field in dataclasses.fields(ConfluenceConverterOptions)}
-        )
+        converter_options = copy.deepcopy(self.options.converter)
         if props.layout is not None:
             converter_options.layout = merged(props.layout, converter_options.layout)
-        if props.table_layout is not None:
-            converter_options.table_layout = merged(props.table_layout, converter_options.table_layout)
         converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter

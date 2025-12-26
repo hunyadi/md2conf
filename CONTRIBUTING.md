@@ -90,7 +90,7 @@ Example for testing PlantUML with SVG rendering on a forked repository:
 ```bash
 gh workflow run integration-tests.yml \
   --ref add-plantuml-support \
-  --repo codemedic/hunyadi-md2conf \
+  --repo my-github-account/hunyadi-md2conf \
   --field render_plantuml=true \
   --field diagram_output_format=svg
 ```

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
-from .domain import LayoutOptions, TableLayoutOptions
+from .domain import LayoutOptions
 from .extra import merged
 from .frontmatter import extract_frontmatter_json, extract_value
 from .serializer import JsonType, json_to_object
@@ -44,7 +44,6 @@ class DocumentProperties:
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     :param layout: Layout options for content on a Confluence page.
-    :param table_layout: Table layout options on a Confluence page.
     """
 
     page_id: str | None = None
@@ -55,7 +54,6 @@ class DocumentProperties:
     synchronized: bool | None = None
     properties: dict[str, JsonType] | None = None
     layout: LayoutOptions | None = None
-    table_layout: TableLayoutOptions | None = None
 
 
 @dataclass

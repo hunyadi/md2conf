@@ -32,6 +32,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PlantUMLExtension(MarketplaceExtension):
+    @override
+    def matches_image(self, absolute_path: Path) -> bool:
+        return absolute_path.name.endswith((".puml", ".plantuml"))
+
+    @override
+    def matches_fenced(self, language: str, content: str) -> bool:
+        return language == "plantuml"
+
     def _extract_plantuml_config(self, content: str) -> PlantUMLConfigProperties | None:
         "Extract config from PlantUML YAML front matter configuration."
 

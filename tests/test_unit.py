@@ -6,14 +6,17 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import dataclasses
 import logging
 import unittest
+from dataclasses import dataclass
 from datetime import datetime
 
 from md2conf.attachment import attachment_name
 from md2conf.converter import (
     title_to_identifier,
 )
+from md2conf.extra import merged
 from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
@@ -40,6 +43,22 @@ class TestUnit(TypedTestCase):
         self.assertEqual(attachment_name("../a.png"), "PAR_a.png")
         with self.assertRaises(ValueError):
             _ = attachment_name("/path/to/image.png")
+
+    def test_merged(self) -> None:
+        @dataclass(frozen=True)
+        class A:
+            s: str | None = None
+            i: int | None = None
+
+        @dataclass(frozen=True)
+        class B:
+            a: A = dataclasses.field(default_factory=A)
+            i: int | None = None
+
+        self.assertEqual(merged(B(), B(a=A("a"))), B(a=A("a")))
+        self.assertEqual(merged(B(a=A("a")), B()), B(a=A("a")))
+        self.assertEqual(merged(B(a=A("a")), B(i=2)), B(a=A("a"), i=2))
+        self.assertEqual(merged(B(a=A("a", 1)), B(i=2)), B(a=A("a", 1), i=2))
 
     def test_title_to_identifier(self) -> None:
         self.assertEqual(title_to_identifier("This is  a Heading  "), "this-is-a-heading")

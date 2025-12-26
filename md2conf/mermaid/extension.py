@@ -31,6 +31,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 class MermaidExtension(MarketplaceExtension):
+    @override
+    def matches_image(self, absolute_path: Path) -> bool:
+        return absolute_path.name.endswith((".mmd", ".mermaid"))
+
+    @override
+    def matches_fenced(self, language: str, content: str) -> bool:
+        return language == "mermaid"
+
     def _extract_mermaid_config(self, content: str) -> MermaidConfigProperties | None:
         """Extract scale from Mermaid YAML front matter configuration."""
 

@@ -1,6 +1,7 @@
 ---
-table_layout:
-  width: 640
+layout:
+  table:
+    width: 640
 ---
 
 <!-- confluence-page-id: 00000000000 -->

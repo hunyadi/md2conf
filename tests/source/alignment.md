@@ -1,6 +1,7 @@
 ---
 layout:
-  alignment: left
+  image:
+    alignment: left
 ---
 
 <!-- confluence-page-id: 00000000000 -->

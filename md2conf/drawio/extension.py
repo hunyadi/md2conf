@@ -24,6 +24,14 @@ ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 class DrawioExtension(MarketplaceExtension):
     @override
+    def matches_image(self, absolute_path: Path) -> bool:
+        return absolute_path.name.endswith((".drawio", ".drawio.png", ".drawio.svg", ".drawio.xml"))
+
+    @override
+    def matches_fenced(self, language: str, content: str) -> bool:
+        return False
+
+    @override
     def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         if absolute_path.name.endswith((".drawio.png", ".drawio.svg")):
             return self._transform_drawio_image(absolute_path, attrs)

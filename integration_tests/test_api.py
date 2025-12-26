@@ -20,7 +20,7 @@ import lxml.etree as ET
 from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.converter import NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID
+from md2conf.domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions
 from md2conf.extra import override
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
@@ -118,9 +118,11 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = ConfluenceDocumentOptions(
                 root_page_id=self.feature_test_page_id,
-                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                converter=ConverterOptions(
+                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                ),
             )
             Publisher(api, options).process(self.sample_dir / "index.md")
 
@@ -128,9 +130,11 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = ConfluenceDocumentOptions(
                 root_page_id=self.feature_test_page_id,
-                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                converter=ConverterOptions(
+                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                ),
             )
             Publisher(api, options).process_page(self.sample_dir / "index.md")
 
@@ -138,9 +142,11 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = ConfluenceDocumentOptions(
                 root_page_id=self.feature_test_page_id,
-                render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                converter=ConverterOptions(
+                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
+                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
+                ),
             )
             Publisher(api, options).process_directory(self.sample_dir)
 

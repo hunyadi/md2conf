@@ -48,6 +48,16 @@ class MarketplaceExtension:
         self.options = options
 
     @abstractmethod
+    def matches_image(self, absolute_path: Path) -> bool:
+        "True if the extension is able to process the external file."
+        ...
+
+    @abstractmethod
+    def matches_fenced(self, language: str, content: str) -> bool:
+        "True if the extension can process the fenced code block."
+        ...
+
+    @abstractmethod
     def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         "Emits Confluence Storage Format XHTML for a drawing or diagram linked as an image."
         ...

@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence
 
 from . import __version__
-from .domain import ConfluenceDocumentOptions, ConfluencePageID, LayoutOptions
+from .domain import ConfluenceDocumentOptions, ConfluencePageID, ConverterOptions, ImageLayoutOptions, LayoutOptions
 from .environment import ArgumentError, ConfluenceConnectionProperties, ConfluenceSiteProperties
 from .extra import override
 from .metadata import ConfluenceSiteMetadata
@@ -337,25 +337,29 @@ def main() -> None:
     )
 
     options = ConfluenceDocumentOptions(
-        heading_anchors=args.heading_anchors,
-        ignore_invalid_url=args.ignore_invalid_url,
-        skip_title_heading=args.skip_title_heading,
+        converter=ConverterOptions(
+            heading_anchors=args.heading_anchors,
+            ignore_invalid_url=args.ignore_invalid_url,
+            skip_title_heading=args.skip_title_heading,
+            prefer_raster=args.prefer_raster,
+            render_drawio=args.render_drawio,
+            render_mermaid=args.render_mermaid,
+            render_plantuml=args.render_plantuml,
+            render_latex=args.render_latex,
+            diagram_output_format=args.diagram_output_format,
+            webui_links=args.webui_links,
+            use_panel=args.use_panel,
+            layout=LayoutOptions(
+                image=ImageLayoutOptions(
+                    alignment=args.alignment,
+                    max_width=args.max_image_width,
+                ),
+            ),
+        ),
         title_prefix=args.title_prefix,
         generated_by=args.generated_by,
         root_page_id=ConfluencePageID(args.root_page) if args.root_page else None,
         keep_hierarchy=args.keep_hierarchy,
-        prefer_raster=args.prefer_raster,
-        render_drawio=args.render_drawio,
-        render_mermaid=args.render_mermaid,
-        render_plantuml=args.render_plantuml,
-        render_latex=args.render_latex,
-        diagram_output_format=args.diagram_output_format,
-        webui_links=args.webui_links,
-        use_panel=args.use_panel,
-        layout=LayoutOptions(
-            alignment=args.alignment,
-            max_image_width=args.max_image_width,
-        ),
     )
     if args.local:
         from .local import LocalConverter

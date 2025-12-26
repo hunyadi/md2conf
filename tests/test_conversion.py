@@ -19,7 +19,7 @@ from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection
 from md2conf.converter import ConfluenceDocument
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.domain import ConfluenceDocumentOptions, LayoutOptions
+from md2conf.domain import ConfluenceDocumentOptions, ConverterOptions, ImageLayoutOptions, LayoutOptions
 from md2conf.extra import override
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
@@ -163,7 +163,7 @@ class TestConversion(TypedTestCase):
             with self.subTest(name=name):
                 _, doc = ConfluenceDocument.create(
                     self.source_dir / f"{name}.md",
-                    ConfluenceDocumentOptions(prefer_raster=False, render_drawio=True),
+                    ConfluenceDocumentOptions(converter=ConverterOptions(prefer_raster=False, render_drawio=True)),
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,
@@ -178,7 +178,7 @@ class TestConversion(TypedTestCase):
     def test_admonitions(self) -> None:
         _, doc = ConfluenceDocument.create(
             self.source_dir / "admonition.md",
-            ConfluenceDocumentOptions(use_panel=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(use_panel=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -195,7 +195,7 @@ class TestConversion(TypedTestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             _, doc = ConfluenceDocument.create(
                 self.source_dir / "missing.md",
-                ConfluenceDocumentOptions(ignore_invalid_url=True),
+                ConfluenceDocumentOptions(converter=ConverterOptions(ignore_invalid_url=True)),
                 self.source_dir,
                 self.site_metadata,
                 self.page_metadata,
@@ -214,7 +214,7 @@ class TestConversion(TypedTestCase):
     def test_heading_anchors(self) -> None:
         _, doc = ConfluenceDocument.create(
             self.source_dir / "anchors.md",
-            ConfluenceDocumentOptions(heading_anchors=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(heading_anchors=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -268,8 +268,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                render_mermaid=True,
-                diagram_output_format="svg",
+                converter=ConverterOptions(
+                    render_mermaid=True,
+                    diagram_output_format="svg",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -283,8 +285,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "mermaid.md",
             ConfluenceDocumentOptions(
-                render_mermaid=True,
-                diagram_output_format="png",
+                converter=ConverterOptions(
+                    render_mermaid=True,
+                    diagram_output_format="png",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -298,8 +302,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "plantuml.md",
             ConfluenceDocumentOptions(
-                render_plantuml=True,
-                diagram_output_format="svg",
+                converter=ConverterOptions(
+                    render_plantuml=True,
+                    diagram_output_format="svg",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -313,8 +319,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "plantuml.md",
             ConfluenceDocumentOptions(
-                render_plantuml=True,
-                diagram_output_format="png",
+                converter=ConverterOptions(
+                    render_plantuml=True,
+                    diagram_output_format="png",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -327,8 +335,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "math.md",
             ConfluenceDocumentOptions(
-                render_latex=True,
-                diagram_output_format="svg",
+                converter=ConverterOptions(
+                    render_latex=True,
+                    diagram_output_format="svg",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -341,8 +351,10 @@ class TestConversion(TypedTestCase):
         _, document = ConfluenceDocument.create(
             self.source_dir / "math.md",
             ConfluenceDocumentOptions(
-                render_latex=True,
-                diagram_output_format="png",
+                converter=ConverterOptions(
+                    render_latex=True,
+                    diagram_output_format="png",
+                )
             ),
             self.source_dir,
             self.site_metadata,
@@ -354,7 +366,12 @@ class TestConversion(TypedTestCase):
         "Test that max_image_width constrains display width while preserving original dimensions."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=100)),
+            ConfluenceDocumentOptions(
+                converter=ConverterOptions(
+                    prefer_raster=False,
+                    layout=LayoutOptions(image=ImageLayoutOptions(max_width=100)),
+                )
+            ),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -372,7 +389,12 @@ class TestConversion(TypedTestCase):
         "Test that images smaller than max_image_width are not constrained."
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images.md",
-            ConfluenceDocumentOptions(prefer_raster=False, layout=LayoutOptions(max_image_width=500)),
+            ConfluenceDocumentOptions(
+                converter=ConverterOptions(
+                    prefer_raster=False,
+                    layout=LayoutOptions(image=ImageLayoutOptions(max_width=500)),
+                )
+            ),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -405,7 +427,7 @@ class TestConversion(TypedTestCase):
         """Test that the first heading is removed when skip_title_heading is enabled."""
         _, doc = ConfluenceDocument.create(
             self.source_dir / "skip_title_heading.md",
-            ConfluenceDocumentOptions(skip_title_heading=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(skip_title_heading=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -422,7 +444,7 @@ class TestConversion(TypedTestCase):
         """Test that the first heading is preserved when skip_title_heading is disabled (default)."""
         _, doc = ConfluenceDocument.create(
             self.source_dir / "skip_title_heading.md",
-            ConfluenceDocumentOptions(skip_title_heading=False),
+            ConfluenceDocumentOptions(converter=ConverterOptions(skip_title_heading=False)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -439,7 +461,7 @@ class TestConversion(TypedTestCase):
         """Test that heading is preserved when title comes from front-matter, even with flag enabled."""
         _, doc = ConfluenceDocument.create(
             self.source_dir / "skip_title_heading_frontmatter.md",
-            ConfluenceDocumentOptions(skip_title_heading=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(skip_title_heading=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -456,7 +478,7 @@ class TestConversion(TypedTestCase):
         """Test that headings are preserved when there are multiple top-level headings."""
         _, doc = ConfluenceDocument.create(
             self.source_dir / "skip_title_heading_multiple.md",
-            ConfluenceDocumentOptions(skip_title_heading=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(skip_title_heading=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
@@ -473,7 +495,7 @@ class TestConversion(TypedTestCase):
         """Test that abstract text before heading flows into content when heading is removed."""
         _, doc = ConfluenceDocument.create(
             self.source_dir / "skip_title_heading_abstract.md",
-            ConfluenceDocumentOptions(skip_title_heading=True),
+            ConfluenceDocumentOptions(converter=ConverterOptions(skip_title_heading=True)),
             self.source_dir,
             self.site_metadata,
             self.page_metadata,

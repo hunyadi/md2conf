@@ -6,6 +6,7 @@ Copyright 2022-2025, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import copy
 import dataclasses
 import sys
 from typing import Any, ClassVar, Protocol, TypeVar
@@ -41,8 +42,21 @@ def merged(target: D, source: D) -> D:
     Implements nullish coalescing assignment on each field of a data-class.
 
     Iterates over each field of the data-class, and evaluates the right operand and assigns it to the left only if
-    the left operand is `None`. Always creates and returns a new data-class instance.
+    the left operand is `None`. Applies recursively when the field is a data-class.
+
+    :returns: A newly created data-class instance.
     """
 
-    updates = {f.name: getattr(source, f.name, None) for f in dataclasses.fields(target) if getattr(target, f.name, None) is None}
+    updates: dict[str, Any] = {}
+    for field in dataclasses.fields(target):
+        target_field = getattr(target, field.name, None)
+        source_field = getattr(source, field.name, None)
+
+        if target_field is None:
+            if source_field is not None:
+                updates[field.name] = copy.deepcopy(source_field)
+        elif dataclasses.is_dataclass(field.type):
+            if source_field is not None:
+                updates[field.name] = merged(target_field, source_field)
+
     return dataclasses.replace(target, **updates)
