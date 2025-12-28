@@ -19,7 +19,6 @@ from md2conf.compatibility import override, path_relative_to
 from md2conf.csf import AC_ATTR, AC_ELEM
 from md2conf.extension import MarketplaceExtension
 from md2conf.formatting import ImageAttributes
-from md2conf.png import extract_png_dimensions
 from md2conf.svg import get_svg_dimensions_from_bytes
 
 from .config import PlantUMLConfigProperties
@@ -68,53 +67,22 @@ class PlantUMLExtension(MarketplaceExtension):
         """
         Emits Confluence Storage Format XHTML for a PlantUML diagram read from an external file or defined in a fenced code block.
 
-        When `render_plantuml` is enabled, renders as an image attachment. Otherwise, uses the macro `plantumlcloud`
-        with embedded SVG and compressed source.
+        When `render_plantuml` is enabled, renders as an image attachment. Otherwise, uses a structured macro with embedded SVG and compressed source.
         """
 
         if self.options.render:
             # render diagram as image file (PNG or SVG based on diagram output format)
             config = self._extract_plantuml_config(content)
-            image_data = render_diagram(content, self.options.output_format, config=config)
-
-            # extract dimensions and update attributes based on format
-            width: int | None
-            height: int | None
-            match self.options.output_format:
-                case "svg":
-                    width, height = get_svg_dimensions_from_bytes(image_data)
-                case "png":
-                    width, height = extract_png_dimensions(data=image_data)
-
-            if width is not None or height is not None:
-                attrs = ImageAttributes(
-                    context=attrs.context,
-                    width=width,
-                    height=height,
-                    alt=attrs.alt,
-                    title=attrs.title,
-                    caption=attrs.caption,
-                    alignment=attrs.alignment,
-                )
-
-            # generate filename and add as attachment
-            if relative_path is not None:
-                image_filename = attachment_name(relative_path.with_suffix(f".{self.options.output_format}"))
-                self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, attrs.alt))
-            else:
-                image_hash = hashlib.md5(image_data).hexdigest()
-                image_filename = attachment_name(f"embedded_{image_hash}.{self.options.output_format}")
-                self.attachments.add_embed(image_filename, EmbeddedFileData(image_data))
-
-            return self.generator.create_attached_image(image_filename, attrs)
+            image_data = render_diagram(content, self.generator.options.output_format, config=config)
+            return self.generator.transform_attached_data(image_data, attrs, relative_path)
         else:
             if relative_path is not None:
                 absolute_path = self.base_dir / relative_path
                 self.attachments.add_image(ImageData(absolute_path, attrs.alt))
 
-            # use macro `plantumlcloud` with SVG attachment
+            # use `structured-macro` with SVG attachment
             if has_plantuml():
-                # render to SVG for macro `plantumlcloud` (macro requires SVG)
+                # render to SVG for structured macro (macro requires SVG)
                 config = self._extract_plantuml_config(content)
                 image_data = render_diagram(content, "svg", config=config)
 
@@ -136,9 +104,9 @@ class PlantUMLExtension(MarketplaceExtension):
 
     def _create_plantuml_macro(self, source: str, filename: str | None = None, width: int | None = None, height: int | None = None) -> ElementType:
         """
-        A PlantUML diagram using the macro `plantumlcloud` with embedded data.
+        A PlantUML diagram using a `structured-macro` with embedded data.
 
-        Generates a macro compatible with PlantUML Diagrams for Confluence app.
+        Generates a macro compatible with "PlantUML Diagrams for Confluence" app.
 
         :see: https://stratus-addons.atlassian.net/wiki/spaces/PDFC/pages/1839333377
         """

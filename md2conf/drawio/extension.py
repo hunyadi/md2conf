@@ -47,10 +47,8 @@ class DrawioExtension(MarketplaceExtension):
     def _transform_drawio(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render:
-            image_data = render_diagram(absolute_path, self.options.output_format)
-            image_filename = attachment_name(relative_path.with_suffix(f".{self.options.output_format}"))
-            self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, attrs.alt))
-            return self.generator.create_attached_image(image_filename, attrs)
+            image_data = render_diagram(absolute_path, self.generator.options.output_format)
+            return self.generator.transform_attached_data(image_data, attrs, relative_path)
         else:
             self.attachments.add_image(ImageData(absolute_path, attrs.alt))
             image_filename = attachment_name(relative_path)
@@ -58,6 +56,7 @@ class DrawioExtension(MarketplaceExtension):
 
     def _transform_drawio_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         if self.options.render:
+            # already a PNG or SVG file (with embedded draw.io content)
             return self.generator.transform_attached_image(absolute_path, attrs)
         else:
             # extract embedded editable diagram and upload as *.drawio

@@ -30,7 +30,7 @@ from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extension import ExtensionOptions, MarketplaceExtension
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
-from .image import ImageGenerator
+from .image import ImageGenerator, ImageGeneratorOptions
 from .latex import render_latex
 from .markdown import markdown_to_html
 from .mermaid.extension import MermaidExtension
@@ -351,29 +351,16 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.site_metadata = site_metadata
         self.page_metadata = page_metadata
 
-        self.image_generator = ImageGenerator(self.base_dir, self.attachments, self.options.prefer_raster, self.options.layout.image.max_width)
+        self.image_generator = ImageGenerator(
+            self.base_dir,
+            self.attachments,
+            ImageGeneratorOptions(self.options.diagram_output_format, self.options.prefer_raster, self.options.layout.image.max_width),
+        )
 
-        diagram_output_format = self.options.diagram_output_format
-        alignment = ImageAlignment(self.options.layout.get_image_alignment())
         self.extensions = [
-            DrawioExtension(
-                self.base_dir,
-                self.attachments,
-                self.image_generator,
-                ExtensionOptions(render=self.options.render_drawio, output_format=diagram_output_format, alignment=alignment),
-            ),
-            MermaidExtension(
-                self.base_dir,
-                self.attachments,
-                self.image_generator,
-                ExtensionOptions(render=self.options.render_mermaid, output_format=diagram_output_format, alignment=alignment),
-            ),
-            PlantUMLExtension(
-                self.base_dir,
-                self.attachments,
-                self.image_generator,
-                ExtensionOptions(render=self.options.render_plantuml, output_format=diagram_output_format, alignment=alignment),
-            ),
+            DrawioExtension(self.image_generator, ExtensionOptions(render=self.options.render_drawio)),
+            MermaidExtension(self.image_generator, ExtensionOptions(render=self.options.render_mermaid)),
+            PlantUMLExtension(self.image_generator, ExtensionOptions(render=self.options.render_plantuml)),
         ]
 
     def _transform_heading(self, heading: ElementType) -> None:

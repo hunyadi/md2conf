@@ -317,3 +317,25 @@ def _parse_viewbox(viewbox: str) -> tuple[int | None, int | None]:
         return width, height
     except ValueError:
         return None, None
+
+
+def fix_svg_get_dimensions(image_data: bytes) -> tuple[bytes, int | None, int | None]:
+    """
+    Post-processes SVG diagram data by fixing dimensions and extracting metadata.
+
+    This handles the common pattern for SVG diagrams:
+
+    1. fixes SVG dimensions (converts percentage-based to explicit pixels), and
+    2. extracts width/height from the SVG.
+
+    :param image_data: Raw SVG data as bytes.
+    :returns: Tuple of update raw data, image width, image height.
+    """
+
+    # fix SVG to have explicit width/height instead of percentages
+    image_data = fix_svg_dimensions(image_data)
+
+    # extract dimensions from the fixed SVG
+    width, height = get_svg_dimensions_from_bytes(image_data)
+
+    return image_data, width, height

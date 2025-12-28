@@ -24,6 +24,8 @@ class EmbeddedFileData:
 
 
 class AttachmentCatalog:
+    "Maintains a list of files and binary data to be uploaded to Confluence as attachments."
+
     images: list[ImageData]
     embedded_files: dict[str, EmbeddedFileData]
 

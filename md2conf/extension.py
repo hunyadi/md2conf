@@ -9,12 +9,11 @@ Copyright 2022-2025, Levente Hunyadi
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 import lxml.etree as ET
 
 from .attachment import AttachmentCatalog
-from .formatting import ImageAlignment, ImageAttributes
+from .formatting import ImageAttributes
 from .image import ImageGenerator
 
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
@@ -26,26 +25,36 @@ class ExtensionOptions:
     Customizes how Confluence content is generated for a drawing or diagram.
 
     :param render: Whether to pre-render the drawing or diagram into a PNG/SVG image.
-    :param output_format: Target image format for diagrams.
-    :param alignment: Alignment for block-level images and formulas.
     """
 
     render: bool
-    output_format: Literal["png", "svg"]
-    alignment: ImageAlignment
 
 
 class MarketplaceExtension:
-    base_dir: Path
-    attachments: AttachmentCatalog
+    """
+    Base class for integrating third-party Atlassian Marketplace extensions.
+
+    Derive from this class to generate custom Confluence Storage Format output for Markdown image references and fenced code blocks.
+    """
+
     generator: ImageGenerator
     options: ExtensionOptions
 
-    def __init__(self, base_dir: Path, attachments: AttachmentCatalog, generator: ImageGenerator, options: ExtensionOptions) -> None:
-        self.base_dir = base_dir
-        self.attachments = attachments
+    def __init__(self, generator: ImageGenerator, options: ExtensionOptions) -> None:
         self.generator = generator
         self.options = options
+
+    @property
+    def base_dir(self) -> Path:
+        "Base directory for resolving relative links."
+
+        return self.generator.base_dir
+
+    @property
+    def attachments(self) -> AttachmentCatalog:
+        "Maintains a list of files and binary data to be uploaded to Confluence as attachments."
+
+        return self.generator.attachments
 
     @abstractmethod
     def matches_image(self, absolute_path: Path) -> bool:
