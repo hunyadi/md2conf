@@ -10,6 +10,34 @@ This Python package
 * converts Markdown content into the Confluence Storage Format (XHTML),
 * invokes Confluence API endpoints to upload images and content.
 
+### GitHub Action
+
+A GitHub Action is available to automate this process. For detailed instructions, see the **[Action Documentation](ACTION.md)**.
+
+**Basic Usage:**
+```yaml
+# .github/workflows/publish.yml
+name: Publish Docs to Confluence
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Confluence
+        uses: hunyadi/md2conf@v1
+        with:
+          path: './docs'
+          space: 'MYSPACE'
+          root_page: 'My Project Documentation'
+          api_key: ${{ secrets.CONFLUENCE_API_KEY }}
+```
+
 ## Features
 
 * Sections and subsections

@@ -1,0 +1,151 @@
+name: 'md2conf Github Action'
+description: 'A Github Action to publish Markdown files to Confluence.'
+author: 'Levente Hunyadi'
+
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to the Markdown file or directory to publish.'
+    required: true
+  image_repository:
+    description: 'The Docker image repository to use.'
+    required: false
+    default: 'leventehunyadi/md2conf'
+  image_tag:
+    description: 'The tag of the Docker image to use (e.g., v1, v1.2.3). Defaults to the action''s own version.'
+    required: false
+
+  # Confluence Connection Details
+  domain:
+    description: 'Confluence organization domain (e.g., your-domain.atlassian.net).'
+    required: false
+  api_url:
+    description: 'Confluence API URL. Use for scoped tokens. Overrides domain.'
+    required: false
+  username:
+    description: 'Confluence user name. For basic authentication.'
+    required: false
+  api_key:
+    description: 'Confluence API key or password.'
+    required: true
+  space:
+    description: 'Confluence space key for the pages.'
+    required: true
+
+  # Publishing options
+  root_page:
+    description: 'The ID or title of the Confluence page to use as the parent for published pages.'
+    required: false
+  keep_hierarchy:
+    description: 'Maintain source directory structure when exporting to Confluence.'
+    required: false
+    default: 'false'
+  title_prefix:
+    description: 'String to prepend to Confluence page titles.'
+    required: false
+  skip_title_heading:
+    description: 'If true, skips the first heading from the body if it''s used as the page title.'
+    required: false
+    default: 'true'
+  generated_by:
+    description: "Text for the 'generated-by' prompt. Set to 'none' to disable."
+    required: false
+    default: 'This page has been generated with a tool.'
+
+  # Rendering options
+  render_diagrams:
+    description: 'Render diagrams (draw.io, Mermaid, PlantUML) as images.'
+    required: false
+    default: 'true'
+  render_latex:
+    description: 'Render LaTeX formulas as images.'
+    required: false
+    default: 'true'
+  diagram_output_format:
+    description: 'Output format for rendered diagrams (png or svg).'
+    required: false
+    default: 'png'
+  alignment:
+    description: 'Alignment for block-level images and formulas (center, left, or right).'
+    required: false
+    default: 'center'
+  max_image_width:
+    description: 'Maximum display width for images in pixels (e.g., 700).'
+    required: false
+
+  # Extra arguments
+  extra_args:
+    description: 'Any extra command-line arguments to pass to md2conf.'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run md2conf
+      shell: bash
+      run: |
+        # Use a bash array to safely build the list of arguments.
+        # This prevents issues with quoting and command injection.
+        ARGS=()
+
+        # Publishing options
+        if [[ "${{ inputs.root_page }}" ]]; then ARGS+=(--root-page "${{ inputs.root_page }}"); fi
+        if [[ "${{ inputs.keep_hierarchy }}" == "true" ]]; then ARGS+=(--keep-hierarchy); fi
+        if [[ "${{ inputs.title_prefix }}" ]]; then ARGS+=(--title-prefix "${{ inputs.title_prefix }}"); fi
+        if [[ "${{ inputs.skip_title_heading }}" == "true" ]]; then ARGS+=(--skip-title-heading); fi
+        if [[ "${{ inputs.generated_by }}" == "none" ]]; then
+          ARGS+=(--no-generated-by)
+        elif [[ "${{ inputs.generated_by }}" ]]; then
+          ARGS+=(--generated-by "${{ inputs.generated_by }}")
+        fi
+
+        # Rendering options
+        if [[ "${{ inputs.render_diagrams }}" == "false" ]]; then ARGS+=(--no-render-drawio --no-render-mermaid --no-render-plantuml); fi
+        if [[ "${{ inputs.render_latex }}" == "false" ]]; then ARGS+=(--no-render-latex); fi
+        if [[ "${{ inputs.diagram_output_format }}" != "png" ]]; then ARGS+=(--diagram-output-format "${{ inputs.diagram_output_format }}"); fi
+        if [[ "${{ inputs.alignment }}" != "center" ]]; then ARGS+=(--alignment "${{ inputs.alignment }}"); fi
+        if [[ "${{ inputs.max_image_width }}" ]]; then ARGS+=(--max-image-width "${{ inputs.max_image_width }}"); fi
+
+        # Confluence connection arguments
+        if [[ "${{ inputs.domain }}" ]]; then ARGS+=(--domain "${{ inputs.domain }}"); fi
+        if [[ "${{ inputs.api_url }}" ]]; then ARGS+=(--api-url "${{ inputs.api_url }}"); fi
+        if [[ "${{ inputs.username }}" ]]; then ARGS+=(--username "${{ inputs.username }}"); fi
+
+        # Extra arguments are split by spaces.
+        if [[ "${{ inputs.extra_args }}" ]]; then
+          read -r -a extra_args <<< "${{ inputs.extra_args }}"
+          ARGS+=("${extra_args[@]}")
+        fi
+
+        # Determine the image tag. Prioritize user input.
+        # If not provided, derive it from the action's own version.
+        if [[ -n "${{ inputs.image_tag }}" ]]; then
+          ACTION_TAG="${{ inputs.image_tag }}"
+          echo "Using user-provided image tag: ${ACTION_TAG}"
+        elif [[ -n "${{ github.action_ref }}" ]]; then
+          ACTION_TAG="${{ github.action_ref }}"
+          echo "Using action's own ref as image tag: ${ACTION_TAG}"
+        else
+          # Fallback for safety, though github.action_ref should always be set.
+          ACTION_TAG="latest"
+          echo "Warning: Could not determine action ref, falling back to 'latest' image tag."
+        fi
+
+        # To use an optimized image variant (e.g., 'latest-minimal'), set the `image_tag` input explicitly.
+        # Automatic image selection is not performed, as the action cannot know if repository contents
+        # require specific dependencies like PlantUML.
+        IMAGE_TO_USE="${{ inputs.image_repository }}:${ACTION_TAG}"
+
+        echo "::group::Executing md2conf"
+        echo "Using Docker image: ${IMAGE_TO_USE}"
+        docker run --rm \
+          -v "${{ github.workspace }}:/data" --workdir /data \
+          -e CONFLUENCE_API_KEY='${{ inputs.api_key }}' \
+          -e CONFLUENCE_SPACE_KEY='${{ inputs.space }}' \
+          "${IMAGE_TO_USE}" \
+          "${{ inputs.path }}" \
+          "${ARGS[@]}"
+        echo "::endgroup::"
