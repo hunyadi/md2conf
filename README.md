@@ -28,7 +28,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Publish to Confluence
         uses: hunyadi/md2conf@v1
         with:
