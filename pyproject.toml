@@ -72,7 +72,7 @@ where = ["."]
 include = ["md2conf*"]
 
 [tool.setuptools_scm]
-write_to = "md2conf/__init__.py"
+write_to = "md2conf/_version.py"
 
 [tool.setuptools.package-data]
 "md2conf" = ["entities.dtd", "puppeteer-config.json", "py.typed"]

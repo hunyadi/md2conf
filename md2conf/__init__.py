@@ -5,6 +5,10 @@ Parses Markdown files, converts Markdown content into the Confluence Storage For
 Confluence API endpoints to upload images and content.
 """
 
+from ._version import __version__
+
+__all__ = ["__version__"]
+
 __author__ = "Levente Hunyadi"
 __copyright__ = "Copyright 2022-2025, Levente Hunyadi"
 __license__ = "MIT"

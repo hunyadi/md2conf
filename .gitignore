@@ -10,3 +10,4 @@ __pycache__
 /wheel
 /*.egg-info
 plantuml.jar
+md2conf/_version.py
