@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80.0"]
+requires = ["setuptools>=80.0", "setuptools_scm[toml]>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -71,8 +71,8 @@ zip-safe = true
 where = ["."]
 include = ["md2conf*"]
 
-[tool.setuptools.dynamic]
-version = { attr = "md2conf.__version__" }
+[tool.setuptools_scm]
+write_to = "md2conf/__init__.py"
 
 [tool.setuptools.package-data]
 "md2conf" = ["entities.dtd", "puppeteer-config.json", "py.typed"]

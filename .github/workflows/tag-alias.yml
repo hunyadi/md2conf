@@ -1,0 +1,32 @@
+name: Tag Alias
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  tag-alias:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to push a new tag
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create and push major version tag
+        run: |
+          # Configure git
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+          # Extract the major version from the tag (e.g., v1 from v1.2.3)
+          MAJOR_VERSION=$(echo ${{ github.ref_name }} | cut -d. -f1)
+
+          # Create the major version tag locally, forcing it to the current commit
+          git tag -f $MAJOR_VERSION ${{ github.sha }}
+
+          # Push the tag to the remote repository, forcing the update
+          git push origin --force $MAJOR_VERSION
