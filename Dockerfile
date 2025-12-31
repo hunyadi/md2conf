@@ -31,6 +31,9 @@ ARG PLANTUML_VERSION=1.2025.10
 # Builds Python wheel from source
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
+# Create a working directory
+WORKDIR /build
+
 COPY ./ ./
 
 # Install build dependencies
@@ -39,7 +42,7 @@ RUN apk add --update git
 # Build wheel
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
     pip install build
-RUN python -m build --wheel --outdir wheel
+RUN python -m build --wheel --outdir /wheel/
 
 # ===== Stage 2: base (minimal) =====
 # Minimal image with md2conf but no diagram rendering support
