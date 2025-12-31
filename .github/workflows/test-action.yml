@@ -22,4 +22,7 @@ jobs:
           api_key: ${{ secrets.CONFLUENCE_API_KEY }}
           space: ${{ vars.CONFLUENCE_SPACE_KEY }}
           root_page: 'Sample Markdown Files'
-          extra_args: --title-prefix "Action Test - " --keep-hierarchy
+          title_prefix: 'Action Test - '
+          keep_hierarchy: true
+          render_diagrams: true
+          diagram_format: 'svg'

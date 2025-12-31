@@ -64,7 +64,7 @@ inputs:
     description: 'Render LaTeX formulas as images.'
     required: false
     default: 'true'
-  diagram_output_format:
+  diagram_format:
     description: 'Output format for rendered diagrams (png or svg).'
     required: false
     default: 'png'
@@ -74,11 +74,6 @@ inputs:
     default: 'center'
   max_image_width:
     description: 'Maximum display width for images in pixels (e.g., 700).'
-    required: false
-
-  # Extra arguments
-  extra_args:
-    description: 'Any extra command-line arguments to pass to md2conf.'
     required: false
 
 runs:
@@ -105,7 +100,7 @@ runs:
         # Rendering options
         if [[ "${{ inputs.render_diagrams }}" == "false" ]]; then ARGS+=(--no-render-drawio --no-render-mermaid --no-render-plantuml); fi
         if [[ "${{ inputs.render_latex }}" == "false" ]]; then ARGS+=(--no-render-latex); fi
-        if [[ "${{ inputs.diagram_output_format }}" != "png" ]]; then ARGS+=(--diagram-output-format "${{ inputs.diagram_output_format }}"); fi
+        if [[ "${{ inputs.diagram_format }}" != "png" ]]; then ARGS+=(--diagram-output-format "${{ inputs.diagram_format }}"); fi
         if [[ "${{ inputs.alignment }}" != "center" ]]; then ARGS+=(--alignment "${{ inputs.alignment }}"); fi
         if [[ "${{ inputs.max_image_width }}" ]]; then ARGS+=(--max-image-width "${{ inputs.max_image_width }}"); fi
 
@@ -114,13 +109,6 @@ runs:
         if [[ "${{ inputs.api_url }}" ]]; then ARGS+=(--api-url "${{ inputs.api_url }}"); fi
         if [[ "${{ inputs.username }}" ]]; then ARGS+=(--username "${{ inputs.username }}"); fi
         if [[ "${{ inputs.space }}" ]]; then ARGS+=(--space "${{ inputs.space }}"); fi
-
-        # Extra arguments - use eval to properly handle quoted strings.
-        # This is safe because GitHub Actions inputs from workflow files are trusted.
-        if [[ -n "${{ inputs.extra_args }}" ]]; then
-          eval "set -- ${{ inputs.extra_args }}"
-          ARGS+=("$@")
-        fi
 
         # Determine the image tag. Prioritize user input.
         # If not provided, derive it from the action's own version.
