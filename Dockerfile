@@ -27,7 +27,17 @@ ARG ALPINE_VERSION=3.22
 ARG MERMAID_VERSION=11.12
 ARG PLANTUML_VERSION=1.2025.10
 
-# ===== Stage 1: base (minimal) =====
+# ===== Stage 1: builder =====
+# Builds Python wheel from source
+FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
+
+COPY ./ ./
+
+RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
+    pip install build
+RUN python -m build --wheel --outdir wheel
+
+# ===== Stage 2: base (minimal) =====
 # Minimal image with md2conf but no diagram rendering support
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 
@@ -35,14 +45,13 @@ FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 RUN apk upgrade && apk add --update curl
 
 # Install md2conf Python package
-WORKDIR /tmp
-COPY wheel/*.whl wheel/
-RUN python3 -m pip install `ls -1 wheel/*.whl` && rm -rf /tmp/wheel
+COPY --from=builder /wheel/*.whl /tmp/wheel/
+RUN python3 -m pip install `ls -1 wheel/*.whl` && \
+    rm -rf /tmp/wheel
 
 # Create md2conf user
 RUN addgroup md2conf && adduser -D -G md2conf md2conf
 USER md2conf
-WORKDIR /home/md2conf
 
 # Set working directory and entrypoint
 WORKDIR /data
@@ -63,19 +72,18 @@ RUN apk add --update nodejs npm chromium \
         ttf-inconsolata ttf-linux-libertine \
     && fc-cache -f
 
-# Switch back to md2conf user
-USER md2conf
-WORKDIR /home/md2conf
-
 # Set environment for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/Dockerfile
 ENV CHROME_BIN="/usr/bin/chromium-browser" \
     PUPPETEER_SKIP_DOWNLOAD="true"
 
-# Install mermaid-cli
+# Install mermaid-cli globally
 ARG MERMAID_VERSION
-RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
+RUN npm install -g @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
     && node_modules/.bin/mmdc --version
+
+# Switch back to md2conf user
+USER md2conf
 
 WORKDIR /data
 
@@ -88,7 +96,8 @@ USER root
 
 # Install PlantUML dependencies (including font support)
 # Note: openjdk17-jre (not headless) is required for libfontmanager.so
-RUN apk add --update openjdk17-jre graphviz fontconfig ttf-dejavu
+RUN apk add --update openjdk17-jre graphviz fontconfig ttf-dejavu \
+    && fc-cache -f
 
 # Switch back to md2conf user
 USER md2conf
