@@ -156,6 +156,7 @@ runs:
         # Add sensitive variables to the env file
         echo "CONFLUENCE_API_KEY=${{ inputs.api_key }}" >> "$ENV_FILE"
         docker run --rm \
+          --user $(id -u):$(id -g) \
           -v "$MOUNT_DIR:/data" --workdir /data \
           --env-file "$ENV_FILE" \
           "${IMAGE_TO_USE}" \
