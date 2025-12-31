@@ -86,3 +86,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Summarize built images
+        run: |
+          echo "Built and pushed Docker image: ${{ env.DOCKER_IMAGE_NAME }}"
+          echo "With tags:"
+          echo "${{ steps.meta.outputs.tags }}"
