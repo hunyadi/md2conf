@@ -84,7 +84,7 @@ ENV CHROME_BIN="/usr/bin/chromium-browser" \
 # Install mermaid-cli globally
 ARG MERMAID_VERSION
 RUN npm install -g @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
-    && node_modules/.bin/mmdc --version
+    && mmdc --version
 
 # Switch back to md2conf user
 USER md2conf
