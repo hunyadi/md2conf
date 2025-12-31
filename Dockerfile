@@ -37,23 +37,20 @@ WORKDIR /build
 COPY ./ ./
 
 # Install build dependencies
-RUN apk add --update git
+RUN apk upgrade && apk add --update curl git
 
 # Build wheel
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
     pip install build
-RUN python -m build --wheel --outdir /wheel/
+RUN python -m build --wheel --outdir wheel
 
 # ===== Stage 2: base (minimal) =====
 # Minimal image with md2conf but no diagram rendering support
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 
-# Install minimal dependencies
-RUN apk upgrade && apk add --update curl
-
 # Install md2conf Python package
-COPY --from=builder /wheel/*.whl /tmp/wheel/
-RUN python3 -m pip install `ls -1 wheel/*.whl` && \
+COPY --from=builder /build/wheel/*.whl /tmp/wheel/
+RUN python3 -m pip install `ls -1 /tmp/wheel/*.whl` && \
     rm -rf /tmp/wheel
 
 # Create md2conf user
