@@ -61,9 +61,9 @@ inputs:
     required: false
     default: 'true'
   render_latex:
-    description: 'Render LaTeX formulas as images.'
+    description: 'Render LaTeX formulas as images. Requires matplotlib (not included in default image).'
     required: false
-    default: 'true'
+    default: 'false'
   diagram_format:
     description: 'Output format for rendered diagrams (png or svg).'
     required: false
