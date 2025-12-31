@@ -161,12 +161,15 @@ runs:
           exit 1
         fi
 
+        # Ensure the mounted directory is writable by changing permissions
+        # The container runs as md2conf user (UID 1000 typically), so we make the directory world-writable temporarily
+        chmod -R a+w "$MOUNT_DIR"
+
         # Create a temporary environment file for Docker
         ENV_FILE=$(mktemp)
         # Add sensitive variables to the env file
         echo "CONFLUENCE_API_KEY=${{ inputs.api_key }}" >> "$ENV_FILE"
         docker run --rm \
-          --user $(id -u):$(id -g) \
           -v "$MOUNT_DIR:/data" --workdir /data \
           --env-file "$ENV_FILE" \
           "${IMAGE_TO_USE}" \
