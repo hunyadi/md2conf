@@ -56,8 +56,16 @@ inputs:
     default: 'This page has been generated with a tool.'
 
   # Rendering options
-  render_diagrams:
-    description: 'Render diagrams (draw.io, Mermaid, PlantUML) as images.'
+  render_drawio:
+    description: 'Render draw.io diagrams as images. Requires draw.io utility (not included in base image).'
+    required: false
+    default: 'false'
+  render_mermaid:
+    description: 'Render Mermaid diagrams as images. Requires mermaid-cli (included in mermaid/all variants).'
+    required: false
+    default: 'true'
+  render_plantuml:
+    description: 'Render PlantUML diagrams as images. Requires PlantUML (included in plantuml/all variants).'
     required: false
     default: 'true'
   render_latex:
@@ -98,7 +106,9 @@ runs:
         fi
 
         # Rendering options
-        if [[ "${{ inputs.render_diagrams }}" == "false" ]]; then ARGS+=(--no-render-drawio --no-render-mermaid --no-render-plantuml); fi
+        if [[ "${{ inputs.render_drawio }}" == "false" ]]; then ARGS+=(--no-render-drawio); fi
+        if [[ "${{ inputs.render_mermaid }}" == "false" ]]; then ARGS+=(--no-render-mermaid); fi
+        if [[ "${{ inputs.render_plantuml }}" == "false" ]]; then ARGS+=(--no-render-plantuml); fi
         if [[ "${{ inputs.render_latex }}" == "false" ]]; then ARGS+=(--no-render-latex); fi
         if [[ "${{ inputs.diagram_format }}" != "png" ]]; then ARGS+=(--diagram-output-format "${{ inputs.diagram_format }}"); fi
         if [[ "${{ inputs.alignment }}" != "center" ]]; then ARGS+=(--alignment "${{ inputs.alignment }}"); fi

@@ -45,6 +45,8 @@ jobs:
           root_page_id: ${{ vars.CONFLUENCE_ROOT_PAGE_ID }}
           title_prefix: 'Action Test - '
           keep_hierarchy: true
-          render_diagrams: true
-          diagram_format: 'svg'
+          render_drawio: false
+          render_mermaid: true
+          render_plantuml: true
           render_latex: false
+          diagram_format: 'svg'
