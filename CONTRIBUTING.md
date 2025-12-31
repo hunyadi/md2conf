@@ -136,6 +136,25 @@ gh run list --workflow=integration-tests.yml --repo <owner>/<repo>
 gh run watch <run-id> --repo <owner>/<repo>
 ```
 
+#### Testing the GitHub Action
+
+To test the `action.yml` file itself, you can use the `Test Local Action` workflow. This workflow uses your local action definition (`uses: ./`) to publish the entire `sample` directory to a Confluence page.
+
+1. **Configure secrets and variables:** Before running the workflow, ensure you have the following configured in your forked repository's settings under **Settings > Secrets and variables > Actions**:
+    - **Variables**:
+        - `CONFLUENCE_DOMAIN`: Your Confluence domain (e.g., `your-domain.atlassian.net`).
+        - `CONFLUENCE_USER_NAME`: Your Confluence username (e.g., `user@example.com`).
+        - `CONFLUENCE_SPACE_KEY`: The key of the Confluence space to publish to.
+    - **Secrets**:
+        - `CONFLUENCE_API_KEY`: Your Confluence API key.
+
+2. **Run the workflow manually:**
+    - Go to the **Actions** tab in your forked repository.
+    - Select the **Test Local Action** workflow from the list.
+    - Click **Run workflow**, and then **Run workflow** again.
+
+This will trigger the action, which will attempt to publish the contents of the `sample` directory to a page titled "Sample Markdown Files" in your specified Confluence space.
+
 ### Running static code checks
 
 Verify that all code you have added passes static code checks. Depending on your OS, there is a script for you to use. If using Windows, run `check.bat`, otherwise run `./check.sh`.
