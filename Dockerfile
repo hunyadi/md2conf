@@ -37,7 +37,7 @@ WORKDIR /build
 COPY ./ ./
 
 # Install build dependencies
-RUN apk upgrade && apk add --update curl git
+RUN apk upgrade && apk add --update git
 
 # Build wheel
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
@@ -109,7 +109,7 @@ WORKDIR /home/md2conf
 
 # Download PlantUML JAR directly
 ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
+RUN wget -O /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
 
@@ -149,7 +149,7 @@ RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
 
 # Download PlantUML JAR
 ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
+RUN wget -O /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
 
