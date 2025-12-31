@@ -87,7 +87,8 @@ FROM base AS plantuml
 USER root
 
 # Install PlantUML dependencies (including font support)
-RUN apk add --update openjdk17-jre-headless graphviz fontconfig ttf-dejavu
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
+RUN apk add --update openjdk17-jre graphviz fontconfig ttf-dejavu
 
 # Switch back to md2conf user
 USER md2conf
@@ -112,11 +113,12 @@ FROM base AS all
 USER root
 
 # Install all dependencies (Mermaid + PlantUML)
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
 RUN apk add --update nodejs npm chromium \
         font-noto-cjk font-noto-emoji terminus-font \
         ttf-dejavu ttf-freefont ttf-font-awesome \
         ttf-inconsolata ttf-linux-libertine \
-        openjdk17-jre-headless graphviz fontconfig \
+        openjdk17-jre graphviz fontconfig \
     && fc-cache -f
 
 # Switch back to md2conf user
