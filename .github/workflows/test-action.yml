@@ -15,6 +15,12 @@ on:
         required: false
         default: ''
 
+env:
+  # Docker image name - can be overridden in repository variables
+  # Format: dockerhub-username/image-name
+  # Default: leventehunyadi/md2conf
+  DOCKER_IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'leventehunyadi/md2conf' }}
+
 jobs:
   test-action:
     runs-on: ubuntu-latest
@@ -30,7 +36,7 @@ jobs:
         uses: ./
         with:
           path: sample
-          image_repository: ${{ inputs.image_repository }}
+          image_repository: ${{ inputs.image_repository || env.DOCKER_IMAGE_NAME }}
           image_tag: ${{ inputs.image_tag || steps.vars.outputs.sha }}
           domain: ${{ vars.CONFLUENCE_DOMAIN }}
           username: ${{ vars.CONFLUENCE_USER_NAME }}
