@@ -66,7 +66,8 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
         "--scale",
         str(config.scale or 2),
     ]
-    root = os.path.dirname(__file__)
+    # Get the md2conf package root directory (parent of mermaid/)
+    root = os.path.dirname(os.path.dirname(__file__))
     if _is_docker():
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
 
