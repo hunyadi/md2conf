@@ -51,6 +51,13 @@ jobs:
       - name: Build wheel
         run: python -m build --wheel --outdir wheel
 
+      - name: Inspect wheel
+        run: |
+          echo "--- Listing contents of wheel directory ---"
+          ls -lR wheel
+          echo "--- Listing contents of the built wheel ---"
+          unzip -l wheel/*.whl
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
