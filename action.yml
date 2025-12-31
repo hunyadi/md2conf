@@ -131,15 +131,35 @@ runs:
 
         echo "::group::Executing md2conf"
         echo "Using Docker image: ${IMAGE_TO_USE}"
+
+        # Resolve the content path to absolute path
+        CONTENT_PATH="${{ github.workspace }}/${{ inputs.path }}"
+
+        # Determine if path is a file or directory and setup mount accordingly
+        if [[ -f "$CONTENT_PATH" ]]; then
+          # If it's a file, mount the parent directory and use the filename
+          MOUNT_DIR=$(dirname "$CONTENT_PATH")
+          CONTENT_NAME=$(basename "$CONTENT_PATH")
+          echo "Mounting file's parent directory: $MOUNT_DIR"
+        elif [[ -d "$CONTENT_PATH" ]]; then
+          # If it's a directory, mount it directly
+          MOUNT_DIR="$CONTENT_PATH"
+          CONTENT_NAME="."
+          echo "Mounting directory: $MOUNT_DIR"
+        else
+          echo "Error: Path '${{ inputs.path }}' does not exist in workspace"
+          exit 1
+        fi
+
         # Create a temporary environment file for Docker
         ENV_FILE=$(mktemp)
         # Add sensitive variables to the env file
         echo "CONFLUENCE_API_KEY=${{ inputs.api_key }}" >> "$ENV_FILE"
         docker run --rm \
-          -v "${{ github.workspace }}:/data" --workdir /data \
+          -v "$MOUNT_DIR:/data" --workdir /data \
           --env-file "$ENV_FILE" \
           "${IMAGE_TO_USE}" \
-          "${{ inputs.path }}" \
+          "$CONTENT_NAME" \
           "${ARGS[@]}"
         rm "$ENV_FILE"
         echo "::endgroup::"
