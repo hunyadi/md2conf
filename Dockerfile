@@ -99,6 +99,9 @@ RUN curl -L -o /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
 
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/home/md2conf/plantuml.jar
+
 WORKDIR /data
 
 # ===== Stage 5: all (default) =====
@@ -134,5 +137,8 @@ ARG PLANTUML_VERSION
 RUN curl -L -o /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
+
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/home/md2conf/plantuml.jar
 
 WORKDIR /data
