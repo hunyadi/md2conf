@@ -5,6 +5,15 @@ on:
     branches:
       - add-github-action
   workflow_dispatch:
+    inputs:
+      image_repository:
+        description: 'The Docker image repository to use.'
+        required: false
+        default: ''
+      image_tag:
+        description: 'The tag of the Docker image to use.'
+        required: false
+        default: ''
 
 jobs:
   test-action:
@@ -17,6 +26,8 @@ jobs:
         uses: ./
         with:
           path: sample
+          image_repository: ${{ inputs.image_repository }}
+          image_tag: ${{ inputs.image_tag }}
           domain: ${{ vars.CONFLUENCE_DOMAIN }}
           username: ${{ vars.CONFLUENCE_USER_NAME }}
           api_key: ${{ secrets.CONFLUENCE_API_KEY }}
