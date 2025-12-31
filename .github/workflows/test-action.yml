@@ -22,12 +22,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get git short hash
+        id: vars
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Run local action
         uses: ./
         with:
           path: sample
           image_repository: ${{ inputs.image_repository }}
-          image_tag: ${{ inputs.image_tag }}
+          image_tag: ${{ inputs.image_tag || steps.vars.outputs.sha }}
           domain: ${{ vars.CONFLUENCE_DOMAIN }}
           username: ${{ vars.CONFLUENCE_USER_NAME }}
           api_key: ${{ secrets.CONFLUENCE_API_KEY }}
