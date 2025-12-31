@@ -89,6 +89,11 @@ jobs:
 
       - name: Summarize built images
         run: |
-          echo "Built and pushed Docker image: ${{ env.DOCKER_IMAGE_NAME }}"
-          echo "With tags:"
-          echo "${{ steps.meta.outputs.tags }}"
+          echo "### Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** `${{ env.DOCKER_IMAGE_NAME }}`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
