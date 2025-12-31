@@ -60,8 +60,8 @@ jobs:
             type=semver,pattern={{major}}${{ matrix.suffix }}
             # For tags: create latest tag
             type=raw,value=latest${{ matrix.suffix }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
-            # For each build: create sha tag
-            type=sha,prefix=,suffix=${{ matrix.suffix }},enable=true
+            # For manual dispatch: create sha tag
+            type=sha,prefix=,suffix=${{ matrix.suffix }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
