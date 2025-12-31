@@ -55,7 +55,7 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
-            # For tags: create versioned tags 
+            # For tags: create versioned tags
             type=semver,pattern={{version}}${{ matrix.suffix }}
             type=semver,pattern={{major}}${{ matrix.suffix }}
             # For tags: create latest tag
