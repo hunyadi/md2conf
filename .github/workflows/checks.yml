@@ -1,29 +1,57 @@
-name: checks
+name: Unit tests
 on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
+  issue_comment:
+    types: [created]
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number (required when running on a fork)'
+        required: false
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
 
 jobs:
   required-checks:
+    if: >
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        contains(github.event.comment.body, '/run-checks') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
+      )
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         # Matches what is in setup.cfg
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
+      - name: Determine ref
+        id: ref
+        run: |
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "ref=refs/pull/${{ github.event.issue.number }}/head" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.pr_number }}" ]]; then
+            echo "ref=refs/pull/${{ github.event.inputs.pr_number }}/head" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+          fi
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.ref.outputs.ref }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
