@@ -155,6 +155,12 @@ To test the `action.yml` file itself, you can use the `Test Local Action` workfl
 
 This will trigger the action, which will attempt to publish the contents of the `sample` directory to a page titled "Sample Markdown Files" in your specified Confluence space.
 
+**Note:** The test workflow builds the Docker image locally during execution:
+
+- **First run (cold cache):** ~5-7 minutes to build the full-featured image
+- **Subsequent runs (warm cache):** ~2-3 minutes with GitHub Actions cache reusing Docker layers
+- **Self-contained:** No dependency on pre-published Docker images
+
 ### Running static code checks
 
 Verify that all code you have added passes static code checks. Depending on your OS, there is a script for you to use. If using Windows, run `check.bat`, otherwise run `./check.sh`.

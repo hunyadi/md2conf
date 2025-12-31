@@ -5,21 +5,6 @@ on:
     branches:
       - add-github-action
   workflow_dispatch:
-    inputs:
-      image_repository:
-        description: 'The Docker image repository to use.'
-        required: false
-        default: ''
-      image_tag:
-        description: 'The tag of the Docker image to use.'
-        required: false
-        default: ''
-
-env:
-  # Docker image name - can be overridden in repository variables
-  # Format: dockerhub-username/image-name
-  # Default: leventehunyadi/md2conf
-  DOCKER_IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'leventehunyadi/md2conf' }}
 
 jobs:
   test-action:
@@ -28,16 +13,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get git short hash
-        id: vars
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: all
+          tags: md2conf:test-local
+          push: false
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run local action
         uses: ./
         with:
           path: sample
-          image_repository: ${{ inputs.image_repository || env.DOCKER_IMAGE_NAME }}
-          image_tag: ${{ inputs.image_tag || steps.vars.outputs.sha }}
+          image_repository: md2conf
+          image_tag: test-local
           domain: ${{ vars.CONFLUENCE_DOMAIN }}
           username: ${{ vars.CONFLUENCE_USER_NAME }}
           api_key: ${{ secrets.CONFLUENCE_API_KEY }}
