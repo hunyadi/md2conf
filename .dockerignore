@@ -10,4 +10,3 @@ __pycache__
 /*.egg-info
 /build
 /docs
-/wheel

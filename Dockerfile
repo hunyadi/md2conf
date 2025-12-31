@@ -27,20 +27,7 @@ ARG ALPINE_VERSION=3.22
 ARG MERMAID_VERSION=11.12
 ARG PLANTUML_VERSION=1.2025.10
 
-# ===== Stage 1: builder =====
-# Builds Python wheel from source
-FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
-
-# install git to allow setuptools_scm to determine version
-RUN apk add --update git
-
-COPY ./ ./
-
-RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
-    pip install build
-RUN python -m build --wheel --outdir wheel
-
-# ===== Stage 2: base (minimal) =====
+# ===== Stage 1: base (minimal) =====
 # Minimal image with md2conf but no diagram rendering support
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 
@@ -53,7 +40,7 @@ USER md2conf
 WORKDIR /home/md2conf
 
 # Install md2conf Python package
-COPY --from=builder /wheel/*.whl wheel/
+COPY wheel/*.whl wheel/
 RUN python3 -m pip install `ls -1 wheel/*.whl`
 
 # Set working directory and entrypoint
