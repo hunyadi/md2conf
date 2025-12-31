@@ -145,6 +145,7 @@ To test the `action.yml` file itself, you can use the `Test Local Action` workfl
         - `CONFLUENCE_DOMAIN`: Your Confluence domain (e.g., `your-domain.atlassian.net`).
         - `CONFLUENCE_USER_NAME`: Your Confluence username (e.g., `user@example.com`).
         - `CONFLUENCE_SPACE_KEY`: The key of the Confluence space to publish to.
+        - `CONFLUENCE_ROOT_PAGE_ID`: The Confluence page ID to use as the parent for published pages.
     - **Secrets**:
         - `CONFLUENCE_API_KEY`: Your Confluence API key.
 
