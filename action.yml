@@ -36,8 +36,8 @@ inputs:
     required: true
 
   # Publishing options
-  root_page:
-    description: 'The ID or title of the Confluence page to use as the parent for published pages.'
+  root_page_id:
+    description: 'The Confluence page ID (integer) to use as the parent for published pages.'
     required: false
   keep_hierarchy:
     description: 'Maintain source directory structure when exporting to Confluence.'
@@ -87,7 +87,7 @@ runs:
         ARGS=()
 
         # Publishing options
-        if [[ -n "${{ inputs.root_page }}" ]]; then ARGS+=(-r "${{ inputs.root_page }}"); fi
+        if [[ -n "${{ inputs.root_page_id }}" ]]; then ARGS+=(-r "${{ inputs.root_page_id }}"); fi
         if [[ "${{ inputs.keep_hierarchy }}" == "true" ]]; then ARGS+=(--keep-hierarchy); fi
         if [[ -n "${{ inputs.title_prefix }}" ]]; then ARGS+=(--title-prefix "${{ inputs.title_prefix }}"); fi
         if [[ "${{ inputs.skip_title_heading }}" == "true" ]]; then ARGS+=(--skip-title-heading); fi

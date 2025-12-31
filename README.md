@@ -34,7 +34,7 @@ jobs:
         with:
           path: './docs'
           space: 'MYSPACE'
-          root_page: 'My Project Documentation'
+          root_page_id: ${{ vars.CONFLUENCE_ROOT_PAGE_ID }}
           api_key: ${{ secrets.CONFLUENCE_API_KEY }}
 ```
 
