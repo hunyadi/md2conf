@@ -113,6 +113,7 @@ runs:
         if [[ "${{ inputs.domain }}" ]]; then ARGS+=(--domain "${{ inputs.domain }}"); fi
         if [[ "${{ inputs.api_url }}" ]]; then ARGS+=(--api-url "${{ inputs.api_url }}"); fi
         if [[ "${{ inputs.username }}" ]]; then ARGS+=(--username "${{ inputs.username }}"); fi
+        if [[ "${{ inputs.space }}" ]]; then ARGS+=(--space "${{ inputs.space }}"); fi
 
         # Extra arguments are split by spaces.
         if [[ "${{ inputs.extra_args }}" ]]; then
@@ -141,11 +142,15 @@ runs:
 
         echo "::group::Executing md2conf"
         echo "Using Docker image: ${IMAGE_TO_USE}"
+        # Create a temporary environment file for Docker
+        ENV_FILE=$(mktemp)
+        # Add sensitive variables to the env file
+        echo "CONFLUENCE_API_KEY=${{ inputs.api_key }}" >> "$ENV_FILE"
         docker run --rm \
           -v "${{ github.workspace }}:/data" --workdir /data \
-          -e CONFLUENCE_API_KEY='${{ inputs.api_key }}' \
-          -e CONFLUENCE_SPACE_KEY='${{ inputs.space }}' \
+          --env-file "$ENV_FILE" \
           "${IMAGE_TO_USE}" \
           "${{ inputs.path }}" \
           "${ARGS[@]}"
+        rm "$ENV_FILE"
         echo "::endgroup::"
