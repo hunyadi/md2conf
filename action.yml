@@ -115,10 +115,11 @@ runs:
         if [[ "${{ inputs.username }}" ]]; then ARGS+=(--username "${{ inputs.username }}"); fi
         if [[ "${{ inputs.space }}" ]]; then ARGS+=(--space "${{ inputs.space }}"); fi
 
-        # Extra arguments are split by spaces.
+        # Extra arguments - use eval to properly handle quoted strings.
+        # This is safe because GitHub Actions inputs from workflow files are trusted.
         if [[ "${{ inputs.extra_args }}" ]]; then
-          read -r -a extra_args <<< "${{ inputs.extra_args }}"
-          ARGS+=("${extra_args[@]}")
+          eval "set -- ${{ inputs.extra_args }}"
+          ARGS+=("$@")
         fi
 
         # Determine the image tag. Prioritize user input.
