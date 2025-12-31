@@ -31,6 +31,9 @@ ARG PLANTUML_VERSION=1.2025.10
 # Builds Python wheel from source
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
+# install git to allow setuptools_scm to determine version
+RUN apk add --update git
+
 COPY ./ ./
 
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
