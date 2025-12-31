@@ -1,6 +1,9 @@
 name: Test Local Action
 
 on:
+  push:
+    branches:
+      - add-github-action
   workflow_dispatch:
 
 jobs:
