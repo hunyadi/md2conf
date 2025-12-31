@@ -92,13 +92,13 @@ runs:
         ARGS=()
 
         # Publishing options
-        if [[ "${{ inputs.root_page }}" ]]; then ARGS+=(--root-page "${{ inputs.root_page }}"); fi
+        if [[ -n "${{ inputs.root_page }}" ]]; then ARGS+=(--root-page "${{ inputs.root_page }}"); fi
         if [[ "${{ inputs.keep_hierarchy }}" == "true" ]]; then ARGS+=(--keep-hierarchy); fi
-        if [[ "${{ inputs.title_prefix }}" ]]; then ARGS+=(--title-prefix "${{ inputs.title_prefix }}"); fi
+        if [[ -n "${{ inputs.title_prefix }}" ]]; then ARGS+=(--title-prefix "${{ inputs.title_prefix }}"); fi
         if [[ "${{ inputs.skip_title_heading }}" == "true" ]]; then ARGS+=(--skip-title-heading); fi
         if [[ "${{ inputs.generated_by }}" == "none" ]]; then
           ARGS+=(--no-generated-by)
-        elif [[ "${{ inputs.generated_by }}" ]]; then
+        elif [[ -n "${{ inputs.generated_by }}" ]]; then
           ARGS+=(--generated-by "${{ inputs.generated_by }}")
         fi
 
@@ -117,7 +117,7 @@ runs:
 
         # Extra arguments - use eval to properly handle quoted strings.
         # This is safe because GitHub Actions inputs from workflow files are trusted.
-        if [[ "${{ inputs.extra_args }}" ]]; then
+        if [[ -n "${{ inputs.extra_args }}" ]]; then
           eval "set -- ${{ inputs.extra_args }}"
           ARGS+=("$@")
         fi
