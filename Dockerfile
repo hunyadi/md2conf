@@ -86,8 +86,8 @@ FROM base AS plantuml
 # Switch to root to install packages
 USER root
 
-# Install PlantUML dependencies
-RUN apk add --update openjdk17-jre-headless graphviz
+# Install PlantUML dependencies (including font support)
+RUN apk add --update openjdk17-jre-headless graphviz fontconfig ttf-dejavu
 
 # Switch back to md2conf user
 USER md2conf
@@ -116,7 +116,7 @@ RUN apk add --update nodejs npm chromium \
         font-noto-cjk font-noto-emoji terminus-font \
         ttf-dejavu ttf-freefont ttf-font-awesome \
         ttf-inconsolata ttf-linux-libertine \
-        openjdk17-jre-headless graphviz \
+        openjdk17-jre-headless graphviz fontconfig \
     && fc-cache -f
 
 # Switch back to md2conf user
