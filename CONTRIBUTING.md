@@ -16,6 +16,15 @@ Due to constrained capacity, we only support the latest release of *md2conf*.
 
 We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix or a single feature.
 
+### Version Management
+
+This project uses [`setuptools_scm`](https://github.com/pypa/setuptools_scm/) to manage versioning. Versions are automatically derived from Git tags.
+
+- **Release versions** are created when building from a commit that has a Git tag (e.g., `v1.2.3`).
+- **Development versions** are generated when building from a commit that is not tagged. The version number will include a suffix indicating the commit hash and distance from the nearest tag (e.g., `1.2.3.dev1+gabcdef`).
+
+This approach ensures that every build has a unique and identifiable version without manual updates. Before creating a release, ensure you have tagged the commit appropriately.
+
 ### Prerequisites
 
 Python is installed. Minimum version we support is Python 3.10.
@@ -46,7 +55,7 @@ Python is installed. Minimum version we support is Python 3.10.
 
 ### Running unit tests
 
-```
+```bash
 python -m unittest discover -s tests
 ```
 
@@ -135,7 +144,7 @@ Verify that all code you have added passes static code checks. Depending on your
 
 Verify that newly contributed classes, data-classes and functions have a doc-string, including public members, parameters, return values and exceptions raised. You can generate human-readable Markdown documentation with [markdown_doc](https://github.com/hunyadi/markdown_doc):
 
-```
+```bash
 python -m markdown_doc -d md2conf
 ```
 
@@ -155,21 +164,25 @@ Use `--target <stage>` to build specific variants:
 **Examples:**
 
 Minimal image (no diagram rendering):
+
 ```bash
 docker build --target base --tag md2conf:minimal .
 ```
 
 Mermaid only:
+
 ```bash
 docker build --target mermaid --tag md2conf:mermaid .
 ```
 
 PlantUML only:
+
 ```bash
 docker build --target plantuml --tag md2conf:plantuml .
 ```
 
 Full image (default):
+
 ```bash
 docker build --target all --tag md2conf:full .
 # or simply
@@ -192,10 +205,12 @@ If `DOCKER_IMAGE_NAME` is not set, it defaults to `leventehunyadi/md2conf`.
 **Triggering Docker Builds:**
 
 1. **Push a Git tag** (production release):
+
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
    ```
+
    Builds and pushes all variants with version and latest tags:
    - `yourusername/md2conf:latest` & `yourusername/md2conf:1.0.0`
    - `yourusername/md2conf:latest-minimal` & `yourusername/md2conf:1.0.0-minimal`
