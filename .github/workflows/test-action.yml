@@ -47,3 +47,4 @@ jobs:
           keep_hierarchy: true
           render_diagrams: true
           diagram_format: 'svg'
+          render_latex: false
