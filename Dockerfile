@@ -34,14 +34,15 @@ FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 # Install minimal dependencies
 RUN apk upgrade && apk add --update curl
 
+# Install md2conf Python package
+WORKDIR /tmp
+COPY wheel/*.whl wheel/
+RUN python3 -m pip install `ls -1 wheel/*.whl` && rm -rf /tmp/wheel
+
 # Create md2conf user
 RUN addgroup md2conf && adduser -D -G md2conf md2conf
 USER md2conf
 WORKDIR /home/md2conf
-
-# Install md2conf Python package
-COPY wheel/*.whl wheel/
-RUN python3 -m pip install `ls -1 wheel/*.whl`
 
 # Set working directory and entrypoint
 WORKDIR /data
