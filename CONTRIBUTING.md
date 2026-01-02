@@ -201,7 +201,7 @@ The Dockerfile is structured to optimize build caching:
 - Heavy system dependencies (Chromium for Mermaid, Java for PlantUML) are installed in separate `*-deps` stages that rarely change
 - Application code changes only trigger a fast pip install of the Python wheel (~2-3 seconds with cache)
 - BuildKit cache mounts are used for package manager caches (apk) and wheel installation
-- With layer caching, incremental builds complete in minutes instead of 20+ minutes for full rebuilds
+- With layer caching, incremental builds complete in under a minute instead of 2+ minutes for full rebuilds
 
 When you modify Python code, only the final stage rebuilds - the expensive system dependency layers remain cached. This architecture enables rapid iteration during development.
 
