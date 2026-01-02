@@ -75,7 +75,8 @@ include = ["md2conf*"]
 version = { attr = "md2conf.__version__" }
 
 [tool.setuptools.package-data]
-"md2conf" = ["entities.dtd", "puppeteer-config.json", "py.typed"]
+"md2conf" = ["entities.dtd", "py.typed"]
+"md2conf.mermaid" = ["puppeteer-config.json"]
 
 [tool.ruff]
 line-length = 160
