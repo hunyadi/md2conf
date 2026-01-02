@@ -46,7 +46,7 @@ Python is installed. Minimum version we support is Python 3.10.
 
 ### Running unit tests
 
-```
+```sh
 python -m unittest discover -s tests
 ```
 
@@ -54,7 +54,7 @@ python -m unittest discover -s tests
 
 Before running these tests, you must set up your environment variables (e.g. add to your `~/.profile` on Linux, or `~/.bash_profile` or `~/.zshenv` on MacOS, or *System properties* on Windows.):
 
-```bash
+```sh
 CONFLUENCE_DOMAIN='<your domain>.atlassian.net'
 CONFLUENCE_PATH='/wiki/'
 CONFLUENCE_USER_NAME='<your email>'
@@ -64,7 +64,7 @@ CONFLUENCE_SPACE_KEY='<your space key>'
 
 Running the tests:
 
-```bash
+```sh
 python -m unittest discover -s integration_tests
 ```
 
@@ -76,7 +76,7 @@ You can trigger integration tests remotely using GitHub Actions workflow. This i
 
 Basic command structure:
 
-```bash
+```sh
 gh workflow run integration-tests.yml \
   --ref <branch-name> \
   --repo <owner>/<repo-name> \
@@ -87,7 +87,7 @@ gh workflow run integration-tests.yml \
 
 Example for testing PlantUML with SVG rendering on a forked repository:
 
-```bash
+```sh
 gh workflow run integration-tests.yml \
   --ref add-plantuml-support \
   --repo my-github-account/hunyadi-md2conf \
@@ -103,7 +103,7 @@ Available workflow inputs:
 
 Test different scenarios:
 
-```bash
+```sh
 # Test PlantUML macro mode (no rendering)
 gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo>
 
@@ -122,7 +122,7 @@ gh workflow run integration-tests.yml --ref <branch> --repo <owner>/<repo> \
 
 Monitor workflow status:
 
-```bash
+```sh
 gh run list --workflow=integration-tests.yml --repo <owner>/<repo>
 gh run watch <run-id> --repo <owner>/<repo>
 ```
@@ -135,7 +135,7 @@ Verify that all code you have added passes static code checks. Depending on your
 
 Verify that newly contributed classes, data-classes and functions have a doc-string, including public members, parameters, return values and exceptions raised. You can generate human-readable Markdown documentation with [markdown_doc](https://github.com/hunyadi/markdown_doc):
 
-```
+```sh
 python -m markdown_doc -d md2conf
 ```
 
@@ -155,24 +155,32 @@ Use `--target <stage>` to build specific variants:
 **Building Individual Images:**
 
 Minimal image (no diagram rendering):
-```bash
+
+```sh
 docker build --target base --tag md2conf:minimal .
 ```
 
 Mermaid only:
-```bash
+
+```sh
 docker build --target mermaid --tag md2conf:mermaid .
 ```
 
 PlantUML only:
-```bash
+
+```sh
 docker build --target plantuml --tag md2conf:plantuml .
 ```
 
 Full image (default):
-```bash
+
+```sh
 docker build --target all --tag md2conf:full .
-# or simply
+```
+
+or
+
+```sh
 docker build --tag md2conf .
 ```
 

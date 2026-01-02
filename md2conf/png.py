@@ -90,7 +90,7 @@ def _extract_png_dimensions(source_file: BinaryIO) -> tuple[int, int]:
         compression,  # pyright: ignore[reportUnusedVariable]
         filter,  # pyright: ignore[reportUnusedVariable]
         interlace,  # pyright: ignore[reportUnusedVariable]
-    ) = unpack(">IIBBBBB", ihdr.data)
+    ) = unpack(">IIBBBBB", ihdr.data)  # spellchecker:disable-line
     return width, height
 
 

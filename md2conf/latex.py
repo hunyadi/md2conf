@@ -36,6 +36,7 @@ else:
     import matplotlib
     import matplotlib.pyplot as plt
 
+    # spellchecker:disable-next-line
     matplotlib.rcParams["mathtext.fontset"] = "cm"  # change font to "Computer Modern"
 
     LATEX_ENABLED = True  # pyright: ignore[reportConstantRedefinition]
@@ -48,6 +49,7 @@ else:
         fig.patch.set_alpha(0)
 
         # add LaTeX text
+        # spellchecker:disable-next-line
         fig.text(x=0, y=0, s=f"${expression}$", fontsize=font_size)  # pyright: ignore[reportUnknownMemberType]
 
         # save the image

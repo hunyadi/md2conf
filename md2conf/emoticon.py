@@ -12,8 +12,8 @@ _EMOJI_TO_EMOTICON = {
     "slight_frown": "sad",
     "slight_smile": "smile",
     "stuck_out_tongue": "cheeky",
-    "thumbsdown": "thumbs-down",
-    "thumbsup": "thumbs-up",
+    "thumbsdown": "thumbs-down",  # spellchecker:disable-line
+    "thumbsup": "thumbs-up",  # spellchecker:disable-line
     "wink": "wink",
 }
 

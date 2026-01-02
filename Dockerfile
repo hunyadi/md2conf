@@ -40,7 +40,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 # Install build dependencies
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add --update git && \
+    apk upgrade && apk add --update git && \
     python3 -m pip install --upgrade pip && \
     pip install build
 
