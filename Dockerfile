@@ -5,6 +5,10 @@
 
 # How do I use this `Dockerfile`?
 #
+# This Dockerfile is optimized for build caching. System dependencies are
+# installed in separate stages to ensure that application code changes
+# do not trigger a full rebuild of heavy layers (like Chromium or Java).
+#
 # 1. Build image (default includes all diagram renderers):
 #    > docker build --tag md2conf .
 #
@@ -31,38 +35,41 @@ ARG PLANTUML_VERSION=1.2025.10
 # Builds Python wheel from source
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Install build dependencies
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add --update git && \
+    python3 -m pip install --upgrade pip && \
+    pip install build
+
+# Create a working directory
+WORKDIR /build
+
+# Copy source code
 COPY ./ ./
 
-RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
-    pip install build
+# Build wheel
 RUN python -m build --wheel --outdir wheel
 
-# ===== Stage 2: base (minimal) =====
-# Minimal image with md2conf but no diagram rendering support
-FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
+# ===== Stage 2: runtime-base =====
+# Common base for all runtime images
+FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS runtime-base
 
-# Install minimal dependencies
-RUN apk upgrade && apk add --update curl
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
 # Create md2conf user
 RUN addgroup md2conf && adduser -D -G md2conf md2conf
-USER md2conf
-WORKDIR /home/md2conf
-
-# Install md2conf Python package
-COPY --from=builder /wheel/*.whl wheel/
-RUN python3 -m pip install `ls -1 wheel/*.whl`
 
 # Set working directory and entrypoint
 WORKDIR /data
 ENTRYPOINT ["python3", "-m", "md2conf"]
 
-# ===== Stage 3: mermaid =====
-# Base image + Mermaid diagram rendering support
-FROM base AS mermaid
-
-# Switch to root to install packages
-USER root
+# ===== Stage 3: mermaid-deps =====
+# Runtime base + Mermaid diagram rendering support
+FROM runtime-base AS mermaid-deps
 
 # Install Mermaid dependencies
 # https://github.com/mermaid-js/mermaid-cli/blob/master/install-dependencies.sh
@@ -72,76 +79,76 @@ RUN apk add --update nodejs npm chromium \
         ttf-inconsolata ttf-linux-libertine \
     && fc-cache -f
 
-# Switch back to md2conf user
-USER md2conf
-WORKDIR /home/md2conf
+# Install mermaid-cli
+ARG MERMAID_VERSION
+RUN mkdir -p /opt/mermaid && \
+    npm install --prefix /opt/mermaid @mermaid-js/mermaid-cli@${MERMAID_VERSION} && \
+    /opt/mermaid/node_modules/.bin/mmdc --version
 
 # Set environment for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/Dockerfile
 ENV CHROME_BIN="/usr/bin/chromium-browser" \
-    PUPPETEER_SKIP_DOWNLOAD="true"
+    PUPPETEER_SKIP_DOWNLOAD="true" \
+    PATH="/opt/mermaid/node_modules/.bin:${PATH}"
 
-# Install mermaid-cli
-ARG MERMAID_VERSION
-RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
-    && node_modules/.bin/mmdc --version
+# ===== Stage 4: plantuml-deps =====
+# Runtime base + PlantUML diagram rendering support
+FROM runtime-base AS plantuml-deps
 
-WORKDIR /data
-
-# ===== Stage 4: plantuml =====
-# Base image + PlantUML diagram rendering support
-FROM base AS plantuml
-
-# Switch to root to install packages
-USER root
-
-# Install PlantUML dependencies
-RUN apk add --update openjdk17-jre-headless graphviz
-
-# Switch back to md2conf user
-USER md2conf
-WORKDIR /home/md2conf
-
-# Download PlantUML JAR directly
-ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
-       "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
-    && java -jar /home/md2conf/plantuml.jar -version
-
-WORKDIR /data
-
-# ===== Stage 5: all (default) =====
-# Base image + both Mermaid and PlantUML support
-FROM base AS all
-
-# Switch to root to install packages
-USER root
-
-# Install all dependencies (Mermaid + PlantUML)
-RUN apk add --update nodejs npm chromium \
-        font-noto-cjk font-noto-emoji terminus-font \
-        ttf-dejavu ttf-freefont ttf-font-awesome \
-        ttf-inconsolata ttf-linux-libertine \
-        openjdk17-jre-headless graphviz \
+# Install PlantUML dependencies (including font support)
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
+RUN apk add --update openjdk17-jre graphviz fontconfig ttf-dejavu \
     && fc-cache -f
-
-# Switch back to md2conf user
-USER md2conf
-WORKDIR /home/md2conf
-
-# Set environment for both Mermaid and PlantUML
-ENV CHROME_BIN="/usr/bin/chromium-browser" \
-    PUPPETEER_SKIP_DOWNLOAD="true"
-
-# Install mermaid-cli
-ARG MERMAID_VERSION
-RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
-    && node_modules/.bin/mmdc --version
 
 # Download PlantUML JAR
 ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
+RUN mkdir -p /opt/plantuml && \
+    wget -O /opt/plantuml/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
-    && java -jar /home/md2conf/plantuml.jar -version
+    && java -jar /opt/plantuml/plantuml.jar -version
 
-WORKDIR /data
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/opt/plantuml/plantuml.jar
+
+# ===== Stage 5: all-deps =====
+# Runtime base + both Mermaid and PlantUML support
+FROM mermaid-deps AS all-deps
+
+# Install PlantUML dependencies (including font support)
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
+RUN apk add --update openjdk17-jre graphviz fontconfig \
+    && fc-cache -f
+
+# Copy PlantUML JAR from plantuml-deps stage
+COPY --from=plantuml-deps /opt/plantuml /opt/plantuml
+
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/opt/plantuml/plantuml.jar
+
+# ===== Stage 6: base (minimal) =====
+# Minimal image with md2conf but no diagram rendering support
+FROM runtime-base AS base
+RUN --mount=type=bind,from=builder,source=/build/wheel,target=/tmp/wheel \
+    python3 -m pip install /tmp/wheel/*.whl
+USER md2conf
+
+# ===== Stage 7: mermaid =====
+# Base image + Mermaid diagram rendering support
+FROM mermaid-deps AS mermaid
+RUN --mount=type=bind,from=builder,source=/build/wheel,target=/tmp/wheel \
+    python3 -m pip install /tmp/wheel/*.whl
+USER md2conf
+
+# ===== Stage 8: plantuml =====
+# Base image + PlantUML diagram rendering support
+FROM plantuml-deps AS plantuml
+RUN --mount=type=bind,from=builder,source=/build/wheel,target=/tmp/wheel \
+    python3 -m pip install /tmp/wheel/*.whl
+USER md2conf
+
+# ===== Stage 9: all (default) =====
+# Base image + both Mermaid and PlantUML support
+FROM all-deps AS all
+RUN --mount=type=bind,from=builder,source=/build/wheel,target=/tmp/wheel \
+    python3 -m pip install /tmp/wheel/*.whl
+USER md2conf
