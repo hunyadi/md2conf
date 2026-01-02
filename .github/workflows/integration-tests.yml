@@ -102,7 +102,7 @@ jobs:
       # Upload test output artifacts on failure for debugging
       - name: Upload test artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: integration-test-outputs
           path: integration_tests/output/
