@@ -152,7 +152,7 @@ Use `--target <stage>` to build specific variants:
 - `plantuml` - Include PlantUML diagram support only (~334MB)
 - `all` - Full image with both renderers (~1.8GB, default)
 
-**Examples:**
+**Building Individual Images:**
 
 Minimal image (no diagram rendering):
 ```bash
@@ -175,6 +175,27 @@ docker build --target all --tag md2conf:full .
 # or simply
 docker build --tag md2conf .
 ```
+
+**Building All Variants in Parallel with Docker Bake:**
+
+Docker Bake builds all 4 image variants simultaneously with shared layer caching:
+
+```bash
+docker buildx bake
+```
+
+This builds all targets defined in `docker-bake.hcl` in parallel, significantly reducing total build time compared to sequential builds.
+
+**Build Performance and Caching:**
+
+The Dockerfile is structured to optimize build caching:
+
+- Heavy system dependencies (Chromium for Mermaid, Java for PlantUML) are installed in separate `*-deps` stages that rarely change
+- Application code changes only trigger a fast pip install of the Python wheel (~2-3 seconds with cache)
+- BuildKit cache mounts are used for package manager caches (apk) and wheel installation
+- With layer caching, incremental builds complete in minutes instead of 20+ minutes for full rebuilds
+
+When you modify Python code, only the final stage rebuilds - the expensive system dependency layers remain cached. This architecture enables rapid iteration during development.
 
 **Configuring GitHub Actions for Custom Docker Hub:**
 
