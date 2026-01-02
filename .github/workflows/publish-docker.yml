@@ -23,20 +23,9 @@ env:
 jobs:
   publish_docker:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: base
-            suffix: -minimal
-          - target: plantuml
-            suffix: -plantuml
-          - target: mermaid
-            suffix: -mermaid
-          - target: all
-            suffix: ""
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -54,20 +43,24 @@ jobs:
           images: ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
             # For tags: create version and latest tags
-            type=semver,pattern={{version}}${{ matrix.suffix }}
-            type=raw,value=latest${{ matrix.suffix }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
             # For manual dispatch: create sha tag
-            type=sha,prefix=,suffix=${{ matrix.suffix }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha,prefix=,enable=${{ github.event_name == 'workflow_dispatch' }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+      - name: Build and push Docker images
+        uses: docker/bake-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          files: |
+            ./docker-bake.hcl
+          targets: default
+          source: .
           # Push if: (1) triggered by tag, OR (2) manual dispatch with push_images=true
           push: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.push_images) }}
-          target: ${{ matrix.target }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          set: |
+            *.cache-from=type=gha,scope=md2conf-docker
+            *.cache-to=type=gha,mode=max,scope=md2conf-docker
+            base.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-minimal,') }}-minimal
+            mermaid.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-mermaid,') }}-mermaid
+            plantuml.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-plantuml,') }}-plantuml
+            all.tags=${{ steps.meta.outputs.tags }}
