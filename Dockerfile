@@ -31,8 +31,15 @@ ARG PLANTUML_VERSION=1.2025.10
 # Builds Python wheel from source
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
+# Create a working directory
+WORKDIR /build
+
 COPY ./ ./
 
+# Install build dependencies
+RUN apk upgrade && apk add --update git
+
+# Build wheel
 RUN PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --upgrade pip && \
     pip install build
 RUN python -m build --wheel --outdir wheel
@@ -41,17 +48,14 @@ RUN python -m build --wheel --outdir wheel
 # Minimal image with md2conf but no diagram rendering support
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS base
 
-# Install minimal dependencies
-RUN apk upgrade && apk add --update curl
+# Install md2conf Python package
+COPY --from=builder /build/wheel/*.whl /tmp/wheel/
+RUN python3 -m pip install `ls -1 /tmp/wheel/*.whl` && \
+    rm -rf /tmp/wheel
 
 # Create md2conf user
 RUN addgroup md2conf && adduser -D -G md2conf md2conf
 USER md2conf
-WORKDIR /home/md2conf
-
-# Install md2conf Python package
-COPY --from=builder /wheel/*.whl wheel/
-RUN python3 -m pip install `ls -1 wheel/*.whl`
 
 # Set working directory and entrypoint
 WORKDIR /data
@@ -72,19 +76,18 @@ RUN apk add --update nodejs npm chromium \
         ttf-inconsolata ttf-linux-libertine \
     && fc-cache -f
 
-# Switch back to md2conf user
-USER md2conf
-WORKDIR /home/md2conf
-
 # Set environment for @mermaid-js/mermaid-cli
 # https://github.com/mermaid-js/mermaid-cli/blob/master/Dockerfile
 ENV CHROME_BIN="/usr/bin/chromium-browser" \
     PUPPETEER_SKIP_DOWNLOAD="true"
 
-# Install mermaid-cli
+# Install mermaid-cli globally
 ARG MERMAID_VERSION
-RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
-    && node_modules/.bin/mmdc --version
+RUN npm install -g @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
+    && mmdc --version
+
+# Switch back to md2conf user
+USER md2conf
 
 WORKDIR /data
 
@@ -95,8 +98,10 @@ FROM base AS plantuml
 # Switch to root to install packages
 USER root
 
-# Install PlantUML dependencies
-RUN apk add --update openjdk17-jre-headless graphviz
+# Install PlantUML dependencies (including font support)
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
+RUN apk add --update openjdk17-jre graphviz fontconfig ttf-dejavu \
+    && fc-cache -f
 
 # Switch back to md2conf user
 USER md2conf
@@ -104,9 +109,12 @@ WORKDIR /home/md2conf
 
 # Download PlantUML JAR directly
 ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
+RUN wget -O /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
+
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/home/md2conf/plantuml.jar
 
 WORKDIR /data
 
@@ -118,11 +126,12 @@ FROM base AS all
 USER root
 
 # Install all dependencies (Mermaid + PlantUML)
+# Note: openjdk17-jre (not headless) is required for libfontmanager.so
 RUN apk add --update nodejs npm chromium \
         font-noto-cjk font-noto-emoji terminus-font \
         ttf-dejavu ttf-freefont ttf-font-awesome \
         ttf-inconsolata ttf-linux-libertine \
-        openjdk17-jre-headless graphviz \
+        openjdk17-jre graphviz fontconfig \
     && fc-cache -f
 
 # Switch back to md2conf user
@@ -140,8 +149,11 @@ RUN npm install @mermaid-js/mermaid-cli@${MERMAID_VERSION} \
 
 # Download PlantUML JAR
 ARG PLANTUML_VERSION
-RUN curl -L -o /home/md2conf/plantuml.jar \
+RUN wget -O /home/md2conf/plantuml.jar \
        "https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar" \
     && java -jar /home/md2conf/plantuml.jar -version
+
+# Set PlantUML JAR location
+ENV PLANTUML_JAR=/home/md2conf/plantuml.jar
 
 WORKDIR /data

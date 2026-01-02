@@ -56,7 +56,7 @@ npm install -g @mermaid-js/mermaid-cli
 
 1. **Install Java**: Version 8 or later from [Adoptium](https://adoptium.net/) or [Oracle](https://www.oracle.com/java/technologies/downloads/)
 2. **Install Graphviz**: Required for most diagram types in PlantUML (except sequence diagrams)
-   * **Ubuntu/Debian**: `sudo apt-get install graphviz`
+   * **Ubuntu/Debian**: `sudo apt-get install Graphviz`
    * **macOS**: `brew install graphviz`
    * **Windows**: Download from [graphviz.org](https://graphviz.org/download/)
 3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and set `PLANTUML_JAR` environment variable to point to it
@@ -340,6 +340,11 @@ Likewise, if you have a nested list, make sure that nested items are indented by
 ### Publishing images
 
 Local images referenced in a Markdown file are automatically published to Confluence as attachments to the page.
+
+* Relative paths (e.g. `path/to/image.png` or `../to/image.png`) resolve to absolute paths w.r.t. the Markdown document location.
+* Absolute paths (e.g. `/path/to/image.png`) are interpreted w.r.t. to the synchronization root (typically the shell current directory).
+
+As a security measure, resolved paths can only reference files that are in the directory hierarchy of the synchronization root; you can't use `..` to leave the top-level directory of the synchronization root.
 
 Unfortunately, Confluence struggles with SVG images, e.g. they may only show in *edit* mode, display in a wrong size or text labels in the image may be truncated. (This seems to be a known issue in Confluence.) In order to mitigate the issue, whenever *md2conf* encounters a reference to an SVG image in a Markdown file, it checks whether a corresponding PNG image also exists in the same directory, and if a PNG image is found, it is published instead.
 

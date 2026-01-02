@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from typing import TypeVar
 
-from cattrs.preconf.orjson import make_converter
+from cattrs.preconf.orjson import make_converter  # spellchecker:disable-line
 
 JsonType = None | bool | int | float | str | dict[str, "JsonType"] | list["JsonType"]
 JsonComposite = dict[str, "JsonType"] | list["JsonType"]
