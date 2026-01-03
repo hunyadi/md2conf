@@ -1,10 +1,12 @@
+---
+title: "Mermaid Diagrams"
+---
+
 <!-- confluence-page-id: 00000000000 -->
 
 [Mermaid](https://mermaid.js.org/) is a simple and powerful diagramming and charting tool that uses a markdown-like syntax.
 
 You can include Mermaid diagrams in your documents to create visual representations of systems, processes, and relationships.
-
-# Example Mermaid Diagrams
 
 ## Class diagrams
 

@@ -45,14 +45,14 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     @override
-    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index.
 
         Does not change Markdown files.
         """
 
-        for node in root.all():
+        for node in tree.all():
             if node.page_id is not None:
                 page_id = node.page_id
             else:

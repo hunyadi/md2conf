@@ -43,7 +43,7 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -52,21 +52,16 @@ class SynchronizingProcessor(Processor):
         Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        if root.page_id is None and root_id is None:
-            raise PageError(f"expected: root page ID in options, or explicit page ID in {root.absolute_path}")
-        elif root.page_id is not None and root_id is not None:
-            if root.page_id != root_id.page_id:
-                raise PageError(f"mismatched inferred page ID of {root_id.page_id} and explicit page ID in {root.absolute_path}")
-
-            real_id = root_id
+        if tree.page_id is None and root_id is None:
+            raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
+        elif tree.page_id is not None:
+            real_id = ConfluencePageID(tree.page_id)  # explicit page ID takes precedence
         elif root_id is not None:
             real_id = root_id
-        elif root.page_id is not None:
-            real_id = ConfluencePageID(root.page_id)
         else:
             raise NotImplementedError("condition not exhaustive")
 
-        self._synchronize_subtree(root, real_id)
+        self._synchronize_subtree(tree, real_id)
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID) -> None:
         if node.page_id is not None:

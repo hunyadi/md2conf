@@ -277,7 +277,8 @@ class TestConversion(TypedTestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_files), 6)
+        figure_dir = self.target_dir / "mermaid"
+        self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.mmd")))
 
     @unittest.skipUnless(has_mmdc(), "mmdc is not available")
     @unittest.skipUnless(os.getenv("TEST_MERMAID"), "mermaid tests are disabled")
@@ -294,7 +295,8 @@ class TestConversion(TypedTestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_files), 6)
+        figure_dir = self.target_dir / "mermaid"
+        self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.mmd")))
 
     @unittest.skipUnless(has_plantuml(), "plantuml is not available")
     @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
@@ -311,7 +313,8 @@ class TestConversion(TypedTestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_files), 3)
+        figure_dir = self.target_dir / "plantuml"
+        self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.puml")))
 
     @unittest.skipUnless(has_plantuml(), "plantuml is not available")
     @unittest.skipUnless(os.getenv("TEST_PLANTUML"), "plantuml tests are disabled")
@@ -328,7 +331,8 @@ class TestConversion(TypedTestCase):
             self.site_metadata,
             self.page_metadata,
         )
-        self.assertEqual(len(document.embedded_files), 3)
+        figure_dir = self.target_dir / "plantuml"
+        self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.puml")))
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_latex_svg(self) -> None:

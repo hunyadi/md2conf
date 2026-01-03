@@ -3,11 +3,10 @@
     <p>This page has been generated with a tool.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
-<p><a href="https://plantuml.com/">PlantUML</a> is an open-source tool that allows users to create diagrams from a plain text language.</p>
+<p><a href="https://plantuml.com/">PlantUML</a> is an open-source utility that facilitates the rapid creation of a wide array of diagrams using plain text.</p>
 <p>You can include PlantUML diagrams in your documents to create visual representations of systems, processes, and relationships.</p>
-<h1>Example PlantUML Diagrams</h1>
 <h2>Class diagrams</h2>
-<p>Class diagrams are a type of UML diagram that visually represent the relationships between classes in a software system. They show the classes, their attributes, and the methods they contain, as well as the relationships between them, such as inheritance, association, and aggregation.</p>
+<p>Class diagrams visualize the structure of a system by showing its classes, attributes, methods, and relationships. They are essential for object-oriented design.</p>
 <ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
   <ac:parameter ac:name="data">DATA(plantuml/class.puml)</ac:parameter>
   <ac:parameter ac:name="compressed">true</ac:parameter>
@@ -20,7 +19,7 @@
   <!-- endif plantuml -->
 </ac:structured-macro>
 <h2>Sequence diagrams</h2>
-<p>UML Sequence diagrams are a type of interaction diagram that shows how objects in a system interact with each other over time. They are used to model the dynamic behavior of a system.</p>
+<p>Sequence diagrams show how objects interact with each other over time. They are useful for modeling the dynamic behavior of a system and understanding message flows between components.</p>
 <ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
   <ac:parameter ac:name="data">DATA(plantuml/sequence.puml)</ac:parameter>
   <ac:parameter ac:name="compressed">true</ac:parameter>
@@ -32,8 +31,21 @@
   <ac:parameter ac:name="originalHeight">HEIGHT(plantuml/sequence.puml)</ac:parameter>
   <!-- endif plantuml -->
 </ac:structured-macro>
+<h2>Component diagrams</h2>
+<p>Component diagrams illustrate the organization and dependencies among software components, helping to visualize system architecture.</p>
+<ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
+  <ac:parameter ac:name="data">DATA(plantuml/component.puml)</ac:parameter>
+  <ac:parameter ac:name="compressed">true</ac:parameter>
+  <ac:parameter ac:name="revision">1</ac:parameter>
+  <ac:parameter ac:name="toolbar">bottom</ac:parameter>
+  <!-- if plantuml -->
+  <ac:parameter ac:name="filename">EMBED(plantuml/component.puml)</ac:parameter>
+  <ac:parameter ac:name="originalWidth">WIDTH(plantuml/component.puml)</ac:parameter>
+  <ac:parameter ac:name="originalHeight">HEIGHT(plantuml/component.puml)</ac:parameter>
+  <!-- endif plantuml -->
+</ac:structured-macro>
 <h2>Use case diagrams</h2>
-<p>Use case diagrams show the interactions between actors and use cases in a system. They are used to capture the functional requirements of a system.</p>
+<p>Use case diagrams show the interactions between actors and use cases in a system. They are used to capture functional requirements of a system.</p>
 <ac:structured-macro ac:name="plantumlcloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
   <ac:parameter ac:name="data">DATA(plantuml/usecase.puml)</ac:parameter>
   <ac:parameter ac:name="compressed">true</ac:parameter>

@@ -25,6 +25,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class DocumentNode:
+    "Represents a Markdown document in a hierarchy."
+
     absolute_path: Path
     page_id: str | None
     space_key: str | None
@@ -49,24 +51,42 @@ class DocumentNode:
         self._children = []
 
     def count(self) -> int:
+        "Number of descendants in the sub-tree spanned by this node (excluding the top-level node)."
+
         c = len(self._children)
         for child in self._children:
             c += child.count()
         return c
 
     def add_child(self, child: "DocumentNode") -> None:
+        "Adds a new node to the list of direct children."
+
         self._children.append(child)
 
     def children(self) -> Iterable["DocumentNode"]:
+        "Direct children of this node."
+
         for child in self._children:
             yield child
 
     def descendants(self) -> Iterable["DocumentNode"]:
+        """
+        Descendants of this node, part of its sub-tree.
+
+        Traversal follows depth-first search.
+        """
+
         for child in self._children:
             yield child
             yield from child.descendants()
 
     def all(self) -> Iterable["DocumentNode"]:
+        """
+        Descendants of this node, part of the sub-tree including the top-level node.
+
+        Traversal follows depth-first search.
+        """
+
         yield self
         for child in self._children:
             yield from child.all()
@@ -140,7 +160,7 @@ class Processor:
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_tree(self, root: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
