@@ -68,7 +68,7 @@ jobs:
       - name: Generate Build Summary
         if: always()
         run: |
-          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Published Image Details" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Determine if images were pushed
