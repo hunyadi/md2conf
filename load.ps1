@@ -1,6 +1,6 @@
 # Publish Markdown files to Confluence wiki.
 #
-# Copyright 2022-2025, Levente Hunyadi
+# Copyright 2022-2026, Levente Hunyadi
 # https://github.com/hunyadi/md2conf
 
 # Sets environment variables defined in the file `.env` as KEY=VALUE pairs in the current environment context.
