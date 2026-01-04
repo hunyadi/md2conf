@@ -210,10 +210,10 @@ When you modify Python code, only the final stage rebuilds - the expensive syste
 To publish images to your own Docker Hub account, configure the following in your GitHub repository:
 
 1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
-   - `DOCKER_USERNAME`: Your Docker Hub username
    - `DOCKER_PASSWORD`: Your Docker Hub access token or password
 
 2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
+   - `DOCKER_USERNAME`: Your Docker Hub username
    - `DOCKER_IMAGE_NAME`: Your image name (e.g., `yourusername/md2conf`)
 
 If `DOCKER_IMAGE_NAME` is not set, it defaults to `leventehunyadi/md2conf`.
