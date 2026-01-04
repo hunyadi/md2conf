@@ -1,8 +1,13 @@
 recursive-include tests *.py
 recursive-include tests *.md
-recursive-include tests *.drawio
-recursive-include tests *.png
-recursive-include tests *.svg
-recursive-include tests *.xml
+recursive-include tests *.txt
+recursive-include tests .mdignore
+recursive-include tests/source *.drawio
+recursive-include tests/source *.png
+recursive-include tests/source *.svg
+include tests/source/docs/sample.*
 exclude tests/source/emoji.md
+recursive-include tests/target *.xml
+recursive-include tests/target *.mmd
+recursive-include tests/target *.puml
 exclude tests/target/emoji.xml

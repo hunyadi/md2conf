@@ -1,60 +1,92 @@
+---
+title: "PlantUML Diagrams"
+---
+
 <!-- confluence-page-id: 00000000000 -->
 
-[PlantUML](https://plantuml.com/) is an open-source tool that allows users to create diagrams from a plain text language.
+[PlantUML](https://plantuml.com/) is an open-source utility that facilitates the rapid creation of a wide array of diagrams using plain text.
 
 You can include PlantUML diagrams in your documents to create visual representations of systems, processes, and relationships.
 
-# Example PlantUML Diagrams
-
 ## Class diagrams
 
-Class diagrams are a type of UML diagram that visually represent
-the relationships between classes in a software system. They show
-the classes, their attributes, and the methods they contain, as
-well as the relationships between them, such as inheritance,
-association, and aggregation.
+Class diagrams visualize the structure of a system by showing its classes, attributes, methods, and relationships. They are essential for object-oriented design.
 
 ```plantuml
 @startuml
-class Entity {
-  +id: int
-  +name: string
+abstract class Animal {
+  +name: String
+  +age: int
+  +makeSound(): void
 }
 
-class Product {
-  +price: decimal
+class Dog {
+  +breed: String
+  +bark(): void
+  +makeSound(): void
 }
 
-class Customer {
-  +email: string
+class Cat {
+  +color: String
+  +meow(): void
+  +makeSound(): void
 }
 
-Entity <|-- Product
-Entity <|-- Customer
+Animal <|-- Dog
+Animal <|-- Cat
 @enduml
 ```
 
 ## Sequence diagrams
 
-UML Sequence diagrams are a type of interaction diagram that shows
-how objects in a system interact with each other over time. They
-are used to model the dynamic behavior of a system.
+Sequence diagrams show how objects interact with each other over time. They are useful for modeling the dynamic behavior of a system and understanding message flows between components.
 
 ```plantuml
 @startuml
-Alice -> Bob: Authentication Request
-Bob --> Alice: Authentication Response
+actor User
+participant "Web App" as Web
+participant "API Server" as API
+database "Database" as DB
 
-Alice -> Bob: Another authentication Request
-Alice <-- Bob: Another authentication Response
+User -> Web: Login request
+Web -> API: Authenticate(username, password)
+API -> DB: Query user
+DB --> API: User data
+API --> Web: Auth token
+Web --> User: Login successful
+@enduml
+```
+
+## Component diagrams
+
+Component diagrams illustrate the organization and dependencies among software components, helping to visualize system architecture.
+
+```plantuml
+@startuml
+package "Frontend" {
+  [React App] as React
+  [State Manager] as Redux
+}
+
+package "Backend" {
+  [REST API] as API
+  [Business Logic] as Logic
+  [Data Access] as DAO
+}
+
+database "PostgreSQL" as DB
+
+React --> Redux
+React --> API
+API --> Logic
+Logic --> DAO
+DAO --> DB
 @enduml
 ```
 
 ## Use case diagrams
 
-Use case diagrams show the interactions between actors and use cases
-in a system. They are used to capture the functional requirements
-of a system.
+Use case diagrams show the interactions between actors and use cases in a system. They are used to capture functional requirements of a system.
 
 ```plantuml
 @startuml

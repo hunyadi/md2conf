@@ -5,11 +5,10 @@
 </ac:structured-macro>
 <p><a href="https://mermaid.js.org/">Mermaid</a> is a simple and powerful diagramming and charting tool that uses a markdown-like syntax.</p>
 <p>You can include Mermaid diagrams in your documents to create visual representations of systems, processes, and relationships.</p>
-<h1>Example Mermaid Diagrams</h1>
 <h2>Class diagrams</h2>
 <p>Class diagrams are a type of UML diagram that visually represent the relationships between classes in a software system. They show the classes, their attributes, and the methods they contain, as well as the relationships between them, such as inheritance, association, and aggregation. Class diagrams are used to model the static structure of a system, providing a blueprint for its implementation.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/class.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/class.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
@@ -17,7 +16,7 @@
 <h2>Pie charts</h2>
 <p>Pie charts are a type of chart that displays data as slices of a circle, where the size of each slice is proportional to the value it represents.  They are useful for visualizing the relative proportions of different categories within a dataset.  This example shows the relative time spent looking for a movie versus watching it on Netflix.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/pie.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/pie.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
@@ -25,7 +24,7 @@
 <h2>Sequence diagrams</h2>
 <p>UML Sequence diagrams are a type of interaction diagram that shows how objects in a system interact with each other over time. They are used to model the dynamic behavior of a system, showing the sequence of messages that are exchanged between objects. Sequence diagrams are often used to model the flow of control in a system, such as the steps involved in processing a request or handling an event.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/sequence.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/sequence.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
@@ -33,21 +32,21 @@
 <h2>Mindmaps</h2>
 <p>Mindmaps are a visual representation of hierarchical information, using branches radiating from a central node to represent relationships between concepts. They are often used for brainstorming, note-taking, and knowledge organization, allowing users to visually map out ideas and connections. Mindmaps can be created using pen and paper or specialized software tools like Mermaid.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/mindmap.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/mindmap.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
 </ac:structured-macro>
 <p>A timeline is a type of diagram that visually represents events and activities over a period of time. It is used to illustrate the sequence of events, milestones, or tasks in a project or process, providing a clear overview of the timeline and dependencies.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/timeline.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/timeline.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>
 </ac:structured-macro>
 <p>Quadrant diagrams are a visual representation of a matrix with four quadrants, each representing a different combination of two variables. They are often used for prioritization, decision-making, and problem-solving.</p><p>A quadrant diagram typically has two axes, each representing a different variable. The axes are usually labeled with opposite ends of a spectrum, such as "Important" vs. "Not Important" or "Urgent" vs. "Not Urgent". The four quadrants are then defined by the intersection of these axes.</p>
 <ac:structured-macro ac:name="mermaid-cloud" ac:schema-version="1" data-layout="default" ac:local-id="UUID" ac:macro-id="UUID">
-  <ac:parameter ac:name="filename">EMBED(figure/quadrant.mmd)</ac:parameter>
+  <ac:parameter ac:name="filename">EMBED(mermaid/quadrant.mmd)</ac:parameter>
   <ac:parameter ac:name="toolbar">bottom</ac:parameter>
   <ac:parameter ac:name="zoom">fit</ac:parameter>
   <ac:parameter ac:name="revision">1</ac:parameter>

@@ -1,7 +1,13 @@
 @startuml
-Alice -> Bob: Authentication Request
-Bob --> Alice: Authentication Response
+actor User
+participant "Web App" as Web
+participant "API Server" as API
+database "Database" as DB
 
-Alice -> Bob: Another authentication Request
-Alice <-- Bob: Another authentication Response
+User -> Web: Login request
+Web -> API: Authenticate(username, password)
+API -> DB: Query user
+DB --> API: User data
+API --> Web: Auth token
+Web --> User: Login successful
 @enduml

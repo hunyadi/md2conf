@@ -1,0 +1,20 @@
+@startuml
+package "Frontend" {
+  [React App] as React
+  [State Manager] as Redux
+}
+
+package "Backend" {
+  [REST API] as API
+  [Business Logic] as Logic
+  [Data Access] as DAO
+}
+
+database "PostgreSQL" as DB
+
+React --> Redux
+React --> API
+API --> Logic
+Logic --> DAO
+DAO --> DB
+@enduml
