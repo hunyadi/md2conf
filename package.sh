@@ -1,4 +1,5 @@
-set -e
+#!/usr/bin/env sh
+#
 # Publish Markdown files to Confluence wiki.
 #
 # Copyright 2022-2026, Levente Hunyadi
@@ -8,6 +9,7 @@ set -e
 # Builds a Python package and runs unit tests in Docker
 #
 
+set -e
 PYTHON_EXECUTABLE=${PYTHON:-python3}
 
 # clean up output from previous runs
@@ -17,15 +19,12 @@ if [ -d *.egg-info ]; then rm -rf *.egg-info; fi
 # create PyPI package for distribution
 $PYTHON_EXECUTABLE -m build --sdist --wheel
 
+# build Docker image
 VERSION=`$PYTHON_EXECUTABLE -c "from md2conf import __version__; print(__version__)"`
 docker build -f Dockerfile -t leventehunyadi/md2conf:latest -t leventehunyadi/md2conf:$VERSION .
-docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest sample/index.md --ignore-invalid-url
 
-# test PyPI package with various Python versions
+# run Docker image with Markdown input files containing diagrams to produce PNG/SVG output
 # pass environment variables from the file `.env`
-for PYTHON_VERSION in 3.10 3.11 3.12 3.13 3.14
-do
-    docker build -f test.dockerfile -t py-$PYTHON_VERSION-image --build-arg PYTHON_VERSION=$PYTHON_VERSION .
-    docker run -i -t --rm --env-file .env py-$PYTHON_VERSION-image python3 -m unittest discover tests
-    docker rmi py-$PYTHON_VERSION-image
-done
+FILES="tests/source/mermaid.md tests/source/plantuml.md"
+docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest --local --diagram-output-format=png $FILES
+docker run -i -t --rm --env-file .env --name md2conf -v $(pwd):/data leventehunyadi/md2conf:latest --local --diagram-output-format=svg $FILES

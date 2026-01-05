@@ -26,7 +26,7 @@ from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageL
 
 
 class Arguments(argparse.Namespace):
-    mdpath: Path
+    mdpath: list[Path]
     domain: str | None
     path: str | None
     api_url: str | None
@@ -100,7 +100,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=PositionalOnlyHelpFormatter)
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
-    parser.add_argument("mdpath", help="Path to Markdown file or directory to convert and publish.")
+    parser.add_argument("mdpath", type=Path, nargs="+", help="Path to Markdown file or directory to convert and publish.")
     parser.add_argument("-d", "--domain", help="Confluence organization domain.")
     parser.add_argument("-p", "--path", help="Base path for Confluence (default: '/wiki/').")
     parser.add_argument(
@@ -329,8 +329,6 @@ def main() -> None:
     args = Arguments()
     parser.parse_args(namespace=args)
 
-    args.mdpath = Path(args.mdpath)
-
     logging.basicConfig(
         level=getattr(logging, args.loglevel.upper(), logging.INFO),
         format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
@@ -377,7 +375,9 @@ def main() -> None:
             base_path=site_properties.base_path,
             space_key=site_properties.space_key,
         )
-        LocalConverter(options, site_metadata).process(args.mdpath)
+        converter = LocalConverter(options, site_metadata)
+        for item in args.mdpath:
+            converter.process(item)
     else:
         from requests import HTTPError, JSONDecodeError
 
@@ -398,7 +398,9 @@ def main() -> None:
             parser.error(str(e))
         try:
             with ConfluenceAPI(properties) as api:
-                Publisher(api, options).process(args.mdpath)
+                publisher = Publisher(api, options)
+                for item in args.mdpath:
+                    publisher.process(item)
         except HTTPError as err:
             logging.error(err)
 

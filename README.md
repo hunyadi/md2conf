@@ -591,7 +591,7 @@ Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
 $ python3 -m md2conf --help
-usage: md2conf mdpath [OPTIONS]
+usage: md2conf mdpath [mdpath ...] [OPTIONS]
 
 positional arguments:
   mdpath                Path to Markdown file or directory to convert and publish.

@@ -1,9 +1,11 @@
-set -e
+#!/usr/bin/env sh
+#
 # Publish Markdown files to Confluence wiki.
 #
 # Copyright 2022-2026, Levente Hunyadi
 # https://github.com/hunyadi/md2conf
 
+set -e
 PYTHON_EXECUTABLE=${PYTHON:-python3}
 
 # Run static type checker and verify formatting guidelines
