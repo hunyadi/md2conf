@@ -90,7 +90,7 @@ class SynchronizingProcessor(Processor):
             update = True
 
         space_key = self.api.space_id_to_key(page.spaceId)
-        if update:
+        if update and not self.options.skip_update:
             self._update_markdown(
                 node.absolute_path,
                 page_id=page.id,
