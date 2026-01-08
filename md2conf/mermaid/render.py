@@ -67,7 +67,7 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
         str(config.scale or 2),
     ]
     if _is_docker():
-        root = os.path.dirname(os.path.dirname(__file__))
+        root = os.path.dirname(__file__)
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
 
     return execute_subprocess(cmd, source.encode("utf-8"), application="Mermaid")
