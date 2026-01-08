@@ -222,8 +222,8 @@ If `DOCKER_IMAGE_NAME` is not set, it defaults to `leventehunyadi/md2conf`.
 
 1. **Push a Git tag** (production release):
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag 1.0.0
+   git push origin 1.0.0
    ```
    Builds and pushes all variants with version and latest tags:
    - `yourusername/md2conf:latest` & `yourusername/md2conf:1.0.0`
