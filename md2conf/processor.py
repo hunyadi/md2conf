@@ -20,6 +20,7 @@ from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, DocumentOptions
 from .scanner import Scanner
+from .toc import unique_title
 
 LOGGER = logging.getLogger(__name__)
 
@@ -246,14 +247,18 @@ class Processor:
         LOGGER.info("Indexing file: %s", path)
 
         # extract information from a Markdown document found in a local directory.
-        document = Scanner().read(path)
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
 
+        document = Scanner().parse(text)
         props = document.properties
+        title = props.title or unique_title(text)
+
         return DocumentNode(
             absolute_path=path,
             page_id=props.page_id,
             space_key=props.space_key,
-            title=props.title,
+            title=title,
             synchronized=props.synchronized if props.synchronized is not None else True,
         )
 

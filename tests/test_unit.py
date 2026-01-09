@@ -19,7 +19,6 @@ from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
 from md2conf.serializer import json_to_object, object_to_json_payload
-from md2conf.toc import TableOfContentsBuilder, TableOfContentsEntry
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -68,77 +67,6 @@ class TestUnit(TypedTestCase):
         self.assertEqual(title_to_identifier("C++ & C# Comparison"), "c-c-comparison")
         self.assertEqual(title_to_identifier("Hello -- World!!"), "hello----world")
         self.assertEqual(title_to_identifier("árvíztűrő tükörfúrógép"), "rvztr-tkrfrgp")
-
-    def test_toc(self) -> None:
-        builder = TableOfContentsBuilder()
-        sections = [
-            (2, "Section 1"),
-            (3, "Section 1.1"),
-            (3, "Section 1.2"),
-            (6, "Section 1.2.1"),  # test skipping levels
-            (6, "Section 1.2.2"),
-            (3, "Section 1.3"),
-            (4, "Section 1.3.1"),
-            (2, "Section 2"),
-        ]
-        for level, text in sections:
-            builder.add(level, text)
-        expected = [
-            TableOfContentsEntry(
-                2,
-                "Section 1",
-                [
-                    TableOfContentsEntry(3, "Section 1.1"),
-                    TableOfContentsEntry(
-                        3,
-                        "Section 1.2",
-                        [
-                            TableOfContentsEntry(6, "Section 1.2.1"),
-                            TableOfContentsEntry(6, "Section 1.2.2"),
-                        ],
-                    ),
-                    TableOfContentsEntry(
-                        3,
-                        "Section 1.3",
-                        [
-                            TableOfContentsEntry(4, "Section 1.3.1"),
-                        ],
-                    ),
-                ],
-            ),
-            TableOfContentsEntry(2, "Section 2"),
-        ]
-        self.assertEqual(expected, builder.tree)
-        self.assertIsNone(builder.get_title())
-
-    def test_toc_title(self) -> None:
-        builder = TableOfContentsBuilder()
-        sections = [
-            (2, "Title"),
-            (3, "Section 1"),
-            (3, "Section 2"),
-            (4, "Section 2.1"),
-        ]
-        for level, text in sections:
-            builder.add(level, text)
-        expected = [
-            TableOfContentsEntry(
-                2,
-                "Title",
-                [
-                    TableOfContentsEntry(3, "Section 1"),
-                    TableOfContentsEntry(
-                        3,
-                        "Section 2",
-                        [
-                            TableOfContentsEntry(4, "Section 2.1"),
-                        ],
-                    ),
-                ],
-            ),
-        ]
-        self.assertEqual(expected, builder.tree)
-        self.assertEqual(builder.get_title(), "Title")
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:

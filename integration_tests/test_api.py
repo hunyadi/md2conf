@@ -118,6 +118,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
+                skip_update=True,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
@@ -130,6 +131,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
+                skip_update=True,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
@@ -142,6 +144,7 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             options = DocumentOptions(
                 root_page_id=self.feature_test_page_id,
+                skip_update=True,
                 converter=ConverterOptions(
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",

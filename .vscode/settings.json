@@ -50,6 +50,7 @@
         "poolmanager",
         "pymdownx",
         "scandir",
+        "Setext",
         "setuptools",
         "startuml",
         "strikethrough",

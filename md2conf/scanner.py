@@ -75,9 +75,15 @@ class Scanner:
         Extracts essential properties from a Markdown document.
         """
 
-        # parse file
         with open(absolute_path, "r", encoding="utf-8") as f:
             text = f.read()
+
+        return self.parse(text)
+
+    def parse(self, text: str) -> ScannedDocument:
+        """
+        Extracts essential properties from a Markdown document.
+        """
 
         # extract Confluence page ID
         page_id, text = extract_value(r"<!--\s+confluence[-_]page[-_]id:\s*(\d+)\s+-->", text)
