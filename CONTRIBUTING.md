@@ -218,21 +218,58 @@ To publish images to your own Docker Hub account, configure the following in you
 
 If `DOCKER_IMAGE_NAME` is not set, it defaults to `leventehunyadi/md2conf`.
 
-**Triggering Docker Builds:**
+**Triggering Production Builds:**
 
-1. **Push a Git tag** (production release):
-   ```bash
-   git tag 1.0.0
-   git push origin 1.0.0
-   ```
-   Builds and pushes all variants with version and latest tags:
-   - `yourusername/md2conf:latest` & `yourusername/md2conf:1.0.0`
-   - `yourusername/md2conf:latest-minimal` & `yourusername/md2conf:1.0.0-minimal`
-   - `yourusername/md2conf:latest-plantuml` & `yourusername/md2conf:1.0.0-plantuml`
-   - `yourusername/md2conf:latest-mermaid` & `yourusername/md2conf:1.0.0-mermaid`
+Pushing a Git tag triggers automated builds of all Docker image variants and publishes them to Docker Hub. For the complete release process, see [Releasing](#releasing).
 
-2. **Manual workflow dispatch** (testing):
+**Testing Docker Builds:**
+
+For testing Docker builds without creating a release, use manual workflow dispatch:
    - Go to: **Actions** → **Publish Docker image** → **Run workflow**
    - Select your branch
    - Choose "Push images to Docker Hub" (true/false)
    - Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`)
+
+## Releasing
+
+To release a new version, pushing a git tag triggers automated publication to both PyPI and Docker Hub.
+
+**Release process:**
+
+1. **Update the version number** in `md2conf/__init__.py`:
+   ```python
+   __version__ = "1.0.0"
+   ```
+
+2. **Run tests** to ensure everything passes:
+   ```bash
+   ./check.sh
+   ```
+
+3. **Commit the version change**:
+   ```bash
+   git add md2conf/__init__.py
+   git commit -m "chore: bump version to 1.0.0"
+   git push
+   ```
+
+4. **Push a Git tag**:
+   ```bash
+   git tag 1.0.0
+   git push origin 1.0.0
+   ```
+
+This automatically triggers GitHub Actions workflows that:
+- **Build and publish to PyPI**: `pypi.org/project/markdown-to-confluence/1.0.0/`
+  - Requires `PYPI_ID_TOKEN` secret configured in repository secrets
+- **Build and push Docker images**: `leventehunyadi/md2conf` with version tags
+  - All 4 variants: base (minimal), mermaid, plantuml, and all (full)
+  - Tags: `latest`, `latest-*`, and version-specific tags (e.g., `1.0.0`, `1.0.0-minimal`)
+
+**Note:** The version in `md2conf/__init__.py` is the single source of truth. The `pyproject.toml` file dynamically reads this version via `version = { attr = "md2conf.__version__" }`.
+
+### Working with Forks
+
+If you're working with a fork, use the manual workflow dispatch approach described in **Testing Docker Builds** above to validate Docker image changes before submitting pull requests. The tag-based release workflow is only applicable to this repository.
+
+Note that the `publish-python.yml` workflow will fail in forks because the `PYPI_ID_TOKEN` secret is not available.
