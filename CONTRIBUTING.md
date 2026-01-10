@@ -239,10 +239,12 @@ Example using `gh` CLI for manual dispatch:
 
 ```bash
 # Build images only (no push, no doc update)
-gh workflow run publish-docker.yml --ref <branch> --field push_images=false
+gh workflow run publish-docker.yml --ref <branch>  --repo <owner>/<repo> \
+  --field push_images=false
 
 # Update Docker Hub description from branch
-gh workflow run publish-docker.yml --ref <branch> --field update_description=true --field push_images=false
+gh workflow run publish-docker.yml --ref <branch>  --repo <owner>/<repo> \
+  --field update_description=true --field push_images=false
 ```
 
 ## Releasing
