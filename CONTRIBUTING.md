@@ -210,7 +210,10 @@ When you modify Python code, only the final stage rebuilds - the expensive syste
 To publish images to your own Docker Hub account, configure the following in your GitHub repository:
 
 1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
-   - `DOCKER_PASSWORD`: Your Docker Hub access token or password
+   - `DOCKER_PASSWORD`: Your Docker Hub Personal Access Token (PAT) or primary account password.
+     - > [!IMPORTANT]
+     - > While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
+     - > To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
 
 2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
    - `DOCKER_USERNAME`: Your Docker Hub username
@@ -231,9 +234,10 @@ For testing Docker builds and documentation updates without creating a release, 
 - **Options:**
   - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
   - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
+    - **Note:** This is a **"best-effort"** step. If it fails (e.g., due to insufficient PAT scopes), the workflow will still succeed and images will be published.
     - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
     - > [!WARNING]
-      > This will update the live Docker Hub description if your credentials are configured.
+      > This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
 
 Example using `gh` CLI for manual dispatch:
 
