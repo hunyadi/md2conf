@@ -97,3 +97,47 @@ jobs:
           echo "| mermaid | $MERMAID_TAGS |" >> $GITHUB_STEP_SUMMARY
           echo "| plantuml | $PLANTUML_TAGS |" >> $GITHUB_STEP_SUMMARY
           echo "| all | $ALL_TAGS |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Update Docker Hub Description
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # Extract version from tag
+          GIT_TAG=${GITHUB_REF#refs/tags/}
+          
+          # Use existing tag extraction logic to prepare the table for Docker Hub
+          JSON_TAGS='${{ steps.meta.outputs.json }}'
+          BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-minimal`") | join(", ")')
+          MERMAID_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-mermaid`") | join(", ")')
+          PLANTUML_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-plantuml`") | join(", ")')
+          ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "`") | join(", ")')
+
+          TAGS_TABLE="| Variant | Tags |\n| --- | --- |\n| **Minimal** | $BASE_TAGS |\n| **Mermaid** | $MERMAID_TAGS |\n| **PlantUML** | $PLANTUML_TAGS |\n| **Full** | $ALL_TAGS |"
+          
+          # Replace placeholders in template
+          sed -i "s|%{GIT_TAG}|$GIT_TAG|g" DOCKER_HUB.md
+          sed -i "s|%{DOCKER_IMAGE_NAME}|${{ env.DOCKER_IMAGE_NAME }}|g" DOCKER_HUB.md
+          sed -i "s|%{GITHUB_REPOSITORY}|${{ github.repository }}|g" DOCKER_HUB.md
+          sed -i "s|%{GITHUB_REPO_URL}|${{ github.server_url }}/${{ github.repository }}|g" DOCKER_HUB.md
+          # For the table, we use a temporary file to avoid sed delimiter issues with multiline/complex strings
+          printf "$TAGS_TABLE" > tags_table.txt
+          
+          # Use a python script for safer replacement of the table placeholder
+          python3 -c "
+          import os
+          with open('DOCKER_HUB.md', 'r') as f:
+              content = f.read()
+          with open('tags_table.txt', 'r') as f:
+              table = f.read()
+          content = content.replace('%{LATEST_TAGS_TABLE}', table)
+          with open('DOCKER_HUB.md', 'w') as f:
+              f.write(content)
+          "
+
+      - name: Push to Docker Hub
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_IMAGE_NAME }}
+          readme-filepath: DOCKER_HUB.md

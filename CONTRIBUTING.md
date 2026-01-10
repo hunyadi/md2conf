@@ -147,10 +147,10 @@ The Docker image can be customized to include only the dependencies you need, si
 
 Use `--target <stage>` to build specific variants:
 
-- `base` - Minimal image with no diagram rendering (~87MB)
-- `mermaid` - Include Mermaid diagram support only (~1.6GB)
-- `plantuml` - Include PlantUML diagram support only (~334MB)
-- `all` - Full image with both renderers (~1.8GB, default)
+- `base` - Minimal image with no diagram rendering
+- `mermaid` - Include Mermaid diagram support only
+- `plantuml` - Include PlantUML diagram support only
+- `all` - Full image with both renderers (default)
 
 **Building Individual Images:**
 
