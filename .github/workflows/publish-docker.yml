@@ -117,12 +117,12 @@ jobs:
             fi
           fi
           
-          # Prepare tag lists for each variant
+          # Prepare tag lists for each variant (strip image repository name)
           JSON_TAGS='${{ steps.meta.outputs.json }}'
-          BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-minimal`") | join(", ")')
-          MERMAID_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-mermaid`") | join(", ")')
-          PLANTUML_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-plantuml`") | join(", ")')
-          ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "`") | join(", ")')
+          BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-minimal`") | join(", ")')
+          MERMAID_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-mermaid`") | join(", ")')
+          PLANTUML_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-plantuml`") | join(", ")')
+          ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "`") | join(", ")')
 
           # Generate final DOCKER_HUB.md using the python script
           python3 dockerhub_description.py \
