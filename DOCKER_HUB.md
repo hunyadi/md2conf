@@ -26,10 +26,10 @@ We provide several image variants to allow you to balance between features and i
 
 | Variant | Description | Tags |
 | :--- | :--- | :--- |
-| **Minimal** (`-minimal`) | Base Python 3 Alpine image with `md2conf`. No diagram renderers. | %{TAGS_BASE} |
-| **Mermaid** (`-mermaid`) | Includes `mermaid-cli` and its dependencies (Chromium, Node.js). | %{TAGS_MERMAID} |
-| **PlantUML** (`-plantuml`) | Includes Java, Graphviz, and `plantuml.jar`. | %{TAGS_PLANTUML} |
-| **Full** | Includes both Mermaid and PlantUML renderers. | %{TAGS_ALL} |
+| **Minimal** | Python 3 Alpine image with `md2conf`. No diagram renderers. | %{TAGS_BASE} |
+| **Mermaid** | _Minimal_ plus `mermaid-cli` and its dependencies (Chromium, Node.js). | %{TAGS_MERMAID} |
+| **PlantUML** | _Minimal_ plus PlantUML and its dependencies (Java, Graphviz). | %{TAGS_PLANTUML} |
+| **Full** | All of the above. | %{TAGS_ALL} |
 
 
 ## How to Use This Image
