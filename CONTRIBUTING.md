@@ -224,11 +224,25 @@ Pushing a Git tag triggers automated builds of all Docker image variants and pub
 
 **Testing Docker Builds:**
 
-For testing Docker builds without creating a release, use manual workflow dispatch:
+For testing Docker builds and documentation updates without creating a release, use manual workflow dispatch:
    - Go to: **Actions** → **Publish Docker image** → **Run workflow**
    - Select your branch
-   - Choose "Push images to Docker Hub" (true/false)
-   - Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`)
+   - **Options:**
+     - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
+     - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
+       - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
+       - > [!WARNING]
+         > This will update the live Docker Hub description if your credentials are configured.
+
+Example using `gh` CLI for manual dispatch:
+
+```bash
+# Build images only (no push, no doc update)
+gh workflow run publish-docker.yml --ref <branch> --field push_images=false
+
+# Update Docker Hub description from branch
+gh workflow run publish-docker.yml --ref <branch> --field update_description=true --field push_images=false
+```
 
 ## Releasing
 
