@@ -225,14 +225,15 @@ Pushing a Git tag triggers automated builds of all Docker image variants and pub
 **Testing Docker Builds:**
 
 For testing Docker builds and documentation updates without creating a release, use manual workflow dispatch:
-   - Go to: **Actions** → **Publish Docker image** → **Run workflow**
-   - Select your branch
-   - **Options:**
-     - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
-     - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
-       - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
-       - > [!WARNING]
-         > This will update the live Docker Hub description if your credentials are configured.
+
+- Go to: **Actions** → **Publish Docker image** → **Run workflow**
+- Select your branch
+- **Options:**
+  - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
+  - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
+    - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
+    - > [!WARNING]
+      > This will update the live Docker Hub description if your credentials are configured.
 
 Example using `gh` CLI for manual dispatch:
 
@@ -251,16 +252,19 @@ To release a new version, pushing a git tag triggers automated publication to bo
 **Release process:**
 
 1. **Update the version number** in `md2conf/__init__.py`:
+
    ```python
    __version__ = "1.0.0"
    ```
 
 2. **Run tests** to ensure everything passes:
+
    ```bash
    ./check.sh
    ```
 
 3. **Commit the version change**:
+
    ```bash
    git add md2conf/__init__.py
    git commit -m "chore: bump version to 1.0.0"
@@ -268,12 +272,14 @@ To release a new version, pushing a git tag triggers automated publication to bo
    ```
 
 4. **Push a Git tag**:
+
    ```bash
    git tag 1.0.0
    git push origin 1.0.0
    ```
 
 This automatically triggers GitHub Actions workflows that:
+
 - **Build and publish to PyPI**: `pypi.org/project/markdown-to-confluence/1.0.0/`
   - Requires `PYPI_ID_TOKEN` secret configured in repository secrets
 - **Build and push Docker images**: `leventehunyadi/md2conf` with version tags
