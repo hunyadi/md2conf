@@ -234,7 +234,8 @@ For testing Docker builds and documentation updates without creating a release, 
 - **Options:**
   - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
   - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
-    - **Note:** This is a **"best-effort"** step. If it fails (e.g., due to insufficient PAT scopes), the workflow will still succeed and images will be published.
+    - **Note:** This is a **"best-effort"** step only for manual runs. If it fails (e.g., due to insufficient PAT scopes) during manual testing, the workflow will still succeed.
+    - **Note:** Production tag-based releases will still fail visibly if the description cannot be updated, ensuring quality for actual releases.
     - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
     - > [!WARNING]
       > This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
