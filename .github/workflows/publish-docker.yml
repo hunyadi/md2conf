@@ -117,34 +117,25 @@ jobs:
             fi
           fi
           
-          # Use existing tag extraction logic to prepare the table for Docker Hub
+          # Prepare tag lists for each variant
           JSON_TAGS='${{ steps.meta.outputs.json }}'
           BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-minimal`") | join(", ")')
           MERMAID_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-mermaid`") | join(", ")')
           PLANTUML_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "-plantuml`") | join(", ")')
           ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map("`" + . + "`") | join(", ")')
 
-          TAGS_TABLE="| Variant | Tags |\n| --- | --- |\n| **Minimal** | $BASE_TAGS |\n| **Mermaid** | $MERMAID_TAGS |\n| **PlantUML** | $PLANTUML_TAGS |\n| **Full** | $ALL_TAGS |"
-          
-          # Replace placeholders in template
-          sed -i "s|%{GIT_TAG}|$GIT_TAG|g" DOCKER_HUB.md
-          sed -i "s|%{DOCKER_IMAGE_NAME}|${{ env.DOCKER_IMAGE_NAME }}|g" DOCKER_HUB.md
-          sed -i "s|%{GITHUB_REPOSITORY}|${{ github.repository }}|g" DOCKER_HUB.md
-          sed -i "s|%{GITHUB_REPO_URL}|${{ github.server_url }}/${{ github.repository }}|g" DOCKER_HUB.md
-          # For the table, we use a temporary file to avoid sed delimiter issues with multiline/complex strings
-          printf "$TAGS_TABLE" > tags_table.txt
-          
-          # Use a python script for safer replacement of the table placeholder
-          python3 -c "
-          import os
-          with open('DOCKER_HUB.md', 'r') as f:
-              content = f.read()
-          with open('tags_table.txt', 'r') as f:
-              table = f.read()
-          content = content.replace('%{LATEST_TAGS_TABLE}', table)
-          with open('DOCKER_HUB.md', 'w') as f:
-              f.write(content)
-          "
+          # Generate final DOCKER_HUB.md using the python script
+          python3 dockerhub_description.py \
+            --git-tag "$GIT_TAG" \
+            --image-name "${{ env.DOCKER_IMAGE_NAME }}" \
+            --github-repo "${{ github.repository }}" \
+            --github-repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --tags-base "$BASE_TAGS" \
+            --tags-mermaid "$MERMAID_TAGS" \
+            --tags-plantuml "$PLANTUML_TAGS" \
+            --tags-all "$ALL_TAGS" \
+            --output DOCKER_HUB.md
+
 
       - name: Push to Docker Hub
         if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.update_description)

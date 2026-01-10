@@ -24,16 +24,13 @@ Manually replicating documentation is tedious and leads to synchronization issue
 
 We provide several image variants to allow you to balance between features and image size:
 
-| Variant | Tag Suffix | Description |
+| Variant | Description | Tags |
 | :--- | :--- | :--- |
-| **Minimal** | `-minimal` | Base Python 3 Alpine image with `md2conf`. No diagram renderers. |
-| **Mermaid** | `-mermaid` | Includes `mermaid-cli` and its dependencies (Chromium, Node.js). |
-| **PlantUML** | `-plantuml` | Includes Java, Graphviz, and `plantuml.jar`. |
-| **Full** | (none) | Includes both Mermaid and PlantUML renderers. |
+| **Minimal** (`-minimal`) | Base Python 3 Alpine image with `md2conf`. No diagram renderers. | %{TAGS_BASE} |
+| **Mermaid** (`-mermaid`) | Includes `mermaid-cli` and its dependencies (Chromium, Node.js). | %{TAGS_MERMAID} |
+| **PlantUML** (`-plantuml`) | Includes Java, Graphviz, and `plantuml.jar`. | %{TAGS_PLANTUML} |
+| **Full** | Includes both Mermaid and PlantUML renderers. | %{TAGS_ALL} |
 
-### Latest Tags
-
-%{LATEST_TAGS_TABLE}
 
 ## How to Use This Image
 
