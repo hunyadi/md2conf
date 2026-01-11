@@ -16,7 +16,6 @@ This Python package
 * Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~
 * Link to [sections on the same page](#getting-started) or [external locations](http://example.com/)
 * Subscript and superscript
-* Math formulas with LaTeX notation
 * Emoji
 * Ordered and unordered lists
 * Block quotes
@@ -30,6 +29,8 @@ This Python package
 * [Tasklists](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)
 * draw\.io diagrams
 * [Mermaid diagrams](https://mermaid.live/)
+* PlantUML diagrams
+* Math formulas with LaTeX notation
 * Confluence status labels and date widget
 
 Whenever possible, the implementation uses [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) to fetch space properties, and get, create or update page content.
@@ -152,13 +153,34 @@ If you lack appropriate permissions, you will get an *Unauthorized* response fro
 
 ### Associating a Markdown file with a wiki page
 
-Each Markdown file is associated with a Confluence wiki page with a Markdown comment:
+Each Markdown file is associated with a Confluence wiki page either *explicitly* or *implicitly*.
+
+#### Explicit association
+
+We associate a Markdown document with a Confluence page explicitly by specifying the related Confluence page ID in a Markdown comment:
 
 ```markdown
 <!-- confluence-page-id: 20250001023 -->
 ```
 
-The above tells the tool to synchronize the Markdown file with the given Confluence page ID. This implies that the Confluence wiki page must exist such that it has an ID. The comment can be placed anywhere in the source file.
+The above tells the tool to synchronize the Markdown file with the given Confluence page ID. The Confluence wiki page must be created beforehand. The comment can be placed anywhere in the source file.
+
+#### Implicit association
+
+Each Markdown document is automatically paired with a Confluence page in the target space if they have the same title.
+
+If a Confluence page with the given title doesn't exist, it is created automatically, and its identifier is injected into the source as a Markdown comment.
+
+If a Confluence page already exists whose title matches the Markdown document title, additional precautions are taken to avoid overwriting an unrelated page. Each implicitly associated page has to trace back to a trusted well-known Confluence page via parent-child relationships before its content would be synchronized. Trusted Confluence pages include:
+
+* the *root page* whose page ID is
+    * specified in the command line, or
+    * extracted from the index file of a directory that is being synchronized
+* a page associated with a Markdown document via a page ID
+    * embedded as a Markdown comment, or
+    * specified in the Markdown front-matter
+
+If a Confluence page doesn't have a trusted ancestor, synchronization fails. This restricts updates to subtrees of well-known pages.
 
 ### Setting the Confluence space
 
@@ -170,32 +192,15 @@ If you work in an environment where there are multiple Confluence spaces, and so
 
 This overrides the default space set via command-line arguments or environment variables.
 
-### Setting generated-by prompt text for wiki pages
+### Page title
 
-In order to ensure readers are not editing a generated document, the tool adds a warning message at the top of the Confluence page as an *info panel*. You can customize the text that appears. The text can contain markup as per the [Confluence Storage Format](https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html), and is emitted directly into the *info panel* macro.
+*md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following act as sources for deriving a page title:
 
-Provide generated-by prompt text in the Markdown file with a tag:
+1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Both JSON and YAML syntax are supported.
+2. The text of the topmost unique Markdown heading (`#`). For example, if a document has a single first-level heading (e.g. `# My document`), its text is used. However, if there are multiple first-level headings, this step is skipped.
+3. The file name (without the extension `.md`) and a digest. The digest is included to ensure the title is unique across the Confluence space.
 
-```markdown
-<!-- generated-by: Do not edit! Check out the <a href="https://example.com/project">original source</a>. -->
-```
-
-Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
-
-The generated-by text can also be templated with the following variables:
-
-- `%{filename}`: the name of the Markdown file
-- `%{filestem}`: the name of the Markdown file without the extension
-- `%{filepath}`: the path of the Markdown file relative to the _source root_
-- `%{filedir}`: the dirname of the `%{filepath}` (the path without the filename)
-
-When publishing a directory hierarchy, the *source root* is the directory in which *md2conf* is launched. When publishing a single file, this is the directory in which the Markdown file resides.
-
-It can be used with the CLI `--generated-by` option or directly in the files:
-
-```markdown
-<!-- generated-by: Do not edit! Check out the file %{filepath} in the repo -->
-```
+If the `title` attribute (in the front-matter) or the topmost unique heading (in the document body) changes, the Confluence page title is updated. A warning is raised if the new title conflicts with the title of another page, and thus cannot be updated.
 
 ### Publishing a single page
 
@@ -267,6 +272,135 @@ The short name notation `:smile:` in a Markdown document is converted into the c
 <ac:emoticon ac:name="smile" ac:emoji-shortname=":smile:" ac:emoji-id="1f604" ac:emoji-fallback="&#128516;"/>
 ```
 
+### Lists and tables
+
+If your Markdown lists or tables don't appear in Confluence as expected, verify that the list or table is delimited by a blank line both before and after, as per strict Markdown syntax. While some previewers accept a more lenient syntax (e.g. an itemized list immediately following a paragraph), *md2conf* uses [Python-Markdown](https://python-markdown.github.io/) internally to convert Markdown into XHTML, which expects the Markdown document to adhere to the stricter syntax.
+
+Likewise, if you have a nested list, make sure that nested items are indented by exactly ***four*** spaces as compared to the parent node:
+
+```markdown
+1. List item 1
+    * Nested item 1
+        1. Item 1
+        2. Item 2
+    * Nested item 2
+        - Item 3
+        - Item 4
+2. List item 2
+    1. Nested item 3
+    2. Nested item 4
+```
+
+### Publishing images
+
+Local images referenced in a Markdown file are automatically published to Confluence as attachments to the page.
+
+* Relative paths (e.g. `path/to/image.png` or `../to/image.png`) resolve to absolute paths w.r.t. the Markdown document location.
+* Absolute paths (e.g. `/path/to/image.png`) are interpreted w.r.t. to the synchronization root (typically the shell current directory).
+
+As a security measure, resolved paths can only reference files that are in the directory hierarchy of the synchronization root; you can't use `..` to leave the top-level directory of the synchronization root.
+
+Unfortunately, Confluence struggles with SVG images, e.g. they may only show in *edit* mode, display in a wrong size or text labels in the image may be truncated. (This seems to be a known issue in Confluence.) In order to mitigate the issue, whenever *md2conf* encounters a reference to an SVG image in a Markdown file, it checks whether a corresponding PNG image also exists in the same directory, and if a PNG image is found, it is published instead.
+
+External images referenced with an absolute URL retain the original URL.
+
+### draw\.io diagrams
+
+With the command-line option `--no-render-drawio` (default), editable diagram data is extracted from images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`), and uploaded to Confluence as attachments. Files that match `*.drawio` or `*.drawio.xml` are uploaded as-is. You need a [marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts) to view and edit these diagrams on a Confluence page.
+
+With the command-line option `--render-drawio`, images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`) are uploaded unchanged, and shown on the Confluence page as images. These diagrams are not editable in Confluence. When both an SVG and a PNG image is available, PNG is preferred. Files that match `*.drawio` or `*.drawio.xml` are converted into PNG or SVG images by invoking draw\.io as a command-line utility, and the generated images are uploaded to Confluence as attachments, and shown as images.
+
+### Mermaid diagrams
+
+You can add [Mermaid diagrams](https://mermaid.js.org/) to your Markdown documents to create visual representations of systems, processes, and relationships. There are two ways to include a Mermaid diagram:
+
+* an image reference to a `.mmd` or `.mermaid` file, i.e. `![My diagram](figure/diagram.mmd)`, or
+* a fenced code block with the language specifier `mermaid`.
+
+*md2conf* offers two options to publish the diagram:
+
+1. Pre-render into an image (command-line option `--render-mermaid`). The source file or code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page.
+2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://stratus-addons.atlassian.net/wiki/spaces/MDFC/overview), which is processed by Confluence. You need a separate [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence) to turn macro definitions into images when a Confluence page is visited.
+
+If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
+
+```sh
+mmdc -i sample.mmd -o sample.png -b transparent --scale 2
+```
+
+Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
+
+Note that `mermaid-cli` has some implicit dependencies (e.g. a headless browser) that may not be immediately available in a CI/CD environment such as GitHub Actions. Refer to the `Dockerfile` in the *md2conf* project root, or [mermaid-cli documentation](https://github.com/mermaid-js/mermaid-cli) on how to install these dependencies such as a `chromium-browser` and various fonts.
+
+### LaTeX math formulas
+
+Inline formulas can be enclosed with `$` signs, or delimited with `\(` and `\)`, i.e.
+
+* the code `$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$` is shown as $\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$,
+* and `\(\lim _{x\rightarrow \infty }\frac{1}{x}=0\)` is shown as $\lim _{x\rightarrow \infty }\frac{1}{x}=0$.
+
+Block formulas can be enclosed with `$$`, or wrapped in code blocks specifying the language `math`:
+
+```markdown
+$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
+```
+
+is shown as
+
+$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
+
+If installed, *md2conf* can pre-render math formulas with [Matplotlib](https://matplotlib.org/). This approach doesn't require a third-party Confluence extension.
+
+Displaying math formulas in Confluence (without pre-rendering) requires the extension [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
+
+### Alignment
+
+You can configure diagram and image alignment using the JSON/YAML front-matter attribute `alignment` or the command-line argument of the same name. Possible values are `center` (default), `left` and `right`. The value configured in the Markdown file front-matter takes precedence.
+
+Unfortunately, not every third-party app supports every alignment variant. For example, the draw\.io marketplace app supports left and center but not right alignment; and diagrams produced by the Mermaid marketplace app are always centered, ignoring the setting for alignment.
+
+### Confluence widgets
+
+*md2conf* supports some Confluence widgets. If the appropriate code is found when a Markdown document is processed, it is automatically replaced with Confluence Storage Format XML that produces the corresponding widget.
+
+| Markdown code                              | Confluence equivalent                                   |
+| :----------------------------------------- | :------------------------------------------------------ |
+| `[[_TOC_]]`                                | table of contents (based on headings)                   |
+| `[[_LISTING_]]`                            | child pages (of current page)                           |
+| `![My label][STATUS-GRAY]`                 | gray status label (with specified label text)           |
+| `![My label][STATUS-PURPLE]`               | purple status label                                     |
+| `![My label][STATUS-BLUE]`                 | blue status label                                       |
+| `![My label][STATUS-RED]`                  | red status label                                        |
+| `![My label][STATUS-YELLOW]`               | yellow status label                                     |
+| `![My label][STATUS-GREEN]`                | green status label                                      |
+| `<input type="date" value="YYYY-MM-DD" />` | date widget (with year, month and day set as specified) |
+
+Use the pseudo-language `csf` in a Markdown code block to pass content directly to Confluence. The content must be a single XML node that conforms to Confluence Storage Format (typically an `ac:structured-macro`) but is otherwise not validated. The following example shows how to create a panel similar to an *info panel* but with custom background color and emoji. Notice that `ac:rich-text-body` uses XHTML, not Markdown.
+
+````markdown
+```csf
+<ac:structured-macro ac:name="panel" ac:schema-version="1">
+  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
+  <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
+  <ac:parameter ac:name="panelIconText">&#128578;</ac:parameter>
+  <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
+  <ac:rich-text-body>
+    <p>A <em>custom colored panel</em> with a 🙂 emoji</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+```
+````
+
+### Implicit URLs
+
+*md2conf* implicitly defines some URLs, as if you included the following at the start of the Markdown document for each URL:
+
+```markdown
+[CUSTOM-URL]: https://example.com/path/to/resource
+```
+
+Specifically, image references for status labels (e.g. `![My label][STATUS-RED]`) are automatically resolved into internally defined URLs via this mechanism.
+
 ### Colors
 
 Confluence allows setting text color and highlight color. Even though Markdown doesn't directly support colors, it is possible to set text and highlight color via the HTML element `<span>` and the CSS attributes `color` and `background-color`, respectively:
@@ -318,57 +452,6 @@ The following table shows standard highlight colors (CSS `background-color`) tha
 | magenta       | rgb(253,208,236)    |
 | purple        | rgb(223,216,253)    |
 
-### Lists and tables
-
-If your Markdown lists or tables don't appear in Confluence as expected, verify that the list or table is delimited by a blank line both before and after, as per strict Markdown syntax. While some previewers accept a more lenient syntax (e.g. an itemized list immediately following a paragraph), *md2conf* uses [Python-Markdown](https://python-markdown.github.io/) internally to convert Markdown into XHTML, which expects the Markdown document to adhere to the stricter syntax.
-
-Likewise, if you have a nested list, make sure that nested items are indented by exactly ***four*** spaces as compared to the parent node:
-
-```markdown
-1. List item 1
-    * Nested item 1
-        1. Item 1
-        2. Item 2
-    * Nested item 2
-        - Item 3
-        - Item 4
-2. List item 2
-    1. Nested item 3
-    2. Nested item 4
-```
-
-### Publishing images
-
-Local images referenced in a Markdown file are automatically published to Confluence as attachments to the page.
-
-* Relative paths (e.g. `path/to/image.png` or `../to/image.png`) resolve to absolute paths w.r.t. the Markdown document location.
-* Absolute paths (e.g. `/path/to/image.png`) are interpreted w.r.t. to the synchronization root (typically the shell current directory).
-
-As a security measure, resolved paths can only reference files that are in the directory hierarchy of the synchronization root; you can't use `..` to leave the top-level directory of the synchronization root.
-
-Unfortunately, Confluence struggles with SVG images, e.g. they may only show in *edit* mode, display in a wrong size or text labels in the image may be truncated. (This seems to be a known issue in Confluence.) In order to mitigate the issue, whenever *md2conf* encounters a reference to an SVG image in a Markdown file, it checks whether a corresponding PNG image also exists in the same directory, and if a PNG image is found, it is published instead.
-
-External images referenced with an absolute URL retain the original URL.
-
-### LaTeX math formulas
-
-Inline formulas can be enclosed with `$` signs, or delimited with `\(` and `\)`, i.e.
-
-* the code `$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$` is shown as $\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$,
-* and `\(\lim _{x\rightarrow \infty }\frac{1}{x}=0\)` is shown as $\lim _{x\rightarrow \infty }\frac{1}{x}=0$.
-
-Block formulas can be enclosed with `$$`, or wrapped in code blocks specifying the language `math`:
-
-```markdown
-$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
-```
-
-is shown as
-
-$$\int _{a}^{b}f(x)dx=F(b)-F(a)$$
-
-Displaying math formulas in Confluence requires the extension [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/).
-
 ### HTML in Markdown
 
 *md2conf* relays HTML elements nested in Markdown content to Confluence (such as `e<sup>x</sup>` for superscript). However, Confluence uses an extension of XHTML, i.e. the content must qualify as valid XML too. In particular, unterminated tags (e.g. `<br>` or `<img ...>`) or inconsistent nesting (e.g. `<b><i></b></i>`) are not permitted, and will raise an XML parsing error. When an HTML element has no content such as `<br>` or `<img>`, use a self-closing tag:
@@ -378,71 +461,38 @@ Displaying math formulas in Confluence requires the extension [LaTeX Math for Co
 <img src="image.png" width="24" height="24" />
 ```
 
-### Confluence widgets
+### Links to attachments
 
-*md2conf* supports some Confluence widgets. If the appropriate code is found when a Markdown document is processed, it is automatically replaced with Confluence Storage Format XML that produces the corresponding widget.
+If *md2conf* encounters a Markdown link that points to a file in the directory hierarchy being synchronized, it automatically uploads the file as an attachment to the Confluence page. Activating the link in Confluence downloads the file. Typical examples include PDFs (`*.pdf`), word processor documents (`*.docx`), spreadsheets (`*.xlsx`), plain text files (`*.txt`) or logs (`*.log`). The MIME type is set based on the file type.
 
-| Markdown code                              | Confluence equivalent                                   |
-| :----------------------------------------- | :------------------------------------------------------ |
-| `[[_TOC_]]`                                | table of contents (based on headings)                   |
-| `[[_LISTING_]]`                            | child pages (of current page)                           |
-| `![My label][STATUS-GRAY]`                 | gray status label (with specified label text)           |
-| `![My label][STATUS-PURPLE]`               | purple status label                                     |
-| `![My label][STATUS-BLUE]`                 | blue status label                                       |
-| `![My label][STATUS-RED]`                  | red status label                                        |
-| `![My label][STATUS-YELLOW]`               | yellow status label                                     |
-| `![My label][STATUS-GREEN]`                | green status label                                      |
-| `<input type="date" value="YYYY-MM-DD" />` | date widget (with year, month and day set as specified) |
+### Setting generated-by prompt text for wiki pages
 
-Use the pseudo-language `csf` in a Markdown code block to pass content directly to Confluence. The content must be a single XML node that conforms to Confluence Storage Format (typically an `ac:structured-macro`) but is otherwise not validated. The following example shows how to create a panel similar to an *info panel* but with custom background color and emoji. Notice that `ac:rich-text-body` uses XHTML, not Markdown.
+In order to ensure readers are not editing a generated document, the tool adds a warning message at the top of the Confluence page as an *info panel*. You can customize the text that appears. The text can contain markup as per the [Confluence Storage Format](https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html), and is emitted directly into the *info panel* macro.
 
-````markdown
-```csf
-<ac:structured-macro ac:name="panel" ac:schema-version="1">
-  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
-  <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
-  <ac:parameter ac:name="panelIconText">&#128578;</ac:parameter>
-  <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
-  <ac:rich-text-body>
-    <p>A <em>custom colored panel</em> with a 🙂 emoji</p>
-  </ac:rich-text-body>
-</ac:structured-macro>
-```
-````
+Provide generated-by prompt text in the Markdown file with a tag:
 
-### Ignoring files
-
-Skip files and subdirectories in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax (and constraints) of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
-
-Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into. To skip an entire directory, add the name of the directory without a trailing `/`.
-
-Relative paths to items in a nested directory are not supported. You must put `.mdignore` in the same directory where the items to be skipped reside.
-
-If you add the `synchronized` attribute to JSON or YAML front-matter with the value `false`, the document content (including attachments) and metadata (e.g. tags) will not be synchronized with Confluence:
-
-```yaml
----
-title: "Collaborating with other teams"
-page_id: "19830101"
-synchronized: false
----
-
-This Markdown document is neither parsed, nor synchronized with Confluence.
+```markdown
+<!-- generated-by: Do not edit! Check out the <a href="https://example.com/project">original source</a>. -->
 ```
 
-This is useful if you have a page in a hierarchy that participates in parent-child relationships but whose content is edited directly in Confluence. Specifically, these documents can be referenced with relative links from other Markdown documents in the file system tree.
+Alternatively, use the `--generated-by GENERATED_BY` option. The tag takes precedence.
 
-### Page title
+The generated-by text can also be templated with the following variables:
 
-*md2conf* makes a best-effort attempt at setting the Confluence wiki page title when it publishes a Markdown document the first time. The following act as sources for deriving a page title:
+- `%{filename}`: the name of the Markdown file
+- `%{filestem}`: the name of the Markdown file without the extension
+- `%{filepath}`: the path of the Markdown file relative to the _source root_
+- `%{filedir}`: the dirname of the `%{filepath}` (the path without the filename)
 
-1. The `title` attribute set in the [front-matter](https://daily-dev-tips.com/posts/what-exactly-is-frontmatter/). Front-matter is a block delimited by `---` at the beginning of a Markdown document. Both JSON and YAML syntax are supported.
-2. The text of the topmost unique Markdown heading (`#`). For example, if a document has a single first-level heading (e.g. `# My document`), its text is used. However, if there are multiple first-level headings, this step is skipped.
-3. The file name (without the extension `.md`) and a digest. The digest is included to ensure the title is unique across the Confluence space.
+When publishing a directory hierarchy, the *source root* is the directory in which *md2conf* is launched. When publishing a single file, this is the directory in which the Markdown file resides.
 
-If the `title` attribute (in the front-matter) or the topmost unique heading (in the document body) changes, the Confluence page title is updated. A warning is raised if the new title conflicts with the title of another page, and thus cannot be updated.
+It can be used with the CLI `--generated-by` option or directly in the files:
 
-#### Avoiding duplicate titles
+```markdown
+<!-- generated-by: Do not edit! Check out the file %{filepath} in the repo -->
+```
+
+### Avoiding duplicate titles
 
 By default, when *md2conf* extracts a page title from the first unique heading in a Markdown document, the heading remains in the document body. This means the title appears twice on the Confluence page: once as the page title at the top, and once as the first heading in the content.
 
@@ -494,6 +544,28 @@ While the structure remains semantically correct, the visual separation is lost.
 2. **Use an admonition block:** Wrap the abstract in an info/note block
 3. **Use front-matter title:** Set `title` in front-matter to keep the heading in the body
 
+### Ignoring files
+
+Skip files and subdirectories in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax (and constraints) of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
+
+Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into. To skip an entire directory, add the name of the directory without a trailing `/`.
+
+Relative paths to items in a nested directory are not supported. You must put `.mdignore` in the same directory where the items to be skipped reside.
+
+If you add the `synchronized` attribute to JSON or YAML front-matter with the value `false`, the document content (including attachments) and metadata (e.g. tags) will not be synchronized with Confluence:
+
+```yaml
+---
+title: "Collaborating with other teams"
+page_id: "19830101"
+synchronized: false
+---
+
+This Markdown document is neither parsed, nor synchronized with Confluence.
+```
+
+This is useful if you have a page in a hierarchy that participates in parent-child relationships but whose content is edited directly in Confluence. Specifically, these documents can be referenced with relative links from other Markdown documents in the file system tree.
+
 ### Labels
 
 If a Markdown document has the front-matter attribute `tags`, *md2conf* assigns the specified tags to the Confluence page as labels.
@@ -524,54 +596,6 @@ properties:
 ```
 
 The attribute `properties` is parsed as a dictionary with keys of type string and values of type JSON. *md2conf* passes JSON values to Confluence REST API unchanged.
-
-### draw\.io diagrams
-
-With the command-line option `--no-render-drawio` (default), editable diagram data is extracted from images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`), and uploaded to Confluence as attachments. Files that match `*.drawio` or `*.drawio.xml` are uploaded as-is. You need a [marketplace app](https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-uml-bpmn-aws-erd-flowcharts) to view and edit these diagrams on a Confluence page.
-
-With the command-line option `--render-drawio`, images with embedded draw\.io diagrams (`*.drawio.png` and `*.drawio.svg`) are uploaded unchanged, and shown on the Confluence page as images. These diagrams are not editable in Confluence. When both an SVG and a PNG image is available, PNG is preferred. Files that match `*.drawio` or `*.drawio.xml` are converted into PNG or SVG images by invoking draw\.io as a command-line utility, and the generated images are uploaded to Confluence as attachments, and shown as images.
-
-### Mermaid diagrams
-
-You can add [Mermaid diagrams](https://mermaid.js.org/) to your Markdown documents to create visual representations of systems, processes, and relationships. There are two ways to include a Mermaid diagram:
-
-* an image reference to a `.mmd` or `.mermaid` file, i.e. `![My diagram](figure/diagram.mmd)`, or
-* a fenced code block with the language specifier `mermaid`.
-
-*md2conf* offers two options to publish the diagram:
-
-1. Pre-render into an image (command-line option `--render-mermaid`). The source file or code block is interpreted by and converted into a PNG or SVG image with the Mermaid diagram utility [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). The generated image is then uploaded to Confluence as an attachment to the page.
-2. Display on demand (command-line option `--no-render-mermaid`). The code block is transformed into a [diagram macro](https://stratus-addons.atlassian.net/wiki/spaces/MDFC/overview), which is processed by Confluence. You need a separate [marketplace app](https://marketplace.atlassian.com/apps/1226567/mermaid-diagrams-for-confluence) to turn macro definitions into images when a Confluence page is visited.
-
-If you are running into issues with the pre-rendering approach (e.g. misaligned labels in the generated image), verify if `mermaid-cli` can process the Mermaid source:
-
-```sh
-mmdc -i sample.mmd -o sample.png -b transparent --scale 2
-```
-
-Ensure that `mermaid-cli` is set up, refer to *Installation* for instructions.
-
-Note that `mermaid-cli` has some implicit dependencies (e.g. a headless browser) that may not be immediately available in a CI/CD environment such as GitHub Actions. Refer to the `Dockerfile` in the *md2conf* project root, or [mermaid-cli documentation](https://github.com/mermaid-js/mermaid-cli) on how to install these dependencies such as a `chromium-browser` and various fonts.
-
-### Alignment
-
-You can configure diagram and image alignment using the JSON/YAML front-matter attribute `alignment` or the command-line argument of the same name. Possible values are `center` (default), `left` and `right`. The value configured in the Markdown file front-matter takes precedence.
-
-Unfortunately, not every third-party app supports every alignment variant. For example, the draw\.io marketplace app supports left and center but not right alignment; and diagrams produced by the Mermaid marketplace app are always centered, ignoring the setting for alignment.
-
-### Links to attachments
-
-If *md2conf* encounters a Markdown link that points to a file in the directory hierarchy being synchronized, it automatically uploads the file as an attachment to the Confluence page. Activating the link in Confluence downloads the file. Typical examples include PDFs (`*.pdf`), word processor documents (`*.docx`), spreadsheets (`*.xlsx`), plain text files (`*.txt`) or logs (`*.log`). The MIME type is set based on the file type.
-
-### Implicit URLs
-
-*md2conf* implicitly defines some URLs, as if you included the following at the start of the Markdown document for each URL:
-
-```markdown
-[CUSTOM-URL]: https://example.com/path/to/resource
-```
-
-Specifically, image references for status labels (e.g. `![My label][STATUS-RED]`) are automatically resolved into internally defined URLs via this mechanism.
 
 ### Local output
 
