@@ -58,12 +58,13 @@ class ImageGenerator:
 
         # infer SVG dimensions if not already specified
         if absolute_path.suffix == ".svg" and attrs.width is None and attrs.height is None:
-            svg_width, svg_height = get_svg_dimensions(absolute_path)
-            if svg_width is not None:
+            dimensions = get_svg_dimensions(absolute_path)
+            if dimensions is not None:
+                width, height = dimensions
                 attrs = ImageAttributes(
                     context=attrs.context,
-                    width=svg_width,
-                    height=svg_height,
+                    width=width,
+                    height=height,
                     alt=attrs.alt,
                     title=attrs.title,
                     caption=attrs.caption,
@@ -78,17 +79,17 @@ class ImageGenerator:
         "Emits Confluence Storage Format XHTML for an attached raster or vector image."
 
         # extract dimensions and update attributes based on format
-        width: int | None
-        height: int | None
+        dimensions: tuple[int, int] | None
         match self.options.output_format:
             case "svg":
-                image_data, width, height = fix_svg_get_dimensions(image_data)
+                image_data, dimensions = fix_svg_get_dimensions(image_data)
             case "png":
-                width, height = extract_png_dimensions(data=image_data)
+                dimensions = extract_png_dimensions(data=image_data)
 
         # only update attributes if we successfully extracted dimensions and the base attributes don't already have explicit dimensions
-        if (width is not None or height is not None) and (attrs.width is None and attrs.height is None):
+        if dimensions is not None and (attrs.width is None and attrs.height is None):
             # create updated image attributes with extracted dimensions
+            width, height = dimensions
             attrs = ImageAttributes(
                 context=attrs.context,
                 width=width,

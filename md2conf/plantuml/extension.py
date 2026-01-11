@@ -19,7 +19,7 @@ from md2conf.compatibility import override, path_relative_to
 from md2conf.csf import AC_ATTR, AC_ELEM
 from md2conf.extension import MarketplaceExtension
 from md2conf.formatting import ImageAttributes
-from md2conf.svg import get_svg_dimensions_from_bytes
+from md2conf.svg import get_svg_dimensions
 
 from .config import PlantUMLConfigProperties
 from .render import compress_plantuml_data, has_plantuml, render_diagram
@@ -87,7 +87,7 @@ class PlantUMLExtension(MarketplaceExtension):
                 image_data = render_diagram(content, "svg", config=config)
 
                 # extract dimensions from SVG
-                width, height = get_svg_dimensions_from_bytes(image_data)
+                dimensions = get_svg_dimensions(image_data)
 
                 # generate SVG filename and add as attachment
                 if relative_path is not None:
@@ -98,11 +98,11 @@ class PlantUMLExtension(MarketplaceExtension):
                     svg_filename = attachment_name(f"embedded_{plantuml_hash}.svg")
                     self.attachments.add_embed(svg_filename, EmbeddedFileData(image_data))
 
-                return self._create_plantuml_macro(content, svg_filename, width, height)
+                return self._create_plantuml_macro(content, svg_filename, dimensions)
             else:
                 return self._create_plantuml_macro(content)
 
-    def _create_plantuml_macro(self, source: str, filename: str | None = None, width: int | None = None, height: int | None = None) -> ElementType:
+    def _create_plantuml_macro(self, source: str, filename: str | None = None, dimensions: tuple[int, int] | None = None) -> ElementType:
         """
         A PlantUML diagram using a `structured-macro` with embedded data.
 
@@ -128,7 +128,8 @@ class PlantUMLExtension(MarketplaceExtension):
             parameters.append(AC_ELEM("parameter", {AC_ATTR("name"): "filename"}, filename))
 
         # add optional dimension parameters if available
-        if width is not None:
+        if dimensions is not None:
+            width, height = dimensions
             parameters.append(
                 AC_ELEM(
                     "parameter",
@@ -136,7 +137,6 @@ class PlantUMLExtension(MarketplaceExtension):
                     str(width),
                 )
             )
-        if height is not None:
             parameters.append(
                 AC_ELEM(
                     "parameter",

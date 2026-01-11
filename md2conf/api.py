@@ -1058,6 +1058,7 @@ class ConfluenceSession:
 
         :param title: Page title. Pages in the same Confluence space must have a unique title.
         :param parent_id: Identifies the parent page for a new child page.
+        :returns: Confluence page info for the found or newly created page.
         """
 
         parent_page = self.get_page_properties(parent_id)

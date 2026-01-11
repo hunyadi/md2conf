@@ -4,27 +4,32 @@ rem
 rem Copyright 2022-2026, Levente Hunyadi
 rem https://github.com/hunyadi/md2conf
 
+setlocal
+set PYTHON=python
+
 rem Run static type checker and verify formatting guidelines
-python -m ruff check
+%PYTHON% -m ruff check
 if errorlevel 1 goto error
-python -m ruff format --check
+%PYTHON% -m ruff format --check
 if errorlevel 1 goto error
-python -m mypy md2conf
+%PYTHON% -m mypy md2conf
 if errorlevel 1 goto error
-python -m mypy tests
+%PYTHON% -m mypy tests
 if errorlevel 1 goto error
-python -m mypy integration_tests
+%PYTHON% -m mypy integration_tests
 if errorlevel 1 goto error
 
 rem Test help message
-python -m md2conf --help > NUL
+%PYTHON% -m md2conf --help > NUL
 if errorlevel 1 goto error
 
 rem Generate documentation
-python documentation.py
+%PYTHON% documentation.py
 if errorlevel 1 goto error
 
-goto :EOF
+goto EOF
 
 :error
-exit /b 1
+exit /b %errorlevel%
+
+:EOF

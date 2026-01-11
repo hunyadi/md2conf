@@ -23,6 +23,65 @@ from .xml import is_xml_equal, unwrap_substitute
 LOGGER = logging.getLogger(__name__)
 
 
+class _MissingType:
+    pass
+
+
+_MissingDefault = _MissingType()
+
+
+class ParentCatalog:
+    "Maintains a catalog of child-parent relationships."
+
+    _api: ConfluenceSession
+    _child_to_parent: dict[str, str | None]
+    _known: set[str]
+
+    def __init__(self, api: ConfluenceSession) -> None:
+        self._api = api
+        self._child_to_parent = {}
+        self._known = set()
+
+    def add_known(self, page_id: str) -> None:
+        """
+        Adds a new well-known page such as the root page or a page paired with a Markdown file using an explicit page ID.
+        """
+
+        self._known.add(page_id)
+
+    def add_parent(self, *, page_id: str, parent_id: str | None) -> None:
+        """
+        Adds a new child-parent relationship.
+
+        This method is useful to persist information acquired by a previous API call.
+        """
+
+        self._child_to_parent[page_id] = parent_id
+
+    def is_traceable(self, page_id: str) -> bool:
+        """
+        Verifies if a page traces back to a well-known root page.
+
+        :param page_id: The page to check.
+        """
+
+        if page_id in self._known:
+            return True
+
+        known_parent_id = self._child_to_parent.get(page_id, _MissingDefault)
+        if not isinstance(known_parent_id, _MissingType):
+            parent_id = known_parent_id
+        else:
+            page = self._api.get_page_properties(page_id)
+            parent_id = page.parentId
+            self._child_to_parent[page_id] = parent_id
+
+        if parent_id is None:
+            return False
+
+        return self.is_traceable(parent_id)
+
+
 class SynchronizingProcessor(Processor):
     """
     Synchronizes a single Markdown page or a directory of Markdown pages with Confluence.
@@ -61,12 +120,16 @@ class SynchronizingProcessor(Processor):
         else:
             raise NotImplementedError("condition not exhaustive")
 
-        self._synchronize_subtree(tree, real_id)
+        catalog = ParentCatalog(self.api)
+        catalog.add_known(real_id.page_id)
+        self._synchronize_subtree(tree, real_id, catalog)
 
-    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID) -> None:
+    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
         if node.page_id is not None:
             # verify if page exists
             page = self.api.get_page_properties(node.page_id)
+            catalog.add_known(page.id)
+            catalog.add_parent(page_id=page.id, parent_id=page.parentId)
             update = False
         else:
             if node.title is not None:
@@ -82,10 +145,17 @@ class SynchronizingProcessor(Processor):
 
             # look up page by (possibly auto-generated) title
             page = self.api.get_or_create_page(title, parent_id.page_id)
+            catalog.add_parent(page_id=page.id, parent_id=page.parentId)
 
             if page.status is ConfluenceStatus.ARCHIVED:
-                # user has archived a page with this (auto-generated) title
-                raise PageError(f"unable to update archived page with ID {page.id}")
+                # user has archived a page with this (possibly auto-generated) title
+                raise PageError(f"unable to update archived page with ID {page.id} when synchronizing {node.absolute_path}")
+
+            if not catalog.is_traceable(page.id):
+                raise PageError(
+                    f"expected: page with ID {page.id} to be a descendant of the root page or one of the pages paired with a Markdown file using an explicit "
+                    f"page ID when synchronizing {node.absolute_path}"
+                )
 
             update = True
 
@@ -106,7 +176,7 @@ class SynchronizingProcessor(Processor):
         self.page_metadata.add(node.absolute_path, data)
 
         for child_node in node.children():
-            self._synchronize_subtree(child_node, ConfluencePageID(page.id))
+            self._synchronize_subtree(child_node, ConfluencePageID(page.id), catalog)
 
     @override
     def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:

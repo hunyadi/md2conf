@@ -51,6 +51,7 @@
         "pymdownx",
         "scandir",
         "Setext",
+        "setlocal",
         "setuptools",
         "startuml",
         "strikethrough",

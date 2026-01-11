@@ -15,7 +15,7 @@ from typing import Iterable
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
-from .environment import ArgumentError
+from .environment import ArgumentError, PageError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, DocumentOptions
@@ -143,6 +143,22 @@ class Processor:
         """
         Processes a sub-tree rooted at an ancestor node.
         """
+
+        # verify if pages have a unique title to avoid overwrites within synchronized set
+        title_to_path: dict[str, Path] = {}
+        duplicates: set[Path] = set()
+        for node in root.all():
+            if node.title is not None:
+                path = title_to_path.get(node.title)
+                if path is not None:
+                    duplicates.add(path)
+                    duplicates.add(node.absolute_path)
+                else:
+                    title_to_path[node.title] = node.absolute_path
+        if duplicates:
+            raise PageError(
+                f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
+            )
 
         # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
         self._synchronize_tree(root, self.options.root_page_id)

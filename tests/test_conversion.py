@@ -12,7 +12,6 @@ import os
 import os.path
 import re
 import unittest
-from dataclasses import dataclass
 from pathlib import Path
 
 from md2conf.attachment import attachment_name
@@ -26,7 +25,7 @@ from md2conf.mermaid.render import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
 from md2conf.options import ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions
 from md2conf.plantuml.render import compress_plantuml_data, has_plantuml, render_diagram
-from md2conf.svg import get_svg_dimensions_from_bytes
+from md2conf.svg import get_svg_dimensions
 from tests import emoji
 from tests.utility import TypedTestCase
 
@@ -41,12 +40,6 @@ def canonicalize(content: str) -> str:
 
     root = elements_from_string(content)
     return elements_to_string(root)
-
-
-@dataclass
-class Dimensions:
-    width: int | None
-    height: int | None
 
 
 def substitute(root_dir: Path, content: str) -> str:
@@ -78,7 +71,7 @@ def substitute(root_dir: Path, content: str) -> str:
     data_pattern = re.compile(r"DATA\(([^()]+)\)")
     content = data_pattern.sub(_repl_data, content)
 
-    dims_cache: dict[Path, Dimensions] = {}
+    dims_cache: dict[Path, tuple[int, int]] = {}
 
     def _repl_dimensions(m: re.Match[str]) -> str:
         "Replaces WIDTH/HEIGHT placeholders with actual SVG dimensions."
@@ -88,14 +81,18 @@ def substitute(root_dir: Path, content: str) -> str:
 
         dims = dims_cache.get(absolute_path)
         if dims is not None:
-            width = dims.width
-            height = dims.height
+            width, height = dims
         else:
             with open(absolute_path, "r", encoding="utf-8") as f:
                 file_content = f.read().rstrip()
             svg_data = render_diagram(file_content, "svg")
-            width, height = get_svg_dimensions_from_bytes(svg_data)
-            dims_cache[absolute_path] = Dimensions(width, height)
+            dims = get_svg_dimensions(svg_data)
+            if dims is not None:
+                dims_cache[absolute_path] = dims
+                width, height = dims
+            else:
+                width = 0
+                height = 0
 
         dimension_type = m.group(1)  # "WIDTH" or "HEIGHT"
         match dimension_type:
