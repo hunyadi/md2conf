@@ -97,8 +97,10 @@ class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
         return usage_str
 
 
-def get_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(formatter_class=PositionalOnlyHelpFormatter)
+def get_parser(
+    formatter_class: type[argparse.HelpFormatter] = PositionalOnlyHelpFormatter,
+) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(formatter_class=formatter_class)
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("mdpath", type=Path, nargs="+", help="Path to Markdown file or directory to convert and publish.")
@@ -324,8 +326,10 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def get_help() -> str:
-    parser = get_parser()
+def get_help(
+    formatter_class: type[argparse.HelpFormatter] = PositionalOnlyHelpFormatter,
+) -> str:
+    parser = get_parser(formatter_class=formatter_class)
     with StringIO() as buf:
         parser.print_help(file=buf)
         return buf.getvalue()

@@ -11,7 +11,39 @@ import re
 from importlib.util import find_spec
 from pathlib import Path
 
-from md2conf.__main__ import get_help
+from md2conf.__main__ import PositionalOnlyHelpFormatter, get_help
+
+
+class DocumentationHelpFormatter(PositionalOnlyHelpFormatter):
+    """
+    A custom help formatter for generating documentation.
+
+    It ensures that the output is suitable for inclusion in README.md by:
+    - Increasing the width to prevent line wrapping.
+    - Removing redundant metavariables for options with short flags.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs["width"] = 1000
+        super().__init__(*args, **kwargs)
+
+    def _format_action_invocation(self, action: argparse.Action) -> str:
+        """
+        Formats the option flags and metavariables.
+
+        If both short and long flags are present, the metavariable is only
+        shown once after the last flag.
+        """
+        if action.option_strings and action.nargs != 0:
+            # remove redundant metavariables for options with short flags
+            # e.g., -u USERNAME, --username USERNAME -> -u, --username USERNAME
+            parts = action.option_strings[:-1]
+            default = self._get_default_metavar_for_optional(action)
+            args_string = self._format_args(action, default)
+            parts.append(f"{action.option_strings[-1]} {args_string}")
+            return ", ".join(parts)
+        return super()._format_action_invocation(action)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -23,7 +55,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # update README.md
-help_text = get_help()
+help_text = get_help(formatter_class=DocumentationHelpFormatter)
 readme_path = Path(__file__).parent / "README.md"
 with open(readme_path, "r") as input_file:
     input_content = input_file.read()
