@@ -6,7 +6,7 @@ from dockerhub_description import TARGET_MAPPING, get_bake_targets, get_template
 
 
 class TestDockerHubDescription(unittest.TestCase):
-    def test_get_bake_targets(self):
+    def test_get_bake_targets(self) -> None:
         content = """
 target "base" {
   tags = ["foo"]
@@ -26,7 +26,7 @@ target "mermaid" {
         finally:
             os.remove(temp_path)
 
-    def test_get_template_placeholders(self):
+    def test_get_template_placeholders(self) -> None:
         content = """
 # Title %{GIT_TAG}
 | Row | %{TAGS_BASE} |
@@ -43,7 +43,7 @@ target "mermaid" {
         finally:
             os.remove(temp_path)
 
-    def test_target_mapping_completeness(self):
+    def test_target_mapping_completeness(self) -> None:
         # Ensure all known targets have a mapping
         known_targets = ["base", "mermaid", "plantuml", "all"]
         for t in known_targets:

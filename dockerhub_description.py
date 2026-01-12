@@ -19,7 +19,7 @@ BAKE_FILE = "docker-bake.hcl"
 
 def get_bake_targets(file_path: str) -> Set[str]:
     """Extract target names from docker-bake.hcl."""
-    targets = set()
+    targets: Set[str] = set()
     if not os.path.exists(file_path):
         return targets
 
@@ -34,7 +34,7 @@ def get_bake_targets(file_path: str) -> Set[str]:
 
 def get_template_placeholders(file_path: str) -> Set[str]:
     """Extract %{PLACEHOLDER} tokens from the template."""
-    placeholders = set()
+    placeholders: Set[str] = set()
     if not os.path.exists(file_path):
         return placeholders
 
@@ -46,7 +46,7 @@ def get_template_placeholders(file_path: str) -> Set[str]:
     return placeholders
 
 
-def validate_sync():
+def validate_sync() -> None:
     """Check if the template is in sync with the bake file."""
     targets = get_bake_targets(BAKE_FILE)
     placeholders = get_template_placeholders(TEMPLATE_FILE)
@@ -69,7 +69,7 @@ def validate_sync():
     print(f"Success: {TEMPLATE_FILE} is in sync with {BAKE_FILE}.")
 
 
-def generate_description(args):
+def generate_description(args: argparse.Namespace) -> None:
     """Generate the final description by replacing placeholders."""
     if not os.path.exists(TEMPLATE_FILE):
         print(f"Error: {TEMPLATE_FILE} not found.")
@@ -99,7 +99,7 @@ def generate_description(args):
     print(f"Generated {args.output}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Docker Hub Description Generator & Validator")
     parser.add_argument("--check", action="store_true", help="Validate template synchronization")
     parser.add_argument("--git-tag", help="Git tag for versioning")
