@@ -140,8 +140,7 @@ class SynchronizingProcessor(Processor):
                 digest = self._generate_hash(node.absolute_path)
                 title = f"{node.absolute_path.stem} [{digest}]"
 
-            if self.options.title_prefix is not None:
-                title = f"{self.options.title_prefix} {title}"
+            title = self._get_extended_title(title)
 
             # look up page by (possibly auto-generated) title
             page = self.api.get_or_create_page(title, parent_id.page_id)
@@ -206,19 +205,7 @@ class SynchronizingProcessor(Processor):
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
-        title = None
-        if document.title is not None:
-            meta = self.page_metadata.get(path)
-            if meta is not None and meta.title != document.title:
-                conflicting_page_id = self.api.page_exists(document.title, space_id=self.api.space_key_to_id(meta.space_key))
-                if conflicting_page_id is None:
-                    title = document.title
-                else:
-                    LOGGER.info(
-                        "Document title of %s conflicts with Confluence page title of %s",
-                        path,
-                        conflicting_page_id,
-                    )
+        title = self._get_unique_title(document, path)
 
         # fetch existing page
         page = self.api.get_page(page_id.page_id)
@@ -248,6 +235,41 @@ class SynchronizingProcessor(Processor):
 
         if document.properties is not None:
             self.api.update_content_properties_for_page(page_id.page_id, [ConfluenceContentProperty(key, value) for key, value in document.properties.items()])
+
+    def _get_extended_title(self, title: str) -> str:
+        """
+        Returns a title with the title prefix applied (if any).
+        """
+
+        if self.options.title_prefix is not None:
+            return f"{self.options.title_prefix} {title}"
+        else:
+            return title
+
+    def _get_unique_title(self, document: ConfluenceDocument, path: Path) -> str | None:
+        """
+        Determines the (new) document title to assign to the Confluence page.
+
+        Ensures that the title is unique across the Confluence space.
+        """
+
+        # document has no title (neither in front-matter nor as unique top-level heading)
+        if document.title is None:
+            return None
+
+        # add configured title prefix
+        title = self._get_extended_title(document.title)
+
+        # compare current document title with title discovered during directory traversal
+        meta = self.page_metadata.get(path)
+        if meta is not None and meta.title != title:
+            # title has changed, check if new title is available
+            page_id = self.api.page_exists(title, space_id=self.api.space_key_to_id(meta.space_key))
+            if page_id is not None:
+                LOGGER.info("Unrelated Confluence page with ID %s has the same inferred title as the Markdown file: %s", page_id, path)
+                return None
+
+        return title
 
     def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
         """

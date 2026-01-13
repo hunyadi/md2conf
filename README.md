@@ -226,7 +226,7 @@ The title of each Markdown file (either the text of the topmost unique heading (
 
 ```
 docs
-├── index.md: Root page
+├── index.md: Eternal golden braid
 ├── computer-science
 │   ├── index.md: Introduction to computer science
 │   ├── algebra.md: Linear algebra
@@ -237,7 +237,7 @@ docs
 │   └── statistics
 │       ├── index.md: Introduction to statistics
 │       └── median.md: Mean vs. median
-└── ethics.md: Ethical considerations
+└── ethics.md: History of ethics
 ```
 
 #### Page hierarchy in Confluence
@@ -245,7 +245,7 @@ docs
 Observe how `index.md` and `README.md` files have assumed parent (or ancestor) role for any Markdown files in the same directory (or below).
 
 ```
-Root page
+Eternal golden braid
 ├── Introduction to computer science
 │   ├── Linear algebra
 │   └── Theory of algorithms
@@ -253,7 +253,7 @@ Root page
 │   ├── Consciousness and intelligence
 │   └── Introduction to statistics
 │       └── Mean vs. median
-└── Ethical considerations
+└── History of ethics
 ```
 
 ### Subscript and superscript
