@@ -8,6 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 import argparse
 import re
+import sys
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -34,7 +35,7 @@ class DocumentationHelpFormatter(PositionalOnlyHelpFormatter):
         If both short and long flags are present, the metavariable is only
         shown once after the last flag.
         """
-        if action.option_strings and action.nargs != 0:
+        if sys.version_info < (3, 13) and action.option_strings and action.nargs != 0:
             # remove redundant metavariables for options with short flags
             # e.g., -u USERNAME, --username USERNAME -> -u, --username USERNAME
             parts = action.option_strings[:-1]

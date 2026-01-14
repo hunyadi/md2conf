@@ -19,4 +19,8 @@ $PYTHON_EXECUTABLE -m mypy integration_tests
 $PYTHON_EXECUTABLE -m md2conf --help > /dev/null
 
 # Generate documentation
-$PYTHON_EXECUTABLE documentation.py
+if $PYTHON_EXECUTABLE -c "import sys; sys.exit(0 if sys.version_info >= (3, 13) else 1)"; then
+    $PYTHON_EXECUTABLE documentation.py
+else
+    echo "Skipping documentation generation on Python < 3.13"
+fi

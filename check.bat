@@ -24,8 +24,13 @@ rem Test help message
 if errorlevel 1 goto error
 
 rem Generate documentation
-%PYTHON% documentation.py
-if errorlevel 1 goto error
+%PYTHON% -c "import sys; sys.exit(0 if sys.version_info >= (3, 13) else 1)"
+if errorlevel 1 (
+    echo Skipping documentation generation on Python ^< 3.13
+) else (
+    %PYTHON% documentation.py
+    if errorlevel 1 goto error
+)
 
 goto EOF
 

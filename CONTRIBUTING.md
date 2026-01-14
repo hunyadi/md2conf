@@ -131,6 +131,9 @@ gh run watch <run-id> --repo <owner>/<repo>
 
 Verify that all code you have added passes static code checks. Depending on your OS, there is a script for you to use. If using Windows, run `check.bat`, otherwise run `./check.sh`.
 
+> [!NOTE]
+> Documentation generation in the check scripts is skipped if the Python version is older than 3.13 to maintain consistent formatting. You can still run `python documentation.py` manually if needed.
+
 ### Generating documentation
 
 Verify that newly contributed classes, data-classes and functions have a doc-string, including public members, parameters, return values and exceptions raised. You can generate human-readable Markdown documentation with [markdown_doc](https://github.com/hunyadi/markdown_doc):
