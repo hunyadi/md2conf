@@ -24,7 +24,7 @@ rem Test help message
 if errorlevel 1 goto error
 
 rem Generate documentation
-%PYTHON% documentation.py
+%PYTHON% util\documentation.py
 if errorlevel 1 goto error
 
 goto EOF
