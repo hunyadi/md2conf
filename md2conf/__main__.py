@@ -16,13 +16,18 @@ import sys
 import typing
 from io import StringIO
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Iterable, Literal, Sequence
+
+from requests.exceptions import HTTPError, JSONDecodeError
 
 from . import __version__
 from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Arguments(argparse.Namespace):
@@ -331,6 +336,26 @@ def get_help() -> str:
         return buf.getvalue()
 
 
+def _exception_hook(exc_type: type[BaseException], exc_value: BaseException, traceback: TracebackType | None) -> None:
+    LOGGER.exception("Exception raised: %s", exc_type.__name__, exc_info=exc_value)
+    ex: BaseException | None = exc_value
+    while ex is not None:
+        print(f"\033[95m{ex.__class__.__name__}\033[0m: {ex}")
+
+        if isinstance(ex, HTTPError):
+            # print details for a response with JSON body
+            if ex.response is not None:
+                try:
+                    LOGGER.error(ex.response.json())
+                except JSONDecodeError:
+                    pass
+
+        ex = ex.__cause__
+
+
+sys.excepthook = _exception_hook
+
+
 def main() -> None:
     parser = get_parser()
     args = Arguments()
@@ -387,8 +412,6 @@ def main() -> None:
         for item in args.mdpath:
             converter.process(item)
     else:
-        from requests import HTTPError, JSONDecodeError
-
         from .api import ConfluenceAPI
         from .publisher import Publisher
 
@@ -404,22 +427,10 @@ def main() -> None:
             )
         except ArgumentError as e:
             parser.error(str(e))
-        try:
-            with ConfluenceAPI(properties) as api:
-                publisher = Publisher(api, options)
-                for item in args.mdpath:
-                    publisher.process(item)
-        except HTTPError as err:
-            logging.error(err)
-
-            # print details for a response with JSON body
-            if err.response is not None:
-                try:
-                    logging.error(err.response.json())
-                except JSONDecodeError:
-                    pass
-
-            sys.exit(1)
+        with ConfluenceAPI(properties) as api:
+            publisher = Publisher(api, options)
+            for item in args.mdpath:
+                publisher.process(item)
 
 
 if __name__ == "__main__":

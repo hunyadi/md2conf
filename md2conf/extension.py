@@ -19,6 +19,10 @@ from .image import ImageGenerator
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 
+class ExtensionError(RuntimeError):
+    pass
+
+
 @dataclass
 class ExtensionOptions:
     """

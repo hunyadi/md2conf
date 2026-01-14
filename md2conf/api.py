@@ -890,10 +890,10 @@ class ConfluenceSession:
                 else:
                     raise
 
-        # This should not be reached, but satisfies type checker
+        # this should not be reached, but satisfies type checker
         if last_error is not None:
             raise last_error
-        raise ConfluenceError(f"Failed to get page {page_id}")
+        raise ConfluenceError(f"failed to get page: {page_id}")
 
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
         """

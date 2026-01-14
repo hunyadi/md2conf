@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import tempfile
 import unittest
 
-from md2conf.png import extract_png_dimensions
+from md2conf.png import ImageFormatError, extract_png_dimensions
 from tests.utility import TypedTestCase
 
 
@@ -66,7 +66,7 @@ class TestPngDimensions(TypedTestCase):
         "Test that invalid PNG signature raises ValueError."
 
         invalid_data = b"NOT_A_PNG_FILE"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ImageFormatError) as context:
             extract_png_dimensions(data=invalid_data)
         self.assertIn("not a valid PNG file", str(context.exception))
 
@@ -74,7 +74,7 @@ class TestPngDimensions(TypedTestCase):
         "Test that PNG without IHDR chunk raises ValueError."
 
         invalid_data = b"\x89PNG\r\n\x1a\n"  # Valid PNG signature but no IHDR chunk (truncated)
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ImageFormatError) as context:
             extract_png_dimensions(data=invalid_data)
         self.assertIn("ihdr", str(context.exception).lower())
 

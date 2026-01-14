@@ -150,7 +150,7 @@ def _serialize_svg_opening_tag(root: ElementType) -> str:
     # Build the opening tag from element name and attributes
     root_tag = root.tag
     if not isinstance(root_tag, str):
-        raise TypeError("expected: tag names as `str`")
+        raise SVGParseError("expected: tag names as `str`")
     tag_name = ET.QName(root_tag).localname
     parts = [f"<{tag_name}"]
 

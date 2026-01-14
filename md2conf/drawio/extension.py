@@ -14,7 +14,7 @@ import lxml.etree as ET
 from md2conf.attachment import EmbeddedFileData, ImageData, attachment_name
 from md2conf.compatibility import override, path_relative_to
 from md2conf.csf import AC_ATTR, AC_ELEM
-from md2conf.extension import MarketplaceExtension
+from md2conf.extension import ExtensionError, MarketplaceExtension
 from md2conf.formatting import ImageAlignment, ImageAttributes
 
 from .render import extract_diagram, render_diagram
@@ -38,11 +38,11 @@ class DrawioExtension(MarketplaceExtension):
         elif absolute_path.name.endswith((".drawio", ".drawio.xml")):
             return self._transform_drawio(absolute_path, attrs)
         else:
-            raise RuntimeError(f"unrecognized image format: {absolute_path.suffix}")
+            raise ExtensionError(f"unrecognized image format: {absolute_path.suffix}")
 
     @override
     def transform_fenced(self, content: str) -> ElementType:
-        raise RuntimeError("draw.io diagrams cannot be defined in fenced code blocks")
+        raise ExtensionError("draw.io diagrams cannot be defined in fenced code blocks")
 
     def _transform_drawio(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         relative_path = path_relative_to(absolute_path, self.base_dir)

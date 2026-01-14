@@ -7,13 +7,14 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import logging
+import re
 import subprocess
 from typing import Sequence
 
 LOGGER = logging.getLogger(__name__)
 
 
-def execute_subprocess(command: Sequence[str], data: bytes, *, application: str | None = None) -> bytes:
+def execute_subprocess(command: Sequence[str], data: bytes, *, application: str) -> bytes:
     """
     Executes a subprocess, feeding input to stdin, and capturing output from stdout.
 
@@ -37,13 +38,29 @@ def execute_subprocess(command: Sequence[str], data: bytes, *, application: str 
     stdout, stderr = proc.communicate(input=data)
 
     if proc.returncode:
-        messages = [f"failed to execute {application or 'application'}; exit code: {proc.returncode}"]
-        console_output = stdout.decode("utf-8")
-        if console_output:
-            messages.append(f"output:\n{console_output}")
-        console_error = stderr.decode("utf-8")
-        if console_error:
-            messages.append(f"error:\n{console_error}")
+        message = f"failed to execute {application}; exit code: {proc.returncode}"
+        LOGGER.error("Failed to execute %s; exit code: %d", application, proc.returncode)
+        messages = [message]
+        if stdout:
+            try:
+                console_output = stdout.decode("utf-8")
+                LOGGER.error(console_output)
+                messages.append(f"output:\n{console_output}")
+            except UnicodeDecodeError:
+                LOGGER.error("%s returned binary data on stdout", application)
+                pass
+        if stderr:
+            try:
+                console_error = stderr.decode("utf-8")
+                LOGGER.error(console_error)
+
+                # omit Node.js exception stack trace
+                console_error = re.sub(r"^\s+at.*:\d+:\d+\)$\n", "", console_error, flags=re.MULTILINE).rstrip()
+
+                messages.append(f"error:\n{console_error}")
+            except UnicodeDecodeError:
+                LOGGER.error("%s returned binary data on stderr", application)
+                pass
         raise RuntimeError("\n".join(messages))
 
     return stdout

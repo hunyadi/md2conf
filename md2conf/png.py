@@ -12,6 +12,10 @@ from struct import unpack
 from typing import BinaryIO, Iterable, overload
 
 
+class ImageFormatError(RuntimeError):
+    pass
+
+
 class _Chunk:
     "Data chunk in binary data as per the PNG image format."
 
@@ -34,7 +38,7 @@ def _read_signature(f: BinaryIO) -> None:
 
     signature = f.read(8)
     if signature != b"\x89PNG\r\n\x1a\n":
-        raise ValueError("not a valid PNG file")
+        raise ImageFormatError("not a valid PNG file")
 
 
 def _read_chunk(f: BinaryIO) -> _Chunk | None:
@@ -45,7 +49,7 @@ def _read_chunk(f: BinaryIO) -> _Chunk | None:
         return None
 
     if len(length_bytes) != 4:
-        raise ValueError("expected: 4 bytes storing chunk length")
+        raise ImageFormatError("expected: 4 bytes storing chunk length")
 
     length = int.from_bytes(length_bytes, "big")
 
@@ -53,7 +57,7 @@ def _read_chunk(f: BinaryIO) -> _Chunk | None:
     data_bytes = f.read(data_length)
     actual_length = len(data_bytes)
     if actual_length != data_length:
-        raise ValueError(f"expected: {length} bytes storing chunk data; got: {actual_length}")
+        raise ImageFormatError(f"expected: {length} bytes storing chunk data; got: {actual_length}")
 
     chunk_type = data_bytes[0:4]
     chunk_data = data_bytes[4:-4]
@@ -75,12 +79,12 @@ def _extract_png_dimensions(source_file: BinaryIO) -> tuple[int, int]:
     # validate IHDR (Image Header) chunk
     ihdr = _read_chunk(source_file)
     if ihdr is None:
-        raise ValueError("missing IHDR chunk")
+        raise ImageFormatError("missing IHDR chunk")
 
     if ihdr.length != 13:
-        raise ValueError("invalid chunk length")
+        raise ImageFormatError("invalid chunk length")
     if ihdr.name != b"IHDR":
-        raise ValueError(f"expected: IHDR chunk; got: {ihdr.name!r}")
+        raise ImageFormatError(f"expected: IHDR chunk; got: {ihdr.name!r}")
 
     (
         width,

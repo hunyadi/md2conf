@@ -92,17 +92,16 @@ def render_diagram(
     if config is None:
         config = PlantUMLConfigProperties()
 
-    # Build command for PlantUML with pipe mode
-    # -pipe: read from stdin and write to stdout
-    # -t<format>: output format (png or svg)
-    # -charset utf-8: ensure UTF-8 encoding
+    # command for PlantUML with pipe mode
     cmd = _get_plantuml_command()
     cmd.extend(
         [
-            "-pipe",
-            f"-t{output_format}",
-            "-charset",
+            "--charset",
             "utf-8",
+            "--format",
+            output_format,
+            "--no-error-image",
+            "--pipe",
         ]
     )
 

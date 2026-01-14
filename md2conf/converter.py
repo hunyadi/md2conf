@@ -633,7 +633,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             absolute_path = (self.base_dir / path).resolve()
 
         if not absolute_path.exists():
-            self._warn_or_raise(f"path to image {path} does not exist")
+            self._warn_or_raise(f"path to image does not exist: {path}")
             return None
 
         if not is_directory_within(absolute_path, self.root_dir):
@@ -802,7 +802,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         content = blockquote[0]
         if content.text is None:
-            raise DocumentError("empty content")
+            raise DocumentError("empty content for GitHub alert")
 
         pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
         match = pattern.match(content.text)
@@ -839,7 +839,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         content = blockquote[0]
         if content.text is None:
-            raise DocumentError("empty content")
+            raise DocumentError("empty content for GitLab alert")
 
         pattern = re.compile(r"^(FLAG|NOTE|WARNING|DISCLAIMER):\s*")
         match = pattern.match(content.text)
@@ -1324,10 +1324,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         tasks: list[ElementType] = []
         for index, item in enumerate(elem, start=1):
             if item.text is None:
-                raise NotImplementedError("pre-condition check not exhaustive")
+                raise NotImplementedError("pre-condition check for tasklist not exhaustive")
             match = re.match(r"^\[([x X])\]", item.text)
             if match is None:
-                raise NotImplementedError("pre-condition check not exhaustive")
+                raise NotImplementedError("pre-condition check for tasklist not exhaustive")
 
             status = "incomplete" if match.group(1).isspace() else "complete"
             item.text = item.text[3:]
@@ -1630,7 +1630,7 @@ class ConfluenceDocument:
         try:
             self.root = elements_from_strings(content)
         except ParseError as ex:
-            raise ConversionError(path) from ex
+            raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
         # configure HTML-to-Confluence converter
         converter_options = copy.deepcopy(self.options.converter)
@@ -1641,8 +1641,8 @@ class ConfluenceDocument:
         # execute HTML-to-Confluence converter
         try:
             converter.visit(self.root)
-        except DocumentError as ex:
-            raise ConversionError(path) from ex
+        except RuntimeError as ex:
+            raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
         # extract information discovered by converter
         self.links = converter.links

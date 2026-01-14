@@ -118,7 +118,7 @@ class SynchronizingProcessor(Processor):
         elif root_id is not None:
             real_id = root_id
         else:
-            raise NotImplementedError("condition not exhaustive")
+            raise NotImplementedError("condition not exhaustive for synchronizing tree")
 
         catalog = ParentCatalog(self.api)
         catalog.add_known(real_id.page_id)
