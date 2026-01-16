@@ -3,7 +3,6 @@ import argparse
 import os
 import re
 import sys
-from typing import Set
 
 # Mapping between docker-bake.hcl targets and DOCKER_HUB.md placeholders
 TARGET_MAPPING = {
@@ -17,9 +16,9 @@ TEMPLATE_FILE = "DOCKER_HUB.md"
 BAKE_FILE = "docker-bake.hcl"
 
 
-def get_bake_targets(file_path: str) -> Set[str]:
+def get_bake_targets(file_path: str) -> set[str]:
     """Extract target names from docker-bake.hcl."""
-    targets: Set[str] = set()
+    targets: set[str] = set()
     if not os.path.exists(file_path):
         return targets
 
@@ -32,9 +31,9 @@ def get_bake_targets(file_path: str) -> Set[str]:
     return targets
 
 
-def get_template_placeholders(file_path: str) -> Set[str]:
+def get_template_placeholders(file_path: str) -> set[str]:
     """Extract %{PLACEHOLDER} tokens from the template."""
-    placeholders: Set[str] = set()
+    placeholders: set[str] = set()
     if not os.path.exists(file_path):
         return placeholders
 
