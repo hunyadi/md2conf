@@ -68,7 +68,20 @@ def validate_sync() -> None:
     print(f"Success: {TEMPLATE_FILE} is in sync with {BAKE_FILE}.")
 
 
-def generate_description(args: argparse.Namespace) -> None:
+class Arguments(argparse.Namespace):
+    check: bool
+    git_tag: str | None
+    image_name: str | None
+    github_repo: str | None
+    github_repo_url: str | None
+    tags_base: str | None
+    tags_mermaid: str | None
+    tags_plantuml: str | None
+    tags_all: str | None
+    output: str
+
+
+def generate_description(args: Arguments) -> None:
     """Generate the final description by replacing placeholders."""
     if not os.path.exists(TEMPLATE_FILE):
         print(f"Error: {TEMPLATE_FILE} not found.")
@@ -96,19 +109,6 @@ def generate_description(args: argparse.Namespace) -> None:
     with open(args.output, "w") as f:
         f.write(content)
     print(f"Generated {args.output}")
-
-
-class Arguments(argparse.Namespace):
-    check: bool
-    git_tag: str | None
-    image_name: str | None
-    github_repo: str | None
-    github_repo_url: str | None
-    tags_base: str | None
-    tags_mermaid: str | None
-    tags_plantuml: str | None
-    tags_all: str | None
-    output: str
 
 
 def main() -> None:
