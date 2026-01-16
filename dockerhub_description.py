@@ -51,7 +51,7 @@ def validate_sync() -> None:
     targets = get_bake_targets(BAKE_FILE)
     placeholders = get_template_placeholders(TEMPLATE_FILE)
 
-    missing_placeholders = []
+    missing_placeholders: list[str] = []
     for target in targets:
         placeholder = TARGET_MAPPING.get(target)
         if not placeholder:
@@ -99,6 +99,19 @@ def generate_description(args: argparse.Namespace) -> None:
     print(f"Generated {args.output}")
 
 
+class Arguments(argparse.Namespace):
+    check: bool
+    git_tag: str | None
+    image_name: str | None
+    github_repo: str | None
+    github_repo_url: str | None
+    tags_base: str | None
+    tags_mermaid: str | None
+    tags_plantuml: str | None
+    tags_all: str | None
+    output: str
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Docker Hub Description Generator & Validator")
     parser.add_argument("--check", action="store_true", help="Validate template synchronization")
@@ -112,7 +125,8 @@ def main() -> None:
     parser.add_argument("--tags-all", help="Tags for all variant")
     parser.add_argument("--output", default="DOCKER_HUB_FINAL.md", help="Output file path")
 
-    args = parser.parse_args()
+    args = Arguments()
+    parser.parse_args(namespace=args)
 
     if args.check:
         validate_sync()
