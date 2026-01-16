@@ -5,6 +5,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
+import re
 
 
 def wrap_text(text: str, line_length: int = 160) -> str:
@@ -52,3 +53,23 @@ def wrap_text(text: str, line_length: int = 160) -> str:
             pos = right  # skip the whitespace (already replaced)
 
     return output.decode("utf-8")
+
+def filter_out_excluded_sections(text: str) -> str:
+    """
+    Removes sections marked with md2conf-skip comments.
+    
+    Removes content between:
+    <!-- md2conf-skip-start --> and <!-- md2conf-skip-end -->
+    
+    :param text: Raw Markdown text
+    :returns: Markdown text with excluded sections removed
+    """
+    # Pattern to match excluded sections
+    # (?s) is inline flag for re.DOTALL - makes . match newlines
+    # .*? is non-greedy to handle multiple exclusion blocks
+    # \s* allows optional whitespace around marker names
+    pattern = r'<!--\s*md2conf-skip-start\s*-->.*?<!--\s*md2conf-skip-end\s*-->'
+    
+    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    return cleaned_text
