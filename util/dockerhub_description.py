@@ -16,6 +16,16 @@ TEMPLATE_FILE = "DOCKER_HUB.md"
 BAKE_FILE = "docker-bake.hcl"
 
 
+def error(message: str) -> None:
+    """Print error message to stderr."""
+    print(f"Error: {message}", file=sys.stderr)
+
+
+def warn(message: str) -> None:
+    """Print warning message to stderr."""
+    print(f"Warning: {message}", file=sys.stderr)
+
+
 def get_bake_targets(file_path: str) -> set[str]:
     """Extract target names from docker-bake.hcl."""
     targets: set[str] = set()
@@ -54,15 +64,15 @@ def validate_sync() -> None:
     for target in targets:
         placeholder = TARGET_MAPPING.get(target)
         if not placeholder:
-            print(f"Warning: Target '{target}' in {BAKE_FILE} has no mapping to a placeholder.")
+            warn(f"Target '{target}' in {BAKE_FILE} has no mapping to a placeholder.")
             continue
         if placeholder not in placeholders:
             missing_placeholders.append(placeholder)
 
     if missing_placeholders:
-        print(f"Error: The following placeholders are missing from {TEMPLATE_FILE}:")
+        error(f"The following placeholders are missing from {TEMPLATE_FILE}:")
         for p in missing_placeholders:
-            print(f"  - %{{{p}}}")
+            print(f"  - %{{{p}}}", file=sys.stderr)
         sys.exit(1)
 
     print(f"Success: {TEMPLATE_FILE} is in sync with {BAKE_FILE}.")
@@ -84,7 +94,7 @@ class Arguments(argparse.Namespace):
 def generate_description(args: Arguments) -> None:
     """Generate the final description by replacing placeholders."""
     if not os.path.exists(TEMPLATE_FILE):
-        print(f"Error: {TEMPLATE_FILE} not found.")
+        error(f"{TEMPLATE_FILE} not found.")
         sys.exit(1)
 
     with open(TEMPLATE_FILE, "r") as f:
