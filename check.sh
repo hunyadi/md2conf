@@ -22,4 +22,4 @@ $PYTHON_EXECUTABLE -m md2conf --help > /dev/null
 $PYTHON_EXECUTABLE util/documentation.py
 
 # Verify Docker Hub documentation synchronization
-$PYTHON_EXECUTABLE dockerhub_description.py --check
+$PYTHON_EXECUTABLE util/dockerhub_description.py --check

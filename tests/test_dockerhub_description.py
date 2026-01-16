@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from dockerhub_description import TARGET_MAPPING, get_bake_targets, get_template_placeholders
+from util.dockerhub_description import TARGET_MAPPING, get_bake_targets, get_template_placeholders
 
 
 class TestDockerHubDescription(unittest.TestCase):

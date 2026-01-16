@@ -125,7 +125,7 @@ jobs:
           ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "`") | join(", ")')
 
           # Generate final DOCKER_HUB.md using the python script
-          python3 dockerhub_description.py \
+          python3 util/dockerhub_description.py \
             --git-tag "$GIT_TAG" \
             --image-name "${{ env.DOCKER_IMAGE_NAME }}" \
             --github-repo "${{ github.repository }}" \
