@@ -70,9 +70,7 @@ def validate_sync() -> None:
             missing_placeholders.append(placeholder)
 
     if missing_placeholders:
-        error(f"The following placeholders are missing from {TEMPLATE_FILE}:")
-        for p in missing_placeholders:
-            print(f"  - %{{{p}}}", file=sys.stderr)
+        error(f"The following placeholders are missing from {TEMPLATE_FILE}:\n" + "\n".join(f"  - %{{{p}}}" for p in missing_placeholders))
         sys.exit(1)
 
     print(f"Success: {TEMPLATE_FILE} is in sync with {BAKE_FILE}.")
