@@ -6,6 +6,9 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 import re
+import logging
+    
+logger = logging.getLogger(__name__)
 
 
 def wrap_text(text: str, line_length: int = 160) -> str:
@@ -69,6 +72,17 @@ def filter_out_excluded_sections(text: str) -> str:
     # .*? is non-greedy to handle multiple exclusion blocks
     # \s* allows optional whitespace around marker names
     pattern = r'<!--\s*md2conf-skip-start\s*-->.*?<!--\s*md2conf-skip-end\s*-->'
+
+    # Warn about unmatched markers
+    start_pattern = r'<!--\s*md2conf-skip-start\s*-->'
+    end_pattern = r'<!--\s*md2conf-skip-end\s*-->'
+    start_count = len(re.findall(start_pattern, text, flags=re.IGNORECASE))
+    end_count = len(re.findall(end_pattern, text, flags=re.IGNORECASE))
+    if start_count != end_count:
+        logger.warning(
+            f"Unmatched md2conf-skip markers: found {start_count} start marker(s) "
+            f"and {end_count} end marker(s). Content may not be excluded as expected."
+        )
     
     cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE)
     
