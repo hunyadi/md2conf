@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 import re
 import logging
     
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def wrap_text(text: str, line_length: int = 160) -> str:
@@ -68,7 +68,6 @@ def filter_out_excluded_sections(text: str) -> str:
     :returns: Markdown text with excluded sections removed
     """
     # Pattern to match excluded sections
-    # (?s) is inline flag for re.DOTALL - makes . match newlines
     # .*? is non-greedy to handle multiple exclusion blocks
     # \s* allows optional whitespace around marker names
     pattern = r'<!--\s*md2conf-skip-start\s*-->.*?<!--\s*md2conf-skip-end\s*-->'
@@ -76,14 +75,14 @@ def filter_out_excluded_sections(text: str) -> str:
     # Warn about unmatched markers
     start_pattern = r'<!--\s*md2conf-skip-start\s*-->'
     end_pattern = r'<!--\s*md2conf-skip-end\s*-->'
-    start_count = len(re.findall(start_pattern, text, flags=re.IGNORECASE))
-    end_count = len(re.findall(end_pattern, text, flags=re.IGNORECASE))
+    start_count = len(re.findall(start_pattern, text))
+    end_count = len(re.findall(end_pattern, text))
     if start_count != end_count:
-        logger.warning(
+        LOGGER.error(
             f"Unmatched md2conf-skip markers: found {start_count} start marker(s) "
             f"and {end_count} end marker(s). Content may not be excluded as expected."
         )
     
-    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL | re.IGNORECASE)
+    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL)
     
     return cleaned_text
