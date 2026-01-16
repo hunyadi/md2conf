@@ -211,9 +211,10 @@ To publish images to your own Docker Hub account, configure the following in you
 
 1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
    - `DOCKER_PASSWORD`: Your Docker Hub Personal Access Token (PAT) or primary account password.
-     - > [!IMPORTANT]
-     - > While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
-     - > To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
+
+> [!IMPORTANT]
+> While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
+> To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
 
 2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
    - `DOCKER_USERNAME`: Your Docker Hub username
@@ -237,8 +238,9 @@ For testing Docker builds and documentation updates without creating a release, 
     - **Note:** This is a **"best-effort"** step only for manual runs. If it fails (e.g., due to insufficient PAT scopes) during manual testing, the workflow will still succeed.
     - **Note:** Production tag-based releases will still fail visibly if the description cannot be updated, ensuring quality for actual releases.
     - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
-    - > [!WARNING]
-      > This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
+
+> [!WARNING]
+> This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
 
 Example using `gh` CLI for manual dispatch:
 
