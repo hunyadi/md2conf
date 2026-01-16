@@ -592,7 +592,7 @@ Content between `<!-- md2conf-skip-start -->` and `<!-- md2conf-skip-end -->` ma
 - GitLab/GitHub-specific metadata
 - Content relevant only for developers with repository access
 
-Multiple exclusion blocks can be used in the same document. The markers are case-insensitive and whitespace-tolerant.
+Multiple exclusion blocks can be used in the same document.
 
 
 ### Labels
