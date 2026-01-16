@@ -13,6 +13,11 @@ on:
         required: false
         default: true
         type: boolean
+      update_description:
+        description: 'Update DOCKER_HUB.md description'
+        required: false
+        default: false
+        type: boolean
 
 env:
   # Docker image name - can be overridden in repository variables
@@ -97,3 +102,47 @@ jobs:
           echo "| mermaid | $MERMAID_TAGS |" >> $GITHUB_STEP_SUMMARY
           echo "| plantuml | $PLANTUML_TAGS |" >> $GITHUB_STEP_SUMMARY
           echo "| all | $ALL_TAGS |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Update Docker Hub Description
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.update_description)
+        run: |
+          # Extract version from tag or use branch/sha for manual test
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            GIT_TAG=${GITHUB_REF#refs/tags/}
+          else
+            GIT_TAG=${GITHUB_REF#refs/heads/}
+            # If still starts with refs/ (e.g. a PR or unusual ref), use short SHA
+            if [[ $GIT_TAG == refs/* ]]; then
+               GIT_TAG=$(git rev-parse --short HEAD)
+            fi
+          fi
+          
+          # Prepare tag lists for each variant (strip image repository name)
+          JSON_TAGS='${{ steps.meta.outputs.json }}'
+          BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-minimal`") | join(", ")')
+          MERMAID_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-mermaid`") | join(", ")')
+          PLANTUML_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-plantuml`") | join(", ")')
+          ALL_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "`") | join(", ")')
+
+          # Generate final DOCKER_HUB.md using the python script
+          python3 util/dockerhub_description.py \
+            --git-tag "$GIT_TAG" \
+            --image-name "${{ env.DOCKER_IMAGE_NAME }}" \
+            --github-repo "${{ github.repository }}" \
+            --github-repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --tags-base "$BASE_TAGS" \
+            --tags-mermaid "$MERMAID_TAGS" \
+            --tags-plantuml "$PLANTUML_TAGS" \
+            --tags-all "$ALL_TAGS" \
+            --output DOCKER_HUB.md
+
+
+      - name: Push to Docker Hub
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.update_description)
+        continue-on-error: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_IMAGE_NAME }}
+          readme-filepath: DOCKER_HUB.md

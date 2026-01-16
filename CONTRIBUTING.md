@@ -147,10 +147,10 @@ The Docker image can be customized to include only the dependencies you need, si
 
 Use `--target <stage>` to build specific variants:
 
-- `base` - Minimal image with no diagram rendering (~87MB)
-- `mermaid` - Include Mermaid diagram support only (~1.6GB)
-- `plantuml` - Include PlantUML diagram support only (~334MB)
-- `all` - Full image with both renderers (~1.8GB, default)
+- `base` - Minimal image with no diagram rendering
+- `mermaid` - Include Mermaid diagram support only
+- `plantuml` - Include PlantUML diagram support only
+- `all` - Full image with both renderers (default)
 
 **Building Individual Images:**
 
@@ -210,7 +210,10 @@ When you modify Python code, only the final stage rebuilds - the expensive syste
 To publish images to your own Docker Hub account, configure the following in your GitHub repository:
 
 1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
-   - `DOCKER_PASSWORD`: Your Docker Hub access token or password
+   - `DOCKER_PASSWORD`: Your Docker Hub Personal Access Token (PAT) or primary account password.
+     - > [!IMPORTANT]
+     - > While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
+     - > To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
 
 2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
    - `DOCKER_USERNAME`: Your Docker Hub username
@@ -224,11 +227,30 @@ Pushing a Git tag triggers automated builds of all Docker image variants and pub
 
 **Testing Docker Builds:**
 
-For testing Docker builds without creating a release, use manual workflow dispatch:
-   - Go to: **Actions** → **Publish Docker image** → **Run workflow**
-   - Select your branch
-   - Choose "Push images to Docker Hub" (true/false)
-   - Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`)
+For testing Docker builds and documentation updates without creating a release, use manual workflow dispatch:
+
+- Go to: **Actions** → **Publish Docker image** → **Run workflow**
+- Select your branch
+- **Options:**
+  - **Push images to Docker Hub** (true/false): Builds all 4 variants tagged with commit SHA (e.g., `yourusername/md2conf:sha-abc1234-minimal`).
+  - **Update DOCKER_HUB.md description** (true/false): Updates the live Docker Hub repository description using the `DOCKER_HUB.md` template.
+    - **Note:** This is a **"best-effort"** step only for manual runs. If it fails (e.g., due to insufficient PAT scopes) during manual testing, the workflow will still succeed.
+    - **Note:** Production tag-based releases will still fail visibly if the description cannot be updated, ensuring quality for actual releases.
+    - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
+    - > [!WARNING]
+      > This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
+
+Example using `gh` CLI for manual dispatch:
+
+```bash
+# Build images only (no push, no doc update)
+gh workflow run publish-docker.yml --ref <branch>  --repo <owner>/<repo> \
+  --field push_images=false
+
+# Update Docker Hub description from branch
+gh workflow run publish-docker.yml --ref <branch>  --repo <owner>/<repo> \
+  --field update_description=true --field push_images=false
+```
 
 ## Releasing
 
@@ -237,16 +259,19 @@ To release a new version, pushing a git tag triggers automated publication to bo
 **Release process:**
 
 1. **Update the version number** in `md2conf/__init__.py`:
+
    ```python
    __version__ = "1.0.0"
    ```
 
 2. **Run tests** to ensure everything passes:
+
    ```bash
    ./check.sh
    ```
 
 3. **Commit the version change**:
+
    ```bash
    git add md2conf/__init__.py
    git commit -m "chore: bump version to 1.0.0"
@@ -254,12 +279,14 @@ To release a new version, pushing a git tag triggers automated publication to bo
    ```
 
 4. **Push a Git tag**:
+
    ```bash
    git tag 1.0.0
    git push origin 1.0.0
    ```
 
 This automatically triggers GitHub Actions workflows that:
+
 - **Build and publish to PyPI**: `pypi.org/project/markdown-to-confluence/1.0.0/`
   - Requires `PYPI_ID_TOKEN` secret configured in repository secrets
 - **Build and push Docker images**: `leventehunyadi/md2conf` with version tags
