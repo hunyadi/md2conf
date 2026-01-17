@@ -14,7 +14,9 @@ Due to constrained capacity, we only support the latest release of *md2conf*.
 
 ## Pull requests
 
-We actively welcome your pull requests. Keep changes concise to help reviewers. Make sure you focus on a single bugfix or a single feature.
+We actively welcome pull requests. However, before you open a pull request with a new feature, create a GitHub issue proposing the feature you would like to add, and discuss the proposal with the maintainers to make sure it aligns with the *md2conf* design philosophy.
+
+Keep changes concise to help reviewers. Make sure you focus on a single bugfix or a single feature at a time.
 
 ### Prerequisites
 
@@ -22,9 +24,8 @@ Python is installed. Minimum version we support is Python 3.10.
 
 ### Helping you get set up
 
-1. Create a GitHub issue proposing the feature you would like to have added.
-2. Fork the repo and create your branch from `master`.
-3. Set up your environment:
+1. Fork the repo and create your branch from `master`.
+2. Set up your environment:
 
    ```sh
    git clone git@github.com:<your github username>/md2conf.git
@@ -33,7 +34,7 @@ Python is installed. Minimum version we support is Python 3.10.
    python -m pip install ".[formulas,dev]"
    ```
 
-4. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
+3. If you've added code that should be tested, add tests to either `tests` or `integration_tests` directory.
    Note: The directory `integration_tests` assumes you have an active Confluence instance to run those against.
 
 #### Test Organization
@@ -211,9 +212,10 @@ To publish images to your own Docker Hub account, configure the following in you
 
 1. **Repository Secrets** (Settings → Secrets and variables → Actions → Secrets):
    - `DOCKER_PASSWORD`: Your Docker Hub Personal Access Token (PAT) or primary account password.
-     - > [!IMPORTANT]
-     - > While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
-     - > To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
+
+> [!IMPORTANT]
+> While you can use your account password (if 2FA is disabled), using a **Personal Access Token (PAT)** is recommended.
+> To successfully update the repository description (README), a PAT must have **"Read, Write, Delete"** scope. Standard "Read & Write" scope is sufficient only for pushing images.
 
 2. **Repository Variables** (Settings → Secrets and variables → Actions → Variables):
    - `DOCKER_USERNAME`: Your Docker Hub username
@@ -237,8 +239,9 @@ For testing Docker builds and documentation updates without creating a release, 
     - **Note:** This is a **"best-effort"** step only for manual runs. If it fails (e.g., due to insufficient PAT scopes) during manual testing, the workflow will still succeed.
     - **Note:** Production tag-based releases will still fail visibly if the description cannot be updated, ensuring quality for actual releases.
     - **Note:** When run manually on a branch, the `%{GIT_TAG}` placeholder in the template falls back to the branch name or short SHA.
-    - > [!WARNING]
-      > This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
+
+> [!WARNING]
+> This will update the live Docker Hub description if your credentials are configured with sufficient permissions.
 
 Example using `gh` CLI for manual dispatch:
 

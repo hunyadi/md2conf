@@ -7,10 +7,33 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import sys
+import tempfile
 import unittest
-from collections.abc import Container, Iterable
+from collections.abc import Container, Generator, Iterable
+from contextlib import contextmanager
+from pathlib import Path
 from typing import TypeVar
 from unittest.util import safe_repr
+
+
+@contextmanager
+def temporary_file(data: str | bytes, *, suffix: str | None = None) -> Generator[Path]:
+    match data:
+        case str():
+            with tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False) as f:
+                f.write(data)
+                p = f.name
+        case _:
+            with tempfile.NamedTemporaryFile(mode="wb", suffix=suffix, delete=False) as f:
+                f.write(data)
+                p = f.name
+
+    path = Path(p)
+    try:
+        yield path
+    finally:
+        path.unlink()
+
 
 T = TypeVar("T")
 

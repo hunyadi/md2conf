@@ -3,6 +3,7 @@ import argparse
 import os
 import re
 import sys
+from pathlib import Path
 
 # Mapping between docker-bake.hcl targets and DOCKER_HUB.md placeholders
 TARGET_MAPPING = {
@@ -12,8 +13,8 @@ TARGET_MAPPING = {
     "all": "TAGS_ALL",
 }
 
-TEMPLATE_FILE = "DOCKER_HUB.md"
-BAKE_FILE = "docker-bake.hcl"
+TEMPLATE_FILE = Path("DOCKER_HUB.md")
+BAKE_FILE = Path("docker-bake.hcl")
 
 
 def error(message: str) -> None:
@@ -26,32 +27,32 @@ def warn(message: str) -> None:
     print(f"Warning: {message}", file=sys.stderr)
 
 
-def get_bake_targets(file_path: str) -> set[str]:
+def get_bake_targets(file_path: Path) -> set[str]:
     """Extract target names from docker-bake.hcl."""
     targets: set[str] = set()
     if not os.path.exists(file_path):
         return targets
 
-    with open(file_path, "r") as f:
-        content = f.read()
-        # Look for target "name" { ... }
-        matches = re.findall(r'target\s+"([^"]+)"\s+\{', content)
-        for m in matches:
-            targets.add(m)
+    content = file_path.read_text("utf-8")
+
+    # Look for target "name" { ... }
+    matches = re.findall(r'target\s+"([^"]+)"\s+\{', content)
+    for m in matches:
+        targets.add(m)
     return targets
 
 
-def get_template_placeholders(file_path: str) -> set[str]:
+def get_template_placeholders(file_path: Path) -> set[str]:
     """Extract %{PLACEHOLDER} tokens from the template."""
     placeholders: set[str] = set()
     if not os.path.exists(file_path):
         return placeholders
 
-    with open(file_path, "r") as f:
-        content = f.read()
-        matches = re.findall(r"%\{([^}]+)\}", content)
-        for m in matches:
-            placeholders.add(m)
+    content = file_path.read_text("utf-8")
+
+    matches = re.findall(r"%\{([^}]+)\}", content)
+    for m in matches:
+        placeholders.add(m)
     return placeholders
 
 

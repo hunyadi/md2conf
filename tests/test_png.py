@@ -6,11 +6,10 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import tempfile
 import unittest
 
 from md2conf.png import ImageFormatError, extract_png_dimensions
-from tests.utility import TypedTestCase
+from tests.utility import TypedTestCase, temporary_file
 
 
 class TestPngDimensions(TypedTestCase):
@@ -55,10 +54,8 @@ class TestPngDimensions(TypedTestCase):
             b"\x00"  # Interlace: none
             b"\x00\x00\x00\x00"  # CRC (simplified for test)
         )
-        with tempfile.NamedTemporaryFile(mode="wb", suffix=".png", delete=False) as f:
-            f.write(png_data)
-            f.flush()
-            width, height = extract_png_dimensions(path=f.name)
+        with temporary_file(png_data, suffix=".png") as temp_path:
+            width, height = extract_png_dimensions(path=temp_path)
         self.assertEqual(width, 100)
         self.assertEqual(height, 50)
 
