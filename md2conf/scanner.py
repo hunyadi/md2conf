@@ -12,7 +12,6 @@ from typing import TypeVar
 
 from .coalesce import coalesce
 from .frontmatter import extract_frontmatter_json, extract_value
-from .text import filter_out_excluded_sections
 from .options import LayoutOptions
 from .serializer import JsonType, json_to_object
 
@@ -85,9 +84,6 @@ class Scanner:
         """
         Extracts essential properties from a Markdown document.
         """
-
-        # Remove excluded sections FIRST, before any other processing
-        text = filter_out_excluded_sections(text)
 
         # extract Confluence page ID
         page_id, text = extract_value(r"<!--\s+confluence[-_]page[-_]id:\s*(\d+)\s+-->", text)

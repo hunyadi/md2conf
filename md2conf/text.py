@@ -5,10 +5,6 @@ Copyright 2022-2026, Levente Hunyadi
 
 :see: https://github.com/hunyadi/md2conf
 """
-import re
-import logging
-    
-LOGGER = logging.getLogger(__name__)
 
 
 def wrap_text(text: str, line_length: int = 160) -> str:
@@ -56,33 +52,3 @@ def wrap_text(text: str, line_length: int = 160) -> str:
             pos = right  # skip the whitespace (already replaced)
 
     return output.decode("utf-8")
-
-def filter_out_excluded_sections(text: str) -> str:
-    """
-    Removes sections marked with md2conf-skip comments.
-    
-    Removes content between:
-    <!-- md2conf-skip-start --> and <!-- md2conf-skip-end -->
-    
-    :param text: Raw Markdown text
-    :returns: Markdown text with excluded sections removed
-    """
-    # Pattern to match excluded sections
-    # .*? is non-greedy to handle multiple exclusion blocks
-    # \s* allows optional whitespace around marker names
-    pattern = r'<!--\s*md2conf-skip-start\s*-->.*?<!--\s*md2conf-skip-end\s*-->'
-
-    # Warn about unmatched markers
-    start_pattern = r'<!--\s*md2conf-skip-start\s*-->'
-    end_pattern = r'<!--\s*md2conf-skip-end\s*-->'
-    start_count = len(re.findall(start_pattern, text))
-    end_count = len(re.findall(end_pattern, text))
-    if start_count != end_count:
-        LOGGER.error(
-            f"Unmatched md2conf-skip markers: found {start_count} start marker(s) "
-            f"and {end_count} end marker(s). Content may not be excluded as expected."
-        )
-    
-    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL)
-    
-    return cleaned_text
