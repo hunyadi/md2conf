@@ -81,8 +81,6 @@ class ConverterOptions:
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param layout: Layout options for content on a Confluence page.
-    :param do_not_skip_nodes: When true, preserve content marked with confluence-skip markers; when false (default),
-        remove marked content from output.
     """
 
     heading_anchors: bool = False
@@ -97,7 +95,6 @@ class ConverterOptions:
     webui_links: bool = False
     use_panel: bool = False
     layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
-    do_not_skip_nodes: bool = False
 
 
 @dataclass

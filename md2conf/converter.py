@@ -1714,9 +1714,8 @@ class ConfluenceDocument:
         # parse Markdown document and convert to HTML
         html = markdown_to_html("\n".join(lines))
 
-        # Transform skip markers in HTML string before parsing (only if enabled (default)).
-        if not self.options.converter.do_not_skip_nodes:
-            html = transform_skip_comments_in_html(html)
+        # Transform skip markers in HTML string before parsing
+        html = transform_skip_comments_in_html(html)
 
         # modify HTML as necessary
         if self.options.generated_by is not None:
@@ -1755,9 +1754,8 @@ class ConfluenceDocument:
         except RuntimeError as ex:
             raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
-        # cleanup empty elements created by confluence-skip markers (only if enabled)
-        if not converter_options.do_not_skip_nodes:
-            converter._cleanup_empty_elements(self.root)
+        # cleanup empty elements created by confluence-skip markers
+        converter._cleanup_empty_elements(self.root)
 
         # extract information discovered by converter
         self.links = converter.links
