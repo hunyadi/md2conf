@@ -65,10 +65,10 @@ jobs:
           set: |
             *.cache-from=type=gha,scope=md2conf-docker
             *.cache-to=type=gha,mode=max,scope=md2conf-docker
-            base.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-minimal,') }}-minimal
-            mermaid.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-mermaid,') }}-mermaid
-            plantuml.tags=${{ join(fromJSON(steps.meta.outputs.json).tags, '-plantuml,') }}-plantuml
-            all.tags=${{ steps.meta.outputs.tags }}
+            ${{ format('base.tags={0}-minimal', join(fromJSON(steps.meta.outputs.json).tags, '-minimal\nbase.tags=')) }}
+            ${{ format('mermaid.tags={0}-mermaid', join(fromJSON(steps.meta.outputs.json).tags, '-mermaid\nmermaid.tags=')) }}
+            ${{ format('plantuml.tags={0}-plantuml', join(fromJSON(steps.meta.outputs.json).tags, '-plantuml\nplantuml.tags=')) }}
+            ${{ format('all.tags={0}', join(fromJSON(steps.meta.outputs.json).tags, '\nall.tags=')) }}
 
       - name: Generate Build Summary
         if: always()
@@ -116,7 +116,7 @@ jobs:
                GIT_TAG=$(git rev-parse --short HEAD)
             fi
           fi
-          
+
           # Prepare tag lists for each variant (strip image repository name)
           JSON_TAGS='${{ steps.meta.outputs.json }}'
           BASE_TAGS=$(echo "$JSON_TAGS" | jq -r '.tags | map(split(":") | last) | map("`" + . + "-minimal`") | join(", ")')
