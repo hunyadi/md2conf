@@ -44,6 +44,7 @@ class Arguments(argparse.Namespace):
     root_page: str | None
     keep_hierarchy: bool
     skip_title_heading: bool
+    do_not_skip_nodes: bool
     title_prefix: str | None
     generated_by: str | None
     skip_update: bool
@@ -281,6 +282,12 @@ def get_parser() -> argparse.ArgumentParser:
         help="Keep the first heading in document body even when used as page title (default).",
     )
     parser.add_argument(
+        "--do-not-skip-nodes",
+        action="store_true",
+        default=False,
+        help="Preserve content marked with <!-- confluence-skip-start/end --> markers instead of removing it.",
+    )
+    parser.add_argument(
         "--title-prefix",
         default=None,
         metavar="TEXT",
@@ -376,6 +383,7 @@ def main() -> None:
             heading_anchors=args.heading_anchors,
             ignore_invalid_url=args.ignore_invalid_url,
             skip_title_heading=args.skip_title_heading,
+            do_not_skip_nodes=args.do_not_skip_nodes,
             prefer_raster=args.prefer_raster,
             render_drawio=args.render_drawio,
             render_mermaid=args.render_mermaid,

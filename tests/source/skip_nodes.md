@@ -7,16 +7,19 @@ Text
 ## Section to publish
 
 Some Text
-<!-- md2conf-skip-start -->
+<!-- confluence-skip-start -->
 Ignore that part
 
 Ignore this one too
-<!-- md2conf-skip-end -->
+<!-- confluence-skip-end -->
 Carry on
 
 ## Section with inline
 
-As an end user, do the following.<!-- md2conf-skip-start --> As a developer you will do that instead.<!-- md2conf-skip-end --> Launch the program
+As an end user, do the following.<!-- confluence-skip-start --> As a developer you will do that instead.<!-- confluence-skip-end --> Launch the program
 
-<!-- md2conf-skip-start -->
-This content is also added as there is no ending markers
+
+This block shall be published:
+
+- User guide information <!-- confluence-skip-start -->(Corresponding Developer Guide information.)<!-- confluence-skip-end -->
+- Moderators guide information

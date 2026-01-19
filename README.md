@@ -575,18 +575,18 @@ When maintaining documentation in both Git repositories and Confluence, you may 
 
 This content appears in both Git and Confluence.
 
-<!-- md2conf-skip-start -->
+<!-- confluence-skip-start -->
 ## Internal References
 - See [internal design doc](../internal/design.md)
 - Related to issue #123
 - Development notes for the team
-<!-- md2conf-skip-end -->
+<!-- confluence-skip-end -->
 
 ## Getting Started
 This section is published to Confluence.
 ```
 
-Content between `<!-- md2conf-skip-start -->` and `<!-- md2conf-skip-end -->` markers is removed before conversion and will not appear on the Confluence page. This is useful for:
+Content between `<!-- confluence-skip-start -->` and `<!-- confluence-skip-end -->` markers is removed before conversion and will not appear on the Confluence page. This is useful for:
 
 - Repository-specific navigation and cross-references
 - GitLab/GitHub-specific metadata
