@@ -9,10 +9,19 @@ Copyright 2022-2026, Levente Hunyadi
 import argparse
 import os
 import re
+from collections.abc import Sequence
+from dataclasses import fields, is_dataclass
 from importlib.util import find_spec
+from io import StringIO
 from pathlib import Path
+from typing import Any, get_type_hints
 
 from md2conf.__main__ import get_help
+from md2conf.api import ConfluenceAPI
+from md2conf.environment import ConnectionProperties
+from md2conf.options import DocumentOptions
+from md2conf.publisher import Publisher
+from md2conf.reflection import format_initializer, get_nested_types
 
 
 def patch_help(help_text: str) -> str:
@@ -45,6 +54,85 @@ def patch_help(help_text: str) -> str:
         return help_text
 
 
+def update_console(text: str) -> str:
+    "Updates the console output section in `README.md`."
+
+    output, count = re.subn(
+        r"^```console\n\$ python3 -m md2conf --help\n.*?^```$",
+        f"```console\n$ python3 -m md2conf --help\n{help_text}```",
+        text,
+        count=1,
+        flags=re.DOTALL | re.MULTILINE,
+    )
+    if count != 1:
+        raise ValueError("missing placeholder for console output")
+    return output
+
+
+def update_python(text: str) -> str:
+    "Updates the Python sample code section in `README.md`."
+
+    tps: set[type[Any]] = {ConfluenceAPI, Publisher}
+    tps.update(get_nested_types([ConnectionProperties, DocumentOptions]))
+
+    python_code = f"""
+{get_imports(list(tps))}
+properties = {format_dataclass(ConnectionProperties)}
+options = {format_dataclass(DocumentOptions)}
+with {ConfluenceAPI.__name__}(properties) as api:
+    {Publisher.__name__}(api, options).process(mdpath)
+"""
+
+    output, count = re.subn(
+        r"^```python\n.*?^```$",
+        f"```python{python_code}```",
+        text,
+        count=1,
+        flags=re.DOTALL | re.MULTILINE,
+    )
+    if count != 1:
+        raise ValueError("missing placeholder for Python code")
+    return output
+
+
+def format_dataclass(tp: Any, indent: str = "") -> str:
+    "Prints sample code to initialize a data-class with all of its fields."
+
+    if not isinstance(tp, type):
+        raise TypeError("unrecognized type")
+
+    s = StringIO()
+    print(f"{tp.__name__}(", file=s)
+    field_indent = indent + "    "
+    if is_dataclass(tp):
+        for field in fields(tp):
+            s.write(f"{field_indent}{field.name}=")
+            if is_dataclass(field.type):
+                s.write(format_dataclass(field.type, indent=field_indent))
+            else:
+                s.write(format_initializer(field.type))
+            print(",", file=s)
+    elif isinstance(tp, type):
+        for field_name, field_type in get_type_hints(tp).items():
+            s.write(f"{field_indent}{field_name}={format_initializer(field_type)}")
+            print(",", file=s)
+
+    s.write(f"{indent})")
+    return s.getvalue()
+
+
+def get_imports(tps: Sequence[type[Any]]) -> str:
+    "Returns a list of `import` statements to bring the specified classes into scope."
+
+    s = StringIO()
+    for module in sorted(list(set(tp.__module__ for tp in tps if tp.__module__ != "builtins"))):
+        items = sorted(tp.__name__ for tp in tps if tp.__module__ == module)
+        if not items:
+            continue
+        print(f"from {module} import {', '.join(name for name in items)}", file=s)
+    return s.getvalue()
+
+
 class Arguments(argparse.Namespace):
     check: bool
 
@@ -62,21 +150,20 @@ parser.parse_args(namespace=args)
 # locate repository root
 root_path = Path(__file__).parent.parent
 
-# update README.md
+# read README.md
 os.environ["COLUMNS"] = "160"  # ensures consistent column width across platforms
 help_text = patch_help(get_help())
 readme_path = root_path / "README.md"
 with open(readme_path, "r") as input_file:
     input_content = input_file.read()
-output_content, count = re.subn(
-    r"^```console\n\$ python3 -m md2conf --help\n.*?^```$",
-    f"```console\n$ python3 -m md2conf --help\n{help_text}```",
-    input_content,
-    count=1,
-    flags=re.DOTALL | re.MULTILINE,
-)
-if count != 1:
-    raise ValueError("missing placeholder for console output")
+
+# update README.md
+text = input_content
+text = update_console(text)
+text = update_python(text)
+output_content = text
+
+# write README.md
 if args.check:
     if input_content != output_content:
         raise ValueError(f"outdated file: {readme_path}")

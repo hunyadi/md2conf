@@ -25,7 +25,7 @@ class ImageLayoutOptions:
     :param max_width: Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
     """
 
-    alignment: Literal["center", "left", "right"] | None = None
+    alignment: Literal["center", "left", "right", None] = None
     max_width: int | None = None
 
 
@@ -39,7 +39,7 @@ class TableLayoutOptions:
     """
 
     width: int | None = None
-    display_mode: Literal["fixed", "responsive"] | None = None
+    display_mode: Literal["fixed", "responsive", None] = None
 
 
 @dataclass
@@ -56,7 +56,7 @@ class LayoutOptions:
 
     image: ImageLayoutOptions = dataclasses.field(default_factory=ImageLayoutOptions)
     table: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)
-    alignment: Literal["center", "left", "right"] | None = None
+    alignment: Literal["center", "left", "right", None] = None
 
     def get_image_alignment(self) -> Literal["center", "left", "right"]:
         return self.image.alignment or self.alignment or "center"

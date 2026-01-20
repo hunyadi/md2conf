@@ -677,44 +677,46 @@ options:
 ```python
 from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
-from md2conf.options import ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions, TableLayoutOptions
+from md2conf.options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions, TableLayoutOptions
 from md2conf.publisher import Publisher
 
 properties = ConnectionProperties(
-    api_url=...,
-    domain=...,
-    base_path=...,
-    user_name=...,
-    api_key=...,
-    space_key=...,
-    headers=...,
+    domain=str() or None,
+    base_path=str() or None,
+    space_key=str() or None,
+    api_url=str() or None,
+    user_name=str() or None,
+    api_key=str(),
+    headers={str(): str()} or None,
 )
 options = DocumentOptions(
-    root_page_id=...,
-    keep_hierarchy=...,
-    title_prefix=...,
-    generated_by=...,
+    root_page_id=ConfluencePageID() or None,
+    keep_hierarchy=bool(),
+    title_prefix=str() or None,
+    generated_by=str() or None,
+    skip_update=bool(),
     converter=ConverterOptions(
-        heading_anchors=...,
-        ignore_invalid_url=...,
-        skip_title_heading=...,
-        prefer_raster=...,
-        render_drawio=...,
-        render_mermaid=...,
-        render_plantuml=...,
-        render_latex=...,
-        diagram_output_format=...,
-        webui_links=...,
-        use_panel=...,
+        heading_anchors=bool(),
+        ignore_invalid_url=bool(),
+        skip_title_heading=bool(),
+        prefer_raster=bool(),
+        render_drawio=bool(),
+        render_mermaid=bool(),
+        render_plantuml=bool(),
+        render_latex=bool(),
+        diagram_output_format='png' or 'svg',
+        webui_links=bool(),
+        use_panel=bool(),
         layout=LayoutOptions(
             image=ImageLayoutOptions(
-                alignment=...,
-                max_width=...,
+                alignment='center' or 'left' or 'right' or None,
+                max_width=int() or None,
             ),
             table=TableLayoutOptions(
-                width=...,
-                display_mode=...,
+                width=int() or None,
+                display_mode='fixed' or 'responsive' or None,
             ),
+            alignment='center' or 'left' or 'right' or None,
         ),
     ),
 )
