@@ -321,8 +321,8 @@ def transform_skip_comments_in_html(html: str) -> str:
     """
     # Pattern to match skip section markers with surrounding context
     # Captures newlines/whitespace before and after to determine if block-level
-    start_pattern = r'<!--\s*confluence-skip-start\s*-->'
-    end_pattern = r'<!--\s*confluence-skip-end\s*-->'
+    start_pattern = r"<!--\s*confluence-skip-start\s*-->"
+    end_pattern = r"<!--\s*confluence-skip-end\s*-->"
     
     # Count markers for validation
     start_count = len(re.findall(start_pattern, html))
@@ -337,7 +337,7 @@ def transform_skip_comments_in_html(html: str) -> str:
     
     # Process each start-end pair to determine if block or inline
     # Pattern to match entire skip section with context
-    section_pattern = r'(\n\s*)?<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->(\s*\n)?'
+    section_pattern = r"(\n\s*)?<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->(\s*\n)?"
     
     def replace_section(match: re.Match[str]) -> str:
         before_newline = match.group(1)     # Newline before start marker
@@ -347,7 +347,7 @@ def transform_skip_comments_in_html(html: str) -> str:
         # Determine if this is block-level:
         # - Has newline before 'start' marker, or
         # - Has newline after 'end' marker, or
-        is_block = bool(before_newline) or bool(after_newline) or '\n' in content
+        is_block = bool(before_newline) or bool(after_newline) or "\n" in content
         
         if is_block:
             # Use 'div' for block-level exclusions
