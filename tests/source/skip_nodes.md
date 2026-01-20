@@ -23,3 +23,15 @@ This block shall be published:
 
 - User guide information <!-- confluence-skip-start -->(Corresponding Developer Guide information.)<!-- confluence-skip-end -->
 - Moderators guide information
+<!-- confluence-skip-start -->
+- Server Installation
+<!-- confluence-skip-end -->
+- FAQ
+
+```python
+def foo():
+    print("Using skip markers in code block is")
+    <!-- confluence-skip-start -->
+    print("ignored")
+    <!-- confluence-skip-end -->
+```

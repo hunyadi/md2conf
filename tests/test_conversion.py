@@ -509,23 +509,6 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
-    
-    def test_skip_nodes(self) -> None:
-        """Test that HTML comment markers to designate sections that should be excluded are removed."""
-        _, doc = ConfluenceDocument.create(
-            self.source_dir / "skip_nodes.md",
-            DocumentOptions(converter=ConverterOptions()),
-            self.source_dir,
-            self.site_metadata,
-            self.page_metadata,
-        )
-        self.assertEqual(doc.title, "Skip Session Title")
-        actual = standardize(doc.xhtml())
-
-        with open(self.target_dir / "skip_nodes.xml", "r", encoding="utf-8") as f:
-            expected = substitute(self.target_dir, f.read())
-
-        self.assertEqual(actual, expected)
 
 
 if __name__ == "__main__":

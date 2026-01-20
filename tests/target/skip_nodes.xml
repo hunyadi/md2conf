@@ -19,3 +19,16 @@
 		<p>Moderators guide information</p>
 	</li>
 </ul>
+<ul>
+	<li>
+		<p>FAQ</p>
+	</li>
+</ul>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+	<ac:parameter ac:name="language">py</ac:parameter>
+	<ac:plain-text-body><![CDATA[def foo():
+    print("Using skip markers in code block is")
+    <!-- confluence-skip-start -->
+    print("ignored")
+    <!-- confluence-skip-end -->]]></ac:plain-text-body>
+</ac:structured-macro>
