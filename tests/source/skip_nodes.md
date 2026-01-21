@@ -31,7 +31,6 @@ This block shall be published:
 ```python
 def foo():
     print("Using skip markers in code block is")
-    <!-- confluence-skip-start -->
+    # <!-- confluence-skip-start -->
     print("ignored")
-    <!-- confluence-skip-end -->
 ```
