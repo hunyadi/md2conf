@@ -304,6 +304,9 @@ def transform_skip_comments_in_html(html: str) -> str:
     if start_count != end_count:
         raise DocumentError(f"unmatched confluence-skip markers: found {start_count} start marker(s) and {end_count} end marker(s)")
 
+    if start_count < 1:
+        return html
+
     # Process each start-end pair to determine if block or inline
     # Pattern to match entire skip section with context
     section_pattern = r"(\n\s*)?<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->(\s*\n)?"
