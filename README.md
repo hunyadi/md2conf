@@ -623,8 +623,7 @@ python3 -m md2conf docs/ --synchronize-if filters:sync_by_env --params environme
 
 This example mimics Confluence Cloud's scheduled updates by checking a `publish_after` front-matter field. 
 
-> [!TIP]
-> To ensure consistency across all documents, pass a fixed timestamp via `--params now=...` instead of calling `datetime.now()` inside the predicate. This prevents potential inconsistencies if the synchronization process spans across a time boundary (e.g., a minute change).
+> :bulb: To ensure consistency across all documents, pass a fixed timestamp via `--params now=...` instead of calling `datetime.now()` inside the predicate. This prevents potential inconsistencies if the synchronization process spans across a time boundary (e.g., a minute change).
 
 In GitHub Actions, you can capture the start time in one step and pass it to the next:
 
@@ -649,9 +648,19 @@ def publish_after(props: SynchronizableDocument, options: DocumentOptions) -> bo
         return True
 
     # Get publish_after timestamp from front-matter
-    publish_after_str = props.metadata.get("publish_after")
-    if not publish_after_str:
+    if props.metadata is None:
         return True
+    publish_after_val = props.metadata.get("publish_after")
+    if not publish_after_val:
+        return True
+
+    # Handle both string and datetime objects
+    if isinstance(publish_after_val, datetime):
+        publish_time = publish_after_val
+        if publish_time.tzinfo is None:
+            publish_time = publish_time.replace(tzinfo=timezone.utc)
+    else:
+        publish_time = datetime.fromisoformat(str(publish_after_val).replace("Z", "+00:00"))
 
     # Use fixed 'now' from params for consistency, or fallback to current time
     now_str = options.params.get("now")
@@ -661,7 +670,6 @@ def publish_after(props: SynchronizableDocument, options: DocumentOptions) -> bo
         now = datetime.now(timezone.utc)
 
     # Compare with publish time
-    publish_time = datetime.fromisoformat(publish_after_str.replace("Z", "+00:00"))
     return now >= publish_time
 ```
 
