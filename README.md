@@ -580,7 +580,8 @@ The predicate receives two arguments:
 - `props`: An object conforming to the `SynchronizableDocument` protocol, providing access to the document's `absolute_path` (as a `Path`) and its `metadata` (front-matter as a dictionary).
 - `options`: The current `DocumentOptions` instance, which includes any `params` passed via the CLI.
 
-#### Example: Synchronizing based on target environment
+<details>
+<summary>Example: Synchronizing based on target environment</summary>
 
 The following example demonstrates how to synchronize pages only if the current environment (passed via `--params environment=...`) is listed in the `target_environments` front-matter attribute. Comparison is performed in a case-insensitive manner.
 
@@ -614,6 +615,77 @@ Invoke `md2conf` with the dynamic predicate and custom parameters:
 ```sh
 python3 -m md2conf docs/ --synchronize-if filters:sync_by_env --params environment=prod
 ```
+
+</details>
+
+<details>
+<summary>Example: Scheduling document updates</summary>
+
+This example mimics Confluence Cloud's scheduled updates by checking a `publish_after` front-matter field. 
+
+> [!TIP]
+> To ensure consistency across all documents, pass a fixed timestamp via `--params now=...` instead of calling `datetime.now()` inside the predicate. This prevents potential inconsistencies if the synchronization process spans across a time boundary (e.g., a minute change).
+
+In GitHub Actions, you can capture the start time in one step and pass it to the next:
+
+```yaml
+- name: Set start time
+  run: echo "SYNC_START_TIME=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+- name: Sync to Confluence
+  run: python3 -m md2conf docs/ --synchronize-if scheduler:publish_after --params now=$SYNC_START_TIME
+```
+
+Create a file `scheduler.py`:
+
+```python
+from datetime import datetime, timezone
+from md2conf.types import SynchronizableDocument
+from md2conf.options import DocumentOptions
+
+def publish_after(props: SynchronizableDocument, options: DocumentOptions) -> bool:
+    # Bypass check if --params ignore_publish_after=True is set
+    if options.params.get("ignore_publish_after") == "True":
+        return True
+
+    # Get publish_after timestamp from front-matter
+    publish_after_str = props.metadata.get("publish_after")
+    if not publish_after_str:
+        return True
+
+    # Use fixed 'now' from params for consistency, or fallback to current time
+    now_str = options.params.get("now")
+    if now_str:
+        now = datetime.fromisoformat(now_str.replace("Z", "+00:00"))
+    else:
+        now = datetime.now(timezone.utc)
+
+    # Compare with publish time
+    publish_time = datetime.fromisoformat(publish_after_str.replace("Z", "+00:00"))
+    return now >= publish_time
+```
+
+In your Markdown file:
+
+```yaml
+---
+publish_after: 2026-01-20T09:00:00Z
+---
+```
+
+Invoke `md2conf` with the scheduler:
+
+```sh
+python3 -m md2conf docs/ --synchronize-if scheduler:publish_after
+```
+
+To force synchronization of all pages:
+
+```sh
+python3 -m md2conf docs/ --synchronize-if scheduler:publish_after --params ignore_publish_after=True
+```
+
+</details>
 
 ### Excluding content sections
 
