@@ -237,7 +237,7 @@ class NodeVisitor(ABC):
 
     @abstractmethod
     def transform(self, child: ElementType) -> ElementType | None: ...
-    
+
     def _cleanup_empty_elements(self, root: ElementType) -> None:
         """
         Post-processing pass to remove empty elements (like empty spans/divs from confluence-skip).
@@ -248,7 +248,7 @@ class NodeVisitor(ABC):
         # Process recursively depth-first so we handle nested structures correctly
         for child in list(root):
             self._cleanup_empty_elements(child)
-        
+
         # Remove empty span/div elements that have no text and no children
         for element in list(root):
             if element.tag in ("span", "div") and not element.text and len(element) == 0:
@@ -263,9 +263,8 @@ class NodeVisitor(ABC):
                     else:
                         # This is the first child, append to parent's text
                         root.text = (root.text or "") + tail
-                
-                root.remove(element)
 
+                root.remove(element)
 
 
 def title_to_identifier(title: str) -> str:
@@ -303,19 +302,20 @@ def is_placeholder_for(node: ElementType, name: str) -> bool:
 
     return True
 
+
 def transform_skip_comments_in_html(html: str) -> str:
     """
     Transforms HTML comments marking skip sections into custom elements.
-    
+
     Converts:
         <!-- confluence-skip-start --> ... <!-- confluence-skip-end -->
     Into:
         <div class="confluence-skip"> ... </div>  (for block-level content)
         <span class="confluence-skip"> ... </span>  (for inline content)
-    
+
     This must run BEFORE the HTML is parsed, as the XML parser strips comments in csf.py (remove_comments=True)
     Malformed markers (unmatched start/end) are logged as errors.
-    
+
     :param html: HTML string with skip comment markers
     :returns: HTML string with comments replaced by custom elements
     """
@@ -323,32 +323,30 @@ def transform_skip_comments_in_html(html: str) -> str:
     # Captures newlines/whitespace before and after to determine if block-level
     start_pattern = r"<!--\s*confluence-skip-start\s*-->"
     end_pattern = r"<!--\s*confluence-skip-end\s*-->"
-    
+
     # Count markers for validation
     start_count = len(re.findall(start_pattern, html))
     end_count = len(re.findall(end_pattern, html))
-    
+
     if start_count != end_count:
         LOGGER.error(
-            f"Unmatched confluence-skip markers: "
-            f"found {start_count} start marker(s) and {end_count} end marker(s). "
-            f"Content may not be excluded as expected."
+            f"Unmatched confluence-skip markers: found {start_count} start marker(s) and {end_count} end marker(s). Content may not be excluded as expected."
         )
-    
+
     # Process each start-end pair to determine if block or inline
     # Pattern to match entire skip section with context
     section_pattern = r"(\n\s*)?<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->(\s*\n)?"
-    
+
     def replace_section(match: re.Match[str]) -> str:
-        before_newline = match.group(1)     # Newline before start marker
-        content = match.group(2)            # Content between markers
-        after_newline = match.group(3)      # Newline after end marker
-        
+        before_newline = match.group(1)  # Newline before start marker
+        content = match.group(2)  # Content between markers
+        after_newline = match.group(3)  # Newline after end marker
+
         # Determine if this is block-level:
         # - Has newline before 'start' marker, or
         # - Has newline after 'end' marker, or
         is_block = bool(before_newline) or bool(after_newline) or "\n" in content
-        
+
         if is_block:
             # Use 'div' for block-level exclusions
             result = f'<div class="confluence-skip">{content}</div>'
@@ -361,9 +359,9 @@ def transform_skip_comments_in_html(html: str) -> str:
         else:
             # Use 'span' for inline exclusions
             return f'<span class="confluence-skip">{content}</span>'
-    
+
     html = re.sub(section_pattern, replace_section, html, flags=re.DOTALL)
-    
+
     return html
 
 
