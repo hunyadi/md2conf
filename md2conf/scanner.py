@@ -45,6 +45,7 @@ class DocumentProperties:
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
     :param metadata: Raw front-matter metadata from the Markdown document.
     :param layout: Layout options for content on a Confluence page.
+    :param absolute_path: The absolute path to the Markdown document.
     """
 
     page_id: str | None = None
@@ -56,6 +57,7 @@ class DocumentProperties:
     properties: dict[str, JsonType] | None = None
     metadata: dict[str, Any] | None = None
     layout: LayoutOptions | None = None
+    absolute_path: Path | None = None
 
 
 @dataclass
@@ -80,7 +82,9 @@ class Scanner:
         with open(absolute_path, "r", encoding="utf-8") as f:
             text = f.read()
 
-        return self.parse(text)
+        document = self.parse(text)
+        document.properties.absolute_path = absolute_path
+        return document
 
     def parse(self, text: str) -> ScannedDocument:
         """

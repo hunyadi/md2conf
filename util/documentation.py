@@ -84,8 +84,8 @@ with {ConfluenceAPI.__name__}(properties) as api:
 """
 
     output, count = re.subn(
-        r"^```python\n.*?^```$",
-        f"```python{python_code}```",
+        r"<!-- python-sample-start -->\n```python\n.*?^```\n<!-- python-sample-end -->",
+        f"<!-- python-sample-start -->\n```python{python_code}```\n<!-- python-sample-end -->",
         text,
         count=1,
         flags=re.DOTALL | re.MULTILINE,

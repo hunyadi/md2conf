@@ -11,7 +11,7 @@ import logging
 import os
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, cast
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
@@ -21,6 +21,7 @@ from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, DocumentOptions
 from .scanner import Scanner
 from .toc import unique_title
+from .types import SynchronizableDocument
 
 LOGGER = logging.getLogger(__name__)
 
@@ -265,19 +266,20 @@ class Processor:
 
         LOGGER.info("Indexing file: %s", path)
 
-        # extract information from a Markdown document found in a local directory.
-        with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
-
-        document = Scanner().parse(text)
+        document = Scanner().read(path)
         props = document.properties
-        title = props.title or unique_title(text)
+        title = props.title or unique_title(document.text)
 
         synchronized = props.synchronized if props.synchronized is not None else True
 
         if synchronized and self.options.synchronize_if is not None:
-            if not self.options.synchronize_if(path, props, self.options):
-                LOGGER.info("Synchronization skipped by custom rule for file: %s", path)
+            # DocumentProperties matches SynchronizableDocument protocol as absolute_path is populated by Scanner.parse()
+            try:
+                if not self.options.synchronize_if(cast(SynchronizableDocument, props), self.options):
+                    LOGGER.info("Synchronization skipped by custom rule for file: %s", path)
+                    synchronized = False
+            except Exception as e:
+                LOGGER.error("Synchronization predicate failed for file %s: %s", path, e)
                 synchronized = False
 
         return DocumentNode(

@@ -10,6 +10,7 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import argparse
+import importlib
 import logging
 import os.path
 import sys
@@ -25,7 +26,7 @@ from . import __version__
 from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions
+from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions, SynchronizeIfCallable
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,6 +60,8 @@ class Arguments(argparse.Namespace):
     alignment: Literal["center", "left", "right"]
     max_image_width: int | None
     use_panel: bool
+    synchronize_if: str | None
+    params: dict[str, Any]
 
 
 class KwargsAppendAction(argparse.Action):
@@ -326,7 +329,49 @@ def get_parser() -> argparse.ArgumentParser:
         metavar="KEY=VALUE",
         help="Apply custom headers to all Confluence API requests.",
     )
+    parser.add_argument(
+        "--synchronize-if",
+        dest="synchronize_if",
+        help="Dynamic predicate to determine page synchronization (format: 'module:callable').",
+    )
+    parser.add_argument(
+        "--params",
+        nargs="+",
+        required=False,
+        action=KwargsAppendAction,
+        metavar="KEY=VALUE",
+        help="Generic parameters passed to the synchronization predicate.",
+    )
     return parser
+
+
+def resolve_synchronize_if(name: str) -> SynchronizeIfCallable:
+    """
+    Dynamically imports a synchronization predicate from a string.
+
+    :param name: A string in the format 'module:callable'.
+    :returns: The imported callable.
+    """
+
+    try:
+        module_name, callable_name = name.split(":")
+    except ValueError:
+        raise ArgumentError(f"invalid synchronize-if format: {name}. Expected 'module:callable'") from None
+
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as e:
+        raise ArgumentError(f"could not import module '{module_name}': {e}") from None
+
+    try:
+        sync_if = getattr(module, callable_name)
+    except AttributeError:
+        raise ArgumentError(f"module '{module_name}' has no attribute '{callable_name}'") from None
+
+    if not callable(sync_if):
+        raise ArgumentError(f"'{name}' is not a callable")
+
+    return typing.cast(SynchronizeIfCallable, sync_if)
 
 
 def get_help() -> str:
@@ -372,6 +417,8 @@ def main() -> None:
         title_prefix=args.title_prefix,
         generated_by=args.generated_by,
         skip_update=args.skip_update,
+        synchronize_if=resolve_synchronize_if(args.synchronize_if) if args.synchronize_if else None,
+        params=args.params if hasattr(args, "params") else {},
         converter=ConverterOptions(
             heading_anchors=args.heading_anchors,
             ignore_invalid_url=args.ignore_invalid_url,

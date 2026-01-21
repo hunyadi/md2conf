@@ -38,8 +38,9 @@ class TestSynchronizeCallable(unittest.TestCase):
             with open(md_file, "w") as f:
                 f.write("---\ntitle: Test\nsync_me: true\n---\nBody")
 
-            def sync_filter(path: Path, props: SynchronizableDocument, options: DocumentOptions) -> bool:
+            def sync_filter(props: SynchronizableDocument, options: DocumentOptions) -> bool:
                 assert props.metadata is not None
+                self.assertEqual(props.absolute_path, md_file)
                 return props.metadata.get("sync_me") is True
 
             options = DocumentOptions(synchronize_if=sync_filter)
@@ -63,7 +64,7 @@ class TestSynchronizeCallable(unittest.TestCase):
             with open(md_file, "w") as f:
                 f.write("---\ntitle: Test\n---\nBody")
 
-            def sync_filter(path: Path, props: SynchronizableDocument, options: DocumentOptions) -> bool:
+            def sync_filter(props: SynchronizableDocument, options: DocumentOptions) -> bool:
                 return options.params.get("allow_sync") is True
 
             options = DocumentOptions(synchronize_if=sync_filter, params={"allow_sync": True})
@@ -74,6 +75,24 @@ class TestSynchronizeCallable(unittest.TestCase):
             self.assertTrue(node.synchronized)
 
             options.params["allow_sync"] = False
+            node = processor._index_file(md_file)
+            self.assertFalse(node.synchronized)
+
+    def test_synchronize_if_raises(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            md_file = tmp_path / "test.md"
+            with open(md_file, "w") as f:
+                f.write("---\ntitle: Test\n---\nBody")
+
+            def sync_filter(props: SynchronizableDocument, options: DocumentOptions) -> bool:
+                raise ValueError("Custom error")
+
+            options = DocumentOptions(synchronize_if=sync_filter)
+            site = ConfluenceSiteMetadata(domain="test.atlassian.net", base_path="/wiki/", space_key="TEST")
+
+            processor = MockProcessor(options, site, tmp_path)
+            # Should not raise exception
             node = processor._index_file(md_file)
             self.assertFalse(node.synchronized)
 

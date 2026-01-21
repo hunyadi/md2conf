@@ -566,6 +566,49 @@ This Markdown document is neither parsed, nor synchronized with Confluence.
 
 This is useful if you have a page in a hierarchy that participates in parent-child relationships but whose content is edited directly in Confluence. Specifically, these documents can be referenced with relative links from other Markdown documents in the file system tree.
 
+### Selective Synchronization
+
+In addition to `.mdignore` and the `synchronized: false` front-matter attribute, you can implement custom logic to decide whether a page should be synchronized. This is done by providing a dynamic predicate (a Python callable) via the `--synchronize-if` option.
+
+The predicate receives two arguments:
+- `props`: An object conforming to the `SynchronizableDocument` protocol, providing access to the document's `absolute_path` (as a `Path`) and its `metadata` (front-matter as a dictionary).
+- `options`: The current `DocumentOptions` instance, which includes any `params` passed via the CLI.
+
+#### Example: Synchronizing based on target environment
+
+The following example demonstrates how to synchronize pages only if the current environment (passed via `--params environment=...`) is listed in the `target_environments` front-matter attribute. Comparison is performed in a case-insensitive manner.
+
+If the predicate raises an exception, the error is logged and synchronization is skipped only for the affected file, while the tool continues with the remaining files.
+
+Create a file `filters.py`:
+
+```python
+from md2conf.types import SynchronizableDocument
+from md2conf.options import DocumentOptions
+
+def sync_by_env(props: SynchronizableDocument, options: DocumentOptions) -> bool:
+    # Get current environment from CLI params (defaults to 'dev')
+    env = options.params.get("environment", "dev").lower()
+    
+    # Get target environments from front-matter
+    targets = props.metadata.get("target_environments")
+    # If target_environments is not found, return True
+    if targets is None:
+        return True
+    # If target_environments is not a list, raise an exception
+    if not isinstance(targets, list):
+        raise ValueError("target_environments must be a list")
+    
+    # Case-insensitive check if current env is in targets
+    return any(env == t.lower() for t in targets if isinstance(t, str))
+```
+
+Invoke `md2conf` with the dynamic predicate and custom parameters:
+
+```sh
+python3 -m md2conf docs/ --synchronize-if filters:sync_by_env --params environment=prod
+```
+
 ### Excluding content sections
 
 When maintaining documentation in both Git repositories and Confluence, you may want certain content to appear only in the repository but not on Confluence pages. Use HTML comment markers to wrap and exclude specific sections from synchronization:
@@ -697,12 +740,17 @@ options:
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
                         Apply custom headers to all Confluence API requests.
+  --synchronize-if SYNCHRONIZE_IF
+                        Dynamic predicate to determine page synchronization (format: 'module:callable').
+  --params KEY=VALUE [KEY=VALUE ...]
+                        Generic parameters passed to the synchronization predicate.
 ```
 
 #### Python
 
 *md2conf* has a Python interface. Create a `ConnectionProperties` object to set connection parameters to the Confluence server, and a `DocumentOptions` object to configure how Markdown files are converted into pages on a Confluence wiki site. Open a connection to the Confluence server with the context manager `ConfluenceAPI`, and instantiate a `Publisher` to start converting documents.
 
+<!-- python-sample-start -->
 ```python
 from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
@@ -754,8 +802,9 @@ options = DocumentOptions(
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
 ```
+<!-- python-sample-end -->
 
-The `synchronize_if` predicate receives the file `Path`, the `DocumentProperties` (which includes all front-matter in its `metadata` field), and the `DocumentOptions`. This allows users to implement custom logic, such as synchronizing only files that have a specific meta-property or based on external configuration in `params`.
+The `synchronize_if` predicate receives a `SynchronizableDocument` (providing access to the `absolute_path` and front-matter `metadata`) and the `DocumentOptions`. This allows users to implement custom logic, such as synchronizing only files that have a specific meta-property or based on external configuration in `params`.
 
 ### Confluence REST API v1 vs. v2
 

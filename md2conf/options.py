@@ -8,7 +8,6 @@ Copyright 2022-2026, Levente Hunyadi
 
 import dataclasses
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Callable, Literal
 
 from .types import SynchronizableDocument
@@ -65,7 +64,7 @@ class LayoutOptions:
         return self.image.alignment or self.alignment or "center"
 
 
-SynchronizeIfCallable = Callable[[Path, SynchronizableDocument, "DocumentOptions"], bool]
+SynchronizeIfCallable = Callable[[SynchronizableDocument, "DocumentOptions"], bool]
 
 
 @dataclass
