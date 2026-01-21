@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from .coalesce import coalesce
 from .frontmatter import extract_frontmatter_json, extract_value
@@ -43,6 +43,7 @@ class DocumentProperties:
     :param tags: A list of tags (content labels) extracted from front-matter.
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
     :param properties: A dictionary of key-value pairs extracted from front-matter to apply as page properties.
+    :param metadata: Raw front-matter metadata from the Markdown document.
     :param layout: Layout options for content on a Confluence page.
     """
 
@@ -53,6 +54,7 @@ class DocumentProperties:
     tags: list[str] | None = None
     synchronized: bool | None = None
     properties: dict[str, JsonType] | None = None
+    metadata: dict[str, Any] | None = None
     layout: LayoutOptions | None = None
 
 
@@ -105,6 +107,8 @@ class Scanner:
                 frontmatter_props.page_id = alias_props.confluence_page_id
             if alias_props.confluence_space_key is not None:
                 frontmatter_props.space_key = alias_props.confluence_space_key
+
+            frontmatter_props.metadata = data
             props = coalesce(body_props, frontmatter_props)
         else:
             props = body_props

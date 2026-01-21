@@ -715,12 +715,15 @@ options = DocumentOptions(
                 width=...,
                 display_mode=...,
             ),
-        ),
     ),
+    synchronize_if=lambda path, props, options: props.metadata.get("sync_me", True),
+    params={"env": "prod"},
 )
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
 ```
+
+The `synchronize_if` predicate receives the file `Path`, the `DocumentProperties` (which includes all front-matter in its `metadata` field), and the `DocumentOptions`. This allows users to implement custom logic, such as synchronizing only files that have a specific meta-property or based on external configuration in `params`.
 
 ### Confluence REST API v1 vs. v2
 

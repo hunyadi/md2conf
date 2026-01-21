@@ -11,7 +11,7 @@ import logging
 import os
 from abc import abstractmethod
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
@@ -33,6 +33,7 @@ class DocumentNode:
     space_key: str | None
     title: str | None
     synchronized: bool
+    metadata: dict[str, Any] | None
 
     _children: list["DocumentNode"]
 
@@ -43,12 +44,14 @@ class DocumentNode:
         space_key: str | None,
         title: str | None,
         synchronized: bool,
+        metadata: dict[str, Any] | None = None,
     ):
         self.absolute_path = absolute_path
         self.page_id = page_id
         self.space_key = space_key
         self.title = title
         self.synchronized = synchronized
+        self.metadata = metadata
         self._children = []
 
     def count(self) -> int:
@@ -270,12 +273,20 @@ class Processor:
         props = document.properties
         title = props.title or unique_title(text)
 
+        synchronized = props.synchronized if props.synchronized is not None else True
+
+        if synchronized and self.options.synchronize_if is not None:
+            if not self.options.synchronize_if(path, props, self.options):
+                LOGGER.info("Synchronization skipped by custom rule for file: %s", path)
+                synchronized = False
+
         return DocumentNode(
             absolute_path=path,
             page_id=props.page_id,
             space_key=props.space_key,
             title=title,
-            synchronized=props.synchronized if props.synchronized is not None else True,
+            synchronized=synchronized,
+            metadata=props.metadata,
         )
 
     def _generate_hash(self, absolute_path: Path) -> str:
