@@ -750,8 +750,6 @@ options = DocumentOptions(
             alignment='center' or 'left' or 'right' or None,
         ),
     ),
-    synchronize_if=lambda path, props, options: props.metadata.get("sync_me", True),
-    params={"env": "prod"},
 )
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
