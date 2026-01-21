@@ -262,6 +262,11 @@ class Processor:
     def _index_file(self, path: Path) -> DocumentNode:
         """
         Indexes a single Markdown file.
+
+        The decision to synchronize a document follows this order of precedence:
+        1. Front-matter: `synchronized: false` wins immediately.
+        2. Dynamic Predicate: If front-matter is `True` or absent, the `synchronize_if` predicate runs.
+        3. Default: Synchronization defaults to True.
         """
 
         LOGGER.info("Indexing file: %s", path)
@@ -275,7 +280,12 @@ class Processor:
         if synchronized and self.options.synchronize_if is not None:
             # DocumentProperties matches SynchronizableDocument protocol as absolute_path is populated by Scanner.read()
             try:
-                if not self.options.synchronize_if(cast(SynchronizableDocument, props), self.options):
+                # Cast to Any to satisfy mypy while performing strict runtime check for non-boolean returns from dynamic predicate
+                result = cast(Any, self.options.synchronize_if(cast(SynchronizableDocument, props), self.options))
+                if not isinstance(result, bool):
+                    LOGGER.error("Synchronization predicate returned non-boolean value of type %s for file %s", type(result).__name__, path)
+                    synchronized = False
+                elif not result:
                     LOGGER.info("Synchronization skipped by custom rule for file: %s", path)
                     synchronized = False
             except Exception as e:

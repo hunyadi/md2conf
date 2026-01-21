@@ -96,6 +96,64 @@ class TestSynchronizeCallable(unittest.TestCase):
             node = processor._index_file(md_file)
             self.assertFalse(node.synchronized)
 
+    def test_synchronize_if_none(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            md_file = tmp_path / "test.md"
+            # Default case (no frontmatter)
+            with open(md_file, "w") as f:
+                f.write("Body")
+
+            options = DocumentOptions(synchronize_if=None)
+            site = ConfluenceSiteMetadata(domain="test.atlassian.net", base_path="/wiki/", space_key="TEST")
+
+            processor = MockProcessor(options, site, tmp_path)
+            node = processor._index_file(md_file)
+            self.assertTrue(node.synchronized)
+
+            # Frontmatter false
+            with open(md_file, "w") as f:
+                f.write("---\nsynchronized: false\n---\nBody")
+            node = processor._index_file(md_file)
+            self.assertFalse(node.synchronized)
+
+    def test_synchronize_if_non_boolean_fails(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            md_file = tmp_path / "test.md"
+            with open(md_file, "w") as f:
+                f.write("Body")
+
+            def sync_filter(props: SynchronizableDocument, options: DocumentOptions) -> bool:
+                return "yes"  # type: ignore
+
+            options = DocumentOptions(synchronize_if=sync_filter)
+            site = ConfluenceSiteMetadata(domain="test.atlassian.net", base_path="/wiki/", space_key="TEST")
+
+            processor = MockProcessor(options, site, tmp_path)
+            # Should be False because non-boolean return is treated as error
+            node = processor._index_file(md_file)
+            self.assertFalse(node.synchronized)
+
+    def test_precedence_frontmatter_wins(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            md_file = tmp_path / "test.md"
+            # Frontmatter has synchronized: false, predicate returns True
+            with open(md_file, "w") as f:
+                f.write("---\nsynchronized: false\n---\nBody")
+
+            def sync_filter(props: SynchronizableDocument, options: DocumentOptions) -> bool:
+                return True
+
+            options = DocumentOptions(synchronize_if=sync_filter)
+            site = ConfluenceSiteMetadata(domain="test.atlassian.net", base_path="/wiki/", space_key="TEST")
+
+            processor = MockProcessor(options, site, tmp_path)
+            # Frontmatter should win
+            node = processor._index_file(md_file)
+            self.assertFalse(node.synchronized)
+
 
 if __name__ == "__main__":
     unittest.main()

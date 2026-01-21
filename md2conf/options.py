@@ -112,7 +112,8 @@ class DocumentOptions:
     :param title_prefix: String to prepend to Confluence page title for each published page.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
-    :param synchronize_if: A predicate that determines whether a page should be synchronized.
+    :param synchronize_if: A predicate that determines whether a page should be synchronized. If both front-matter `synchronized: false`
+        and a predicate are present, front-matter takes precedence and the predicate is not called.
     :param params: Generic parameters passed to the synchronization predicate.
     :param converter: Options for converting an HTML tree into Confluence Storage Format.
     """

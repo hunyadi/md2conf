@@ -570,6 +570,12 @@ This is useful if you have a page in a hierarchy that participates in parent-chi
 
 In addition to `.mdignore` and the `synchronized: false` front-matter attribute, you can implement custom logic to decide whether a page should be synchronized. This is done by providing a dynamic predicate (a Python callable) via the `--synchronize-if` option.
 
+The decision to synchronize a document follows this order of precedence:
+
+1.  **Front-matter**: If `synchronized: false` is specified in the document front-matter, synchronization is skipped immediately.
+2.  **Dynamic Predicate**: If front-matter is `True` or absent, the predicate provided via `--synchronize-if` is executed.
+3.  **Default**: If neither of the above is specified, synchronization defaults to `True`.
+
 The predicate receives two arguments:
 - `props`: An object conforming to the `SynchronizableDocument` protocol, providing access to the document's `absolute_path` (as a `Path`) and its `metadata` (front-matter as a dictionary).
 - `options`: The current `DocumentOptions` instance, which includes any `params` passed via the CLI.
