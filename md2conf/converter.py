@@ -238,34 +238,6 @@ class NodeVisitor(ABC):
     @abstractmethod
     def transform(self, child: ElementType) -> ElementType | None: ...
 
-    def _cleanup_empty_elements(self, root: ElementType) -> None:
-        """
-        Post-processing pass to remove empty elements (like empty spans/divs from confluence-skip).
-        This must be called AFTER visit() completes to avoid index issues during iteration.
-        Removes elements that have no text, no children, and specific tags (span, div).
-        Preserves tail text by moving it to the previous sibling or parent.
-        """
-        # Process recursively depth-first so we handle nested structures correctly
-        for child in list(root):
-            self._cleanup_empty_elements(child)
-
-        # Remove empty span/div elements that have no text and no children
-        for element in list(root):
-            if element.tag in ("span", "div") and not element.text and len(element) == 0:
-                tail = element.tail
-                if tail:
-                    # Find the index of this element in parent
-                    index = list(root).index(element)
-                    if index > 0:
-                        # Append tail to previous sibling's tail
-                        prev_sibling = root[index - 1]
-                        prev_sibling.tail = (prev_sibling.tail or "") + tail
-                    else:
-                        # This is the first child, append to parent's text
-                        root.text = (root.text or "") + tail
-
-                root.remove(element)
-
 
 def title_to_identifier(title: str) -> str:
     "Converts a section heading title to a GitHub-style Markdown same-page anchor."
@@ -319,6 +291,7 @@ def transform_skip_comments_in_html(html: str) -> str:
     :param html: HTML string with skip comment markers
     :returns: HTML string with comments replaced by custom elements
     """
+
     # Pattern to match skip section markers with surrounding context
     # Captures newlines/whitespace before and after to determine if block-level
     start_pattern = r"<!--\s*confluence-skip-start\s*-->"
@@ -329,9 +302,7 @@ def transform_skip_comments_in_html(html: str) -> str:
     end_count = len(re.findall(end_pattern, html))
 
     if start_count != end_count:
-        LOGGER.error(
-            f"Unmatched confluence-skip markers: found {start_count} start marker(s) and {end_count} end marker(s). Content may not be excluded as expected."
-        )
+        raise DocumentError(f"unmatched confluence-skip markers: found {start_count} start marker(s) and {end_count} end marker(s)")
 
     # Process each start-end pair to determine if block or inline
     # Pattern to match entire skip section with context
@@ -363,6 +334,36 @@ def transform_skip_comments_in_html(html: str) -> str:
     html = re.sub(section_pattern, replace_section, html, flags=re.DOTALL)
 
     return html
+
+
+def cleanup_empty_elements(root: ElementType) -> None:
+    """
+    Post-processing pass to remove empty elements (like empty spans/divs from confluence-skip).
+    This must be called AFTER visit() completes to avoid index issues during iteration.
+    Removes elements that have no text, no children, and specific tags (span, div).
+    Preserves tail text by moving it to the previous sibling or parent.
+    """
+
+    # Process recursively depth-first so we handle nested structures correctly
+    for child in list(root):
+        cleanup_empty_elements(child)
+
+    # Remove empty span/div elements that have no text and no children
+    for element in list(root):
+        if element.tag in ("span", "div") and not element.text and len(element) == 0:
+            tail = element.tail
+            if tail:
+                # Find the index of this element in parent
+                index = list(root).index(element)
+                if index > 0:
+                    # Append tail to previous sibling's tail
+                    prev_sibling = root[index - 1]
+                    prev_sibling.tail = (prev_sibling.tail or "") + tail
+                else:
+                    # This is the first child, append to parent's text
+                    root.text = (root.text or "") + tail
+
+            root.remove(element)
 
 
 @dataclass
@@ -1712,8 +1713,11 @@ class ConfluenceDocument:
         # parse Markdown document and convert to HTML
         html = markdown_to_html("\n".join(lines))
 
-        # Transform skip markers in HTML string before parsing
-        html = transform_skip_comments_in_html(html)
+        try:
+            # Transform skip markers in HTML string before parsing
+            html = transform_skip_comments_in_html(html)
+        except RuntimeError as ex:
+            raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
         # modify HTML as necessary
         if self.options.generated_by is not None:
@@ -1753,7 +1757,7 @@ class ConfluenceDocument:
             raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
         # cleanup empty elements created by confluence-skip markers
-        converter._cleanup_empty_elements(self.root)
+        cleanup_empty_elements(self.root)
 
         # extract information discovered by converter
         self.links = converter.links
