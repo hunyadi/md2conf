@@ -67,6 +67,7 @@ class LocalProcessor(Processor):
                     space_key=node.space_key or self.site.space_key or "HOME",
                     title=node.title or "",
                     synchronized=node.synchronized,
+                    metadata=node.metadata,
                 ),
             )
 

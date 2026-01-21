@@ -8,7 +8,10 @@ Copyright 2022-2026, Levente Hunyadi
 
 import dataclasses
 from dataclasses import dataclass
-from typing import Literal
+from pathlib import Path
+from typing import Any, Callable, Literal
+
+from .types import SynchronizableDocument
 
 
 @dataclass
@@ -62,6 +65,9 @@ class LayoutOptions:
         return self.image.alignment or self.alignment or "center"
 
 
+SynchronizeIfCallable = Callable[[Path, SynchronizableDocument, "DocumentOptions"], bool]
+
+
 @dataclass
 class ConverterOptions:
     """
@@ -107,6 +113,8 @@ class DocumentOptions:
     :param title_prefix: String to prepend to Confluence page title for each published page.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
+    :param synchronize_if: A predicate that determines whether a page should be synchronized.
+    :param params: Generic parameters passed to the synchronization predicate.
     :param converter: Options for converting an HTML tree into Confluence Storage Format.
     """
 
@@ -115,4 +123,6 @@ class DocumentOptions:
     title_prefix: str | None = None
     generated_by: str | None = "This page has been generated with a tool."
     skip_update: bool = False
+    synchronize_if: SynchronizeIfCallable | None = None
+    params: dict[str, Any] = dataclasses.field(default_factory=dict)
     converter: ConverterOptions = dataclasses.field(default_factory=ConverterOptions)

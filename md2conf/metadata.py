@@ -7,6 +7,7 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -33,9 +34,11 @@ class ConfluencePageMetadata:
     :param space_key: Confluence space key.
     :param title: Document title.
     :param synchronized: True if the document content is parsed and synchronized with Confluence.
+    :param metadata: Raw front-matter metadata from the Markdown document.
     """
 
     page_id: str
     space_key: str
     title: str
     synchronized: bool
+    metadata: dict[str, Any] | None = None
