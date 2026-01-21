@@ -1,3 +1,10 @@
+"""
+Tests for a use-case of the Selective Synchronization feature.
+
+This test demonstrates how to synchronize documents based on target environment,
+as described in the README.
+"""
+
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory

@@ -1,3 +1,10 @@
+"""
+Tests for a use-case of the Selective Synchronization feature.
+
+This test demonstrates how to implement scheduled document updates using a custom predicate,
+as described in the README.
+"""
+
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
