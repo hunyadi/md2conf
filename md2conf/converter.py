@@ -14,6 +14,7 @@ import re
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import ClassVar
 from urllib.parse import ParseResult, quote_plus, urlparse
@@ -42,7 +43,7 @@ from .scanner import ScannedDocument, Scanner
 from .serializer import JsonType
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
-from .xml import element_to_text
+from .xml import element_to_text, remove_element
 
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
@@ -215,6 +216,13 @@ _LANGUAGES = {
 # spellchecker: enable
 
 
+class ElementAction(Enum):
+    "Captures standard actions a node visitor may take with the element."
+
+    RECURSE = "recurse"
+    REMOVE = "remove"
+
+
 class NodeVisitor(ABC):
     def visit(self, node: ElementType) -> None:
         "Recursively visits all descendants of this node."
@@ -222,21 +230,32 @@ class NodeVisitor(ABC):
         if len(node) < 1:
             return
 
-        for index in range(len(node)):
+        index = 0
+        count = len(node)
+        while index < count:
             source = node[index]
             target = self.transform(source)
-            if target is not None:
+            if isinstance(target, ElementAction):
+                match target:
+                    case ElementAction.RECURSE:
+                        # recurse into the element
+                        self.visit(source)
+                        index += 1
+                    case ElementAction.REMOVE:
+                        # remove the element from the tree
+                        remove_element(source)
+                        count -= 1
+            else:
                 # chain sibling text node that immediately follows original element
                 target.tail = source.tail
                 source.tail = None
 
                 # replace original element with transformed element
                 node[index] = target
-            else:
-                self.visit(source)
+                index += 1
 
     @abstractmethod
-    def transform(self, child: ElementType) -> ElementType | None: ...
+    def transform(self, child: ElementType) -> ElementType | ElementAction: ...
 
 
 def title_to_identifier(title: str) -> str:
@@ -337,36 +356,6 @@ def transform_skip_comments_in_html(html: str) -> str:
     html = re.sub(section_pattern, replace_section, html, flags=re.DOTALL)
 
     return html
-
-
-def cleanup_empty_elements(root: ElementType) -> None:
-    """
-    Post-processing pass to remove empty elements (like empty spans/divs from confluence-skip).
-    This must be called AFTER visit() completes to avoid index issues during iteration.
-    Removes elements that have no text, no children, and specific tags (span, div).
-    Preserves tail text by moving it to the previous sibling or parent.
-    """
-
-    # Process recursively depth-first so we handle nested structures correctly
-    for child in list(root):
-        cleanup_empty_elements(child)
-
-    # Remove empty span/div elements that have no text and no children
-    for element in list(root):
-        if element.tag in ("span", "div") and not element.text and len(element) == 0:
-            tail = element.tail
-            if tail:
-                # Find the index of this element in parent
-                index = list(root).index(element)
-                if index > 0:
-                    # Append tail to previous sibling's tail
-                    prev_sibling = root[index - 1]
-                    prev_sibling.tail = (prev_sibling.tail or "") + tail
-                else:
-                    # This is the first child, append to parent's text
-                    root.text = (root.text or "") + tail
-
-            root.remove(element)
 
 
 @dataclass
@@ -1444,7 +1433,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         return AC_ELEM("task-list", {}, *tasks)
 
     @override
-    def transform(self, child: ElementType) -> ElementType | None:
+    def transform(self, child: ElementType) -> ElementType | ElementAction:
         """
         Transforms an HTML element tree obtained from a Markdown document into a Confluence Storage Format element tree.
         """
@@ -1456,7 +1445,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             child.tail = child.tail.replace("\n", " ")
 
         if not isinstance(child.tag, str):
-            return None
+            return ElementAction.RECURSE
 
         match child.tag:
             # <p>...</p>
@@ -1496,7 +1485,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 # </div>
                 elif "footnote" in classes:
                     self._transform_footnote_def(child)
-                    return None
+                    return ElementAction.RECURSE
 
                 # <div class="admonition note">
                 # <p class="admonition-title">Note</p>
@@ -1514,8 +1503,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 # <div class="confluence-skip">...</div>
                 # Content marked for exclusion from Confluence (block-level). Clear the element.
                 elif "confluence-skip" in classes:
-                    child.clear()
-                    return None
+                    return ElementAction.REMOVE
 
             # <blockquote>...</blockquote>
             case "blockquote":
@@ -1544,7 +1532,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             case "ol":
                 # Confluence adds the attribute `start` for every ordered list
                 child.set("start", "1")
-                return None
+                return ElementAction.RECURSE
 
             # <ul>
             #   <li>[ ] ...</li>
@@ -1554,11 +1542,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 if len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
                     return self._transform_tasklist(child)
 
-                return None
+                return ElementAction.RECURSE
 
             case "li":
                 normalize_inline(child)
-                return None
+                return ElementAction.RECURSE
 
             # <pre><code class="language-java"> ... </code></pre>
             case "pre" if len(child) == 1 and child[0].tag == "code":
@@ -1579,7 +1567,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 if self.options.layout.table.width:
                     child.set("data-table-width", str(self.options.layout.table.width))
 
-                return None
+                return ElementAction.RECURSE
 
             # <img src="..." alt="..." />
             case "img":
@@ -1587,7 +1575,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             # <a href="..."> ... </a>
             case "a":
-                return self._transform_link(child)
+                link = self._transform_link(child)
+                if link is not None:
+                    return link
+                else:
+                    return ElementAction.RECURSE
 
             # <mark>...</mark>
             case "mark":
@@ -1604,17 +1596,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 # <span class="confluence-skip">...</span>
                 # Content marked for exclusion from Confluence (inline)
                 elif "confluence-skip" in classes:
-                    # Explicitly preserve tail before clearing.
-                    tail = child.tail
-                    child.clear()
-                    child.tail = tail
-                    return None
+                    return ElementAction.REMOVE
 
             # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
             # Multiple references: <sup id="fnref2:NAME">...</sup>, <sup id="fnref3:NAME">...</sup>
             case "sup" if re.match(r"^fnref\d*:", child.get("id", "")):
                 self._transform_footnote_ref(child)
-                return None
+                return ElementAction.RECURSE
 
             # <input type="date" value="1984-01-01" />
             case "input" if child.get("type", "") == "date":
@@ -1638,11 +1626,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
                 if self.options.heading_anchors:
                     self._transform_heading(child)
-                    return None
+                    return ElementAction.RECURSE
             case _:
                 pass
 
-        return None
+        return ElementAction.RECURSE
 
 
 class DocumentError(RuntimeError):
@@ -1759,9 +1747,6 @@ class ConfluenceDocument:
         except RuntimeError as ex:
             raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
-        # cleanup empty elements created by confluence-skip markers
-        cleanup_empty_elements(self.root)
-
         # extract information discovered by converter
         self.links = converter.links
         self.images = converter.attachments.images
@@ -1789,40 +1774,19 @@ class ConfluenceDocument:
         Handles the case where a generated-by info panel may be present as the first child.
         """
 
-        # Find the first heading element (h1-h6) in the root
+        # find the first heading element (h1-h6) in the root
         heading_pattern = re.compile(r"^h[1-6]$", re.IGNORECASE)
 
-        for idx, child in enumerate(self.root):
+        for child in self.root:
             if not isinstance(child.tag, str):
                 continue
 
             if heading_pattern.match(child.tag) is None:
                 continue
 
-            # Preserve any text that comes after the heading (tail text)
-            tail = child.tail
+            remove_element(child)
 
-            # Remove the heading
-            self.root.remove(child)
-
-            # If there was tail text, attach it to the previous sibling's tail
-            # or to the parent's text if this was the first child
-            if tail:
-                if idx > 0:
-                    # Append to previous sibling's tail
-                    prev_sibling = self.root[idx - 1]
-                    if prev_sibling.tail:
-                        prev_sibling.tail += tail
-                    else:
-                        prev_sibling.tail = tail
-                else:
-                    # No previous sibling, append to parent's text
-                    if self.root.text:
-                        self.root.text += tail
-                    else:
-                        self.root.text = tail
-
-            # Only remove the FIRST heading, then stop
+            # only remove the FIRST heading, then stop
             break
 
     def xhtml(self) -> str:

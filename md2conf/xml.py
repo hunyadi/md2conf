@@ -106,6 +106,51 @@ def element_to_text(node: ElementType) -> str:
     return "".join(node.itertext()).strip()
 
 
+def remove_element(child: ElementType) -> None:
+    """
+    Removes a child element, taking care of its tail text.
+
+    This function may be unsafe when called in the body of a loop of a live collection iterator, i.e. use
+
+    ```
+    for child in list(node): ...
+    ```
+
+    instead of
+
+    ```
+    for child in node: ...
+    ```
+    """
+
+    parent = child.getparent()
+    if parent is None:
+        return
+
+    # preserve any text that comes after the heading (tail text)
+    tail = child.tail
+
+    # if there was tail text, attach it to the previous sibling's tail or to the parent's text if this was the first child
+    if tail:
+        index = parent.index(child)
+        if index > 0:
+            # append to previous sibling's tail
+            prev_sibling = parent[index - 1]
+            if prev_sibling.tail:
+                prev_sibling.tail += tail
+            else:
+                prev_sibling.tail = tail
+        else:
+            # no previous sibling, append to parent's text
+            if parent.text:
+                parent.text += tail
+            else:
+                parent.text = tail
+
+    # remove the element
+    parent.remove(child)
+
+
 def unwrap_substitute(name: str, root: ElementType) -> None:
     """
     Substitutes all occurrences of an element with its contents.
