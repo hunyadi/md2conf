@@ -566,6 +566,35 @@ This Markdown document is neither parsed, nor synchronized with Confluence.
 
 This is useful if you have a page in a hierarchy that participates in parent-child relationships but whose content is edited directly in Confluence. Specifically, these documents can be referenced with relative links from other Markdown documents in the file system tree.
 
+### Excluding content sections
+
+When maintaining documentation in both Git repositories and Confluence, you may want certain content to appear only in the repository but not on Confluence pages. Use HTML comment markers to wrap and exclude specific sections from synchronization:
+
+```markdown
+# Project Documentation
+
+This content appears in both Git and Confluence.
+
+<!-- confluence-skip-start -->
+## Internal References
+- See [internal design doc](../internal/design.md)
+- Related to issue #123
+- Development notes for the team
+<!-- confluence-skip-end -->
+
+## Getting Started
+This section is published to Confluence.
+```
+
+Content between `<!-- confluence-skip-start -->` and `<!-- confluence-skip-end -->` markers is removed before conversion and will not appear on the Confluence page. This is useful for:
+
+- Repository-specific navigation and cross-references
+- GitLab/GitHub-specific metadata
+- Content relevant only for developers with repository access
+
+Multiple exclusion blocks can be used in the same document.
+
+
 ### Labels
 
 If a Markdown document has the front-matter attribute `tags`, *md2conf* assigns the specified tags to the Confluence page as labels.
