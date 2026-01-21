@@ -724,6 +724,8 @@ options = DocumentOptions(
     title_prefix=str() or None,
     generated_by=str() or None,
     skip_update=bool(),
+    synchronize_if=... or None,
+    params={str(): ...},
     converter=ConverterOptions(
         heading_anchors=bool(),
         ignore_invalid_url=bool(),
@@ -748,8 +750,6 @@ options = DocumentOptions(
             alignment='center' or 'left' or 'right' or None,
         ),
     ),
-    synchronize_if=lambda path, props, options: props.metadata.get("sync_me", True),
-    params={"env": "prod"},
 )
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
