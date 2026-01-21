@@ -28,7 +28,6 @@
 	<ac:parameter ac:name="language">py</ac:parameter>
 	<ac:plain-text-body><![CDATA[def foo():
     print("Using skip markers in code block is")
-    <!-- confluence-skip-start -->
-    print("ignored")
-    <!-- confluence-skip-end -->]]></ac:plain-text-body>
+    # <!-- confluence-skip-start -->
+    print("ignored")]]></ac:plain-text-body>
 </ac:structured-macro>
