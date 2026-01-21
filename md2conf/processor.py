@@ -273,7 +273,7 @@ class Processor:
         synchronized = props.synchronized if props.synchronized is not None else True
 
         if synchronized and self.options.synchronize_if is not None:
-            # DocumentProperties matches SynchronizableDocument protocol as absolute_path is populated by Scanner.parse()
+            # DocumentProperties matches SynchronizableDocument protocol as absolute_path is populated by Scanner.read()
             try:
                 if not self.options.synchronize_if(cast(SynchronizableDocument, props), self.options):
                     LOGGER.info("Synchronization skipped by custom rule for file: %s", path)
