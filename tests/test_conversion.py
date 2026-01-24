@@ -160,7 +160,15 @@ class TestConversion(TypedTestCase):
             with self.subTest(name=name):
                 _, doc = ConfluenceDocument.create(
                     self.source_dir / f"{name}.md",
-                    DocumentOptions(converter=ConverterOptions(prefer_raster=False, render_drawio=True)),
+                    DocumentOptions(
+                        converter=ConverterOptions(
+                            prefer_raster=False,
+                            render_drawio=True,
+                            render_mermaid=False,
+                            render_plantuml=False,
+                            render_latex=False,
+                        )
+                    ),
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,
@@ -192,7 +200,7 @@ class TestConversion(TypedTestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             _, doc = ConfluenceDocument.create(
                 self.source_dir / "missing.md",
-                DocumentOptions(converter=ConverterOptions(ignore_invalid_url=True)),
+                DocumentOptions(converter=ConverterOptions(skip_invalid_url=True)),
                 self.source_dir,
                 self.site_metadata,
                 self.page_metadata,

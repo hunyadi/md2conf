@@ -485,7 +485,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _anchor_warn_or_raise(self, anchor: ElementType, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
-        if self.options.ignore_invalid_url:
+        if self.options.skip_invalid_url:
             LOGGER.warning(msg)
             if anchor.text:
                 anchor.text = "❌ " + anchor.text
@@ -701,7 +701,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _warn_or_raise(self, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
-        if self.options.ignore_invalid_url:
+        if self.options.skip_invalid_url:
             LOGGER.warning(msg)
         else:
             raise DocumentError(msg)

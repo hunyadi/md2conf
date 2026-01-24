@@ -38,7 +38,7 @@ dependencies = [
     "PyYAML >= 6.0",
     "requests >= 2.32",
     "truststore >= 0.10",
-    "typing-extensions >= 4.15; python_version < '3.12'"
+    "typing-extensions >= 4.15; python_version < '3.11'"
 ]
 dynamic = ["version"]
 

@@ -22,6 +22,7 @@ from typing import Any, Iterable, Literal, Sequence
 from requests.exceptions import HTTPError, JSONDecodeError
 
 from . import __version__
+from .clio import add_arguments
 from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
@@ -40,7 +41,7 @@ class Arguments(argparse.Namespace):
     space: str | None
     loglevel: str
     heading_anchors: bool
-    ignore_invalid_url: bool
+    skip_invalid_url: bool
     root_page: str | None
     keep_hierarchy: bool
     skip_title_heading: bool
@@ -154,16 +155,16 @@ def get_parser() -> argparse.ArgumentParser:
         help="Maintain source directory structure when exporting to Confluence.",
     )
     parser.add_argument(
-        "--flatten-hierarchy",
+        "--skip-hierarchy",
         dest="keep_hierarchy",
         action="store_false",
-        help="Flatten directories with no index.md or README.md when exporting to Confluence.",
+        help="Flatten directories with no `index.md` or `README.md` when exporting to Confluence.",
     )
     parser.add_argument(
         "--generated-by",
         default="This page has been generated with a tool.",
         metavar="MARKDOWN",
-        help="Add prompt to pages (default: 'This page has been generated with a tool.').",
+        help="Add prompt to pages.",
     )
     parser.add_argument(
         "--no-generated-by",
@@ -178,108 +179,7 @@ def get_parser() -> argparse.ArgumentParser:
         default=False,
         help="Skip saving Confluence page ID in Markdown files.",
     )
-    parser.add_argument(
-        "--render-drawio",
-        dest="render_drawio",
-        action="store_true",
-        default=True,
-        help="Render draw.io diagrams as image files. (Installed utility required to covert.)",
-    )
-    parser.add_argument(
-        "--no-render-drawio",
-        dest="render_drawio",
-        action="store_false",
-        help="Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-    )
-    parser.add_argument(
-        "--render-mermaid",
-        dest="render_mermaid",
-        action="store_true",
-        default=True,
-        help="Render Mermaid diagrams as image files. (Installed utility required to convert.)",
-    )
-    parser.add_argument(
-        "--no-render-mermaid",
-        dest="render_mermaid",
-        action="store_false",
-        help="Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-    )
-    parser.add_argument(
-        "--render-plantuml",
-        dest="render_plantuml",
-        action="store_true",
-        default=True,
-        help="Render PlantUML diagrams as image files. (Installed utility required to convert.)",
-    )
-    parser.add_argument(
-        "--no-render-plantuml",
-        dest="render_plantuml",
-        action="store_false",
-        help="Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-    )
-    parser.add_argument(
-        "--render-latex",
-        dest="render_latex",
-        action="store_true",
-        default=True,
-        help="Render LaTeX formulas as image files. (Matplotlib required to convert.)",
-    )
-    parser.add_argument(
-        "--no-render-latex",
-        dest="render_latex",
-        action="store_false",
-        help="Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)",
-    )
-    parser.add_argument(
-        "--diagram-output-format",
-        dest="diagram_output_format",
-        choices=["png", "svg"],
-        default="png",
-        help="Format for rendering Mermaid and draw.io diagrams (default: 'png').",
-    )
-    parser.add_argument(
-        "--prefer-raster",
-        dest="prefer_raster",
-        action="store_true",
-        default=True,
-        help="Prefer PNG over SVG when both exist (default: enabled).",
-    )
-    parser.add_argument(
-        "--no-prefer-raster",
-        dest="prefer_raster",
-        action="store_false",
-        help="Use SVG files directly instead of preferring PNG equivalents.",
-    )
-    parser.add_argument(
-        "--heading-anchors",
-        action="store_true",
-        default=False,
-        help="Place an anchor at each section heading with GitHub-style same-page identifiers.",
-    )
-    parser.add_argument(
-        "--no-heading-anchors",
-        action="store_false",
-        dest="heading_anchors",
-        help="Don't place an anchor at each section heading.",
-    )
-    parser.add_argument(
-        "--ignore-invalid-url",
-        action="store_true",
-        default=False,
-        help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.",
-    )
-    parser.add_argument(
-        "--skip-title-heading",
-        action="store_true",
-        default=False,
-        help="Skip the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
-    )
-    parser.add_argument(
-        "--no-skip-title-heading",
-        dest="skip_title_heading",
-        action="store_false",
-        help="Keep the first heading in document body even when used as page title (default).",
-    )
+    add_arguments(parser, ConverterOptions)
     parser.add_argument(
         "--title-prefix",
         default=None,
@@ -287,17 +187,11 @@ def get_parser() -> argparse.ArgumentParser:
         help="String to prepend to Confluence page title for each published page.",
     )
     parser.add_argument(
-        "--webui-links",
-        action="store_true",
-        default=False,
-        help="Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
-    )
-    parser.add_argument(
         "--alignment",
         dest="alignment",
         choices=["center", "left", "right"],
         default="center",
-        help="Alignment for block-level images and formulas (default: 'center').",
+        help="Alignment for block-level images and formulas. (default: center)",
     )
     parser.add_argument(
         "--max-image-width",
@@ -305,12 +199,6 @@ def get_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
-    )
-    parser.add_argument(
-        "--use-panel",
-        action="store_true",
-        default=False,
-        help="Transform admonitions and alerts into a Confluence custom panel.",
     )
     parser.add_argument(
         "--local",
@@ -374,7 +262,7 @@ def main() -> None:
         skip_update=args.skip_update,
         converter=ConverterOptions(
             heading_anchors=args.heading_anchors,
-            ignore_invalid_url=args.ignore_invalid_url,
+            skip_invalid_url=args.skip_invalid_url,
             skip_title_heading=args.skip_title_heading,
             prefer_raster=args.prefer_raster,
             render_drawio=args.render_drawio,

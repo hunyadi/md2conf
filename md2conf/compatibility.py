@@ -8,6 +8,11 @@ Copyright 2022-2026, Levente Hunyadi
 
 import sys
 
+if sys.version_info >= (3, 11):
+    from typing import LiteralString as LiteralString  # noqa: F401
+else:
+    from typing_extensions import LiteralString as LiteralString  # noqa: F401
+
 if sys.version_info >= (3, 12):
     from typing import override as override  # noqa: F401
 else:

@@ -7,8 +7,10 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
+
+from .clio import boolean_option, choice_option
 
 
 @dataclass
@@ -69,7 +71,7 @@ class ConverterOptions:
 
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
-    :param ignore_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
+    :param skip_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
         plain text; when false, raise an exception.
     :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
@@ -83,18 +85,81 @@ class ConverterOptions:
     :param layout: Layout options for content on a Confluence page.
     """
 
-    heading_anchors: bool = False
-    ignore_invalid_url: bool = False
-    skip_title_heading: bool = False
-    prefer_raster: bool = True
-    render_drawio: bool = False
-    render_mermaid: bool = False
-    render_plantuml: bool = False
-    render_latex: bool = False
-    diagram_output_format: Literal["png", "svg"] = "png"
-    webui_links: bool = False
-    use_panel: bool = False
-    layout: LayoutOptions = dataclasses.field(default_factory=LayoutOptions)
+    heading_anchors: bool = field(
+        default=False,
+        metadata=boolean_option(
+            "Place an anchor at each section heading with GitHub-style same-page identifiers.",
+            "Omit the extra anchor from section headings.",
+        ),
+    )
+    skip_invalid_url: bool = field(
+        default=False,
+        metadata=boolean_option(
+            "Emit a warning but otherwise ignore relative URLs that point to an invalid location.",
+            "Raise an error when relative URLs point to an invalid location.",
+        ),
+    )
+    skip_title_heading: bool = field(
+        default=False,
+        metadata=boolean_option(
+            "Remove the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
+            "Keep the first heading in document body even when used as page title.",
+        ),
+    )
+    prefer_raster: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Prefer PNG over SVG when both exist.",
+            "Use SVG files directly instead of preferring PNG equivalents.",
+        ),
+    )
+    render_drawio: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Render draw.io diagrams as image files. (Installed utility required to covert.)",
+            "Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+        ),
+    )
+    render_mermaid: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Render Mermaid diagrams as image files. (Installed utility required to convert.)",
+            "Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+        ),
+    )
+    render_plantuml: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Render PlantUML diagrams as image files. (Installed utility required to convert.)",
+            "Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+        ),
+    )
+    render_latex: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Render LaTeX formulas as image files. (Matplotlib required to convert.)",
+            "Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)",
+        ),
+    )
+    diagram_output_format: Literal["png", "svg"] = field(
+        default="png",
+        metadata=choice_option("Format for rendering Mermaid and draw.io diagrams."),
+    )
+    webui_links: bool = field(
+        default=False,
+        metadata=boolean_option(
+            "Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
+            "Use hierarchical links including space and page ID.",
+        ),
+    )
+    use_panel: bool = field(
+        default=False,
+        metadata=boolean_option(
+            "Transform admonitions and alerts into a Confluence custom panel.",
+            "Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning).",
+        ),
+    )
+    layout: LayoutOptions = field(default_factory=LayoutOptions)
 
 
 @dataclass

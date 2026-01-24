@@ -14,7 +14,7 @@ from pathlib import Path
 from md2conf.compatibility import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.options import ConfluencePageID, DocumentOptions
+from md2conf.options import ConfluencePageID, ConverterOptions, DocumentOptions
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -58,6 +58,12 @@ class TestProcessor(TypedTestCase):
     def test_process_directory(self) -> None:
         options = DocumentOptions(
             root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
+            converter=ConverterOptions(
+                render_drawio=False,
+                render_mermaid=False,
+                render_plantuml=False,
+                render_latex=False,
+            ),
         )
 
         self.create_converter(options).process(self.sample_dir)
@@ -73,6 +79,12 @@ class TestProcessor(TypedTestCase):
             title_prefix="[PAGE]",  # impacts only Confluence title
             generated_by="<&> This page has been **generated** with [md2conf](https://github.com/hunyadi/md2conf)",
             root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
+            converter=ConverterOptions(
+                render_drawio=False,
+                render_mermaid=False,
+                render_plantuml=False,
+                render_latex=False,
+            ),
         )
         self.create_converter(options).process(self.sample_dir / "index.md")
 

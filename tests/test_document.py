@@ -15,7 +15,7 @@ from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
-from md2conf.options import DocumentOptions
+from md2conf.options import ConverterOptions, DocumentOptions
 from tests.utility import TypedTestCase
 
 
@@ -50,7 +50,14 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            DocumentOptions(),
+            DocumentOptions(
+                converter=ConverterOptions(
+                    render_drawio=False,
+                    render_mermaid=False,
+                    render_plantuml=False,
+                    render_latex=False,
+                )
+            ),
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,
@@ -75,7 +82,14 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            DocumentOptions(),
+            DocumentOptions(
+                converter=ConverterOptions(
+                    render_drawio=False,
+                    render_mermaid=False,
+                    render_plantuml=False,
+                    render_latex=False,
+                )
+            ),
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,
