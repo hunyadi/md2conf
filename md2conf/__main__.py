@@ -41,7 +41,7 @@ class Arguments(argparse.Namespace):
     space: str | None
     loglevel: str
     heading_anchors: bool
-    skip_invalid_url: bool
+    force_valid_url: bool
     root_page: str | None
     keep_hierarchy: bool
     skip_title_heading: bool
@@ -262,7 +262,7 @@ def main() -> None:
         skip_update=args.skip_update,
         converter=ConverterOptions(
             heading_anchors=args.heading_anchors,
-            skip_invalid_url=args.skip_invalid_url,
+            force_valid_url=args.force_valid_url,
             skip_title_heading=args.skip_title_heading,
             prefer_raster=args.prefer_raster,
             render_drawio=args.render_drawio,

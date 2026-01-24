@@ -200,7 +200,7 @@ class TestConversion(TypedTestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             _, doc = ConfluenceDocument.create(
                 self.source_dir / "missing.md",
-                DocumentOptions(converter=ConverterOptions(skip_invalid_url=True)),
+                DocumentOptions(converter=ConverterOptions(force_valid_url=False)),
                 self.source_dir,
                 self.site_metadata,
                 self.page_metadata,

@@ -120,8 +120,10 @@ class TestAPI(TypedTestCase):
                 root_page_id=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
+                    render_drawio=False,
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    render_latex=False,
                     diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
                 ),
             )
@@ -133,8 +135,10 @@ class TestAPI(TypedTestCase):
                 root_page_id=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
+                    render_drawio=False,
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    render_latex=False,
                     diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
                 ),
             )
@@ -146,8 +150,10 @@ class TestAPI(TypedTestCase):
                 root_page_id=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
+                    render_drawio=False,
                     render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
                     render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
+                    render_latex=False,
                     diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
                 ),
             )
@@ -202,7 +208,15 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             Publisher(
                 api,
-                DocumentOptions(root_page_id=self.feature_test_page_id),
+                DocumentOptions(
+                    root_page_id=self.feature_test_page_id,
+                    converter=ConverterOptions(
+                        render_drawio=False,
+                        render_mermaid=False,
+                        render_plantuml=False,
+                        render_latex=False,
+                    ),
+                ),
             ).process_directory(source_dir)
 
         with ConfluenceAPI() as api:

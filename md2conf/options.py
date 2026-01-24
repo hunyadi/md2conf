@@ -71,8 +71,8 @@ class ConverterOptions:
 
     :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
         conversion rules for the identifier.
-    :param skip_invalid_url: When true, ignore invalid URLs in input, emit a warning and replace the anchor with
-        plain text; when false, raise an exception.
+    :param force_valid_url: If enabled, raise an exception when relative URLs point to an invalid location. If disabled,
+        ignore invalid URLs, emit a warning and replace the anchor with plain text.
     :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
     :param prefer_raster: Whether to choose PNG files over SVG files when available.
     :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
@@ -89,14 +89,14 @@ class ConverterOptions:
         default=False,
         metadata=boolean_option(
             "Place an anchor at each section heading with GitHub-style same-page identifiers.",
-            "Omit the extra anchor from section headings.",
+            "Omit the extra anchor from section headings. (May break manually placed same-page references.)",
         ),
     )
-    skip_invalid_url: bool = field(
-        default=False,
+    force_valid_url: bool = field(
+        default=True,
         metadata=boolean_option(
-            "Emit a warning but otherwise ignore relative URLs that point to an invalid location.",
             "Raise an error when relative URLs point to an invalid location.",
+            "Emit a warning but otherwise ignore relative URLs that point to an invalid location.",
         ),
     )
     skip_title_heading: bool = field(

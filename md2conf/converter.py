@@ -485,14 +485,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _anchor_warn_or_raise(self, anchor: ElementType, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
-        if self.options.skip_invalid_url:
+        if self.options.force_valid_url:
+            raise DocumentError(msg)
+        else:
             LOGGER.warning(msg)
             if anchor.text:
                 anchor.text = "❌ " + anchor.text
             elif len(anchor) > 0:
                 anchor.text = "❌ "
-        else:
-            raise DocumentError(msg)
 
     def _transform_link(self, anchor: ElementType) -> ElementType | None:
         """
@@ -701,10 +701,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     def _warn_or_raise(self, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."
 
-        if self.options.skip_invalid_url:
-            LOGGER.warning(msg)
-        else:
+        if self.options.force_valid_url:
             raise DocumentError(msg)
+        else:
+            LOGGER.warning(msg)
 
     def _verify_image_path(self, path: Path) -> Path | None:
         "Checks whether an image path is safe to use."
