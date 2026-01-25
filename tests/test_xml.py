@@ -93,6 +93,7 @@ class TestXml(TypedTestCase):
         self.assertXmlEqual(tree1, tree2)
 
     def test_unwrap(self) -> None:
+        # spellchecker: disable
         xml1 = (
             '<root xmlns:ac="http://atlassian.com/content"><p>'
             "Lorem <mark>ipsum</mark> dolor sit amet, "
@@ -107,6 +108,7 @@ class TestXml(TypedTestCase):
             "sed do eiusmod tempor incididunt ut <b>labore</b> et <b>dolore</b> magna <em>aliqua</em>."
             "</p></root>"
         )
+        # spellchecker: enable
         tree1 = elements_from_string(xml1)
         unwrap_substitute("mark", tree1)
         tree2 = elements_from_string(xml2)

@@ -241,7 +241,7 @@ def _exception_hook(exc_type: type[BaseException], exc_value: BaseException, tra
         ex = ex.__cause__
 
 
-sys.excepthook = _exception_hook
+sys.excepthook = _exception_hook  # spellchecker:disable-line
 
 
 def main() -> None:

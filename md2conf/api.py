@@ -402,12 +402,7 @@ class ConfluenceAPI:
         )
         return self.session
 
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         """
         Closes an open connection.
         """
@@ -429,15 +424,7 @@ class ConfluenceSession:
     _space_id_to_key: dict[str, str]
     _space_key_to_id: dict[str, str]
 
-    def __init__(
-        self,
-        session: requests.Session,
-        *,
-        api_url: str | None,
-        domain: str | None,
-        base_path: str | None,
-        space_key: str | None,
-    ) -> None:
+    def __init__(self, session: requests.Session, *, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         self.session = session
         self._space_id_to_key = {}
         self._space_key_to_id = {}
@@ -488,12 +475,7 @@ class ConfluenceSession:
         self.session.close()
         self.session = requests.Session()
 
-    def _build_url(
-        self,
-        version: ConfluenceVersion,
-        path: str,
-        query: dict[str, str] | None = None,
-    ) -> str:
+    def _build_url(self, version: ConfluenceVersion, path: str, query: dict[str, str] | None = None) -> str:
         """
         Builds a full URL for invoking the Confluence API.
 
@@ -506,14 +488,7 @@ class ConfluenceSession:
         base_url = f"{self.api_url}{version.value}{path}"
         return build_url(base_url, query)
 
-    def _get(
-        self,
-        version: ConfluenceVersion,
-        path: str,
-        response_type: type[T],
-        *,
-        query: dict[str, str] | None = None,
-    ) -> T:
+    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
@@ -829,13 +804,7 @@ class ConfluenceSession:
         LOGGER.info("Updating attachment: %s", attachment_id)
         self._put(ConfluenceVersion.VERSION_1, path, request, None)
 
-    def get_page_properties_by_title(
-        self,
-        title: str,
-        *,
-        space_id: str | None = None,
-        space_key: str | None = None,
-    ) -> ConfluencePageProperties:
+    def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
         """
         Looks up a Confluence wiki page ID by title.
 
@@ -916,14 +885,7 @@ class ConfluenceSession:
 
         return self.get_page_properties(page_id).version.number
 
-    def update_page(
-        self,
-        page_id: str,
-        content: str,
-        *,
-        title: str,
-        version: int,
-    ) -> None:
+    def update_page(self, page_id: str, content: str, *, title: str, version: int) -> None:
         """
         Updates a page via the Confluence API.
 
@@ -944,30 +906,23 @@ class ConfluenceSession:
         LOGGER.info("Updating page: %s", page_id)
         self._put(ConfluenceVersion.VERSION_2, path, request, None)
 
-    def create_page(
-        self,
-        parent_id: str,
-        title: str,
-        new_content: str,
-    ) -> ConfluencePage:
+    def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage:
         """
         Creates a new page via Confluence API.
         """
 
         LOGGER.info("Creating page: %s", title)
 
-        parent_page = self.get_page_properties(parent_id)
-
         path = "/pages/"
         request = ConfluenceCreatePageRequest(
-            spaceId=parent_page.spaceId,
+            spaceId=space_id,
             status=ConfluenceStatus.CURRENT,
             title=title,
             parentId=parent_id,
             body=ConfluencePageBody(
                 storage=ConfluencePageStorage(
                     representation=ConfluenceRepresentation.STORAGE,
-                    value=new_content,
+                    value=content,
                 )
             ),
         )
@@ -1009,23 +964,15 @@ class ConfluenceSession:
             response = self.session.delete(url, verify=True)
             response.raise_for_status()
 
-    def page_exists(
-        self,
-        title: str,
-        *,
-        space_id: str | None = None,
-        space_key: str | None = None,
-    ) -> str | None:
+    def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
         """
         Checks if a Confluence page exists with the given title.
 
         :param title: Page title. Pages in the same Confluence space must have a unique title.
-        :param space_key: Identifies the Confluence space.
-
+        :param space_id: Identifies the Confluence space.
         :returns: Confluence page ID of a matching page (if found), or `None`.
         """
 
-        space_id = self._get_space_id(space_id=space_id, space_key=space_key)
         path = "/pages"
         query = {"title": title}
         if space_id is not None:
@@ -1062,14 +1009,15 @@ class ConfluenceSession:
         """
 
         parent_page = self.get_page_properties(parent_id)
-        page_id = self.page_exists(title, space_id=parent_page.spaceId)
+        space_id = parent_page.spaceId
+        page_id = self.page_exists(title, space_id=space_id)
 
         if page_id is not None:
             LOGGER.debug("Retrieving existing page: %s", page_id)
             return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(parent_id, title, "")
+            return self.create_page(title=title, content="", parent_id=parent_id, space_id=space_id)
 
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
         """

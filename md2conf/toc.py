@@ -154,7 +154,7 @@ def unique_title(content: str) -> str | None:
     """
 
     builder = TableOfContentsBuilder()
-    for heading in headings(content.splitlines(keepends=True)):
+    for heading in headings(content.splitlines(keepends=True)):  # spellchecker:disable-line
         level, text = heading
         builder.add(level, text)
     return builder.get_title()

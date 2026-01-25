@@ -25,7 +25,7 @@ class TestText(TypedTestCase):
         self.assertTrue(all(0 < len(line.encode("utf-8")) <= 20 for line in wrapped.split("\n")))
         self.assertNotIn("\0", wrapped)
 
-    def test_multibyte_utf8(self) -> None:
+    def test_multi_byte_utf8(self) -> None:
         text = "Unicode test: árvíztűrő tükörfúrógép 😊🚀🔥 followed by normal text."
         wrapped = wrap_text(text, line_length=30)
         self.assertTrue(all(0 < len(line.encode("utf-8")) <= 30 for line in wrapped.split("\n")))

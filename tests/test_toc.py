@@ -120,7 +120,7 @@ class TestTableOfContents(TypedTestCase):
 
     def test_headings(self) -> None:
         builder = TableOfContentsBuilder()
-        for heading in headings(markdown_content.splitlines(keepends=True)):
+        for heading in headings(markdown_content.splitlines(keepends=True)):  # spellchecker:disable-line
             level, text = heading
             builder.add(level, text)
 

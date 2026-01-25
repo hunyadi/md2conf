@@ -86,7 +86,7 @@ _CONVERTER = markdown.Markdown(
         "sane_lists",
     ],
     extension_configs={
-        "footnotes": {"BACKLINK_TITLE": ""},
+        "footnotes": {"BACKLINK_TITLE": ""},  # spellchecker:disable-line
         "pymdownx.arithmatex": {"generic": True, "preview": False, "tex_inline_wrap": ["", ""], "tex_block_wrap": ["", ""]},
         "pymdownx.emoji": {"emoji_generator": _emoji_generator},
         "pymdownx.highlight": {

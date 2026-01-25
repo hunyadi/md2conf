@@ -148,7 +148,7 @@ class PlantUMLExtension(MarketplaceExtension):
         return AC_ELEM(
             "structured-macro",
             {
-                AC_ATTR("name"): "plantumlcloud",
+                AC_ATTR("name"): "plantumlcloud",  # spellchecker:disable-line
                 AC_ATTR("schema-version"): "1",
                 "data-layout": "default",
                 AC_ATTR("local-id"): local_id,

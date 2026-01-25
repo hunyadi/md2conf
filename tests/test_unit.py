@@ -96,16 +96,21 @@ class TestUnit(TypedTestCase):
         self.assertEqual(title_to_identifier("What's New in v2.0?"), "whats-new-in-v20")
         self.assertEqual(title_to_identifier("C++ & C# Comparison"), "c-c-comparison")
         self.assertEqual(title_to_identifier("Hello -- World!!"), "hello----world")
-        self.assertEqual(title_to_identifier("árvíztűrő tükörfúrógép"), "rvztr-tkrfrgp")
+        self.assertEqual(title_to_identifier("árvíztűrő tükörfúrógép"), "rvztr-tkrfrgp")  # spellchecker:disable-line
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:
-        data = render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}")
+        data = render_latex(r"\vec{\nabla}\times\vec{H}=\vec{J}+\dfrac{\partial\vec{D}}{\partial t}")  # spellchecker:disable-line
         width, height = extract_png_dimensions(data=data)
         self.assertGreater(width, 0)
         self.assertGreater(height, 0)
 
-        data = render_latex(r"\underset{S}{\int\int}\ \vec{\nabla}\times\vec{B}\cdot d\vec{S}=\underset{C}{\oint}\ \vec{B}\cdot d\vec{l}")
+        data = render_latex(
+            r"\underset{S}{\int\int}\ "
+            r"\vec{\nabla}\times\vec{B}\cdot "  # spellchecker:disable-line
+            r"d\vec{S}=\underset{C}{\oint}\ "
+            r"\vec{B}\cdot d\vec{l}"
+        )
         width, height = extract_png_dimensions(data=data)
         self.assertGreater(width, 0)
         self.assertGreater(height, 0)

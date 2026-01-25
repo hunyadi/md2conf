@@ -298,27 +298,26 @@ def transform_skip_comments_in_html(html: str) -> str:
     """
     Transforms HTML comments marking skip sections into custom elements.
 
-    Converts:
+    From:
+    ```
         <!-- confluence-skip-start --> ... <!-- confluence-skip-end -->
+    ```
     Into:
-        <div class="confluence-skip"> ... </div>  (for block-level content)
-        <span class="confluence-skip"> ... </span>  (for inline content)
+    ```
+        <confluence-skip> ... </confluence-skip>
+    ```
 
-    This must run BEFORE the HTML is parsed, as the XML parser strips comments in csf.py (remove_comments=True)
-    Malformed markers (unmatched start/end) are logged as errors.
+    This must run BEFORE the HTML (generated from Markdown) is parsed, as the XML parser strips comments (remove_comments=True).
 
-    :param html: HTML string with skip comment markers
-    :returns: HTML string with comments replaced by custom elements
+    :param html: HTML string with skip comment markers.
+    :returns: HTML string with comments replaced by custom elements.
     """
 
-    # Pattern to match skip section markers with surrounding context
-    # Captures newlines/whitespace before and after to determine if block-level
-    start_pattern = r"<!--\s*confluence-skip-start\s*-->"
-    end_pattern = r"<!--\s*confluence-skip-end\s*-->"
+    start_pattern = re.compile(r"<!--\s*confluence-skip-start\s*-->")
+    end_pattern = re.compile(r"<!--\s*confluence-skip-end\s*-->")
 
-    # Count markers for validation
-    start_count = len(re.findall(start_pattern, html))
-    end_count = len(re.findall(end_pattern, html))
+    start_count = sum(1 for _ in start_pattern.finditer(html))
+    end_count = sum(1 for _ in end_pattern.finditer(html))
 
     if start_count != end_count:
         raise DocumentError(f"unmatched confluence-skip markers: found {start_count} start marker(s) and {end_count} end marker(s)")
@@ -326,34 +325,8 @@ def transform_skip_comments_in_html(html: str) -> str:
     if start_count < 1:
         return html
 
-    # Process each start-end pair to determine if block or inline
-    # Pattern to match entire skip section with context
-    section_pattern = r"(\n\s*)?<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->(\s*\n)?"
-
-    def replace_section(match: re.Match[str]) -> str:
-        before_newline = match.group(1)  # Newline before start marker
-        content = match.group(2)  # Content between markers
-        after_newline = match.group(3)  # Newline after end marker
-
-        # Determine if this is block-level:
-        # - Has newline before 'start' marker, or
-        # - Has newline after 'end' marker, or
-        is_block = bool(before_newline) or bool(after_newline) or "\n" in content
-
-        if is_block:
-            # Use 'div' for block-level exclusions
-            result = f'<div class="confluence-skip">{content}</div>'
-            # Preserve surrounding newlines for block context
-            if before_newline:
-                result = before_newline + result
-            if after_newline:
-                result = result + after_newline
-            return result
-        else:
-            # Use 'span' for inline exclusions
-            return f'<span class="confluence-skip">{content}</span>'
-
-    html = re.sub(section_pattern, replace_section, html, flags=re.DOTALL)
+    skip_pattern = re.compile(r"<!--\s*confluence-skip-start\s*-->(.*?)<!--\s*confluence-skip-end\s*-->", flags=re.DOTALL)
+    html = skip_pattern.sub(r"<confluence-skip>\1</confluence-skip>", html)
 
     return html
 
@@ -1500,11 +1473,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 elif "admonition" in classes:
                     return self._transform_admonition(child)
 
-                # <div class="confluence-skip">...</div>
-                # Content marked for exclusion from Confluence (block-level). Clear the element.
-                elif "confluence-skip" in classes:
-                    return ElementAction.REMOVE
-
             # <blockquote>...</blockquote>
             case "blockquote":
                 # Alerts in GitHub
@@ -1593,11 +1561,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 if "arithmatex" in classes:
                     return self._transform_inline_math(child)
 
-                # <span class="confluence-skip">...</span>
-                # Content marked for exclusion from Confluence (inline)
-                elif "confluence-skip" in classes:
-                    return ElementAction.REMOVE
-
             # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
             # Multiple references: <sup id="fnref2:NAME">...</sup>, <sup id="fnref3:NAME">...</sup>
             case "sup" if re.match(r"^fnref\d*:", child.get("id", "")):
@@ -1612,6 +1575,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             case "ins":
                 # Confluence prefers <u> over <ins> for underline, and replaces <ins> with <u>
                 child.tag = "u"
+
+            # <confluence-skip>...</confluence-skip>
+            case "confluence-skip":
+                # Content marked for exclusion from Confluence
+                return ElementAction.REMOVE
 
             # <x-emoji data-shortname="wink" data-unicode="1f609">😉</x-emoji>
             case "x-emoji":

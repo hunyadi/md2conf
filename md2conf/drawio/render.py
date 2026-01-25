@@ -47,8 +47,10 @@ def inflate(data: bytes) -> bytes:
     :returns: Uncompressed data.
     """
 
+    # spellchecker: disable
     # -zlib.MAX_WBITS indicates raw DEFLATE stream (no zlib/gzip headers)
     return zlib.decompress(data, -zlib.MAX_WBITS)
+    # spellchecker: enable
 
 
 def decompress_diagram(xml_data: bytes | str) -> ElementType:
