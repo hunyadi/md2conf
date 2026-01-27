@@ -18,7 +18,7 @@ from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
-from md2conf.csf import elements_from_string, elements_to_string
+from md2conf.csf import canonicalize
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid.render import has_mmdc
@@ -33,13 +33,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
-
-
-def canonicalize(content: str) -> str:
-    "Converts a Confluence Storage Format (CSF) document to the normalized format."
-
-    root = elements_from_string(content)
-    return elements_to_string(root)
 
 
 def substitute(root_dir: Path, content: str) -> str:

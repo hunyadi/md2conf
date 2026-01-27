@@ -18,16 +18,16 @@ from lxml.builder import ElementMaker
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 # XML namespaces typically associated with Confluence Storage Format documents
-_namespaces = {
+_NAMESPACES = {
     "ac": "http://atlassian.com/content",
     "ri": "http://atlassian.com/resource/identifier",
 }
-for key, value in _namespaces.items():
+for key, value in _NAMESPACES.items():
     ET.register_namespace(key, value)
 
 HTML = ElementMaker()
-AC_ELEM = ElementMaker(namespace=_namespaces["ac"])
-RI_ELEM = ElementMaker(namespace=_namespaces["ri"])
+AC_ELEM = ElementMaker(namespace=_NAMESPACES["ac"])
+RI_ELEM = ElementMaker(namespace=_NAMESPACES["ri"])
 
 
 class ParseError(RuntimeError):
@@ -39,11 +39,11 @@ def _qname(namespace_uri: str, name: str) -> str:
 
 
 def AC_ATTR(name: str) -> str:
-    return _qname(_namespaces["ac"], name)
+    return _qname(_NAMESPACES["ac"], name)
 
 
 def RI_ATTR(name: str) -> str:
-    return _qname(_namespaces["ri"], name)
+    return _qname(_NAMESPACES["ri"], name)
 
 
 @contextmanager
@@ -77,7 +77,7 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ElementType:
         load_dtd=True,
     )
 
-    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in _namespaces.items())
+    ns_attr_list = "".join(f' xmlns:{key}="{value}"' for key, value in _NAMESPACES.items())
 
     data = [
         '<?xml version="1.0"?>',
@@ -219,3 +219,81 @@ def normalize_inline(elem: ElementType) -> None:
         # ignore empty elements
         if item.tag != "p" or len(item) > 0 or item.text:
             elem.append(item)
+
+
+# elements in which whitespace is normalized
+_NORMALIZED_ELEMENTS = [
+    "a",
+    "b",
+    "blockquote",
+    "code",
+    "del",
+    "details",
+    "div",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "i",
+    "li",
+    "p",
+    "span",
+    "strong",
+    "sub",
+    "summary",
+    "sup",
+    "td",
+    "th",
+    "u",
+    "{" + _NAMESPACES["ac"] + "}link-body",
+    "{" + _NAMESPACES["ac"] + "}rich-text-body",
+    "{" + _NAMESPACES["ac"] + "}task-body",
+]
+
+# elements that are recursed into for whitespace normalization
+_PASSTHROUGH_ELEMENTS = _NORMALIZED_ELEMENTS + [
+    "ol",
+    "table",
+    "tbody",
+    "tfoot",
+    "thead",
+    "tr",
+    "ul",
+    "{" + _NAMESPACES["ac"] + "}link",
+    "{" + _NAMESPACES["ac"] + "}structured-macro",
+    "{" + _NAMESPACES["ac"] + "}task",
+    "{" + _NAMESPACES["ac"] + "}task-list",
+]
+
+
+def normalize_whitespace(elem: ElementType) -> None:
+    "Replaces linefeed with space in contexts where whitespace normalization is permitted."
+
+    if not elem.text and len(elem) < 1:
+        # empty element
+        return
+
+    if elem.tag not in _PASSTHROUGH_ELEMENTS:
+        # element whose descendants are to be skipped
+        return
+
+    if elem.tag in _NORMALIZED_ELEMENTS:
+        if elem.text:
+            elem.text = elem.text.replace("\n", " ")
+        for child in elem:
+            if child.tail:
+                child.tail = child.tail.replace("\n", " ")
+    for child in elem:
+        normalize_whitespace(child)
+
+
+def canonicalize(content: str) -> str:
+    "Converts a Confluence Storage Format (CSF) document to the normalized format."
+
+    root = elements_from_string(content)
+    for child in root:
+        normalize_whitespace(child)
+    return elements_to_string(root)

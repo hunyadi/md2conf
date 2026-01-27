@@ -63,10 +63,12 @@ class ScannedDocument:
 
     :param properties: Properties extracted from the front-matter of a Markdown document.
     :param text: Text that remains after front-matter and inline properties have been extracted.
+    :param start_line_number: The first line of the Markdown document excluding front-matter, or 1 if there is no front-matter.
     """
 
     properties: DocumentProperties
     text: str
+    start_line_number: int
 
 
 class Scanner:
@@ -97,16 +99,18 @@ class Scanner:
         body_props = DocumentProperties(page_id=page_id, space_key=space_key, generated_by=generated_by)
 
         # extract front-matter
-        data, text = extract_frontmatter_json(text)
-        if data is not None:
-            frontmatter_props = json_to_object(DocumentProperties, data)
-            alias_props = json_to_object(AliasProperties, data)
+        frontmatter, text = extract_frontmatter_json(text)
+        if frontmatter is not None:
+            frontmatter_props = json_to_object(DocumentProperties, frontmatter.data)
+            alias_props = json_to_object(AliasProperties, frontmatter.data)
             if alias_props.confluence_page_id is not None:
                 frontmatter_props.page_id = alias_props.confluence_page_id
             if alias_props.confluence_space_key is not None:
                 frontmatter_props.space_key = alias_props.confluence_space_key
             props = coalesce(body_props, frontmatter_props)
+            start_line_number = frontmatter.outer_line_count + 1
         else:
             props = body_props
+            start_line_number = 1
 
-        return ScannedDocument(properties=props, text=text)
+        return ScannedDocument(properties=props, text=text, start_line_number=start_line_number)

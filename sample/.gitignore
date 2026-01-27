@@ -1,1 +1,7 @@
 *.csf
+embedded_*.png
+embedded_*.svg
+figure_*.png
+figure_*.svg
+formula_*.png
+formula_*.svg

@@ -54,6 +54,7 @@ class Arguments(argparse.Namespace):
     render_plantuml: bool
     render_latex: bool
     diagram_output_format: Literal["png", "svg"]
+    line_numbers: bool
     local: bool
     headers: dict[str, str]
     webui_links: bool
@@ -201,6 +202,13 @@ def get_parser() -> argparse.ArgumentParser:
         help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
     )
     parser.add_argument(
+        "--line-numbers",
+        dest="line_numbers",
+        action="store_true",
+        default=False,
+        help="Inject line numbers in Markdown source to help localize conversion errors.",
+    )
+    parser.add_argument(
         "--local",
         action="store_true",
         default=False,
@@ -279,6 +287,7 @@ def main() -> None:
                 ),
             ),
         ),
+        line_numbers=args.line_numbers,
     )
     if args.local:
         from .local import LocalConverter

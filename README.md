@@ -696,6 +696,7 @@ options:
                         Alignment for block-level images and formulas. (default: center)
   --max-image-width MAX_IMAGE_WIDTH
                         Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
+  --line-numbers        Inject line numbers in Markdown source to help localize conversion errors.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
                         Apply custom headers to all Confluence API requests.
@@ -750,6 +751,7 @@ options = DocumentOptions(
             alignment='center' or 'left' or 'right' or None,
         ),
     ),
+    line_numbers=bool(),
 )
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)

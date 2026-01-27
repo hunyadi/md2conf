@@ -39,9 +39,7 @@
 <p>Flag:</p>
 <ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
-    <p>The availability of this feature is controlled by a feature flag.
-For more information, see the history.
-This feature is available for testing, but not ready for production use.</p>
+    <p>The availability of this feature is controlled by a feature flag. For more information, see the history. This feature is available for testing, but <em>not ready for production use</em>.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <p>Note:</p>
@@ -59,8 +57,6 @@ This feature is available for testing, but not ready for production use.</p>
 <p>Disclaimer:</p>
 <ac:structured-macro ac:name="info" ac:schema-version="1">
   <ac:rich-text-body>
-    <p>This page contains information related to upcoming products, features, and functionality.
-It is important to note that the information presented is for informational purposes only.
-Please do not rely on this information for purchasing or planning purposes.</p>
+    <p>This page contains information related to upcoming products, features, and functionality. It is important to note that the information presented is for <em>informational purposes</em> only. Please do not rely on this information for purchasing or planning purposes.</p>
   </ac:rich-text-body>
 </ac:structured-macro>

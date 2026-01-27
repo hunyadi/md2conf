@@ -173,6 +173,7 @@ class DocumentOptions:
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
     :param converter: Options for converting an HTML tree into Confluence Storage Format.
+    :param line_numbers: Inject line numbers in Markdown source to help localize conversion errors.
     """
 
     root_page_id: ConfluencePageID | None = None
@@ -181,3 +182,4 @@ class DocumentOptions:
     generated_by: str | None = "This page has been generated with a tool."
     skip_update: bool = False
     converter: ConverterOptions = dataclasses.field(default_factory=ConverterOptions)
+    line_numbers: bool = False

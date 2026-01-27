@@ -36,7 +36,7 @@ Flag:
 > FLAG:
 > The availability of this feature is controlled by a feature flag.
 > For more information, see the history.
-> This feature is available for testing, but not ready for production use.
+> This feature is available for testing, but *not ready for production use*.
 
 Note:
 
@@ -52,5 +52,5 @@ Disclaimer:
 
 > DISCLAIMER:
 > This page contains information related to upcoming products, features, and functionality.
-> It is important to note that the information presented is for informational purposes only.
+> It is important to note that the information presented is for *informational purposes* only.
 > Please do not rely on this information for purchasing or planning purposes.

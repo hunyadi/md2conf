@@ -8,7 +8,8 @@ Copyright 2022-2026, Levente Hunyadi
 
 import re
 import typing
-from typing import Any, TypeVar
+from dataclasses import dataclass
+from typing import TypeVar
 
 import yaml
 
@@ -43,19 +44,30 @@ def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
 def extract_frontmatter_block(text: str) -> tuple[str | None, str]:
     "Extracts the front-matter from a Markdown document as a blob of unparsed text."
 
-    return extract_value(r"(?ms)\A---$(.+?)^---$", text)
+    return extract_value(r"(?ms)\A---\n(.+?)^---\n", text)
 
 
-def extract_frontmatter_json(text: str) -> tuple[dict[str, JsonType] | None, str]:
+@dataclass
+class FrontMatterProperties:
+    data: dict[str, JsonType] | None
+    inner_line_count: int
+
+    @property
+    def outer_line_count(self) -> int:
+        return self.inner_line_count + 2  # account for enclosing `--` (double dash)
+
+
+def extract_frontmatter_json(text: str) -> tuple[FrontMatterProperties | None, str]:
     "Extracts the front-matter from a Markdown document as a dictionary."
 
     block, text = extract_frontmatter_block(text)
 
-    properties: dict[str, Any] | None = None
+    properties: FrontMatterProperties | None = None
     if block is not None:
+        inner_line_count = block.count("\n")
         data = yaml.safe_load(block)
         if isinstance(data, dict):
-            properties = typing.cast(dict[str, JsonType], data)
+            properties = FrontMatterProperties(typing.cast(dict[str, JsonType], data), inner_line_count)
 
     return properties, text
 
@@ -65,6 +77,6 @@ def extract_frontmatter_object(tp: type[D], text: str) -> tuple[D | None, str]:
 
     value_object: D | None = None
     if properties is not None:
-        value_object = json_to_object(tp, properties)
+        value_object = json_to_object(tp, properties.data)
 
     return value_object, text
