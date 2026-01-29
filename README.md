@@ -691,11 +691,18 @@ options:
   --no-webui-links      Use hierarchical links including space and page ID. (default)
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --no-use-panel        Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning). (default)
+  --layout-image-alignment {center,left,right,None}
+                        Alignment for block-level images and formulas.
+  --layout-image-max-width LAYOUT_IMAGE_MAX_WIDTH
+                        Maximum display width for images [px]. Wider images are scaled down for page display.
+  --layout-table-width LAYOUT_TABLE_WIDTH
+                        Maximum table width in pixels.
+  --layout-table-display-mode {responsive,fixed}
+                        Set table display mode. (default: responsive)
+  --layout-alignment {center,left,right,None}
+                        Default alignment for block-level content.
+  --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.
   --title-prefix TEXT   String to prepend to Confluence page title for each published page.
-  --alignment {center,left,right}
-                        Alignment for block-level images and formulas. (default: center)
-  --max-image-width MAX_IMAGE_WIDTH
-                        Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
   --line-numbers        Inject line numbers in Markdown source to help localize conversion errors.
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
@@ -746,7 +753,7 @@ options = DocumentOptions(
             ),
             table=TableLayoutOptions(
                 width=int() or None,
-                display_mode='fixed' or 'responsive' or None,
+                display_mode='responsive' or 'fixed',
             ),
             alignment='center' or 'left' or 'right' or None,
         ),

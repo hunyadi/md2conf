@@ -17,16 +17,16 @@ import typing
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Iterable, Literal, Sequence
+from typing import Any, Iterable, Sequence
 
 from requests.exceptions import HTTPError, JSONDecodeError
 
 from . import __version__
-from .clio import add_arguments
+from .clio import add_arguments, get_options
 from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, ConverterOptions, DocumentOptions, ImageLayoutOptions, LayoutOptions
+from .options import ConfluencePageID, ConverterOptions, DocumentOptions
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,27 +40,14 @@ class Arguments(argparse.Namespace):
     api_key: str | None
     space: str | None
     loglevel: str
-    heading_anchors: bool
-    force_valid_url: bool
     root_page: str | None
     keep_hierarchy: bool
-    skip_title_heading: bool
     title_prefix: str | None
     generated_by: str | None
     skip_update: bool
-    prefer_raster: bool
-    render_drawio: bool
-    render_mermaid: bool
-    render_plantuml: bool
-    render_latex: bool
-    diagram_output_format: Literal["png", "svg"]
     line_numbers: bool
     local: bool
     headers: dict[str, str]
-    webui_links: bool
-    alignment: Literal["center", "left", "right"]
-    max_image_width: int | None
-    use_panel: bool
 
 
 class KwargsAppendAction(argparse.Action):
@@ -131,16 +118,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-l",
         "--loglevel",
-        choices=[
-            logging.getLevelName(level).lower()
-            for level in (
-                logging.DEBUG,
-                logging.INFO,
-                logging.WARN,
-                logging.ERROR,
-                logging.CRITICAL,
-            )
-        ],
+        choices=[logging.getLevelName(level).lower() for level in (logging.DEBUG, logging.INFO, logging.WARN, logging.ERROR, logging.CRITICAL)],
         default=logging.getLevelName(logging.INFO),
         help="Use this option to set the log verbosity.",
     )
@@ -181,25 +159,19 @@ def get_parser() -> argparse.ArgumentParser:
         help="Skip saving Confluence page ID in Markdown files.",
     )
     add_arguments(parser, ConverterOptions)
+    if sys.version_info >= (3, 13):
+        parser.add_argument(
+            "--ignore-invalid-url",
+            dest="force_valid_url",
+            action="store_false",
+            help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations.",
+            deprecated=True,
+        )
     parser.add_argument(
         "--title-prefix",
         default=None,
         metavar="TEXT",
         help="String to prepend to Confluence page title for each published page.",
-    )
-    parser.add_argument(
-        "--alignment",
-        dest="alignment",
-        choices=["center", "left", "right"],
-        default="center",
-        help="Alignment for block-level images and formulas. (default: center)",
-    )
-    parser.add_argument(
-        "--max-image-width",
-        dest="max_image_width",
-        type=int,
-        default=None,
-        help="Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.",
     )
     parser.add_argument(
         "--line-numbers",
@@ -268,25 +240,7 @@ def main() -> None:
         title_prefix=args.title_prefix,
         generated_by=args.generated_by,
         skip_update=args.skip_update,
-        converter=ConverterOptions(
-            heading_anchors=args.heading_anchors,
-            force_valid_url=args.force_valid_url,
-            skip_title_heading=args.skip_title_heading,
-            prefer_raster=args.prefer_raster,
-            render_drawio=args.render_drawio,
-            render_mermaid=args.render_mermaid,
-            render_plantuml=args.render_plantuml,
-            render_latex=args.render_latex,
-            diagram_output_format=args.diagram_output_format,
-            webui_links=args.webui_links,
-            use_panel=args.use_panel,
-            layout=LayoutOptions(
-                image=ImageLayoutOptions(
-                    alignment=args.alignment,
-                    max_width=args.max_image_width,
-                ),
-            ),
-        ),
+        converter=get_options(args, ConverterOptions),
         line_numbers=args.line_numbers,
     )
     if args.local:

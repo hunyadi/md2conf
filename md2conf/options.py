@@ -6,11 +6,10 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import dataclasses
 from dataclasses import dataclass, field
 from typing import Literal
 
-from .clio import boolean_option, choice_option
+from .clio import boolean_option, composite_option, value_option
 
 
 @dataclass
@@ -27,8 +26,11 @@ class ImageLayoutOptions:
     :param max_width: Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
     """
 
-    alignment: Literal["center", "left", "right", None] = None
-    max_width: int | None = None
+    alignment: Literal["center", "left", "right", None] = field(default=None, metadata=value_option("Alignment for block-level images and formulas."))
+    max_width: int | None = field(
+        default=None,
+        metadata=value_option("Maximum display width for images [px]. Wider images are scaled down for page display."),
+    )
 
 
 @dataclass
@@ -40,8 +42,8 @@ class TableLayoutOptions:
     :param display_mode: Whether to use fixed or responsive column widths.
     """
 
-    width: int | None = None
-    display_mode: Literal["fixed", "responsive", None] = None
+    width: int | None = field(default=None, metadata=value_option("Maximum table width in pixels."))
+    display_mode: Literal["responsive", "fixed"] = field(default="responsive", metadata=value_option("Set table display mode."))
 
 
 @dataclass
@@ -56,9 +58,9 @@ class LayoutOptions:
     :param alignment: Default alignment (unless overridden with more specific setting).
     """
 
-    image: ImageLayoutOptions = dataclasses.field(default_factory=ImageLayoutOptions)
-    table: TableLayoutOptions = dataclasses.field(default_factory=TableLayoutOptions)
-    alignment: Literal["center", "left", "right", None] = None
+    image: ImageLayoutOptions = field(default_factory=ImageLayoutOptions, metadata=composite_option())
+    table: TableLayoutOptions = field(default_factory=TableLayoutOptions, metadata=composite_option())
+    alignment: Literal["center", "left", "right", None] = field(default=None, metadata=value_option("Default alignment for block-level content."))
 
     def get_image_alignment(self) -> Literal["center", "left", "right"]:
         return self.image.alignment or self.alignment or "center"
@@ -143,7 +145,7 @@ class ConverterOptions:
     )
     diagram_output_format: Literal["png", "svg"] = field(
         default="png",
-        metadata=choice_option("Format for rendering Mermaid and draw.io diagrams."),
+        metadata=value_option("Format for rendering Mermaid and draw.io diagrams."),
     )
     webui_links: bool = field(
         default=False,
@@ -159,7 +161,7 @@ class ConverterOptions:
             "Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning).",
         ),
     )
-    layout: LayoutOptions = field(default_factory=LayoutOptions)
+    layout: LayoutOptions = field(default_factory=LayoutOptions, metadata=composite_option())
 
 
 @dataclass
@@ -181,5 +183,5 @@ class DocumentOptions:
     title_prefix: str | None = None
     generated_by: str | None = "This page has been generated with a tool."
     skip_update: bool = False
-    converter: ConverterOptions = dataclasses.field(default_factory=ConverterOptions)
+    converter: ConverterOptions = field(default_factory=ConverterOptions)
     line_numbers: bool = False
