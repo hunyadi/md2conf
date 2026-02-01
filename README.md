@@ -693,9 +693,9 @@ options:
   --no-use-panel        Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning). (default)
   --layout-image-alignment {center,left,right,None}
                         Alignment for block-level images and formulas.
-  --layout-image-max-width LAYOUT_IMAGE_MAX_WIDTH
+  --layout-image-max-width INT
                         Maximum display width for images [px]. Wider images are scaled down for page display.
-  --layout-table-width LAYOUT_TABLE_WIDTH
+  --layout-table-width INT
                         Maximum table width in pixels.
   --layout-table-display-mode {responsive,fixed}
                         Set table display mode. (default: responsive)

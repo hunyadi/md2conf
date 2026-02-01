@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 import sys
 from datetime import datetime
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from cattrs.preconf.orjson import make_converter  # spellchecker:disable-line
 
@@ -51,6 +51,17 @@ def json_to_object(typ: type[T], data: JsonType) -> T:
     """
 
     return _converter.structure(data, typ)
+
+
+def object_to_json(data: object) -> JsonType:
+    """
+    Converts a structured object to a JSON object, ready to be serialized to a JSON string.
+
+    :param data: Python object to convert to a JSON object.
+    :returns: JSON object, ready to be serialized to a JSON encoded in UTF-8.
+    """
+
+    return cast(JsonType, _converter.unstructure(data))
 
 
 def object_to_json_payload(data: object) -> bytes:

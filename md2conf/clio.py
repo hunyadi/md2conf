@@ -70,93 +70,121 @@ def _get_metadata(field: Field[Any], tp: type[T]) -> T | None:
         raise TypeError(f"expected: {tp.__name__}; got: {type(attrs).__name__}")
 
 
-def _add_field_as_argument(parser: ArgumentParser, field: Field[Any], prefixes: tuple[str, ...]) -> None:
-    arg_name = field.name.replace("_", "-")
-    if field.type is bool:
-        bool_opt = _get_metadata(field, BooleanOption)
-        if bool_opt is None:
+class _OptionTreeVisitor:
+    "Adds arguments to a command-line argument parser by recursively visiting fields of a composite type."
+
+    parser: ArgumentParser
+    prefixes: list[str]
+
+    def __init__(self, parser: ArgumentParser) -> None:
+        self.parser = parser
+        self.prefixes = []
+
+    def _get_arg_name(self, arg_name: str) -> str:
+        return f"--{'-'.join([*self.prefixes, arg_name])}"
+
+    def _get_field_name(self, field_name: str) -> str:
+        return "_".join([*self.prefixes, field_name])
+
+    def _add_value_field(self, field: Field[Any], field_type: Any) -> None:
+        arg_name = field.name.replace("_", "-")
+        value_opt = _get_metadata(field, ValueOption)
+        if value_opt is None:
             return
-        true_text = bool_opt.true_text
-        if field.default is True:
-            true_text += " (default)"
-        parser.add_argument(
-            f"--{'-'.join((*prefixes, arg_name))}",
-            dest="_".join((*prefixes, field.name)),
-            action="store_true",
-            default=field.default,
-            help=true_text,
-        )
-        if arg_name.startswith("skip-"):
-            inverse_arg_name = "keep-" + arg_name.removeprefix("skip-")
-        elif arg_name.startswith("keep-"):
-            inverse_arg_name = "skip-" + arg_name.removeprefix("keep-")
+        help_text = value_opt.text
+        if field.default is not MISSING and field.default is not None:
+            help_text += f" (default: {field.default!s})"
+        if isinstance(field_type, type):
+            metavar = field_type.__name__.upper()
         else:
-            inverse_arg_name = f"no-{arg_name}"
-        false_text = bool_opt.false_text
-        if field.default is False:
-            false_text += " (default)"
-        parser.add_argument(
-            f"--{'-'.join((*prefixes, inverse_arg_name))}",
-            dest="_".join((*prefixes, field.name)),
-            action="store_false",
-            help=false_text,
-        )
-        return
-
-    origin = get_origin(field.type)
-    if origin is Literal:
-        value_opt = _get_metadata(field, ValueOption)
-        if value_opt is None:
-            return
-        value_text = value_opt.text
-        if field.default is not MISSING and field.default is not None:
-            value_text += f" (default: {field.default!s})"
-        parser.add_argument(
-            f"--{'-'.join((*prefixes, arg_name))}",
-            dest="_".join((*prefixes, field.name)),
-            choices=get_args(field.type),
+            metavar = None
+        self.parser.add_argument(
+            self._get_arg_name(arg_name),
+            dest=self._get_field_name(field.name),
             default=field.default,
-            help=value_text,
+            type=field_type,
+            help=help_text,
+            metavar=metavar,
         )
 
-    elif origin is UnionType:
-        union_types = list(get_args(field.type))
-        if len(union_types) != 2 or NoneType not in union_types:
-            raise TypeError(f"expected: `T` or `T | None` as argument type; got: {field.type}")
-        union_types.remove(NoneType)
-        required_type = union_types.pop()
-
-        value_opt = _get_metadata(field, ValueOption)
-        if value_opt is None:
+    def _add_field_as_argument(self, field: Field[Any]) -> None:
+        arg_name = field.name.replace("_", "-")
+        if field.type is bool:
+            bool_opt = _get_metadata(field, BooleanOption)
+            if bool_opt is None:
+                return
+            true_text = bool_opt.true_text
+            if field.default is True:
+                true_text += " (default)"
+            self.parser.add_argument(
+                self._get_arg_name(arg_name),
+                dest=self._get_field_name(field.name),
+                action="store_true",
+                default=field.default,
+                help=true_text,
+            )
+            if arg_name.startswith("skip-"):
+                inverse_arg_name = "keep-" + arg_name.removeprefix("skip-")
+            elif arg_name.startswith("keep-"):
+                inverse_arg_name = "skip-" + arg_name.removeprefix("keep-")
+            else:
+                inverse_arg_name = f"no-{arg_name}"
+            false_text = bool_opt.false_text
+            if field.default is False:
+                false_text += " (default)"
+            self.parser.add_argument(
+                self._get_arg_name(inverse_arg_name),
+                dest=self._get_field_name(field.name),
+                action="store_false",
+                help=false_text,
+            )
             return
-        value_text = value_opt.text
-        if field.default is not MISSING and field.default is not None:
-            value_text += f" (default: {field.default!s})"
-        parser.add_argument(
-            f"--{'-'.join((*prefixes, arg_name))}",
-            dest="_".join((*prefixes, field.name)),
-            default=field.default,
-            type=required_type,
-            help=value_text,
-        )
 
-    elif isinstance(field.type, type):
-        if not hasattr(field.type, "__dataclass_fields__"):
-            raise TypeError(f"expected: data-class as composite argument; got: {field.type}")
-        composite_opt = _get_metadata(field, CompositeOption)
-        if composite_opt is None:
-            return
+        origin = get_origin(field.type)
+        if origin is Literal:
+            value_opt = _get_metadata(field, ValueOption)
+            if value_opt is None:
+                return
+            value_text = value_opt.text
+            if field.default is not MISSING and field.default is not None:
+                value_text += f" (default: {field.default!s})"
+            self.parser.add_argument(
+                self._get_arg_name(arg_name),
+                dest=self._get_field_name(field.name),
+                choices=get_args(field.type),
+                default=field.default,
+                help=value_text,
+            )
 
-        _add_arguments(parser, field.type, (*prefixes, field.name))
+        elif origin is UnionType:
+            union_types = list(get_args(field.type))
+            if len(union_types) != 2 or NoneType not in union_types:
+                raise TypeError(f"expected: `T` or `T | None` as argument type; got: {field.type}")
+            union_types.remove(NoneType)
+            required_type = union_types.pop()
 
-    elif _has_metadata(field):
-        raise TypeError(f"expected: known argument type; got: {field.type}")
+            self._add_value_field(field, required_type)
 
+        elif isinstance(field.type, type):
+            if hasattr(field.type, "__dataclass_fields__"):
+                composite_opt = _get_metadata(field, CompositeOption)
+                if composite_opt is None:
+                    return
 
-def _add_arguments(parser: ArgumentParser, options_type: type[Any], prefixes: tuple[str, ...]) -> None:
-    if is_dataclass(options_type):
-        for field in fields(options_type):
-            _add_field_as_argument(parser, field, prefixes)
+                self.prefixes.append(arg_name)
+                self.add_arguments(field.type)
+                self.prefixes.pop()
+
+            else:
+                self._add_value_field(field, field.type)
+
+        elif _has_metadata(field):
+            raise TypeError(f"expected: known argument type; got: {field.type}")
+
+    def add_arguments(self, options_type: type[Any]) -> None:
+        if is_dataclass(options_type):
+            for field in fields(options_type):
+                self._add_field_as_argument(field)
 
 
 def add_arguments(parser: ArgumentParser, options_type: type[Any]) -> None:
@@ -167,17 +195,20 @@ def add_arguments(parser: ArgumentParser, options_type: type[Any]) -> None:
     :param options_type: A data-class type that encapsulates configuration options.
     """
 
-    _add_arguments(parser, options_type, ())
+    _OptionTreeVisitor(parser).add_arguments(options_type)
 
 
 def _get_options(args: Namespace, options_type: type[T], prefixes: tuple[str, ...]) -> T:
     params: dict[str, Any] = {}
-    if is_dataclass(options_type):
+    if is_dataclass(options_type):  # always true, condition included for type checkers
         for field in fields(options_type):
+            field_prefixes = (*prefixes, field.name)
             if isinstance(field.type, type) and is_dataclass(field.type):
-                params[field.name] = _get_options(args, field.type, (*prefixes, field.name))
+                params[field.name] = _get_options(args, field.type, field_prefixes)
             else:
-                params[field.name] = getattr(args, "_".join((*prefixes, field.name)))
+                field_param = getattr(args, "_".join(field_prefixes), MISSING)
+                if field_param is not MISSING:
+                    params[field.name] = field_param
     return options_type(**params)
 
 

@@ -6,21 +6,27 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import hashlib
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 
-from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluenceSession, ConfluenceStatus
+from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceSession, ConfluenceStatus
 from .attachment import attachment_name
 from .compatibility import override, path_relative_to
-from .converter import ConfluenceDocument, get_volatile_attributes, get_volatile_elements
+from .converter import ConfluenceDocument, ElementType, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, DocumentOptions
 from .processor import Converter, DocumentNode, Processor, ProcessorFactory
+from .serializer import json_to_object, object_to_json
 from .xml import is_xml_equal, unwrap_substitute
 
 LOGGER = logging.getLogger(__name__)
+
+
+CONTENT_PROPERTY_TAG = "md2conf"
 
 
 class _MissingType:
@@ -80,6 +86,19 @@ class ParentCatalog:
             return False
 
         return self.is_traceable(parent_id)
+
+
+@dataclass
+class ConfluenceMarkdownTag:
+    """
+    Captures information used to synchronize the Markdown source file with the Confluence target page.
+
+    :param page_version: Confluence page version number when the page was last synchronized.
+    :param source_digest: MD5 hash computed from the Markdown source file.
+    """
+
+    page_version: int
+    source_digest: str
 
 
 class SynchronizingProcessor(Processor):
@@ -205,36 +224,82 @@ class SynchronizingProcessor(Processor):
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
+        # compute content hash to help detect if document has changed
+        m = hashlib.md5()
+        with open(path, "rb") as f:
+            m.update(f.read())
+        source_digest = m.hexdigest()
+
+        # set Confluence title based on Markdown content
         title = self._get_unique_title(document, path)
 
         # fetch existing page
         page = self.api.get_page(page_id.page_id)
+        prop = self.api.get_content_property_for_page(page_id.page_id, CONTENT_PROPERTY_TAG)
+        tag: ConfluenceMarkdownTag | None = None
+        if prop is not None:
+            try:
+                tag = json_to_object(ConfluenceMarkdownTag, prop.value)
+                LOGGER.debug("Page with ID %s has last synchronized version of %d and hash of %s", page.id, tag.page_version, tag.source_digest)
+            except Exception:
+                pass
+
+        # keep existing Confluence title if cannot infer meaningful title from Markdown source
         if not title:  # empty or `None`
             title = page.title
+
+        # synchronize page if page has any changes
+        if self._has_changes(page, tag, title, document.root, source_digest):
+            if tag is not None and page.version.number != tag.page_version:
+                LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
+
+            relative_path = path_relative_to(path, self.root_dir)
+            version = page.version.number + 1
+            self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
+        else:
+            version = page.version.number
+
+        if document.labels is not None:
+            self.api.update_labels(
+                page.id,
+                [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
+            )
+
+        props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(ConfluenceMarkdownTag(version, source_digest)))]
+        if document.properties is not None:
+            props.extend(ConfluenceContentProperty(key, value) for key, value in document.properties.items())
+            self.api.update_content_properties_for_page(page.id, props)
+        else:
+            if tag is None or tag.page_version != version:
+                self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
+
+    def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
+        "True if the Confluence Storage Format content generated from the Markdown source file matches the Confluence target page content."
+
+        if page.title != title:
+            LOGGER.info("Detected page with new title: %s", page.id)
+            return True
+
+        if tag is not None and tag.source_digest != source_digest:
+            LOGGER.info("Detected page with updated Markdown source: %s", page.id)
+            return True
 
         # discard comments
         tree = elements_from_string(page.content)
         unwrap_substitute(AC_ATTR("inline-comment-marker"), tree)
 
-        # check if page has any changes
-        if page.title != title or not is_xml_equal(
-            document.root,
+        # visit XML nodes recursively
+        if not is_xml_equal(
+            root,
             tree,
             skip_attributes=get_volatile_attributes(),
             skip_elements=get_volatile_elements(),
         ):
-            self.api.update_page(page_id.page_id, content, title=title, version=page.version.number + 1)
-        else:
-            LOGGER.info("Up-to-date page: %s", page_id.page_id)
+            LOGGER.info("Detected page with updated Markdown content: %s", page.id)
+            return True
 
-        if document.labels is not None:
-            self.api.update_labels(
-                page_id.page_id,
-                [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
-            )
-
-        if document.properties is not None:
-            self.api.update_content_properties_for_page(page_id.page_id, [ConfluenceContentProperty(key, value) for key, value in document.properties.items()])
+        LOGGER.info("Up-to-date page: %s", page.id)
+        return False
 
     def _get_extended_title(self, title: str) -> str:
         """

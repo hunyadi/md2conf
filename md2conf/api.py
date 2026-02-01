@@ -885,7 +885,7 @@ class ConfluenceSession:
 
         return self.get_page_properties(page_id).version.number
 
-    def update_page(self, page_id: str, content: str, *, title: str, version: int) -> None:
+    def update_page(self, page_id: str, content: str, *, title: str, version: int, message: str) -> None:
         """
         Updates a page via the Confluence API.
 
@@ -901,7 +901,7 @@ class ConfluenceSession:
             status=ConfluenceStatus.CURRENT,
             title=title,
             body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
-            version=ConfluenceContentVersion(number=version, minorEdit=True),
+            version=ConfluenceContentVersion(number=version, minorEdit=True, message=message),
         )
         LOGGER.info("Updating page: %s", page_id)
         self._put(ConfluenceVersion.VERSION_2, path, request, None)
@@ -1080,6 +1080,23 @@ class ConfluenceSession:
         if not keep_existing and remove_labels:
             remove_labels.sort()
             self.remove_labels(page_id, remove_labels)
+
+    def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
+        """
+        Retrieves a content property for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param key: The name of the property to fetch (with case-sensitive match).
+        :returns: The content property value, or `None` if not found.
+        """
+
+        path = f"/pages/{page_id}/properties"
+        results = self._fetch(path, query={"key": key})
+        properties = json_to_object(list[ConfluenceIdentifiedContentProperty], results)
+        if len(properties) == 1:
+            return properties.pop()
+        else:
+            return None
 
     def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
         """
