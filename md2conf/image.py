@@ -75,7 +75,9 @@ class ImageGenerator:
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
         return self.create_attached_image(image_name, attrs)
 
-    def transform_attached_data(self, image_data: bytes, attrs: ImageAttributes, relative_path: Path | None = None) -> ElementType:
+    def transform_attached_data(
+        self, image_data: bytes, attrs: ImageAttributes, relative_path: Path | None = None, *, image_type: str = "embedded"
+    ) -> ElementType:
         "Emits Confluence Storage Format XHTML for an attached raster or vector image."
 
         # extract dimensions and update attributes based on format
@@ -100,15 +102,15 @@ class ImageGenerator:
                 alignment=attrs.alignment,
             )
 
-        # generate filename and add as attachment
+        # generate filename
         if relative_path is not None:
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.output_format}"))
-            self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, attrs.alt))
         else:
             image_hash = hashlib.md5(image_data).hexdigest()
-            image_filename = attachment_name(f"embedded_{image_hash}.{self.options.output_format}")
-            self.attachments.add_embed(image_filename, EmbeddedFileData(image_data))
+            image_filename = attachment_name(f"{image_type}_{image_hash}.{self.options.output_format}")
 
+        # add as attachment
+        self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, attrs.alt))
         return self.create_attached_image(image_filename, attrs)
 
     def create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ElementType:

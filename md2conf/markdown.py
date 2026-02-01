@@ -117,7 +117,11 @@ def markdown_to_html(content: str) -> str:
     return html
 
 
+# matches the start and end marker of a fenced code block
 _FENCED_CODE_REGEXP = re.compile(r"^\s*(?:`{3,}|~{3,})", re.MULTILINE)
+
+# matches a regular table row (but not the column alignment row)
+_TABLE_ROW_REGEXP = re.compile(r"^\|\s*([^\s:-]+.*?)\s*\|$", re.MULTILINE)
 
 
 def markdown_with_line_numbers(input_lines: list[str], start_line_number: int) -> list[str]:
@@ -148,30 +152,31 @@ def markdown_with_line_numbers(input_lines: list[str], start_line_number: int) -
             continue
 
         # fenced code blocks
-        fence_match = _FENCED_CODE_REGEXP.match(line)
-        if fence_match:
+        if fence_match := _FENCED_CODE_REGEXP.match(line):
             marker = fence_match.group()
             if fence_marker is None:
                 fence_marker = marker
             elif marker == fence_marker:
                 fence_marker = None
-        elif (
+        elif fence_marker is None:
             # not inside a fenced code block
-            fence_marker is None
-            # not an admonition
-            and not line.startswith("!!! ")
-            # not a Setext heading
-            and not (line.startswith("===") or line.startswith("---"))
-            # not a decorated ATX heading
-            and not line.endswith("#")
-            # not a math block formula
-            and not (line.startswith("$$") and line.endswith("$$"))
-            # not a Markdown table
-            and not (line.startswith("|") or line.endswith("|"))
-            # not a block-level HTML tag
-            and not (line.startswith("<") or line.endswith(">"))
-        ):
-            line = f'{line}<line-number value="{number}" />'
+            if (
+                # not an admonition
+                not line.startswith("!!! ")
+                # not a Setext heading
+                and not (line.startswith("===") or line.startswith("---"))
+                # not a decorated ATX heading
+                and not line.endswith("#")
+                # not a math block formula
+                and not (line.startswith("$$") and line.endswith("$$"))
+                # not a Markdown table
+                and not (line.startswith("|") or line.endswith("|"))
+                # not a block-level HTML tag
+                and not (line.startswith("<") or line.endswith(">"))
+            ):
+                line = f'{line}<line-number value="{number}" />'
+            elif row_match := _TABLE_ROW_REGEXP.match(line):
+                line = f'| {row_match.group(1)}<line-number value="{number}" /> |'
 
         output_lines.append(line)
 

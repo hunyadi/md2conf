@@ -40,6 +40,9 @@ class AttachmentCatalog:
         self.embedded_files[filename] = data
 
 
+_DISALLOWED_CHAR_REGEXP = re.compile(r"[^\-0-9A-Za-z_.]", re.UNICODE)
+
+
 def attachment_name(ref: Path | str) -> str:
     """
     Safe name for use with attachment uploads.
@@ -60,13 +63,11 @@ def attachment_name(ref: Path | str) -> str:
     if path.drive or path.root:
         raise ValueError(f"required: relative path; got: {ref}")
 
-    regexp = re.compile(r"[^\-0-9A-Za-z_.]", re.UNICODE)
-
     def replace_part(part: str) -> str:
         if part == "..":
             return "PAR"
         else:
-            return regexp.sub("_", part)
+            return _DISALLOWED_CHAR_REGEXP.sub("_", part)
 
     parts = [replace_part(p) for p in path.parts]
     return Path(*parts).as_posix().replace("/", "_")

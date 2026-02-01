@@ -52,6 +52,13 @@ else:
         # spellchecker:disable-next-line
         fig.text(x=0, y=0, s=f"${expression}$", fontsize=font_size)  # pyright: ignore[reportUnknownMemberType]
 
+        metadata: dict[str, str | None] = {"Title": expression}
+        match format:
+            case "png":
+                metadata.update({"Software": None})
+            case "svg":
+                metadata.update({"Creator": None, "Date": None, "Format": None, "Type": None})
+
         # save the image
         fig.savefig(  # pyright: ignore[reportUnknownMemberType]
             f,
@@ -59,7 +66,7 @@ else:
             format=format,
             bbox_inches="tight",
             pad_inches=0.0,
-            metadata={"Title": expression} if format == "png" else None,
+            metadata=metadata,
         )
 
         # close the figure to free memory

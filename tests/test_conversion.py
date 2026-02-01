@@ -151,26 +151,35 @@ class TestConversion(TypedTestCase):
             name, _ = os.path.splitext(entry.name)
 
             with self.subTest(name=name):
+                with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
+                    expected = substitute(self.target_dir, f.read())
+
+                converter_options = ConverterOptions(
+                    prefer_raster=False,
+                    render_drawio=True,
+                    render_mermaid=False,
+                    render_plantuml=False,
+                    render_latex=False,
+                )
+
                 _, doc = ConfluenceDocument.create(
                     self.source_dir / f"{name}.md",
-                    DocumentOptions(
-                        converter=ConverterOptions(
-                            prefer_raster=False,
-                            render_drawio=True,
-                            render_mermaid=False,
-                            render_plantuml=False,
-                            render_latex=False,
-                        )
-                    ),
+                    DocumentOptions(converter=converter_options, line_numbers=False),
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,
                 )
                 actual = standardize(doc.xhtml())
+                self.assertEqual(actual, expected)
 
-                with open(self.target_dir / f"{name}.xml", "r", encoding="utf-8") as f:
-                    expected = substitute(self.target_dir, f.read())
-
+                _, doc = ConfluenceDocument.create(
+                    self.source_dir / f"{name}.md",
+                    DocumentOptions(converter=converter_options, line_numbers=True),
+                    self.source_dir,
+                    self.site_metadata,
+                    self.page_metadata,
+                )
+                actual = standardize(doc.xhtml())
                 self.assertEqual(actual, expected)
 
     def test_admonitions(self) -> None:

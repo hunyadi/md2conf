@@ -139,6 +139,9 @@ def content_to_string(content: str) -> str:
         return _content_to_string(dtd_path, content)
 
 
+_ROOT_REGEXP = re.compile(r"^<root\s+[^>]*>(.*)</root>\s*$", re.DOTALL)
+
+
 def elements_to_string(root: ElementType) -> str:
     """
     Converts a Confluence Storage Format element tree into an XML string to push to Confluence REST API.
@@ -148,8 +151,7 @@ def elements_to_string(root: ElementType) -> str:
     """
 
     xml = ET.tostring(root, encoding="utf8", method="xml").decode("utf8")
-    m = re.match(r"^<root\s+[^>]*>(.*)</root>\s*$", xml, re.DOTALL)
-    if m:
+    if m := _ROOT_REGEXP.match(xml):
         return m.group(1)
     else:
         raise ValueError("expected: Confluence content")

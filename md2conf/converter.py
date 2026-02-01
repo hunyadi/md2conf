@@ -7,7 +7,6 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import copy
-import hashlib
 import logging
 import os.path
 import re
@@ -38,7 +37,7 @@ from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ConverterOptions, DocumentOptions
 from .plantuml.extension import PlantUMLExtension
-from .png import extract_png_dimensions, remove_png_chunks
+from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner
 from .serializer import JsonType
 from .toc import TableOfContentsBuilder
@@ -115,14 +114,18 @@ def fix_absolute_path(path: Path, root_path: Path) -> Path:
     return root_path / path.relative_to(path.root)
 
 
+_UNSAFE_CHAR_REGEXP = re.compile(r"[^A-Za-z0-9._~()'!*:@,;+?-]+")
+_MULTIPLE_SPACE_REGEXP = re.compile(r"\s\s+")
+
+
 def encode_title(text: str) -> str:
     "Converts a title string such that it is safe to embed into a Confluence URL."
 
     # replace unsafe characters with space
-    text = re.sub(r"[^A-Za-z0-9._~()'!*:@,;+?-]+", " ", text)
+    text = _UNSAFE_CHAR_REGEXP.sub(" ", text)
 
     # replace multiple consecutive spaces with single space
-    text = re.sub(r"\s\s+", " ", text)
+    text = _MULTIPLE_SPACE_REGEXP.sub(" ", text)
 
     # URL-encode
     return quote_plus(text.strip())
@@ -258,12 +261,16 @@ class NodeVisitor(ABC):
     def transform(self, child: ElementType) -> ElementType | ElementAction: ...
 
 
+_DISALLOWED_CHAR_REGEXP = re.compile(r"[^\sA-Za-z0-9_\-]")
+_SPACE_COLLAPSE_REGEXP = re.compile(r"\s+")
+
+
 def title_to_identifier(title: str) -> str:
     "Converts a section heading title to a GitHub-style Markdown same-page anchor."
 
     s = title.strip().lower()
-    s = re.sub(r"[^\sA-Za-z0-9_\-]", "", s)
-    s = re.sub(r"\s+", "-", s)
+    s = _DISALLOWED_CHAR_REGEXP.sub("", s)
+    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
     return s
 
 
@@ -353,6 +360,10 @@ def transform_skip_comments_in_html(html: str) -> str:
     html = skip_pattern.sub(r"<confluence-skip>\1</confluence-skip>", html)
 
     return html
+
+
+_FOOTNOTE_REF_REGEXP = re.compile(r"^fnref(\d*):(.+)$")
+_TASKLIST_REGEXP = re.compile(r"^\[([x X])\]")
 
 
 @dataclass
@@ -1104,25 +1115,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         image_data = render_latex(content, format=self.options.diagram_output_format)
         if self.options.diagram_output_format == "png":
-            width, height = extract_png_dimensions(data=image_data)
             image_data = remove_png_chunks(["pHYs"], source_data=image_data)
-            attrs = ImageAttributes(
-                context,
-                width=width,
-                height=height,
-                alt=content,
-                title=None,
-                caption="",
-                alignment=ImageAlignment(self.options.layout.get_image_alignment()),
-            )
-        else:
-            attrs = ImageAttributes.empty(context)
 
-        image_hash = hashlib.md5(image_data).hexdigest()
-        image_filename = attachment_name(f"formula_{image_hash}.{self.options.diagram_output_format}")
-        self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, content))
-        image = self.image_generator.create_attached_image(image_filename, attrs)
-        return image
+        attrs = ImageAttributes(
+            context,
+            width=None,
+            height=None,
+            alt=content,
+            title=None,
+            caption="",
+            alignment=ImageAlignment(self.options.layout.get_image_alignment()),
+        )
+        return self.image_generator.transform_attached_data(image_data, attrs, image_type="formula")
 
     def _transform_inline_math(self, elem: ElementType) -> ElementType:
         """
@@ -1217,7 +1221,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         ref_id = elem.attrib.pop("id", "")
         # Match fnref:NAME, fnref2:NAME, fnref3:NAME, etc.
-        match = re.match(r"^fnref(\d*):(.+)$", ref_id)
+        match = _FOOTNOTE_REF_REGEXP.match(ref_id)
         if match is None:
             raise DocumentError(elem, "expected: attribute `id` of format `fnref:NAME` or `fnrefN:NAME` applied on `<sup>` for a footnote reference")
         numeric_suffix = match.group(1)
@@ -1320,8 +1324,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             backref_info: list[tuple[ElementType, int | None, str]] = []
             for anchor in list(last_paragraph.iterchildren(tag="a")):
                 href = anchor.get("href", "")
-                match = re.match(r"^#fnref(\d*):(.+)$", href)
-                if match is not None:
+                if href.startswith("#") and (match := _FOOTNOTE_REF_REGEXP.match(href[1:])) is not None:
                     backref_info.append((anchor, int(match.group(1), base=10) if match.group(1) else None, match.group(2)))
 
             if not backref_info:
@@ -1398,14 +1401,14 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         for item in elem:
             if item.tag != "li":
                 raise DocumentError(elem, "expected: `<li>` as the HTML element for a task")
-            if not element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]):
+            if not _TASKLIST_REGEXP.match(item.text or ""):
                 raise DocumentError(elem, "expected: each `<li>` in a task list starting with [ ] or [x]")
 
         tasks: list[ElementType] = []
         for index, item in enumerate(elem, start=1):
             if item.text is None:
                 raise NotImplementedError("pre-condition check for tasklist not exhaustive")
-            match = re.match(r"^\[([x X])\]", item.text)
+            match = _TASKLIST_REGEXP.match(item.text)
             if match is None:
                 raise NotImplementedError("pre-condition check for tasklist not exhaustive")
 
@@ -1591,7 +1594,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             # <sup id="fnref:NAME"><a class="footnote-ref" href="#fn:NAME">1</a></sup>
             # Multiple references: <sup id="fnref2:NAME">...</sup>, <sup id="fnref3:NAME">...</sup>
-            case "sup" if re.match(r"^fnref\d*:", child.get("id", "")):
+            case "sup" if _FOOTNOTE_REF_REGEXP.match(child.get("id", "")):
                 self._transform_footnote_ref(child)
                 return ElementAction.RECURSE
 

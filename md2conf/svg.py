@@ -254,6 +254,9 @@ def fix_svg_dimensions(data: bytes) -> bytes:
     return data.replace(original_tag, new_tag, 1)
 
 
+_MEASURE_REGEXP = re.compile(r"^([+-]?(?:\d+\.?\d*|\.\d+))(%|px|pt|em|ex|in|cm|mm|pc)?$", re.IGNORECASE)
+
+
 def _parse_svg_length(value: str) -> int | None:
     """
     Parses an SVG length value and converts it to pixels.
@@ -271,7 +274,7 @@ def _parse_svg_length(value: str) -> int | None:
     value = value.strip()
 
     # Match number with optional unit
-    match = re.match(r"^([+-]?(?:\d+\.?\d*|\.\d+))(%|px|pt|em|ex|in|cm|mm|pc)?$", value, re.IGNORECASE)
+    match = _MEASURE_REGEXP.match(value)
     if not match:
         return None
 
@@ -321,7 +324,7 @@ def _parse_viewbox(viewbox: str) -> tuple[int, int] | None:
 
     # viewBox format: "min-x min-y width height"
     # Values can be separated by whitespace and/or commas
-    parts = re.split(r"[\s,]+", viewbox.strip())
+    parts = re.split(r"\s*,\s*|\s+", viewbox.strip())
     if len(parts) != 4:
         return None
 
