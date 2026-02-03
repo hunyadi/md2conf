@@ -39,6 +39,7 @@ class Arguments(argparse.Namespace):
     username: str | None
     api_key: str | None
     space: str | None
+    api_version: str
     loglevel: str
     root_page: str | None
     keep_hierarchy: bool
@@ -114,6 +115,13 @@ def get_parser() -> argparse.ArgumentParser:
         "-s",
         "--space",
         help="Confluence space key for pages to be published. If omitted, will default to user space.",
+    )
+    parser.add_argument(
+        "--api-version",
+        dest="api_version",
+        choices=["v1", "v2"],
+        default="v2",
+        help="Confluence REST API version to use (v1 for Data Center/Server, v2 for Cloud). Default: v2",
     )
     parser.add_argument(
         "-l",
@@ -275,6 +283,7 @@ def main() -> None:
                 api_key=args.api_key,
                 space_key=args.space,
                 headers=args.headers,
+                api_version=args.api_version,
             )
         except ArgumentError as e:
             parser.error(str(e))

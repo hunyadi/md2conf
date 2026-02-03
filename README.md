@@ -660,6 +660,8 @@ options:
   -a, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s, --space SPACE     Confluence space key for pages to be published. If omitted, will default to user space.
+  --api-version {v1,v2}
+                        Confluence REST API version to use (v1 for Data Center/Server, v2 for Cloud). Default: v2
   -l, --loglevel {debug,info,warning,error,critical}
                         Use this option to set the log verbosity.
   -r ROOT_PAGE          Root Confluence page to create new pages. If omitted, will raise exception when creating new pages.
@@ -727,6 +729,7 @@ properties = ConnectionProperties(
     user_name=str() or None,
     api_key=str(),
     headers={str(): str()} or None,
+    api_version='v1' or 'v2',  # Default: 'v2'
 )
 options = DocumentOptions(
     root_page_id=ConfluencePageID() or None,
@@ -766,9 +769,19 @@ with ConfluenceAPI(properties) as api:
 
 ### Confluence REST API v1 vs. v2
 
-*md2conf* version 0.3.0 has switched to using [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) for API calls such as retrieving current page content. Earlier versions used [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) exclusively. Unfortunately, Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025, and we don't have access to an environment where we could test retired v1 endpoints.
+*md2conf* supports both [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) and [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/). By default, *md2conf* uses API v2, which is the go to version for Confluence Cloud. By setting `--api-version v1`, you can use *md2conf* with Confluence Data Center / On-premises.
 
-If you are restricted to an environment with Confluence REST API v1, we recommend *md2conf* [version 0.2.7](https://pypi.org/project/markdown-to-confluence/0.2.7/). Even though we don't actively support it, we are not aware of any major issues, making it a viable option in an on-premise environment with only Confluence REST API v1 support.
+You can also set the API version using the `CONFLUENCE_API_VERSION` environment variable:
+
+```sh
+export CONFLUENCE_API_VERSION='v1'
+```
+
+**Version history:**
+
+*md2conf* version 0.3.0 switched to using Confluence REST API v2 by default for API calls such as retrieving current page content. Earlier versions used Confluence REST API v1 exclusively. Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025. Support for both REST API v1 and REST API v2 is now available.
+
+If you are restricted to an environment with Confluence REST API v1 only (such as older Data Center/Server installations), use the `--api-version v1` flag.
 
 ### Using the Docker container
 
