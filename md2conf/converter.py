@@ -860,20 +860,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         else:
             admonition_to_csf = {
                 "attention": "note",
-                "abstract": "note",
-                "bug": "warning",
                 "caution": "warning",
                 "danger": "warning",
                 "error": "warning",
-                "example": "info",
-                "failure": "warning",
                 "hint": "tip",
                 "important": "note",
                 "info": "info",
                 "note": "info",
-                "question": "info",
-                "quote": "info",
-                "success": "info",
                 "tip": "tip",
                 "warning": "note",
             }
