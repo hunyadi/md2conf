@@ -20,8 +20,6 @@ Text with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethro
 
 Text with subscript (H<sub>2</sub>O) and superscript (X<sup>2</sup>).
 
-Absolute link to an [external location](http://example.com/ "An absolute URL") or relative link to a [heading in the same document](#Basic-features "A relative link"). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to locations not exported may be skipped.
-
 An ordered list:
 
 1. *List item 1*
@@ -81,6 +79,14 @@ Confluence Storage Format macro passed unchanged to Confluence:
 ```
 
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép. :smile:
+
+## Links
+
+Absolute link to an [external location](http://example.com/ "An absolute URL") or relative link to a [heading in the same document](#Basic-features "A relative link"). Relative links to other pages are also supported if you are synchronizing a directory tree, not a single file. "Naked" links such as URLs and e-mails are automatically identified: <https://example.com> and <mailto:me@example.com>. Relative URLs to locations not exported may be skipped.
+
+[Link to a section](#Table-of-contents "A relative link")
+
+[md2conf](https://github.com/hunyadi/md2conf "A link shown as a card")
 
 ## LaTeX math equations
 

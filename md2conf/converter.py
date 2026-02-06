@@ -389,14 +389,21 @@ class ConfluencePanel:
 
 ConfluencePanel.from_class = {
     "attention": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-gray-subtlest)"),  # rST admonition
+    "abstract": ConfluencePanel("📄", "page_facing_up", "var(--ds-background-accent-teal-subtlest)"),  # Material for MkDocs
+    "bug": ConfluencePanel("🐛", "bug", "var(--ds-background-accent-red-subtlest)"),  # Material for MkDocs
     "caution": ConfluencePanel("❌", "x", "var(--ds-background-accent-orange-subtlest)"),
     "danger": ConfluencePanel("☠️", "skull_crossbones", "var(--ds-background-accent-red-subtlest)"),  # rST admonition
     "disclaimer": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-gray-subtlest)"),  # GitLab
     "error": ConfluencePanel("❌", "x", "var(--ds-background-accent-red-subtlest)"),  # rST admonition
+    "example": ConfluencePanel("💡", "bulb", "var(--ds-background-accent-purple-subtlest)"),  # Material for MkDocs
+    "failure": ConfluencePanel("❌", "x", "var(--ds-background-accent-red-subtlest)"),  # Material for MkDocs
     "flag": ConfluencePanel("🚩", "triangular_flag_on_post", "var(--ds-background-accent-orange-subtlest"),  # GitLab
     "hint": ConfluencePanel("💡", "bulb", "var(--ds-background-accent-green-subtlest)"),  # rST admonition
     "info": ConfluencePanel("ℹ️", "information_source", "var(--ds-background-accent-blue-subtlest)"),
     "note": ConfluencePanel("📝", "pencil", "var(--ds-background-accent-teal-subtlest)"),
+    "question": ConfluencePanel("❓", "question", "var(--ds-background-accent-green-subtlest)"),  # Material for MkDocs
+    "quote": ConfluencePanel("💬", "speech_balloon", "var(--ds-background-accent-gray-subtlest)"),  # Material for MkDocs
+    "success": ConfluencePanel("✅", "white_check_mark", "var(--ds-background-accent-green-subtlest)"),  # Material for MkDocs
     "tip": ConfluencePanel("💡", "bulb", "var(--ds-background-accent-green-subtlest)"),
     "important": ConfluencePanel("❗", "exclamation", "var(--ds-background-accent-purple-subtlest)"),
     "warning": ConfluencePanel("⚠️", "warning", "var(--ds-background-accent-yellow-subtlest)"),
@@ -649,6 +656,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 ),
             )
 
+    def _transform_card(self, paragraph: ElementType) -> ElementType | None:
+        """
+        Transforms stand-alone absolute links that fully occupy a paragraph into a preview card.
+        """
+
+        anchor = paragraph[0]
+        url = anchor.get("href")
+        if url is not None and is_absolute_url(url):
+            return HTML("a", {"href": url, "data-card-appearance": "block"}, anchor.text or url)
+        else:
+            return None
+
     def _transform_image(self, context: FormattingContext, image: ElementType) -> ElementType:
         "Inserts an attached or external image."
 
@@ -858,15 +877,33 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.use_panel:
             return self._transform_panel(elem, admonition)
         else:
+            # === Note to maintainers: ===
+            #
+            # Confluence Storage Format types used as values in the dictionary below are extremely counter-intuitive.
+            # The visual representation in a Confluence page does not correspond to what words such as "note", "tip"
+            # or "warning" might suggest. Specifically,
+            #
+            # * "info": a lowercase "i" shown in a blue circle
+            # * "note": an exclamation mark "!" shown in an orange triangle
+            # * "tip": a check-mark shown in a green circle
+            # * "warning": a lowercase "x" shown in a red circle
+
             admonition_to_csf = {
                 "attention": "note",
+                "abstract": "info",
+                "bug": "warning",
                 "caution": "warning",
                 "danger": "warning",
                 "error": "warning",
+                "example": "info",
+                "failure": "warning",
                 "hint": "tip",
                 "important": "note",
                 "info": "info",
                 "note": "info",
+                "question": "info",
+                "quote": "info",
+                "success": "tip",
                 "tip": "tip",
                 "warning": "note",
             }
@@ -1454,9 +1491,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             # <p>...</p>
             case "p":
+                child_elem_count = child_count(child)
+
                 # <p><img src="..." /></p>
-                if child_count(child) == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
+                if child_elem_count == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
                     return self._transform_image(FormattingContext.BLOCK, child[0])
+
+                # <p><a href="..."> ... </a></p>
+                elif child_elem_count == 1 and child[0].tag == "a" and not child[0].tail:
+                    link = self._transform_card(child)
+                    if link is not None:
+                        return link
+                    else:
+                        return ElementAction.RECURSE
 
                 # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
                 elif is_placeholder_for(child, "TOC"):

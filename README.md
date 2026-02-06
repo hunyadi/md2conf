@@ -359,6 +359,16 @@ You can configure diagram and image alignment using the JSON/YAML front-matter a
 
 Unfortunately, not every third-party app supports every alignment variant. For example, the draw\.io marketplace app supports left and center but not right alignment; and diagrams produced by the Mermaid marketplace app are always centered, ignoring the setting for alignment.
 
+### Page preview cards
+
+When a link to an absolute URL fully occupies a paragraph, it is automatically transformed into a block-level *card*, showing a document preview. These previews are represented in Confluence by the HTML element `<a>` having an attribute `data-card-appearance` with the value `block`. Thus, the following Markdown syntax will produce equivalent Confluence Storage Format output when the source file is converted:
+
+```md
+[Project page](https://github.com/hunyadi/md2conf)
+
+<a href="https://github.com/hunyadi/md2conf" data-card-appearance="block">Project page</a>
+```
+
 ### Confluence widgets
 
 *md2conf* supports some Confluence widgets. If the appropriate code is found when a Markdown document is processed, it is automatically replaced with Confluence Storage Format XML that produces the corresponding widget.

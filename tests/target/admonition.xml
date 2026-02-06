@@ -35,10 +35,22 @@
     <p>This is a structured macro panel showing a warning.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Abstract</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
 <ac:structured-macro ac:name="note" ac:schema-version="1">
   <ac:rich-text-body>
     <p><strong>Attention</strong></p>
     <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Bug</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="warning" ac:schema-version="1">
@@ -59,6 +71,18 @@
     <p>This is a structured macro panel defined in rST syntax.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Example</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Failure</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
 <ac:structured-macro ac:name="tip" ac:schema-version="1">
   <ac:rich-text-body>
     <p><strong>Hint</strong></p>
@@ -69,5 +93,23 @@
   <ac:rich-text-body>
     <p><strong>Important</strong></p>
     <p>This is a structured macro panel defined in rST syntax.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Question</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Quote</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p><strong>Success</strong></p>
+    <p>This is an admonition type used in Material for MkDocs.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
