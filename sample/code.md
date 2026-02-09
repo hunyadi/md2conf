@@ -167,6 +167,12 @@ Diff:
 + console.log("Hello, world!");
 ```
 
+Dockerfile:
+
+```dockerfile
+CMD ["/bin/sh", "-c", "echo 'It works!'"]
+```
+
 Erlang:
 
 ```erlang
@@ -196,6 +202,18 @@ write(*,'(g0.8)')reversed
 end program reversestring
 ```
 
+Gherkin:
+
+```gherkin
+Feature: Is it Friday yet?
+  Everybody wants to know when it's Friday
+
+  Scenario: Sunday isn't Friday
+    Given today is Sunday
+    When I ask whether it's Friday yet
+    Then I should be told "Nope"
+```
+
 Go:
 
 ```go
@@ -222,6 +240,12 @@ query {
 }
 ```
 
+Handlebars:
+
+```handlebars
+<p>{{firstname}} {{lastname}}</p>
+```
+
 Haskell:
 
 ```haskell
@@ -232,6 +256,16 @@ main :: IO ()
 main = do
     putStrLn "Hello, Haskell!"
     print (square 5)
+```
+
+HCL:
+
+```hcl
+server "web_app" {
+  address = "127.0.0.1"
+  port    = 8080
+  enabled = true
+}
 ```
 
 HTML:
@@ -404,6 +438,18 @@ main():-
     halt.
 ```
 
+Protobuf:
+
+```protobuf
+syntax = "proto3";
+
+message SearchRequest {
+  string query = 1;
+  int32 page_number = 2;
+  int32 results_per_page = 3;
+}
+```
+
 Python:
 
 ```python
@@ -505,6 +551,34 @@ Correct and improve the following examples of technical writing.
 \end{enumerate}
 
 \end{document}
+```
+
+TOML:
+
+```toml
+# This is a TOML document
+
+title = "TOML Example"
+
+[owner]
+name = "Tom Preston-Werner"
+dob = 1979-05-27T07:32:00-08:00
+
+[database]
+enabled = true
+ports = [ 8000, 8001, 8002 ]
+data = [ ["delta", "phi"], [3.14] ]
+temp_targets = { cpu = 79.5, case = 72.0 }
+
+[servers]
+
+[servers.alpha]
+ip = "10.0.0.1"
+role = "frontend"
+
+[servers.beta]
+ip = "10.0.0.2"
+role = "backend"
 ```
 
 TypeScript:

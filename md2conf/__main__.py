@@ -86,6 +86,12 @@ class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
 
 
 def get_parser() -> argparse.ArgumentParser:
+    deprecated: dict[str, Any]
+    if sys.version_info >= (3, 13):
+        deprecated = {"deprecated": True}
+    else:
+        deprecated = {}
+
     parser = argparse.ArgumentParser(formatter_class=PositionalOnlyHelpFormatter)
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
@@ -116,24 +122,22 @@ def get_parser() -> argparse.ArgumentParser:
         default=logging.getLevelName(logging.INFO),
         help="Use this option to set the log verbosity.",
     )
-    if sys.version_info >= (3, 13):
-        parser.add_argument(
-            "-r",
-            dest="root_page",
-            type=ConfluencePageID,
-            help="Root Confluence page to create new pages. (deprecated).",
-            metavar="CONFLUENCE_PAGE_ID",
-            deprecated=True,
-        )
+    parser.add_argument(
+        "-r",
+        dest="root_page",
+        type=ConfluencePageID,
+        help="Root Confluence page to create new pages. (deprecated).",
+        metavar="CONFLUENCE_PAGE_ID",
+        **deprecated,
+    )
     add_arguments(parser, ProcessorOptions)
-    if sys.version_info >= (3, 13):
-        parser.add_argument(
-            "--ignore-invalid-url",
-            dest="force_valid_url",
-            action="store_false",
-            help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations. (deprecated)",
-            deprecated=True,
-        )
+    parser.add_argument(
+        "--ignore-invalid-url",
+        dest="force_valid_url",
+        action="store_false",
+        help="Emit a warning but otherwise ignore relative URLs that point to ill-specified locations. (deprecated)",
+        **deprecated,
+    )
     parser.add_argument(
         "--local",
         action="store_true",
