@@ -18,8 +18,8 @@ from .converter import ConfluenceDocument, ElementType, get_volatile_attributes,
 from .csf import AC_ATTR, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
-from .options import ConfluencePageID, DocumentOptions
-from .processor import Converter, DocumentNode, Processor, ProcessorFactory
+from .options import ConfluencePageID, ProcessorOptions
+from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
 from .serializer import json_to_object, object_to_json
 from .xml import is_xml_equal, unwrap_substitute
 
@@ -108,7 +108,7 @@ class SynchronizingProcessor(Processor):
 
     api: ConfluenceSession
 
-    def __init__(self, api: ConfluenceSession, options: DocumentOptions, root_dir: Path) -> None:
+    def __init__(self, api: ConfluenceSession, options: ProcessorOptions, root_dir: Path) -> None:
         """
         Initializes a new processor instance.
 
@@ -365,7 +365,7 @@ class SynchronizingProcessor(Processor):
 class SynchronizingProcessorFactory(ProcessorFactory):
     api: ConfluenceSession
 
-    def __init__(self, api: ConfluenceSession, options: DocumentOptions) -> None:
+    def __init__(self, api: ConfluenceSession, options: ProcessorOptions) -> None:
         super().__init__(options, api.site)
         self.api = api
 
@@ -373,12 +373,15 @@ class SynchronizingProcessorFactory(ProcessorFactory):
         return SynchronizingProcessor(self.api, self.options, root_dir)
 
 
-class Publisher(Converter):
+class Publisher(DocumentProcessor):
     """
     The entry point for Markdown to Confluence conversion.
+
+    This class communicates with Confluence REST API, generating and synchronizing Confluence Storage Format XHTML
+    files and attachments.
 
     This is the class instantiated by the command-line application.
     """
 
-    def __init__(self, api: ConfluenceSession, options: DocumentOptions) -> None:
+    def __init__(self, api: ConfluenceSession, options: ProcessorOptions) -> None:
         super().__init__(SynchronizingProcessorFactory(api, options))

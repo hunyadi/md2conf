@@ -13,8 +13,8 @@ from pathlib import Path
 from .compatibility import override
 from .converter import ConfluenceDocument
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
-from .options import ConfluencePageID, DocumentOptions
-from .processor import Converter, DocumentNode, Processor, ProcessorFactory
+from .options import ConfluencePageID, ProcessorOptions
+from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class LocalProcessor(Processor):
 
     def __init__(
         self,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         site: ConfluenceSiteMetadata,
         *,
         out_dir: Path | None,
@@ -92,7 +92,7 @@ class LocalProcessorFactory(ProcessorFactory):
 
     def __init__(
         self,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         site: ConfluenceSiteMetadata,
         out_dir: Path | None = None,
     ) -> None:
@@ -103,14 +103,18 @@ class LocalProcessorFactory(ProcessorFactory):
         return LocalProcessor(self.options, self.site, out_dir=self.out_dir, root_dir=root_dir)
 
 
-class LocalConverter(Converter):
+class LocalConverter(DocumentProcessor):
     """
     The entry point for Markdown to Confluence conversion.
+
+    This class converts documents locally, producing Confluence Storage Format XHTML files as output.
+
+    This is the class instantiated by the command-line application.
     """
 
     def __init__(
         self,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         site: ConfluenceSiteMetadata,
         out_dir: Path | None = None,
     ) -> None:

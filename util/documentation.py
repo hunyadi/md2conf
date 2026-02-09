@@ -19,7 +19,7 @@ from typing import Any, get_type_hints
 from md2conf.__main__ import get_help
 from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
-from md2conf.options import DocumentOptions
+from md2conf.options import ProcessorOptions
 from md2conf.publisher import Publisher
 from md2conf.reflection import format_initializer, get_nested_types
 
@@ -73,12 +73,12 @@ def update_python(text: str) -> str:
     "Updates the Python sample code section in `README.md`."
 
     tps: set[type[Any]] = {ConfluenceAPI, Publisher}
-    tps.update(get_nested_types([ConnectionProperties, DocumentOptions]))
+    tps.update(get_nested_types([ConnectionProperties, ProcessorOptions]))
 
     python_code = f"""
 {get_imports(list(tps))}
 properties = {format_dataclass(ConnectionProperties)}
-options = {format_dataclass(DocumentOptions)}
+options = {format_dataclass(ProcessorOptions)}
 with {ConfluenceAPI.__name__}(properties) as api:
     {Publisher.__name__}(api, options).process(mdpath)
 """

@@ -35,7 +35,7 @@ from .latex import render_latex
 from .markdown import markdown_to_html, markdown_with_line_numbers
 from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, ConverterOptions, DocumentOptions
+from .options import ConfluencePageID, ConverterOptions, ProcessorOptions
 from .plantuml.extension import PlantUMLExtension
 from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner
@@ -1690,14 +1690,14 @@ class ConfluenceDocument:
     images: list[ImageData]
     embedded_files: dict[str, EmbeddedFileData]
 
-    options: DocumentOptions
+    options: ProcessorOptions
     root: ElementType
 
     @classmethod
     def create(
         cls,
         path: Path,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: ConfluencePageCollection,
@@ -1723,7 +1723,7 @@ class ConfluenceDocument:
         self,
         path: Path,
         document: ScannedDocument,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
         page_metadata: ConfluencePageCollection,
@@ -1754,7 +1754,7 @@ class ConfluenceDocument:
 
         # modify HTML as necessary
         if self.options.generated_by is not None:
-            generated_by = props.generated_by or self.options.generated_by
+            generated_by = props.generated_by or self.options.generated_by.string
         else:
             generated_by = None
 

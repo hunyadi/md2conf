@@ -21,7 +21,7 @@ from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
 from md2conf.compatibility import override
 from md2conf.converter import ElementAction, NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string
-from md2conf.options import ConfluencePageID, ConverterOptions, DocumentOptions
+from md2conf.options import ConfluencePageID, ConverterOptions, ProcessorOptions
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
@@ -116,8 +116,8 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            options = DocumentOptions(
-                root_page_id=self.feature_test_page_id,
+            options = ProcessorOptions(
+                root_page=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
                     render_drawio=False,
@@ -131,8 +131,8 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            options = DocumentOptions(
-                root_page_id=self.feature_test_page_id,
+            options = ProcessorOptions(
+                root_page=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
                     render_drawio=False,
@@ -146,8 +146,8 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            options = DocumentOptions(
-                root_page_id=self.feature_test_page_id,
+            options = ProcessorOptions(
+                root_page=self.feature_test_page_id,
                 skip_update=True,
                 converter=ConverterOptions(
                     render_drawio=False,
@@ -208,8 +208,8 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             Publisher(
                 api,
-                DocumentOptions(
-                    root_page_id=self.feature_test_page_id,
+                ProcessorOptions(
+                    root_page=self.feature_test_page_id,
                     converter=ConverterOptions(
                         render_drawio=False,
                         render_mermaid=False,

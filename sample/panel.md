@@ -5,7 +5,7 @@ title: "Admonitions and alerts"
 Run the following command to synchronize this page:
 
 ```sh
-python -m md2conf --use-panel sample/panel.md
+python -m md2conf --skip-update --use-panel sample/panel.md
 ```
 
 ## Admonitions

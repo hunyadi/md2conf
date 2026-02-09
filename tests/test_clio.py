@@ -29,7 +29,6 @@ class CompositeOption:
 
 @dataclass
 class Options:
-    composite: CompositeOption = field(default_factory=CompositeOption, metadata=composite_option())
     bool_flag: bool = field(
         default=False,
         metadata=boolean_option(
@@ -37,14 +36,24 @@ class Options:
             "Help text for the case when flag is disabled.",
         ),
     )
-    untracked: str = "untracked"
+    untracked_value: str = "untracked"
+    untracked_class: CompositeOption = field(default_factory=CompositeOption)
+
+
+@dataclass
+class NestedOptions(Options):
+    nested: CompositeOption = field(default_factory=CompositeOption, metadata=composite_option())
+
+
+@dataclass
+class FlatOptions(Options):
+    flat: CompositeOption = field(default_factory=CompositeOption, metadata=composite_option(flatten=True))
 
 
 class TestCommandLine(unittest.TestCase):
-    def test_cli(self) -> None:
+    def test_hierarchical(self) -> None:
         parser = ArgumentParser()
-        add_arguments(parser, Options)
-        args = parser.parse_args(["--composite-int-val=23", "--composite-optional-int-val=45", "--composite-literal-val=three", "--bool-flag"])
+        add_arguments(parser, NestedOptions)
 
         s = StringIO()
         parser.print_help(file=s)
@@ -53,13 +62,40 @@ class TestCommandLine(unittest.TestCase):
         self.assertIn("options:", text)
         self.assertIn("--bool-flag", text)
         self.assertIn("--no-bool-flag", text)
-        self.assertIn("--composite-int-val INT", text)
+        self.assertIn("--nested-int-val INT", text)
 
-        options = get_options(args, Options)
+        args = parser.parse_args(["--nested-int-val=23", "--nested-optional-int-val=45", "--nested-str-val=text", "--nested-literal-val=three", "--bool-flag"])
+        options = get_options(args, NestedOptions)
+
         self.assertTrue(options.bool_flag)
-        self.assertEqual(options.composite.int_val, 23)
-        self.assertEqual(options.composite.optional_int_val, 45)
-        self.assertEqual(options.composite.literal_val, "three")
+        self.assertEqual(options.nested.int_val, 23)
+        self.assertEqual(options.nested.optional_int_val, 45)
+        self.assertEqual(options.nested.str_val, "text")
+        self.assertEqual(options.nested.literal_val, "three")
+        self.assertEqual(options.nested.untracked_val, "untracked")
+
+    def test_flat(self) -> None:
+        parser = ArgumentParser()
+        add_arguments(parser, FlatOptions)
+
+        s = StringIO()
+        parser.print_help(file=s)
+        text = s.getvalue()
+        self.assertIn("usage:", text)
+        self.assertIn("options:", text)
+        self.assertIn("--bool-flag", text)
+        self.assertIn("--no-bool-flag", text)
+        self.assertIn("--int-val INT", text)
+
+        args = parser.parse_args(["--int-val=23", "--optional-int-val=45", "--str-val=text", "--literal-val=three", "--bool-flag"])
+        options = get_options(args, FlatOptions)
+
+        self.assertTrue(options.bool_flag)
+        self.assertEqual(options.flat.int_val, 23)
+        self.assertEqual(options.flat.optional_int_val, 45)
+        self.assertEqual(options.flat.str_val, "text")
+        self.assertEqual(options.flat.literal_val, "three")
+        self.assertEqual(options.flat.untracked_val, "untracked")
 
 
 if __name__ == "__main__":
