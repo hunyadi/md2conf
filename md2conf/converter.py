@@ -806,7 +806,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 if extension.matches_fenced(language_name, content):
                     return extension.transform_fenced(content)
 
-            language_id = _LANGUAGES.get(language_name)
+            language_id = _LANGUAGES.get(
+                language_name,
+                None
+                if self.options.force_valid_language
+                else language_name,
+            )
         else:
             language_id = None
 
