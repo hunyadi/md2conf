@@ -808,9 +808,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             language_id = _LANGUAGES.get(
                 language_name,
-                None
-                if self.options.force_valid_language
-                else language_name,
+                None if self.options.force_valid_language else language_name,
             )
         else:
             language_id = None

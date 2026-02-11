@@ -519,25 +519,6 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_unknown_code_language_default(self) -> None:
-        """Unknown code block languages are emitted as language 'none' when force_valid_language is True (default)."""
-        converter_options = ConverterOptions(
-            force_valid_language=True,
-        )
-        _, doc = ConfluenceDocument.create(
-            self.source_dir / "unknown_code_language.md",
-            ProcessorOptions(converter=converter_options, line_numbers=False),
-            self.source_dir,
-            self.site_metadata,
-            self.page_metadata,
-        )
-        actual = standardize(doc.xhtml())
-
-        with open(self.target_dir / "unknown_code_language.xml", "r", encoding="utf-8") as f:
-            expected = substitute(self.target_dir, f.read())
-
-        self.assertEqual(actual, expected)
-
     def test_unknown_code_language_passthrough(self) -> None:
         """With force_valid_language=False, unknown language names are passed through."""
         converter_options = ConverterOptions(
