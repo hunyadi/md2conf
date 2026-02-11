@@ -107,6 +107,8 @@ class ConverterOptions:
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
+    :param force_valid_language: When true, only allow supported languages in code blocks (unsupported languages are ignored);
+        if disabled, use unknown language names as-is (Confluence may still highlight code).
     :param layout: Layout options for content on a Confluence page.
     """
 
@@ -182,6 +184,13 @@ class ConverterOptions:
         metadata=boolean_option(
             "Transform admonitions and alerts into a Confluence custom panel.",
             "Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning).",
+        ),
+    )
+    force_valid_language: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Only allow supported languages in code blocks (unsupported languages are ignored)",
+            "Use unknown language names as-is (Confluence may still highlight code).",
         ),
     )
     layout: LayoutOptions = field(default_factory=LayoutOptions, metadata=composite_option())

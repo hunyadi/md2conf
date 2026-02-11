@@ -707,6 +707,10 @@ options:
   --no-webui-links      Use hierarchical links including space and page ID. (default)
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --no-use-panel        Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning). (default)
+  --force-valid-language
+                        Only allow supported languages in code blocks (unsupported languages are ignored) (default)
+  --no-force-valid-language
+                        Use unknown language names as-is (Confluence may still highlight code).
   --layout-image-alignment {center,left,right,None}
                         Alignment for block-level images and formulas.
   --layout-image-max-width INT
@@ -762,6 +766,7 @@ options = ProcessorOptions(
         diagram_output_format='png' or 'svg',
         webui_links=bool(),
         use_panel=bool(),
+        force_valid_language=bool(),
         layout=LayoutOptions(
             image=ImageLayoutOptions(
                 alignment='center' or 'left' or 'right' or None,

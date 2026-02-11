@@ -519,6 +519,22 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_unknown_code_language_passthrough(self) -> None:
+        """With force_valid_language=False, unknown language names are passed through."""
+        converter_options = ConverterOptions(
+            force_valid_language=False,
+        )
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "unknown_code_language.md",
+            ProcessorOptions(converter=converter_options, line_numbers=False),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+        )
+        actual = standardize(doc.xhtml())
+
+        self.assertIn('ac:name="language">zig<', actual)
+
 
 if __name__ == "__main__":
     unittest.main()
