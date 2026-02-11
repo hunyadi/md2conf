@@ -22,7 +22,6 @@ from types import TracebackType
 from typing import Any, TypeVar, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
-import orjson
 import requests
 import truststore
 from requests.adapters import HTTPAdapter
@@ -1297,6 +1296,50 @@ class ConfluenceSessionV2(ConfluenceSession):
         )
 
 
+@dataclass
+class ConfluenceSpace:
+    key: str
+
+
+@dataclass
+class ConfluencePageRef:
+    id: str
+
+
+@dataclass
+class ConfluencePagePropertiesV1:
+    id: str
+    status: ConfluenceStatus
+    title: str
+    space: ConfluenceSpace
+    version: ConfluenceContentVersion
+    ancestors: list[ConfluencePageRef]
+
+
+@dataclass
+class ConfluencePageV1(ConfluencePagePropertiesV1):
+    body: ConfluencePageBody
+
+
+@dataclass
+class ConfluenceUpdatePageRequestV1:
+    id: str
+    type: str
+    title: str
+    space: ConfluenceSpace
+    body: ConfluencePageBody
+    version: ConfluenceContentVersion
+
+
+@dataclass
+class ConfluenceCreatePageRequestV1:
+    type: str
+    title: str
+    space: ConfluenceSpace
+    body: ConfluencePageBody
+    ancestors: list[ConfluencePageRef]
+
+
 class ConfluenceSessionV1(ConfluenceSession):
     """
     Represents an active connection to a Confluence server.
@@ -1434,8 +1477,8 @@ class ConfluenceSessionV1(ConfluenceSession):
         if len(results) != 1:
             raise ConfluenceError(f"unique page not found with title: {title}")
 
-        page_data = typing.cast(dict[str, JsonType], results[0])
-        return self._parse_page_properties(page_data)
+        page = json_to_object(ConfluencePagePropertiesV1, results[0])
+        return self._parse_page_properties(page)
 
     @override
     def get_page(self, page_id: str, *, retries: int = 3, retry_delay: float = 1.0) -> ConfluencePage:
@@ -1445,8 +1488,8 @@ class ConfluenceSessionV1(ConfluenceSession):
         last_error: requests.HTTPError | None = None
         for attempt in range(retries + 1):
             try:
-                data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
-                return self._parse_page(data)
+                page = self._get(ConfluenceVersion.VERSION_1, path, ConfluencePageV1, query=query)
+                return self._parse_page(page)
             except requests.HTTPError as e:
                 if e.response is not None and e.response.status_code == 404 and attempt < retries:
                     delay = retry_delay * (2**attempt) + random.uniform(0, 1)
@@ -1460,47 +1503,20 @@ class ConfluenceSessionV1(ConfluenceSession):
             raise last_error
         raise ConfluenceError(f"failed to get page: {page_id}")
 
-    def _extract_parent_id_from_ancestors(self, data: dict[str, JsonType]) -> str | None:
+    def _parse_page(self, page: ConfluencePageV1) -> ConfluencePage:
         """
-        Extracts the parent page ID from the ancestors array in Confluence REST API v1 responses.
+        Parses a REST API v1 page response into a page data-class object.
 
-        The immediate parent is the last item in the ancestors array.
-
-        :param data: Raw JSON response from API v1 containing ancestors.
-        :returns: Parent page ID, or None if no ancestors exist.
-        """
-        ancestors = typing.cast(list[JsonType], data.get("ancestors", []))
-        if ancestors:
-            last_ancestor = typing.cast(dict[str, JsonType], ancestors[-1])
-            return typing.cast(str, last_ancestor.get("id"))
-        return None
-
-    def _parse_page(self, data: dict[str, JsonType]) -> ConfluencePage:
-        """
-        Parses API v1 page response into page object.
-
-        Handles the nested structure of v1 responses.
-
-        :param data: Raw JSON response from API v1.
-        :returns: Parsed ConfluencePage object.
+        :param page: Page response from REST API v1.
+        :returns: Page object.
         """
 
-        # Extract nested data
-        space_data = typing.cast(dict[str, JsonType], data.get("space", {}))
-        version_data = typing.cast(dict[str, JsonType], data.get("version", {}))
-        body_data = typing.cast(dict[str, JsonType], data.get("body", {}))
-        storage_data = typing.cast(dict[str, JsonType], body_data.get("storage", {}))
-
-        # Extract parent ID from ancestors array
-        parent_id = self._extract_parent_id_from_ancestors(data)
-
-        # Build ConfluencePage object
-        # Note: For v1, we store the space KEY in spaceId field (v1 doesn't use space IDs)
+        parent_id = page.ancestors[-1].id if page.ancestors else None
         return ConfluencePage(
-            id=typing.cast(str, data["id"]),
-            status=ConfluenceStatus(typing.cast(str, data.get("status", "current"))),
-            title=typing.cast(str, data["title"]),
-            spaceId=self.space_key_to_id(typing.cast(str, space_data.get("key", ""))),
+            id=page.id,
+            status=page.status,
+            title=page.title,
+            spaceId=self.space_key_to_id(page.space.key),
             parentId=parent_id,
             parentType=ConfluencePageParentContentType.PAGE if parent_id else None,
             position=None,
@@ -1508,36 +1524,24 @@ class ConfluenceSessionV1(ConfluenceSession):
             ownerId="",
             lastOwnerId=None,
             createdAt=datetime.datetime.now(),  # REST API v1 doesn't include this in basic response
-            version=ConfluenceContentVersion(
-                number=typing.cast(int, version_data.get("number", 1)),
-                minorEdit=typing.cast(bool, version_data.get("minorEdit", False)),
-            ),
-            body=ConfluencePageBody(
-                storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=typing.cast(str, storage_data.get("value", "")))
-            ),
+            version=page.version,
+            body=page.body,
         )
 
-    def _parse_page_properties(self, data: dict[str, JsonType]) -> ConfluencePageProperties:
+    def _parse_page_properties(self, page: ConfluencePagePropertiesV1) -> ConfluencePageProperties:
         """
-        Parses Confluence REST API v1 page data into a data-class for page properties.
+        Parses a REST API v1 page details response into a page properties data-class object.
 
-        :param data: Raw JSON response from API v1.
+        :param page: Page details response from REST API v1.
         :returns: Page properties without body content.
         """
 
-        # Extract nested data
-        space_data = typing.cast(dict[str, JsonType], data.get("space", {}))
-        version_data = typing.cast(dict[str, JsonType], data.get("version", {}))
-
-        # Extract parent ID from ancestors array
-        parent_id = self._extract_parent_id_from_ancestors(data)
-
-        # Build page properties object
+        parent_id = page.ancestors[-1].id if page.ancestors else None
         return ConfluencePageProperties(
-            id=typing.cast(str, data["id"]),
-            status=ConfluenceStatus(typing.cast(str, data.get("status", "current"))),
-            title=typing.cast(str, data["title"]),
-            spaceId=self.space_key_to_id(typing.cast(str, space_data.get("key", ""))),
+            id=page.id,
+            status=page.status,
+            title=page.title,
+            spaceId=self.space_key_to_id(page.space.key),
             parentId=parent_id,
             parentType=ConfluencePageParentContentType.PAGE if parent_id else None,
             position=None,
@@ -1545,10 +1549,7 @@ class ConfluenceSessionV1(ConfluenceSession):
             ownerId="",
             lastOwnerId=None,
             createdAt=datetime.datetime.now(),  # REST API v1 doesn't include this in basic response
-            version=ConfluenceContentVersion(
-                number=typing.cast(int, version_data.get("number", 1)),
-                minorEdit=typing.cast(bool, version_data.get("minorEdit", False)),
-            ),
+            version=page.version,
         )
 
     @override
@@ -1556,32 +1557,13 @@ class ConfluenceSessionV1(ConfluenceSession):
         path = f"/content/{page_id}"
         query = {"expand": "space,version,ancestors"}
 
-        data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
-        return self._parse_page_properties(data)
+        page = self._get(ConfluenceVersion.VERSION_1, path, ConfluencePagePropertiesV1, query=query)
+        return self._parse_page_properties(page)
 
     @override
     def update_page(self, page_id: str, content: str, *, title: str, version: int, message: str) -> None:
         """
         Updates a page using the Confluence REST API v1.
-
-        API v1 endpoint: PUT /rest/api/content/{id}
-
-        Request body:
-        ```
-        {
-            "id": "123",
-            "type": "page",
-            "title": "Page Title",
-            "space": {"key": "SPACE"},
-            "body": {
-                "storage": {
-                    "value": "<p>Content</p>",
-                    "representation": "storage"
-                }
-            },
-            "version": {"number": 2, "minorEdit": true}
-        }
-        ```
 
         :param page_id: The Confluence page ID.
         :param content: Confluence Storage Format XHTML.
@@ -1592,48 +1574,20 @@ class ConfluenceSessionV1(ConfluenceSession):
 
         LOGGER.info("Updating page: %s", page_id)
         path = f"/content/{page_id}"
-        request_body: dict[str, JsonType] = {
-            "id": page_id,
-            "type": "page",
-            "title": title,
-            "space": {"key": self.site.space_key or ""},
-            "body": {"storage": {"value": content, "representation": "storage"}},
-            "version": {"number": version, "minorEdit": True},
-        }
-
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.put(
-            url,
-            data=orjson.dumps(request_body),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
+        body = ConfluenceUpdatePageRequestV1(
+            id=page_id,
+            type="page",
+            title=title,
+            space=ConfluenceSpace(key=self.site.space_key or ""),
+            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
+            version=ConfluenceContentVersion(number=version, minorEdit=True),
         )
-        response.raise_for_status()
+        self._put(ConfluenceVersion.VERSION_1, path, body, None)
 
     @override
     def create_page(self, *, title: str, content: str, parent_id: str, space_id: str | None = None) -> ConfluencePage:
         """
         Creates a new page using Confluence REST API v1.
-
-        API v1 endpoint: POST /rest/api/content
-
-        Request body:
-        ```
-        {
-            "type": "page",
-            "title": "Page Title",
-            "space": {"key": "SPACE"},
-            "body": {
-                "storage": {
-                    "value": "<p>Content</p>",
-                    "representation": "storage"
-                }
-            },
-            "ancestors": [{"id": "parent_id"}]
-        }
         ```
 
         :param title: Page title.
@@ -1647,28 +1601,15 @@ class ConfluenceSessionV1(ConfluenceSession):
 
         space_key = self.optional_space_id_to_key(space_id)
         path = "/content"
-        request_body: dict[str, JsonType] = {
-            "type": "page",
-            "title": title,
-            "space": {"key": space_key},
-            "body": {"storage": {"value": content, "representation": "storage"}},
-            "ancestors": [{"id": parent_id}],
-        }
-
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.post(
-            url,
-            data=orjson.dumps(request_body),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
+        body = ConfluenceCreatePageRequestV1(
+            type="page",
+            title=title,
+            space=ConfluenceSpace(key=space_key),
+            body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
+            ancestors=[ConfluencePageRef(id=parent_id)],
         )
-        response.raise_for_status()
-
-        data = typing.cast(dict[str, JsonType], response.json())
-        return self._parse_page(data)
+        page = self._post(ConfluenceVersion.VERSION_1, path, body, ConfluencePageV1)
+        return self._parse_page(page)
 
     @override
     def delete_page(self, page_id: str, *, purge: bool = False) -> None:
@@ -1742,8 +1683,7 @@ class ConfluenceSessionV1(ConfluenceSession):
     def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
         path = f"/content/{page_id}/property/{key}"
         try:
-            data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType])
-            return self._parse_content_property(data)
+            return self._get(ConfluenceVersion.VERSION_1, path, ConfluenceIdentifiedContentProperty)
         except requests.HTTPError as e:
             if e.response is not None and e.response.status_code == 404:
                 return None
@@ -1758,23 +1698,7 @@ class ConfluenceSessionV1(ConfluenceSession):
     @override
     def add_content_property_to_page(self, page_id: str, property: ConfluenceContentProperty) -> ConfluenceIdentifiedContentProperty:
         path = f"/content/{page_id}/property"
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-
-        request_body: dict[str, JsonType] = {"key": property.key, "value": property.value}
-
-        response = self.session.post(
-            url,
-            data=orjson.dumps(request_body),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
-        )
-        response.raise_for_status()
-
-        data = typing.cast(dict[str, JsonType], response.json())
-        return self._parse_content_property(data)
+        return self._post(ConfluenceVersion.VERSION_1, path, property, ConfluenceIdentifiedContentProperty)
 
     @override
     def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
@@ -1811,37 +1735,9 @@ class ConfluenceSessionV1(ConfluenceSession):
         self, page_id: str, property_id: str, version: int, property: ConfluenceContentProperty
     ) -> ConfluenceIdentifiedContentProperty:
         path = f"/content/{page_id}/property/{property.key}"
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-
-        request_body: dict[str, JsonType] = {"key": property.key, "value": property.value, "version": {"number": version}}
-
-        response = self.session.put(
-            url,
-            data=orjson.dumps(request_body),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
-        )
-        response.raise_for_status()
-
-        data = typing.cast(dict[str, JsonType], response.json())
-        return self._parse_content_property(data)
-
-    def _parse_content_property(self, data: dict[str, JsonType]) -> ConfluenceIdentifiedContentProperty:
-        """
-        Parses Confluence REST API v1 content property response.
-
-        :param data: Raw JSON response from API v1.
-        :returns: Parsed content property.
-        """
-
-        version_data = typing.cast(dict[str, JsonType], data["version"])
-
-        return ConfluenceIdentifiedContentProperty(
-            id=typing.cast(str, data["id"]),
-            key=typing.cast(str, data["key"]),
-            value=data["value"],
-            version=ConfluenceContentVersion(number=typing.cast(int, version_data["number"])),
+        return self._put(
+            ConfluenceVersion.VERSION_1,
+            path,
+            ConfluenceVersionedContentProperty(key=property.key, value=property.value, version=ConfluenceContentVersion(number=version)),
+            ConfluenceIdentifiedContentProperty,
         )
