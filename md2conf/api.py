@@ -1322,6 +1322,34 @@ class ConfluencePageV1(ConfluencePagePropertiesV1):
 
 
 @dataclass
+class ConfluenceAttachmentExtensions:
+    comment: str | None = None
+    mediaType: str = "application/octet-stream"
+    fileSize: int = 0
+
+
+@dataclass
+class ConfluenceAttachmentMetadata:
+    comment: str | None
+
+
+@dataclass
+class ConfluenceAttachmentLinks:
+    webui: str = ""
+    download: str = ""
+
+
+@dataclass
+class ConfluenceAttachmentV1:
+    id: str
+    status: ConfluenceStatus
+    title: str | None
+    extensions: ConfluenceAttachmentExtensions
+    metadata: ConfluenceAttachmentMetadata
+    _links: ConfluenceAttachmentLinks
+
+
+@dataclass
 class ConfluenceUpdatePageRequestV1:
     id: str
     type: str
@@ -1419,45 +1447,33 @@ class ConfluenceSessionV1(ConfluenceSession):
         results = typing.cast(list[JsonType], data["results"])
         if len(results) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
-        result = typing.cast(dict[str, JsonType], results[0])
-        return self._parse_attachment(result, page_id)
+        attachment = json_to_object(ConfluenceAttachmentV1, results[0])
+        return self._parse_attachment(page_id, attachment)
 
-    def _parse_attachment(self, data: dict[str, JsonType], page_id: str) -> ConfluenceAttachment:
+    def _parse_attachment(self, page_id: str, att: ConfluenceAttachmentV1) -> ConfluenceAttachment:
         """
-        Parses API v1 attachment response into an attachment object.
-
-        REST API v1 response structure has fields at different locations than v2:
-
-        * extensions.mediaType, extensions.fileSize, extensions.comment
-        * metadata.comment (fallback for comment)
-        * _links.download, _links.webui
+        Parses an API v1 attachment response into an attachment object.
         """
-
-        # Extract nested data
-        extensions = typing.cast(dict[str, JsonType], data.get("extensions", {}))
-        metadata = typing.cast(dict[str, JsonType], data.get("metadata", {}))
-        links = typing.cast(dict[str, JsonType], data.get("_links", {}))
 
         # Get comment from extensions or metadata
-        comment = typing.cast(str | None, extensions.get("comment") or metadata.get("comment"))
+        comment = att.extensions.comment or att.metadata.comment
 
-        # Parse creation date if available, otherwise use current time
-        created_at = datetime.datetime.now()
         # v1 doesn't always include createdAt in attachment responses
+        created_at = datetime.datetime.now()
 
         return ConfluenceAttachment(
-            id=typing.cast(str, data["id"]),
-            status=ConfluenceStatus(typing.cast(str, data["status"])),
-            title=typing.cast(str | None, data.get("title")),
+            id=att.id,
+            status=att.status,
+            title=att.title,
             createdAt=created_at,
             pageId=page_id,  # v1 doesn't include pageId in response, use parameter
-            mediaType=typing.cast(str, extensions.get("mediaType", "application/octet-stream")),
+            mediaType=att.extensions.mediaType,
             mediaTypeDescription=None,  # v1 doesn't include this
             comment=comment,
-            fileId=typing.cast(str, data["id"]),  # v1 uses same ID for file and attachment
-            fileSize=typing.cast(int, extensions.get("fileSize", 0)),
-            webuiLink=typing.cast(str, links.get("webui", "")),
-            downloadLink=typing.cast(str, links.get("download", "")),
+            fileId=att.id,  # v1 uses same ID for file and attachment
+            fileSize=att.extensions.fileSize,
+            webuiLink=att._links.webui,  # pyright: ignore[reportPrivateUsage]
+            downloadLink=att._links.download,  # pyright: ignore[reportPrivateUsage]
             version=ConfluenceContentVersion(
                 number=1,  # v1 doesn't include version in basic attachment response
                 minorEdit=False,
