@@ -835,7 +835,7 @@ class ConfluenceSession(ABC):
             query = {"name": label.name}
 
             url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
-            response = self.session.delete(url, verify=True)
+            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
             if response.text:
                 LOGGER.debug("Received HTTP payload:\n%s", response.text)
             response.raise_for_status()
@@ -1216,7 +1216,7 @@ class ConfluenceSessionV2(ConfluenceSession):
         # move to trash
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
         LOGGER.info("Moving page to trash: %s", page_id)
-        response = self.session.delete(url, verify=True)
+        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
         response.raise_for_status()
 
         if purge:
@@ -1224,7 +1224,7 @@ class ConfluenceSessionV2(ConfluenceSession):
             query = {"purge": "true"}
             url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
             LOGGER.info("Permanently deleting page: %s", page_id)
-            response = self.session.delete(url, verify=True)
+            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
             response.raise_for_status()
 
     @override
@@ -1286,7 +1286,7 @@ class ConfluenceSessionV2(ConfluenceSession):
     def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
         path = f"/pages/{page_id}/properties/{property_id}"
         url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.delete(url, verify=True)
+        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
         response.raise_for_status()
 
     @override
@@ -1340,7 +1340,7 @@ class ConfluenceAttachmentExtensions:
 
 @dataclass
 class ConfluenceAttachmentMetadata:
-    comment: str | None
+    comment: str | None = None
 
 
 @dataclass
@@ -1656,20 +1656,20 @@ class ConfluenceSessionV1(ConfluenceSession):
             # Move to trash
             url = self._build_url(ConfluenceVersion.VERSION_1, path)
             LOGGER.info("Moving page to trash: %s", page_id)
-            response = self.session.delete(url, verify=True)
+            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
             response.raise_for_status()
 
             # Purge from trash
             query = {"status": "trashed"}
             url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
             LOGGER.info("Permanently deleting page: %s", page_id)
-            response = self.session.delete(url, verify=True)
+            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
             response.raise_for_status()
         else:
             # Just move to trash
             url = self._build_url(ConfluenceVersion.VERSION_1, path)
             LOGGER.info("Moving page to trash: %s", page_id)
-            response = self.session.delete(url, verify=True)
+            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
             response.raise_for_status()
 
     @override
@@ -1754,7 +1754,7 @@ class ConfluenceSessionV1(ConfluenceSession):
 
         path = f"/content/{page_id}/property/{property_key}"
         url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.delete(url, verify=True)
+        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
         response.raise_for_status()
 
     @override
