@@ -394,21 +394,23 @@ class ConfluenceAPI:
         if self.properties.headers:
             session.headers.update(self.properties.headers)
 
-        if self.properties.api_version == "v1":
-            self.session = ConfluenceSessionV1(
-                session,
-                domain=self.properties.domain,
-                base_path=self.properties.base_path,
-                space_key=self.properties.space_key,
-            )
-        else:
-            self.session = ConfluenceSessionV2(
-                session,
-                api_url=self.properties.api_url,
-                domain=self.properties.domain,
-                base_path=self.properties.base_path,
-                space_key=self.properties.space_key,
-            )
+        match self.properties.api_version:
+            case "v2":
+                self.session = ConfluenceSessionV2(
+                    session,
+                    api_url=self.properties.api_url,
+                    domain=self.properties.domain,
+                    base_path=self.properties.base_path,
+                    space_key=self.properties.space_key,
+                )
+            case "v1":
+                self.session = ConfluenceSessionV1(
+                    session,
+                    domain=self.properties.domain,
+                    base_path=self.properties.base_path,
+                    space_key=self.properties.space_key,
+                )
+
         return self.session
 
     def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
@@ -458,7 +460,7 @@ class ConfluenceSession(ABC):
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
-        response = self.session.get(url, headers={"Content-Type": "application/json", "Accept": "application/json"}, verify=True)
+        response = self.session.get(url, headers={"Accept": "application/json"}, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
@@ -501,6 +503,13 @@ class ConfluenceSession(ABC):
         response = self.session.put(url, data=data, headers=headers, verify=True)
         response.raise_for_status()
         return response_cast(response_type, response)
+
+    def _delete(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None) -> None:
+        url = self._build_url(version, path, query)
+        response = self.session.delete(url, verify=True)
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
 
     @abstractmethod
     def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
@@ -832,13 +841,7 @@ class ConfluenceSession(ABC):
 
         path = f"/content/{page_id}/label"
         for label in labels:
-            query = {"name": label.name}
-
-            url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
-            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-            if response.text:
-                LOGGER.debug("Received HTTP payload:\n%s", response.text)
-            response.raise_for_status()
+            self._delete(ConfluenceVersion.VERSION_1, path, query={"name": label.name})
 
     def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
         """
@@ -1214,18 +1217,13 @@ class ConfluenceSessionV2(ConfluenceSession):
         path = f"/pages/{page_id}"
 
         # move to trash
-        url = self._build_url(ConfluenceVersion.VERSION_2, path)
         LOGGER.info("Moving page to trash: %s", page_id)
-        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-        response.raise_for_status()
+        self._delete(ConfluenceVersion.VERSION_2, path)
 
         if purge:
             # purge from trash
-            query = {"purge": "true"}
-            url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
             LOGGER.info("Permanently deleting page: %s", page_id)
-            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-            response.raise_for_status()
+            self._delete(ConfluenceVersion.VERSION_2, path, query={"purge": "true"})
 
     @override
     def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
@@ -1236,18 +1234,7 @@ class ConfluenceSessionV2(ConfluenceSession):
 
         LOGGER.info("Checking if page exists with title: %s", title)
 
-        url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.get(
-            url,
-            params=query,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
-        )
-        response.raise_for_status()
-        data = typing.cast(dict[str, JsonType], response.json())
+        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType], query=query)
         results = json_to_object(list[ConfluencePageProperties], data["results"])
 
         if len(results) == 1:
@@ -1285,9 +1272,7 @@ class ConfluenceSessionV2(ConfluenceSession):
     @override
     def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
         path = f"/pages/{page_id}/properties/{property_id}"
-        url = self._build_url(ConfluenceVersion.VERSION_2, path)
-        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-        response.raise_for_status()
+        self._delete(ConfluenceVersion.VERSION_2, path)
 
     @override
     def update_content_property_for_page(
@@ -1396,6 +1381,27 @@ class ConfluenceSessionV1(ConfluenceSession):
         LOGGER.info("Configuring classic Confluence REST API URL")
         self.api_url = f"https://{self.site.domain}{self.site.base_path}"
         LOGGER.info("Configured classic Confluence REST API URL: %s", self.api_url)
+
+    @override
+    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
+        "Executes an HTTP request via Confluence API."
+
+        url = self._build_url(version, path, query)
+        # many Confluence Data Center/Server implementations are buggy, they require a `Content-Type` header even though an HTTP GET request has no payload
+        response = self.session.get(url, headers={"Content-Type": "application/json", "Accept": "application/json"}, verify=True)
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
+        return json_to_object(response_type, response.json())
+
+    @override
+    def _delete(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None) -> None:
+        url = self._build_url(version, path, query)
+        # many Confluence Data Center/Server implementations are buggy, they require a `Content-Type` header even though an HTTP DELETE request has no payload
+        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
+        if response.text:
+            LOGGER.debug("Received HTTP payload:\n%s", response.text)
+        response.raise_for_status()
 
     @override
     def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
@@ -1654,23 +1660,16 @@ class ConfluenceSessionV1(ConfluenceSession):
 
         if purge:
             # Move to trash
-            url = self._build_url(ConfluenceVersion.VERSION_1, path)
             LOGGER.info("Moving page to trash: %s", page_id)
-            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-            response.raise_for_status()
+            self._delete(ConfluenceVersion.VERSION_1, path)
 
             # Purge from trash
-            query = {"status": "trashed"}
-            url = self._build_url(ConfluenceVersion.VERSION_1, path, query)
             LOGGER.info("Permanently deleting page: %s", page_id)
-            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-            response.raise_for_status()
+            self._delete(ConfluenceVersion.VERSION_1, path, query={"status": "trashed"})
         else:
             # Just move to trash
-            url = self._build_url(ConfluenceVersion.VERSION_1, path)
             LOGGER.info("Moving page to trash: %s", page_id)
-            response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-            response.raise_for_status()
+            self._delete(ConfluenceVersion.VERSION_1, path)
 
     @override
     def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
@@ -1680,18 +1679,7 @@ class ConfluenceSessionV1(ConfluenceSession):
 
         LOGGER.info("Checking if page exists with title: %s", title)
 
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.get(
-            url,
-            params=query,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            verify=True,
-        )
-        response.raise_for_status()
-        data = typing.cast(dict[str, JsonType], response.json())
+        data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
         results = typing.cast(list[JsonType], data["results"])
 
         if len(results) == 1:
@@ -1753,9 +1741,7 @@ class ConfluenceSessionV1(ConfluenceSession):
         """
 
         path = f"/content/{page_id}/property/{property_key}"
-        url = self._build_url(ConfluenceVersion.VERSION_1, path)
-        response = self.session.delete(url, headers={"Content-Type": "application/json"}, verify=True)
-        response.raise_for_status()
+        self._delete(ConfluenceVersion.VERSION_1, path)
 
     @override
     def update_content_property_for_page(
