@@ -65,10 +65,10 @@ jobs:
           set: |
             *.cache-from=type=gha,scope=md2conf-docker
             *.cache-to=type=gha,mode=max,scope=md2conf-docker
-            ${{ format('base.tags={0}-minimal', join(fromJSON(steps.meta.outputs.json).tags, '-minimal\nbase.tags=')) }}
-            ${{ format('mermaid.tags={0}-mermaid', join(fromJSON(steps.meta.outputs.json).tags, '-mermaid\nmermaid.tags=')) }}
-            ${{ format('plantuml.tags={0}-plantuml', join(fromJSON(steps.meta.outputs.json).tags, '-plantuml\nplantuml.tags=')) }}
-            ${{ format('all.tags={0}', join(fromJSON(steps.meta.outputs.json).tags, '\nall.tags=')) }}
+            ${{ format('base.tags={0}-minimal', join(fromJSON(steps.meta.outputs.json).tags, format('-minimal\nbase.tags='))) }}
+            ${{ format('mermaid.tags={0}-mermaid', join(fromJSON(steps.meta.outputs.json).tags, format('-mermaid\nmermaid.tags='))) }}
+            ${{ format('plantuml.tags={0}-plantuml', join(fromJSON(steps.meta.outputs.json).tags, format('-plantuml\nplantuml.tags='))) }}
+            ${{ format('all.tags={0}', join(fromJSON(steps.meta.outputs.json).tags, format('\nall.tags='))) }}
 
       - name: Generate Build Summary
         if: always()

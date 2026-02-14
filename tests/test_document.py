@@ -15,7 +15,7 @@ from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
-from md2conf.options import ConverterOptions, DocumentOptions
+from md2conf.options import ConverterOptions, ProcessorOptions
 from tests.utility import TypedTestCase
 
 
@@ -50,7 +50,7 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            DocumentOptions(
+            ProcessorOptions(
                 converter=ConverterOptions(
                     render_drawio=False,
                     render_mermaid=False,
@@ -82,7 +82,7 @@ class TestDocument(TypedTestCase):
         )
         _, document = ConfluenceDocument.create(
             document_path,
-            DocumentOptions(
+            ProcessorOptions(
                 converter=ConverterOptions(
                     render_drawio=False,
                     render_mermaid=False,

@@ -14,7 +14,7 @@ from pathlib import Path
 from md2conf.compatibility import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.options import ConfluencePageID, ConverterOptions, DocumentOptions
+from md2conf.options import ConfluencePageID, ConverterOptions, Markdown, ProcessorOptions
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -42,13 +42,13 @@ class TestProcessor(TypedTestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.out_dir)
 
-    def create_converter(self, options: DocumentOptions) -> LocalConverter:
+    def create_converter(self, options: ProcessorOptions) -> LocalConverter:
         site_metadata = ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY")
         return LocalConverter(options, site_metadata, self.out_dir)
 
     def test_process_document(self) -> None:
-        options = DocumentOptions(
-            root_page_id=ConfluencePageID("None"),
+        options = ProcessorOptions(
+            root_page=ConfluencePageID("None"),
         )
         self.create_converter(options).process(self.sample_dir / "code.md")
 
@@ -56,8 +56,8 @@ class TestProcessor(TypedTestCase):
         self.assertFalse((self.sample_dir / "code.csf").exists())
 
     def test_process_directory(self) -> None:
-        options = DocumentOptions(
-            root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
+        options = ProcessorOptions(
+            root_page=ConfluencePageID("ROOT_PAGE_ID"),
             converter=ConverterOptions(
                 render_drawio=False,
                 render_mermaid=False,
@@ -75,10 +75,10 @@ class TestProcessor(TypedTestCase):
         self.assertFalse((self.sample_dir / "index.csf").exists())
 
     def test_generated_by(self) -> None:
-        options = DocumentOptions(
+        options = ProcessorOptions(
             title_prefix="[PAGE]",  # impacts only Confluence title
-            generated_by="<&> This page has been **generated** with [md2conf](https://github.com/hunyadi/md2conf)",
-            root_page_id=ConfluencePageID("ROOT_PAGE_ID"),
+            generated_by=Markdown("<&> This page has been **generated** with [md2conf](https://github.com/hunyadi/md2conf)"),
+            root_page=ConfluencePageID("ROOT_PAGE_ID"),
             converter=ConverterOptions(
                 render_drawio=False,
                 render_mermaid=False,

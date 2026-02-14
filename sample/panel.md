@@ -5,7 +5,7 @@ title: "Admonitions and alerts"
 Run the following command to synchronize this page:
 
 ```sh
-python -m md2conf --use-panel sample/panel.md
+python -m md2conf --skip-update --use-panel sample/panel.md
 ```
 
 ## Admonitions
@@ -27,8 +27,14 @@ python -m md2conf --use-panel sample/panel.md
 !!! warning "A warning message"
     This is a structured macro panel showing a warning.
 
+!!! abstract
+    This is an admonition type used in Material for MkDocs.
+
 !!! attention
     This is a structured macro panel defined in rST syntax.
+
+!!! bug
+    This is an admonition type used in Material for MkDocs.
 
 !!! caution
     This is a structured macro panel defined in rST syntax.
@@ -39,11 +45,26 @@ python -m md2conf --use-panel sample/panel.md
 !!! error
     This is a structured macro panel defined in rST syntax.
 
+!!! example
+    This is an admonition type used in Material for MkDocs.
+
+!!! failure
+    This is an admonition type used in Material for MkDocs.
+
 !!! hint
     This is a structured macro panel defined in rST syntax.
 
 !!! important
     This is a structured macro panel defined in rST syntax.
+
+!!! question
+    This is an admonition type used in Material for MkDocs.
+
+!!! quote
+    This is an admonition type used in Material for MkDocs.
+
+!!! success
+    This is an admonition type used in Material for MkDocs.
 
 ## GitHub alerts
 

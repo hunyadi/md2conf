@@ -18,7 +18,7 @@ from .converter import ConfluenceDocument
 from .environment import ArgumentError, PageError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, DocumentOptions
+from .options import ConfluencePageID, ProcessorOptions
 from .scanner import Scanner
 from .toc import unique_title
 
@@ -98,7 +98,7 @@ class Processor:
     Processes a single Markdown page or a directory of Markdown pages.
     """
 
-    options: DocumentOptions
+    options: ProcessorOptions
     site: ConfluenceSiteMetadata
     root_dir: Path
 
@@ -106,7 +106,7 @@ class Processor:
 
     def __init__(
         self,
-        options: DocumentOptions,
+        options: ProcessorOptions,
         site: ConfluenceSiteMetadata,
         root_dir: Path,
     ) -> None:
@@ -161,7 +161,7 @@ class Processor:
             )
 
         # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
-        self._synchronize_tree(root, self.options.root_page_id)
+        self._synchronize_tree(root, self.options.root_page)
 
         # synchronize files in directory hierarchy with pages in space
         for path, metadata in self.page_metadata.items():
@@ -289,10 +289,12 @@ class Processor:
 
 
 class ProcessorFactory:
-    options: DocumentOptions
+    "Passes configuration options to a document processor."
+
+    options: ProcessorOptions
     site: ConfluenceSiteMetadata
 
-    def __init__(self, options: DocumentOptions, site: ConfluenceSiteMetadata) -> None:
+    def __init__(self, options: ProcessorOptions, site: ConfluenceSiteMetadata) -> None:
         self.options = options
         self.site = site
 
@@ -300,7 +302,9 @@ class ProcessorFactory:
     def create(self, root_dir: Path) -> Processor: ...
 
 
-class Converter:
+class DocumentProcessor:
+    "Converts a single Markdown document or a directory of several Markdown documents."
+
     factory: ProcessorFactory
 
     def __init__(self, factory: ProcessorFactory) -> None:
