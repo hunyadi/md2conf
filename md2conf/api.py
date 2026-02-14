@@ -394,13 +394,21 @@ class ConfluenceAPI:
         if self.properties.headers:
             session.headers.update(self.properties.headers)
 
-        self.session = ConfluenceSessionV2(
-            session,
-            api_url=self.properties.api_url,
-            domain=self.properties.domain,
-            base_path=self.properties.base_path,
-            space_key=self.properties.space_key,
-        )
+        if self.properties.api_version == "v1":
+            self.session = ConfluenceSessionV1(
+                session,
+                domain=self.properties.domain,
+                base_path=self.properties.base_path,
+                space_key=self.properties.space_key,
+            )
+        else:
+            self.session = ConfluenceSessionV2(
+                session,
+                api_url=self.properties.api_url,
+                domain=self.properties.domain,
+                base_path=self.properties.base_path,
+                space_key=self.properties.space_key,
+            )
         return self.session
 
     def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
@@ -417,6 +425,7 @@ class ConfluenceSession(ABC):
     session: requests.Session
     api_url: str
     site: ConfluenceSiteMetadata
+    api_version: ConfluenceVersion
 
     def __init__(self, session: requests.Session) -> None:
         self.session = session
@@ -956,6 +965,7 @@ class ConfluenceSessionV2(ConfluenceSession):
 
     def __init__(self, session: requests.Session, *, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         super().__init__(session)
+        self.api_version = ConfluenceVersion.VERSION_2
         self._space_id_to_key = {}
         self._space_key_to_id = {}
 
@@ -1380,6 +1390,7 @@ class ConfluenceSessionV1(ConfluenceSession):
 
     def __init__(self, session: requests.Session, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         super().__init__(session)
+        self.api_version = ConfluenceVersion.VERSION_1
         self._init_site(domain=domain, base_path=base_path, space_key=space_key)
 
         LOGGER.info("Configuring classic Confluence REST API URL")
