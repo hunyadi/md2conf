@@ -670,8 +670,8 @@ options:
   -a, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s, --space SPACE     Confluence space key for pages to be published. If omitted, will default to user space.
-  --api-version {v1,v2}
-                        Confluence REST API version to use (v1 for Data Center/Server, v2 for Cloud). Default: v2
+  --api-version {v2,v1}
+                        Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server). (default: v2)
   -l, --loglevel {debug,info,warning,error,critical}
                         Use this option to set the log verbosity.
   -r CONFLUENCE_PAGE_ID
@@ -709,10 +709,6 @@ options:
   --no-webui-links      Use hierarchical links including space and page ID. (default)
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --no-use-panel        Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning). (default)
-  --force-valid-language
-                        Only allow supported languages in code blocks (unsupported languages are ignored) (default)
-  --no-force-valid-language
-                        Use unknown language names as-is (Confluence may still highlight code).
   --layout-image-alignment {center,left,right,None}
                         Alignment for block-level images and formulas.
   --layout-image-max-width INT
@@ -749,7 +745,7 @@ properties = ConnectionProperties(
     user_name=str() or None,
     api_key=str(),
     headers={str(): str()} or None,
-    api_version='v1' or 'v2',  # Default: 'v2'
+    api_version='v2' or 'v1',
 )
 options = ProcessorOptions(
     root_page=ConfluencePageID() or None,
@@ -769,7 +765,6 @@ options = ProcessorOptions(
         diagram_output_format='png' or 'svg',
         webui_links=bool(),
         use_panel=bool(),
-        force_valid_language=bool(),
         layout=LayoutOptions(
             image=ImageLayoutOptions(
                 alignment='center' or 'left' or 'right' or None,
@@ -790,19 +785,9 @@ with ConfluenceAPI(properties) as api:
 
 ### Confluence REST API v1 vs. v2
 
-*md2conf* supports both [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) and [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/). By default, *md2conf* uses API v2, which is the go to version for Confluence Cloud. By setting `--api-version v1`, you can use *md2conf* with Confluence Data Center / On-premises.
+*md2conf* version 0.3.0 has switched to using [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) for API calls such as retrieving current page content. Earlier versions used [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) exclusively. Unfortunately, Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025, and we don't have access to an environment where we could test retired v1 endpoints.
 
-You can also set the API version using the `CONFLUENCE_API_VERSION` environment variable:
-
-```sh
-export CONFLUENCE_API_VERSION='v1'
-```
-
-**Version history:**
-
-*md2conf* version 0.3.0 switched to using Confluence REST API v2 by default for API calls such as retrieving current page content. Earlier versions used Confluence REST API v1 exclusively. Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025. Support for both REST API v1 and REST API v2 is now available.
-
-If you are restricted to an environment with Confluence REST API v1 only (such as older Data Center/Server installations), use the `--api-version v1` flag.
+If you are restricted to an environment with [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) (such as older Data Center/Server installations), we recommend the command-line option `--api-version=v1`. Even though we don't actively support it, the implementation has been tested by contributors, making it a viable option in an on-premise environment with only Confluence REST API v1 support. If you find any issues with `--api-version=v1`, feel free to open a pull request with the proposed fix. (Don't open an issue, we can't figure out a solution without access to a working environment.)
 
 ### Using the Docker container
 
