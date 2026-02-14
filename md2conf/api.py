@@ -458,7 +458,7 @@ class ConfluenceSession(ABC):
         "Executes an HTTP request via Confluence API."
 
         url = self._build_url(version, path, query)
-        response = self.session.get(url, headers={"Accept": "application/json"}, verify=True)
+        response = self.session.get(url, headers={"Content-Type": "application/json", "Accept": "application/json"}, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
