@@ -17,7 +17,7 @@ import typing
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Literal, Sequence
 
 from requests.exceptions import HTTPError, JSONDecodeError
 
@@ -39,7 +39,7 @@ class Arguments(argparse.Namespace):
     username: str | None
     api_key: str | None
     space: str | None
-    api_version: str
+    api_version: Literal["v2", "v1"]
     loglevel: str
     local: bool
     headers: dict[str, str]
@@ -119,9 +119,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--api-version",
         dest="api_version",
-        choices=["v1", "v2"],
+        choices=["v2", "v1"],
         default="v2",
-        help="Confluence REST API version to use (v1 for Data Center/Server, v2 for Cloud). Default: v2",
+        help="Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server). (default: v2)",
     )
     parser.add_argument(
         "-l",
