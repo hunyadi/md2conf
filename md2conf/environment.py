@@ -7,7 +7,7 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import os
-from typing import overload
+from typing import Literal, overload
 
 
 class ArgumentError(ValueError):
@@ -91,6 +91,7 @@ class ConnectionProperties:
     :param user_name: Confluence user name.
     :param api_key: Confluence API key.
     :param headers: Additional HTTP headers to pass to Confluence REST API calls.
+    :param api_version: Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server).
     """
 
     domain: str | None
@@ -100,6 +101,7 @@ class ConnectionProperties:
     user_name: str | None
     api_key: str
     headers: dict[str, str] | None
+    api_version: Literal["v2", "v1"]
 
     def __init__(
         self,
@@ -111,6 +113,7 @@ class ConnectionProperties:
         api_key: str | None = None,
         space_key: str | None = None,
         headers: dict[str, str] | None = None,
+        api_version: Literal["v2", "v1"] = "v2",
     ) -> None:
         opt_api_url = api_url or os.getenv("CONFLUENCE_API_URL")
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
@@ -133,3 +136,4 @@ class ConnectionProperties:
         self.user_name = opt_user_name
         self.api_key = opt_api_key
         self.headers = headers
+        self.api_version = api_version

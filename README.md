@@ -670,6 +670,8 @@ options:
   -a, --api-key API_KEY
                         Confluence API key. Refer to documentation how to obtain one.
   -s, --space SPACE     Confluence space key for pages to be published. If omitted, will default to user space.
+  --api-version {v2,v1}
+                        Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server). (default: v2)
   -l, --loglevel {debug,info,warning,error,critical}
                         Use this option to set the log verbosity.
   -r CONFLUENCE_PAGE_ID
@@ -747,6 +749,7 @@ properties = ConnectionProperties(
     user_name=str() or None,
     api_key=str(),
     headers={str(): str()} or None,
+    api_version='v2' or 'v1',
 )
 options = ProcessorOptions(
     root_page=ConfluencePageID() or None,
@@ -789,7 +792,7 @@ with ConfluenceAPI(properties) as api:
 
 *md2conf* version 0.3.0 has switched to using [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) for API calls such as retrieving current page content. Earlier versions used [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) exclusively. Unfortunately, Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025, and we don't have access to an environment where we could test retired v1 endpoints.
 
-If you are restricted to an environment with Confluence REST API v1, we recommend *md2conf* [version 0.2.7](https://pypi.org/project/markdown-to-confluence/0.2.7/). Even though we don't actively support it, we are not aware of any major issues, making it a viable option in an on-premise environment with only Confluence REST API v1 support.
+If you are restricted to an environment with [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) (such as older Data Center/Server installations), we recommend the command-line option `--api-version=v1`. Even though we don't actively support it, the implementation has been tested by contributors, making it a viable option in an on-premise environment with only Confluence REST API v1 support. If you find any issues with `--api-version=v1`, feel free to open a pull request with the proposed fix. (Don't open an issue, we can't figure out a solution without access to a working environment.)
 
 ### Using the Docker container
 
