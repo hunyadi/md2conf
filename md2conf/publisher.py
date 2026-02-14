@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceSession, ConfluenceStatus, ConfluenceVersion
+from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceSession, ConfluenceStatus
 from .attachment import attachment_name
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, ElementType, get_volatile_attributes, get_volatile_elements
@@ -177,13 +177,7 @@ class SynchronizingProcessor(Processor):
 
             update = True
 
-        # For v1, page.spaceId already contains the space key (not ID)
-        # For v2, page.spaceId contains the space ID and needs conversion
-        if self.api.api_version == ConfluenceVersion.VERSION_1:
-            space_key = page.spaceId  # Already a space key for v1
-        else:
-            space_key = self.api.space_id_to_key(page.spaceId)
-
+        space_key = self.api.space_id_to_key(page.spaceId)
         if update and not self.options.skip_update:
             self._update_markdown(
                 node.absolute_path,
@@ -335,12 +329,7 @@ class SynchronizingProcessor(Processor):
         meta = self.page_metadata.get(path)
         if meta is not None and meta.title != title:
             # title has changed, check if new title is available
-            # meta.space_key contains the actual space key for both v1 and v2
-            # Pass it as space_id parameter (which accepts key for v1, ID for v2)
-            if self.api.api_version == ConfluenceVersion.VERSION_1:
-                page_id = self.api.page_exists(title, space_id=meta.space_key)
-            else:
-                page_id = self.api.page_exists(title, space_id=self.api.space_key_to_id(meta.space_key))
+            page_id = self.api.page_exists(title, space_id=self.api.space_key_to_id(meta.space_key))
             if page_id is not None:
                 LOGGER.info("Unrelated Confluence page with ID %s has the same inferred title as the Markdown file: %s", page_id, path)
                 return None
