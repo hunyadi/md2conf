@@ -12,7 +12,8 @@ import unittest
 from pathlib import Path
 from typing import ClassVar
 
-from md2conf.api import ConfluenceAPI, ConfluenceContentProperty, ConfluenceLabel
+from md2conf.api import ConfluenceAPI
+from md2conf.api_types import ConfluenceContentProperty, ConfluenceLabel
 from md2conf.compatibility import override
 from md2conf.csf import content_to_string
 from tests.utility import TypedTestCase

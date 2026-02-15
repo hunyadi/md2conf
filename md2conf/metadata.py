@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConfluenceSiteMetadata:
     """
     Data associated with a Confluence wiki site.
@@ -24,7 +24,7 @@ class ConfluenceSiteMetadata:
     space_key: str | None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConfluencePageMetadata:
     """
     Data associated with a Confluence page.

@@ -17,7 +17,8 @@ from typing import ClassVar
 
 import lxml.etree as ET
 
-from md2conf.api import ConfluenceAPI, ConfluenceAttachment, ConfluencePage
+from md2conf.api import ConfluenceAPI
+from md2conf.api_types import ConfluenceAttachment, ConfluencePage
 from md2conf.compatibility import override
 from md2conf.converter import ElementAction, NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import elements_from_string, elements_to_string

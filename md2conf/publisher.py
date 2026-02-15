@@ -11,7 +11,8 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from .api import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceSession, ConfluenceStatus
+from .api_base import ConfluenceSession
+from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, ElementType, get_volatile_attributes, get_volatile_elements
