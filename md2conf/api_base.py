@@ -453,6 +453,7 @@ class ConfluenceSession(ABC):
     def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage: ...
     @abstractmethod
     def delete_page(self, page_id: str, *, purge: bool = False) -> None: ...
+
     @abstractmethod
     def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
         """

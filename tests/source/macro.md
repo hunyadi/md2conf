@@ -4,8 +4,8 @@
 
 ```csf
 <ac:structured-macro ac:name="panel" ac:schema-version="1">
-  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
   <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
   <ac:parameter ac:name="panelIconText">&#128578;</ac:parameter>
   <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
   <ac:rich-text-body>
@@ -15,7 +15,7 @@
 ```
 
 ```csf
-<ac:structured-macro ac:name="noformat">
+<ac:structured-macro ac:name="noformat" ac:schema-version="1">
   <ac:plain-text-body><![CDATA[
 This is preformatted text.
   Indentation and

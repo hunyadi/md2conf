@@ -68,8 +68,8 @@ Confluence Storage Format macro passed unchanged to Confluence:
 
 ```csf
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="aa7f545b-2616-4edc-9bb6-406ec6403515">
-  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
   <ac:parameter ac:name="panelIconId">1f642</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:slight_smile:</ac:parameter>
   <ac:parameter ac:name="panelIconText">🙂</ac:parameter>
   <ac:parameter ac:name="bgColor">#FFF0B3</ac:parameter>
   <ac:rich-text-body>

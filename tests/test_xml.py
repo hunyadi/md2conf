@@ -13,7 +13,7 @@ from typing import Iterable
 import lxml.etree as ET
 
 from md2conf.csf import elements_from_string, normalize_inline
-from md2conf.xml import is_xml_equal, unwrap_substitute
+from md2conf.xml import ElementComparatorOptions, is_xml_equal, unwrap_substitute
 from tests.utility import TypedTestCase
 
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
@@ -34,7 +34,7 @@ class TestXml(TypedTestCase):
         skip_elements: Iterable[str] | None = None,
         msg: str | None = None,
     ) -> None:
-        if not is_xml_equal(tree1, tree2, skip_attributes=skip_attributes, skip_elements=skip_elements):
+        if not is_xml_equal(tree1, tree2, ElementComparatorOptions(skip_attributes=skip_attributes, skip_elements=skip_elements)):
             xml1 = ET.tostring(tree1, encoding="utf8", method="xml").decode("utf8")
             xml2 = ET.tostring(tree2, encoding="utf8", method="xml").decode("utf8")
             self.assertMultiLineEqual(xml1, xml2, msg)

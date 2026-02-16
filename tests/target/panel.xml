@@ -5,8 +5,8 @@
 </ac:structured-macro>
 <h2>Admonitions</h2>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
   <ac:parameter ac:name="panelIconId">2139-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
   <ac:parameter ac:name="panelIconText">ℹ️</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-blue-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -15,8 +15,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
   <ac:parameter ac:name="panelIconId">2139-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:information_source:</ac:parameter>
   <ac:parameter ac:name="panelIconText">ℹ️</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-blue-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -26,8 +26,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
   <ac:parameter ac:name="panelIconId">1f4a1</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
   <ac:parameter ac:name="panelIconText">💡</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-green-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -36,8 +36,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:pencil:</ac:parameter>
   <ac:parameter ac:name="panelIconId">1f4dd</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:pencil:</ac:parameter>
   <ac:parameter ac:name="panelIconText">📝</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-teal-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -46,8 +46,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:warning:</ac:parameter>
   <ac:parameter ac:name="panelIconId">26a0-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:warning:</ac:parameter>
   <ac:parameter ac:name="panelIconText">⚠️</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-yellow-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -56,8 +56,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:page_facing_up:</ac:parameter>
     <ac:parameter ac:name="panelIconId">1f4c4</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:page_facing_up:</ac:parameter>
     <ac:parameter ac:name="panelIconText">📄</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-teal-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Abstract</strong></p>
@@ -65,8 +65,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
   <ac:parameter ac:name="panelIconId">2757</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
   <ac:parameter ac:name="panelIconText">❗</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-gray-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -75,8 +75,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:bug:</ac:parameter>
     <ac:parameter ac:name="panelIconId">1f41b</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:bug:</ac:parameter>
     <ac:parameter ac:name="panelIconText">🐛</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-red-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Bug</strong></p>
@@ -84,8 +84,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
   <ac:parameter ac:name="panelIconId">274c</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
   <ac:parameter ac:name="panelIconText">❌</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-orange-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -94,8 +94,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:skull_crossbones:</ac:parameter>
   <ac:parameter ac:name="panelIconId">2620-fe0f</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:skull_crossbones:</ac:parameter>
   <ac:parameter ac:name="panelIconText">☠️</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-red-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -104,8 +104,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
   <ac:parameter ac:name="panelIconId">274c</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
   <ac:parameter ac:name="panelIconText">❌</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-red-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -114,8 +114,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
     <ac:parameter ac:name="panelIconId">1f4a1</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
     <ac:parameter ac:name="panelIconText">💡</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-purple-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Example</strong></p>
@@ -123,8 +123,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
     <ac:parameter ac:name="panelIconId">274c</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:x:</ac:parameter>
     <ac:parameter ac:name="panelIconText">❌</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-red-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Failure</strong></p>
@@ -132,8 +132,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
   <ac:parameter ac:name="panelIconId">1f4a1</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:bulb:</ac:parameter>
   <ac:parameter ac:name="panelIconText">💡</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-green-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -142,8 +142,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
   <ac:parameter ac:name="panelIconId">2757</ac:parameter>
+  <ac:parameter ac:name="panelIcon">:exclamation:</ac:parameter>
   <ac:parameter ac:name="panelIconText">❗</ac:parameter>
   <ac:parameter ac:name="bgColor">var(--ds-background-accent-purple-subtlest)</ac:parameter>
   <ac:rich-text-body>
@@ -152,8 +152,8 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:question:</ac:parameter>
     <ac:parameter ac:name="panelIconId">2753</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:question:</ac:parameter>
     <ac:parameter ac:name="panelIconText">❓</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-green-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Question</strong></p>
@@ -161,8 +161,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:speech_balloon:</ac:parameter>
     <ac:parameter ac:name="panelIconId">1f4ac</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:speech_balloon:</ac:parameter>
     <ac:parameter ac:name="panelIconText">💬</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-gray-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Quote</strong></p>
@@ -170,8 +170,8 @@
     </ac:rich-text-body>
 </ac:structured-macro>
 <ac:structured-macro ac:name="panel" ac:schema-version="1" ac:macro-id="UUID">
-    <ac:parameter ac:name="panelIcon">:white_check_mark:</ac:parameter>
     <ac:parameter ac:name="panelIconId">2705</ac:parameter>
+    <ac:parameter ac:name="panelIcon">:white_check_mark:</ac:parameter>
     <ac:parameter ac:name="panelIconText">✅</ac:parameter>
     <ac:parameter ac:name="bgColor">var(--ds-background-accent-green-subtlest)</ac:parameter><ac:rich-text-body>
         <p><strong>Success</strong></p>

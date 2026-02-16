@@ -35,20 +35,50 @@ def _attrs_equal_excluding(attrs1: AttribType, attrs2: AttribType, exclude: set[
     return True
 
 
-class ElementComparator:
+def _elem_sort_key(elem: ElementType) -> tuple[str, tuple[tuple[str, str], ...]]:
+    """
+    Helps sort children of order-insensitive elements.
+
+    Order-insensitive elements are typically configuration option containers (e.g. `<param>` in an `<object>`).
+    This function helps arrange children in a well-defined order to emulate set equality with an order-sensitive comparison.
+    """
+
+    return (str(elem.tag), tuple(sorted(elem.attrib.items())))
+
+
+class ElementComparatorOptions:
     skip_attributes: set[str]
     skip_elements: set[str]
+    orderless_elements: set[str]
 
-    def __init__(self, *, skip_attributes: Iterable[str] | None = None, skip_elements: Iterable[str] | None = None):
+    def __init__(
+        self,
+        skip_attributes: Iterable[str] | None = None,
+        skip_elements: Iterable[str] | None = None,
+        orderless_elements: Iterable[str] | None = None,
+    ):
         """
-        Initializes a new element tree comparator.
+        Sets options for the element tree comparator.
 
         :param skip_attributes: Attributes to exclude, in `{namespace}name` notation.
         :param skip_elements: Elements to exclude, in `{namespace}name` notation.
+        :param orderless_elements: Elements in which the order of children does not matter, in `{namespace}name` notation.
         """
 
         self.skip_attributes = set(skip_attributes) if skip_attributes else set()
         self.skip_elements = set(skip_elements) if skip_elements else set()
+        self.orderless_elements = set(orderless_elements) if orderless_elements else set()
+
+
+class ElementComparator:
+    options: ElementComparatorOptions
+
+    def __init__(self, options: ElementComparatorOptions | None = None) -> None:
+        """
+        Initializes a new element tree comparator.
+        """
+
+        self.options = options if options is not None else ElementComparatorOptions()
 
     def is_equal(self, e1: ElementType, e2: ElementType) -> bool:
         """
@@ -65,7 +95,7 @@ class ElementComparator:
             return False
 
         # skip element (and content) if on ignore list
-        if e1.tag in self.skip_elements:
+        if e1.tag in self.options.skip_elements:
             return True
 
         # compare text second, which is encapsulated by element
@@ -75,16 +105,26 @@ class ElementComparator:
             return False
 
         # compare attributes, disregarding definition order
-        if not _attrs_equal_excluding(e1.attrib, e2.attrib, self.skip_attributes):
+        if not _attrs_equal_excluding(e1.attrib, e2.attrib, self.options.skip_attributes):
             return False
 
         # compare children recursively
         if len(e1) != len(e2):
             return False
-        return all(self.is_equal(c1, c2) for c1, c2 in zip(e1, e2, strict=True))
+
+        if all(self.is_equal(c1, c2) for c1, c2 in zip(e1, e2, strict=True)):
+            return True
+
+        if e1.tag in self.options.orderless_elements:
+            el1 = sorted(e1, key=_elem_sort_key)
+            el2 = sorted(e2, key=_elem_sort_key)
+            if all(self.is_equal(c1, c2) for c1, c2 in zip(el1, el2, strict=True)):
+                return True
+
+        return False
 
 
-def is_xml_equal(tree1: ElementType, tree2: ElementType, *, skip_attributes: Iterable[str] | None = None, skip_elements: Iterable[str] | None = None) -> bool:
+def is_xml_equal(tree1: ElementType, tree2: ElementType, options: ElementComparatorOptions | None = None) -> bool:
     """
     Compare two XML documents for equivalence, ignoring leading/trailing whitespace differences and attribute definition order.
 
@@ -92,12 +132,11 @@ def is_xml_equal(tree1: ElementType, tree2: ElementType, *, skip_attributes: Ite
 
     :param tree1: XML document as an element tree.
     :param tree2: XML document as an element tree.
-    :param skip_attributes: Attributes to exclude, in `{namespace}name` notation.
-    :param skip_elements: Elements to exclude, in `{namespace}name` notation.
+    :param options: Options to control how XML elements are compared.
     :returns: True if equivalent, False otherwise.
     """
 
-    return ElementComparator(skip_attributes=skip_attributes, skip_elements=skip_elements).is_equal(tree1, tree2)
+    return ElementComparator(options).is_equal(tree1, tree2)
 
 
 def element_to_text(node: ElementType) -> str:

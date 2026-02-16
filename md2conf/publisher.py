@@ -15,14 +15,14 @@ from .api_base import ConfluenceSession
 from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .compatibility import override, path_relative_to
-from .converter import ConfluenceDocument, ElementType, get_volatile_attributes, get_volatile_elements
+from .converter import ConfluenceDocument, ElementType, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
-from .serializer import json_to_object, object_to_json
-from .xml import is_xml_equal, unwrap_substitute
+from .serializer import json_to_object, object_to_json, object_to_json_payload
+from .xml import ElementComparatorOptions, is_xml_equal, unwrap_substitute
 
 LOGGER = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ class SynchronizingProcessor(Processor):
             case (None, _):
                 return root_id
             case _:  # explicit page ID takes precedence
-                return self.api.get_page_properties(page_id).parentId
+                return self.api.get_page_properties(str(page_id)).parentId
         return None
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
@@ -235,8 +235,9 @@ class SynchronizingProcessor(Processor):
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
-        # compute content hash to help detect if document has changed
+        # compute hash to help detect if document content or conversion options have changed
         m = hashlib.md5()
+        m.update(object_to_json_payload(self.options.converter))
         with open(path, "rb") as f:
             m.update(f.read())
         source_digest = m.hexdigest()
@@ -247,11 +248,11 @@ class SynchronizingProcessor(Processor):
         # fetch existing page
         page = self.api.get_page(page_id.page_id)
         prop = self.api.get_content_property_for_page(page_id.page_id, CONTENT_PROPERTY_TAG)
-        tag: ConfluenceMarkdownTag | None = None
+        source_tag: ConfluenceMarkdownTag | None = None
         if prop is not None:
             try:
-                tag = json_to_object(ConfluenceMarkdownTag, prop.value)
-                LOGGER.debug("Page with ID %s has last synchronized version of %d and hash of %s", page.id, tag.page_version, tag.source_digest)
+                source_tag = json_to_object(ConfluenceMarkdownTag, prop.value)
+                LOGGER.debug("Page with ID %s has last synchronized version of %d and hash of %s", page.id, source_tag.page_version, source_tag.source_digest)
             except Exception:
                 pass
 
@@ -261,8 +262,8 @@ class SynchronizingProcessor(Processor):
 
         # synchronize page if page has any changes
         allow_write = True
-        if self._has_changes(page, tag, title, document.root, source_digest):
-            if tag is not None and page.version.number != tag.page_version:
+        if self._has_changes(page, source_tag, title, document.root, source_digest):
+            if source_tag is not None and page.version.number != source_tag.page_version:
                 LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
                 if not self.options.overwrite:
                     allow_write = False
@@ -283,12 +284,13 @@ class SynchronizingProcessor(Processor):
                     [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
                 )
 
-            props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(ConfluenceMarkdownTag(version, source_digest)))]
+            target_tag = ConfluenceMarkdownTag(version, source_digest)
+            props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(target_tag))]
             if document.properties is not None:
                 props.extend(ConfluenceContentProperty(key, value) for key, value in document.properties.items())
                 self.api.update_content_properties_for_page(page.id, props)
             else:
-                if tag is None or tag.page_version != version:
+                if source_tag is None or source_tag != target_tag:
                     self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
 
     def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
@@ -298,26 +300,29 @@ class SynchronizingProcessor(Processor):
             LOGGER.info("Detected page with new title: %s", page.id)
             return True
 
-        if tag is not None and tag.source_digest != source_digest:
-            LOGGER.info("Detected page with updated Markdown source: %s", page.id)
-            return True
+        if tag is not None and tag.source_digest == source_digest:
+            LOGGER.info("Up-to-date page (matching checksum): %s", page.id)
+            return False
 
         # discard comments
         tree = elements_from_string(page.content)
         unwrap_substitute(AC_ATTR("inline-comment-marker"), tree)
 
         # visit XML nodes recursively
-        if not is_xml_equal(
+        if is_xml_equal(
             root,
             tree,
-            skip_attributes=get_volatile_attributes(),
-            skip_elements=get_volatile_elements(),
+            ElementComparatorOptions(
+                skip_attributes=get_volatile_attributes(),
+                skip_elements=get_volatile_elements(),
+                orderless_elements=get_orderless_elements(),
+            ),
         ):
-            LOGGER.info("Detected page with updated Markdown content: %s", page.id)
-            return True
+            LOGGER.info("Up-to-date page (unchanged content): %s", page.id)
+            return False
 
-        LOGGER.info("Up-to-date page: %s", page.id)
-        return False
+        LOGGER.info("Detected page with updated content: %s", page.id)
+        return True
 
     def _get_extended_title(self, title: str) -> str:
         """

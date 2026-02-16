@@ -85,6 +85,12 @@ def get_volatile_elements() -> list[str]:
     return [AC_ATTR("task-uuid")]
 
 
+def get_orderless_elements() -> list[str]:
+    "Returns a list of order-insensitive elements whose children can appear in any order for the element to compare equal to another."
+
+    return [AC_ATTR("structured-macro")]
+
+
 status_images: dict[str, str] = {
     to_uuid_urn(f'<svg height="10" width="10" xmlns="http://www.w3.org/2000/svg"><circle r="5" cx="5" cy="5" fill="{color}" /></svg>'): color
     for color in ["gray", "purple", "blue", "red", "yellow", "green"]
@@ -1055,8 +1061,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ATTR("schema-version"): "1",
                 AC_ATTR("macro-id"): macro_id,
             },
-            AC_ELEM("parameter", {AC_ATTR("name"): "panelIcon"}, f":{panel.emoji_shortname}:"),
             AC_ELEM("parameter", {AC_ATTR("name"): "panelIconId"}, panel.emoji_unicode),
+            AC_ELEM("parameter", {AC_ATTR("name"): "panelIcon"}, f":{panel.emoji_shortname}:"),
             AC_ELEM("parameter", {AC_ATTR("name"): "panelIconText"}, panel.emoji),
             AC_ELEM("parameter", {AC_ATTR("name"): "bgColor"}, panel.background_color),
             AC_ELEM("rich-text-body", {}, *list(elem)),
