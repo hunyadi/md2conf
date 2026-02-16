@@ -131,8 +131,19 @@ class ConfluenceSessionV1(ConfluenceSession):
         self._api_url = f"https://{self.site.domain}{self.site.base_path}"
         LOGGER.info("Configured classic Confluence REST API URL: %s", self._api_url)
 
-        # many Confluence Data Center/Server versions are buggy, they require a `Content-Type` header even though an HTTP GET or DELETE request has no payload
-        self._session.headers.update({"Content-Type": "application/json"})
+    @override
+    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
+        "Executes an HTTP request via Confluence API."
+
+        # many Confluence Data Center/Server versions are buggy, they require a `Content-Type` header even though an HTTP GET request has no payload
+        return self._get_impl(version, path, response_type, query=query, headers={"Content-Type": "application/json"})
+
+    @override
+    def _delete(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> None:
+        "Deletes an existing object via Confluence REST API."
+
+        # many Confluence Data Center/Server versions are buggy, they require a `Content-Type` header even though an HTTP DELETE request has no payload
+        return self._delete_impl(version, path, query=query, headers={"Content-Type": "application/json"})
 
     @override
     def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:

@@ -89,7 +89,7 @@ class ParentCatalog:
         return self.is_traceable(parent_id)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConfluenceMarkdownTag:
     """
     Captures information used to synchronize the Markdown source file with the Confluence target page.
@@ -100,6 +100,10 @@ class ConfluenceMarkdownTag:
 
     page_version: int
     source_digest: str
+
+    def __post_init__(self) -> None:
+        if self.page_version < 1:
+            raise ValueError(f"expected: page version >= 1; got: {self.page_version}")
 
 
 class SynchronizingProcessor(Processor):
@@ -131,18 +135,24 @@ class SynchronizingProcessor(Processor):
         Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        if tree.page_id is None and root_id is None:
+        topmost_id = self._get_topmost_id(tree.page_id, root_id.page_id if root_id is not None else None)
+        if topmost_id is None:
             raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
-        elif tree.page_id is not None:
-            real_id = ConfluencePageID(tree.page_id)  # explicit page ID takes precedence
-        elif root_id is not None:
-            real_id = root_id
-        else:
-            raise NotImplementedError("condition not exhaustive for synchronizing tree")
 
         catalog = ParentCatalog(self.api)
-        catalog.add_known(real_id.page_id)
-        self._synchronize_subtree(tree, real_id, catalog)
+        catalog.add_known(topmost_id)
+        self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
+
+    def _get_topmost_id(self, page_id: str | None, root_id: str | None) -> str | None:
+        match (page_id, root_id):
+            case (None, None):
+                if self.site.space_key is not None:
+                    return self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))
+            case (None, _):
+                return root_id
+            case _:  # explicit page ID takes precedence
+                return self.api.get_page_properties(page_id).parentId
+        return None
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
         if node.page_id is not None:
@@ -250,29 +260,36 @@ class SynchronizingProcessor(Processor):
             title = page.title
 
         # synchronize page if page has any changes
+        allow_write = True
         if self._has_changes(page, tag, title, document.root, source_digest):
             if tag is not None and page.version.number != tag.page_version:
                 LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
+                if not self.options.overwrite:
+                    allow_write = False
 
-            relative_path = path_relative_to(path, self.root_dir)
-            version = page.version.number + 1
-            self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
+            if allow_write:
+                relative_path = path_relative_to(path, self.root_dir)
+                version = page.version.number + 1
+                self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
+            else:
+                version = 0  # never used
         else:
             version = page.version.number
 
-        if document.labels is not None:
-            self.api.update_labels(
-                page.id,
-                [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
-            )
+        if allow_write:
+            if document.labels is not None:
+                self.api.update_labels(
+                    page.id,
+                    [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
+                )
 
-        props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(ConfluenceMarkdownTag(version, source_digest)))]
-        if document.properties is not None:
-            props.extend(ConfluenceContentProperty(key, value) for key, value in document.properties.items())
-            self.api.update_content_properties_for_page(page.id, props)
-        else:
-            if tag is None or tag.page_version != version:
-                self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
+            props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(ConfluenceMarkdownTag(version, source_digest)))]
+            if document.properties is not None:
+                props.extend(ConfluenceContentProperty(key, value) for key, value in document.properties.items())
+                self.api.update_content_properties_for_page(page.id, props)
+            else:
+                if tag is None or tag.page_version != version:
+                    self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
 
     def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
         "True if the Confluence Storage Format content generated from the Markdown source file matches the Confluence target page content."

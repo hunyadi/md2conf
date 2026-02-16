@@ -59,6 +59,14 @@ def _validate_base_path(base_path: str | None) -> str | None:
 
 
 class ConfluenceSiteProperties:
+    """
+    Properties related to a Confluence site.
+
+    :param domain: Domain name for Confluence site, e.g. `markdown-to-confluence.atlassian.net`.
+    :param base_path: Base path for Confluence site, e.g. `/wiki/`.
+    :param space_key: Confluence space key for pages to be published.
+    """
+
     domain: str
     base_path: str
     space_key: str | None
@@ -87,11 +95,14 @@ class ConnectionProperties:
     """
     Properties related to connecting to Confluence.
 
+    :param domain: Domain name for Confluence site, e.g. `markdown-to-confluence.atlassian.net`.
+    :param base_path: Base path for Confluence site, e.g. `/wiki/`.
+    :param space_key: Confluence space key for pages to be published.
     :param api_url: Confluence API URL. Required for scoped tokens.
     :param user_name: Confluence user name.
     :param api_key: Confluence API key.
-    :param headers: Additional HTTP headers to pass to Confluence REST API calls.
     :param api_version: Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server).
+    :param headers: Additional HTTP headers to pass to Confluence REST API calls.
     """
 
     domain: str | None
@@ -100,8 +111,8 @@ class ConnectionProperties:
     api_url: str | None
     user_name: str | None
     api_key: str
+    api_version: Literal["v2", "v1"] | None
     headers: dict[str, str] | None
-    api_version: Literal["v2", "v1"]
 
     def __init__(
         self,
@@ -113,7 +124,7 @@ class ConnectionProperties:
         api_key: str | None = None,
         space_key: str | None = None,
         headers: dict[str, str] | None = None,
-        api_version: Literal["v2", "v1"] = "v2",
+        api_version: Literal["v2", "v1"] | None = None,
     ) -> None:
         opt_api_url = api_url or os.getenv("CONFLUENCE_API_URL")
         opt_domain = domain or os.getenv("CONFLUENCE_DOMAIN")
@@ -121,6 +132,16 @@ class ConnectionProperties:
         opt_space_key = space_key or os.getenv("CONFLUENCE_SPACE_KEY")
         opt_user_name = user_name or os.getenv("CONFLUENCE_USER_NAME")
         opt_api_key = api_key or os.getenv("CONFLUENCE_API_KEY")
+        if api_version is not None:
+            opt_api_version = api_version
+        else:
+            match os.getenv("CONFLUENCE_API_VERSION"):
+                case "v2":
+                    opt_api_version = "v2"
+                case "v1":
+                    opt_api_version = "v1"
+                case _:
+                    opt_api_version = None
 
         if not opt_api_key:
             raise ArgumentError("Confluence API key not specified")
@@ -135,5 +156,5 @@ class ConnectionProperties:
         self.space_key = opt_space_key
         self.user_name = opt_user_name
         self.api_key = opt_api_key
+        self.api_version = opt_api_version
         self.headers = headers
-        self.api_version = api_version

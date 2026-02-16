@@ -93,9 +93,9 @@ jobs:
           TEST_MERMAID: 1
           TEST_PLANTUML: 1
           PLANTUML_JAR: plantuml.jar
-          RENDER_MERMAID: ${{ inputs.render_mermaid || 'false' }}
-          RENDER_PLANTUML: ${{ inputs.render_plantuml || 'false' }}
-          DIAGRAM_OUTPUT_FORMAT: ${{ inputs.diagram_output_format || 'svg' }}
+          TEST_RENDER_MERMAID: ${{ inputs.render_mermaid || 'false' }}
+          TEST_RENDER_PLANTUML: ${{ inputs.render_plantuml || 'false' }}
+          TEST_DIAGRAM_OUTPUT_FORMAT: ${{ inputs.diagram_output_format || 'svg' }}
         run: |
           python -m unittest discover -s integration_tests -v
 

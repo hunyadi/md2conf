@@ -39,7 +39,7 @@ class Arguments(argparse.Namespace):
     username: str | None
     api_key: str | None
     space: str | None
-    api_version: Literal["v2", "v1"]
+    api_version: Literal["v2", "v1"] | None
     loglevel: str
     local: bool
     headers: dict[str, str]
@@ -97,31 +97,30 @@ def get_parser() -> argparse.ArgumentParser:
     parser.prog = os.path.basename(os.path.dirname(__file__))
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("mdpath", type=Path, nargs="+", help="Path to Markdown file or directory to convert and publish.")
-    parser.add_argument("-d", "--domain", help="Confluence organization domain.")
-    parser.add_argument("-p", "--path", help="Base path for Confluence (default: '/wiki/').")
+    parser.add_argument("-d", "--domain", help="Confluence organization domain. (env: CONFLUENCE_DOMAIN)")
+    parser.add_argument("-p", "--path", help="Base path for Confluence. (env: CONFLUENCE_PATH; default: '/wiki/')")
     parser.add_argument(
         "--api-url",
         dest="api_url",
-        help="Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one.",
+        help="Confluence API URL. Required for scoped tokens. Refer to documentation how to obtain one. (env: CONFLUENCE_API_URL)",
     )
-    parser.add_argument("-u", "--username", help="Confluence user name.")
+    parser.add_argument("-u", "--username", help="Confluence user name. (env: CONFLUENCE_USER_NAME)")
     parser.add_argument(
         "-a",
         "--api-key",
         dest="api_key",
-        help="Confluence API key. Refer to documentation how to obtain one.",
+        help="Confluence API key. Refer to documentation how to obtain one. (env: CONFLUENCE_API_KEY)",
     )
     parser.add_argument(
         "-s",
         "--space",
-        help="Confluence space key for pages to be published. If omitted, will default to user space.",
+        help="Confluence space key for pages to be published. If omitted, will default to user space. (env: CONFLUENCE_SPACE_KEY)",
     )
     parser.add_argument(
         "--api-version",
         dest="api_version",
         choices=["v2", "v1"],
-        default="v2",
-        help="Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server). (default: v2)",
+        help="Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server). (env: CONFLUENCE_API_VERSION; default: v2)",
     )
     parser.add_argument(
         "-l",
@@ -134,7 +133,7 @@ def get_parser() -> argparse.ArgumentParser:
         "-r",
         dest="root_page",
         type=ConfluencePageID,
-        help="Root Confluence page to create new pages. (deprecated).",
+        help="Confluence page to act as initial parent for creating new pages. (deprecated)",
         metavar="CONFLUENCE_PAGE_ID",
         **deprecated,
     )

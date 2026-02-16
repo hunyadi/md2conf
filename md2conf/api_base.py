@@ -120,8 +120,16 @@ class ConfluenceSession(ABC):
     def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
         "Executes an HTTP request via Confluence API."
 
+        return self._get_impl(version, path, response_type, query=query)
+
+    def _get_impl(
+        self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None, headers: dict[str, str] | None = None
+    ) -> T:
         url = self._build_url(version, path, query)
-        response = self._session.get(url, headers={"Accept": "application/json"}, verify=True)
+        if headers is None:
+            headers = {}
+        headers["Accept"] = "application/json"
+        response = self._session.get(url, headers=headers, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
@@ -166,8 +174,13 @@ class ConfluenceSession(ABC):
         return response_cast(response_type, response)
 
     def _delete(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None) -> None:
+        "Deletes an existing object via Confluence REST API."
+
+        self._delete_impl(version, path, query=query)
+
+    def _delete_impl(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> None:
         url = self._build_url(version, path, query)
-        response = self._session.delete(url, verify=True)
+        response = self._session.delete(url, headers=headers, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()

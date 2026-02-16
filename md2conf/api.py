@@ -88,7 +88,7 @@ class ConfluenceAPI:
             session.headers.update(self.properties.headers)
 
         match self.properties.api_version:
-            case "v2":
+            case "v2" | None:
                 self.session = ConfluenceSessionV2(
                     session,
                     api_url=self.properties.api_url,

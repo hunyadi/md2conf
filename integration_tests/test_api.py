@@ -13,7 +13,7 @@ import shutil
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 import lxml.etree as ET
 
@@ -61,6 +61,25 @@ class TestAPI(TypedTestCase):
 
     feature_test_page_id: ClassVar[ConfluencePageID]
     image_test_page_id: ClassVar[ConfluencePageID]
+
+    def get_processor_options(self) -> ProcessorOptions:
+        diagram_output_format: Literal["png", "svg"]
+        match os.getenv("TEST_DIAGRAM_OUTPUT_FORMAT"):
+            case "png":
+                diagram_output_format = "png"
+            case "svg" | _:
+                diagram_output_format = "svg"
+        return ProcessorOptions(
+            root_page=self.feature_test_page_id,
+            skip_update=True,
+            converter=ConverterOptions(
+                render_drawio=False,
+                render_mermaid=os.getenv("TEST_RENDER_MERMAID", "false").lower() in {"1", "true`"},
+                render_plantuml=os.getenv("TEST_RENDER_PLANTUML", "false").lower() in {"1", "true"},
+                render_latex=False,
+                diagram_output_format=diagram_output_format,
+            ),
+        )
 
     @override
     @classmethod
@@ -117,47 +136,17 @@ class TestAPI(TypedTestCase):
 
     def test_synchronize(self) -> None:
         with ConfluenceAPI() as api:
-            options = ProcessorOptions(
-                root_page=self.feature_test_page_id,
-                skip_update=True,
-                converter=ConverterOptions(
-                    render_drawio=False,
-                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                    render_latex=False,
-                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
-                ),
-            )
+            options = self.get_processor_options()
             Publisher(api, options).process(self.sample_dir / "index.md")
 
     def test_synchronize_page(self) -> None:
         with ConfluenceAPI() as api:
-            options = ProcessorOptions(
-                root_page=self.feature_test_page_id,
-                skip_update=True,
-                converter=ConverterOptions(
-                    render_drawio=False,
-                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                    render_latex=False,
-                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
-                ),
-            )
+            options = self.get_processor_options()
             Publisher(api, options).process_page(self.sample_dir / "index.md")
 
     def test_synchronize_directory(self) -> None:
         with ConfluenceAPI() as api:
-            options = ProcessorOptions(
-                root_page=self.feature_test_page_id,
-                skip_update=True,
-                converter=ConverterOptions(
-                    render_drawio=False,
-                    render_mermaid=os.getenv("RENDER_MERMAID", "false").lower() == "true",
-                    render_plantuml=os.getenv("RENDER_PLANTUML", "false").lower() == "true",
-                    render_latex=False,
-                    diagram_output_format=os.getenv("DIAGRAM_OUTPUT_FORMAT", "svg"),  # type: ignore
-                ),
-            )
+            options = self.get_processor_options()
             Publisher(api, options).process_directory(self.sample_dir)
 
     def test_synchronize_create(self) -> None:
