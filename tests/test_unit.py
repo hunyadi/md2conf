@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
+from md2conf import __main__
 from md2conf.attachment import attachment_name
+from md2conf.cli import main as cli_main
 from md2conf.coalesce import coalesce
 from md2conf.converter import title_to_identifier
 from md2conf.formatting import display_width
@@ -56,6 +58,9 @@ class _C:
 
 class TestUnit(TypedTestCase):
     "Simple unit tests without set-up or tear-down requirements."
+
+    def test_cli_entrypoint(self) -> None:
+        self.assertIs(cli_main, __main__.main)
 
     def test_reflection(self) -> None:
         self.assertCountEqual(get_nested_types([_C]), [_A, _B, _C, _X, _Y, bool, complex, datetime, int, str])

@@ -61,7 +61,7 @@ formulas = [
 "Source" = "https://github.com/hunyadi/md2conf"
 
 [project.scripts]
-md2conf = "md2conf.__main__:main"
+md2conf = "md2conf.cli:main"
 
 [tool.setuptools]
 include-package-data = true

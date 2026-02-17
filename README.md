@@ -43,6 +43,12 @@ Whenever possible, the implementation uses [Confluence REST API v2](https://deve
 pip install markdown-to-confluence
 ```
 
+After installation, invoke the CLI directly:
+
+```sh
+md2conf --help
+```
+
 ### Command-line utilities
 
 **Optional.** Converting `*.drawio` diagrams to PNG or SVG images before uploading to Confluence as attachments requires installing [draw.io](https://www.drawio.com/). (Refer to `--render-drawio`.)
@@ -647,13 +653,13 @@ The attribute `properties` is parsed as a dictionary with keys of type string an
 You can synchronize a (directory of) Markdown file(s) with Confluence using the command-line tool `md2conf`:
 
 ```sh
-$ python3 -m md2conf sample/index.md
+$ md2conf sample/index.md
 ```
 
 Use the `--help` switch to get a full list of supported command-line options:
 
 ```console
-$ python3 -m md2conf --help
+$ md2conf --help
 usage: md2conf mdpath [mdpath ...] [OPTIONS]
 
 positional arguments:
