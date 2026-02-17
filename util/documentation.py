@@ -58,8 +58,8 @@ def update_console(text: str) -> str:
     "Updates the console output section in `README.md`."
 
     output, count = re.subn(
-        r"^```console\n\$ python3 -m md2conf --help\n.*?^```$",
-        f"```console\n$ python3 -m md2conf --help\n{help_text}```",
+        r"^```console\n\$ md2conf --help\n.*?^```$",
+        f"```console\n$ md2conf --help\n{help_text}```",
         text,
         count=1,
         flags=re.DOTALL | re.MULTILINE,
