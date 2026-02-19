@@ -257,3 +257,6 @@ class ProcessorOptions:
             "Leave Markdown source file unmodified.",
         ),
     )
+
+
+DocumentOptions = ProcessorOptions

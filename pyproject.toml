@@ -30,11 +30,11 @@ classifiers = [
     "Typing :: Typed"
 ]
 dependencies = [
-    "cattrs >= 25.3",
+    "cattrs >= 26.1",
     "lxml >= 6.0",
     "markdown >= 3.10",
     "orjson >= 3.11",
-    "pymdown-extensions >= 10.20",
+    "pymdown-extensions >= 10.21",
     "PyYAML >= 6.0",
     "requests >= 2.32",
     "truststore >= 0.10",
@@ -45,12 +45,12 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "markdown_doc >= 0.1.7",
-    "types-lxml >= 2026.1.1",
+    "types-lxml >= 2026.2.16",
     "types-markdown >= 3.10",
     "types-PyYAML >= 6.0",
     "types-requests >= 2.32",
     "mypy[faster-cache] >= 1.19",
-    "ruff >= 0.14"
+    "ruff >= 0.15"
 ]
 formulas = [
     "matplotlib >= 3.9"

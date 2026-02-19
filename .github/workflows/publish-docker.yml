@@ -62,13 +62,7 @@ jobs:
           source: .
           # Push if: (1) triggered by tag, OR (2) manual dispatch with push_images=true
           push: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.push_images) }}
-          set: |
-            *.cache-from=type=gha,scope=md2conf-docker
-            *.cache-to=type=gha,mode=max,scope=md2conf-docker
-            ${{ format('base.tags={0}-minimal', join(fromJSON(steps.meta.outputs.json).tags, format('-minimal\nbase.tags='))) }}
-            ${{ format('mermaid.tags={0}-mermaid', join(fromJSON(steps.meta.outputs.json).tags, format('-mermaid\nmermaid.tags='))) }}
-            ${{ format('plantuml.tags={0}-plantuml', join(fromJSON(steps.meta.outputs.json).tags, format('-plantuml\nplantuml.tags='))) }}
-            ${{ format('all.tags={0}', join(fromJSON(steps.meta.outputs.json).tags, format('\nall.tags='))) }}
+          set: "*.cache-from=type=gha,scope=md2conf-docker\n*.cache-to=type=gha,mode=max,scope=md2conf-docker\n${{ format('base.tags={0}-minimal', join(fromJSON(steps.meta.outputs.json).tags, format('-minimal\nbase.tags='))) }}\n${{ format('mermaid.tags={0}-mermaid', join(fromJSON(steps.meta.outputs.json).tags, format('-mermaid\nmermaid.tags='))) }}\n${{ format('plantuml.tags={0}-plantuml', join(fromJSON(steps.meta.outputs.json).tags, format('-plantuml\nplantuml.tags='))) }}\n${{ format('all.tags={0}', join(fromJSON(steps.meta.outputs.json).tags, format('\nall.tags='))) }}"
 
       - name: Generate Build Summary
         if: always()
