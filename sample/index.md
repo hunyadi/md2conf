@@ -135,6 +135,10 @@ dignissim finibus dui.
 | ---- | --------------------------- |
 | Data | A multi-line<br/>paragraph. |
 
+|     |       |
+| --- | ----- |
+| Key | Value |
+
 ## Admonitions
 
 Markdown has no native support for admonitions. Admonitions that follow the [Python-Markdown syntax](https://python-markdown.github.io/extensions/admonition/) are converted into Confluence structured macros, which are shown as info panels. (See [Alerts](#alerts) for an alternative that has pretty output in both GitHub and Confluence.)

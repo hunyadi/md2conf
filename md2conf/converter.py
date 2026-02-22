@@ -1615,8 +1615,18 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             # <table>...</table>
             case "table":
+                # remove <thead> if it doesn't contain any text
+                for thead in list(child.iterchildren("thead")):
+                    for th in thead.iterdescendants("td", "th"):
+                        if any(text and not text.isspace() for text in th.itertext()):
+                            break
+                    else:
+                        child.remove(thead)
+
+                # ensure inline content is wrapped in <p>
                 for td in child.iterdescendants("td", "th"):
                     normalize_inline(td)
+
                 match self.options.layout.alignment:
                     case "left":
                         layout = "align-start"

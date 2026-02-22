@@ -32,3 +32,9 @@ Multi-line cells
 | Name | Description                 |
 | ---- | --------------------------- |
 | Data | A multi-line<br/>paragraph. |
+
+Table with no header row
+
+|     |       |
+| --- | ----- |
+| Key | Value |

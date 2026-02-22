@@ -18,14 +18,13 @@ from .serializer import JsonType, json_to_object
 D = TypeVar("D")
 
 
-def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
+def extract_value(expr: re.Pattern[str], text: str) -> tuple[str | None, str]:
     """
     Extracts the value captured by the first group in a regular expression.
 
     :returns: A tuple of (1) the value extracted and (2) remaining text without the captured text.
     """
 
-    expr = re.compile(pattern)
     if expr.groups != 1:
         raise ValueError("expected: a single group whose value to extract")
 
@@ -41,12 +40,6 @@ def extract_value(pattern: str, text: str) -> tuple[str | None, str]:
     return matcher.value, text
 
 
-def extract_frontmatter_block(text: str) -> tuple[str | None, str]:
-    "Extracts the front-matter from a Markdown document as a blob of unparsed text."
-
-    return extract_value(r"(?ms)\A---\n(.+?)^---\n", text)
-
-
 @dataclass
 class FrontMatterProperties:
     data: dict[str, JsonType] | None
@@ -57,10 +50,10 @@ class FrontMatterProperties:
         return self.inner_line_count + 2  # account for enclosing `--` (double dash)
 
 
-def extract_frontmatter_json(text: str) -> tuple[FrontMatterProperties | None, str]:
-    "Extracts the front-matter from a Markdown document as a dictionary."
+def _extract_frontmatter_block(expr: re.Pattern[str], text: str) -> tuple[FrontMatterProperties | None, str]:
+    "Extracts the front-matter from a blob of unparsed text into a structured object."
 
-    block, text = extract_frontmatter_block(text)
+    block, text = extract_value(expr, text)
 
     properties: FrontMatterProperties | None = None
     if block is not None:
@@ -70,6 +63,19 @@ def extract_frontmatter_json(text: str) -> tuple[FrontMatterProperties | None, s
             properties = FrontMatterProperties(typing.cast(dict[str, JsonType], data), inner_line_count)
 
     return properties, text
+
+
+_FRONT_MATTER_REGEXP = re.compile(r"\A---\n(.+?)^---\n", flags=re.DOTALL | re.MULTILINE)
+_FRONT_COMMENT_REGEXP = re.compile(r"\A<!--\n(.+?)^-->\n", flags=re.DOTALL | re.MULTILINE)
+
+
+def extract_frontmatter_json(text: str) -> tuple[FrontMatterProperties | None, str]:
+    "Extracts the front-matter from a Markdown document into a structured object."
+
+    block, text = _extract_frontmatter_block(_FRONT_MATTER_REGEXP, text)
+    if block is None:
+        block, text = _extract_frontmatter_block(_FRONT_COMMENT_REGEXP, text)
+    return block, text
 
 
 def extract_frontmatter_object(tp: type[D], text: str) -> tuple[D | None, str]:

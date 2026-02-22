@@ -636,6 +636,16 @@ properties:
 
 The attribute `properties` is parsed as a dictionary with keys of type string and values of type JSON. *md2conf* passes JSON values to Confluence REST API unchanged.
 
+Some Markdown renderers (e.g. GitHub) parse and display front-matter. If you want to hide front-matter from these engines, you can switch to HTML comment delimiters; use `<!--` and `-->` immediately at the beginning of the file (instead of `---`):
+
+```html
+<!--
+properties:
+  content-appearance-published: fixed-width
+  content-appearance-draft: full-width
+-->
+```
+
 ### Local output
 
 *md2conf* supports local output, in which the tool doesn't communicate with the Confluence REST API. Instead, it reads a single Markdown file or a directory of Markdown files, and writes Confluence Storage Format (`*.csf`) output for each document. (Confluence Storage Format is a derivative of XHTML with Confluence-specific tags for complex elements such as images with captions, code blocks, info panels, collapsed sections, etc.) You can push the generated output to Confluence by invoking the API (e.g. with `curl`).

@@ -79,3 +79,12 @@
     </tr>
   </tbody>
 </table>
+<p>Table with no header row</p>
+<table data-layout="default" data-table-width="640">
+  <tbody>
+    <tr>
+      <td><p>Key</p></td>
+      <td><p>Value</p></td>
+    </tr>
+  </tbody>
+</table>

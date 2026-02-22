@@ -22,6 +22,32 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
 )
 
+id_only = """# Title
+
+Text
+
+<!-- confluence-page-id: 1234 -->
+"""
+
+id_space_title = """---
+{ "title": "🏠 árvíztűrő tükörfúrógép" }
+---
+
+<!-- confluence-page-id: 1234567 -->
+<!-- confluence-space-key: ~hunyadi -->
+
+# Title
+
+Text
+"""
+
+comment_front_matter = """<!--
+title: 🏠 árvíztűrő tükörfúrógép
+-->
+
+Text
+"""
+
 mermaid_front_matter = """---
 title: Tiny flow diagram
 config:
@@ -31,10 +57,12 @@ flowchart LR
     A[Component A] --> B[Component B]
     B --> C[Component C]
 """
+
 mermaid_no_front_matter = """flowchart LR
     A[Component A] --> B[Component B]
     B --> C[Component C]
 """
+
 mermaid_malformed_front_matter = """---
 title: Tiny flow diagram
 config:
@@ -55,17 +83,22 @@ class TestScanner(TypedTestCase):
         self.test_dir = Path(__file__).parent / "scanner"
 
     def test_tag(self) -> None:
-        document = Scanner().read(self.test_dir / "id_only.md")
+        document = Scanner().parse(id_only)
         props = document.properties
         self.assertEqual(props.page_id, "1234")
         self.assertIsNone(props.space_key)
         self.assertIsNone(props.title)
 
     def test_json_frontmatter(self) -> None:
-        document = Scanner().read(self.test_dir / "id_space_title.md")
+        document = Scanner().parse(id_space_title)
         props = document.properties
         self.assertEqual(props.page_id, "1234567")
         self.assertEqual(props.space_key, "~hunyadi")
+        self.assertEqual(props.title, "🏠 árvíztűrő tükörfúrógép")
+
+    def test_comment_frontmatter(self) -> None:
+        document = Scanner().parse(comment_front_matter)
+        props = document.properties
         self.assertEqual(props.title, "🏠 árvíztűrő tükörfúrógép")
 
     def test_yaml_frontmatter(self) -> None:
