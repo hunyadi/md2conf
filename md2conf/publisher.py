@@ -135,7 +135,7 @@ class SynchronizingProcessor(Processor):
         Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        topmost_id = self._get_topmost_id(tree.page_id, root_id.page_id if root_id is not None else None)
+        topmost_id = self._get_topmost_id(tree.page_id, root_id)
         if topmost_id is None:
             raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
 
@@ -173,7 +173,7 @@ class SynchronizingProcessor(Processor):
             title = self._get_extended_title(title)
 
             # look up page by (possibly auto-generated) title
-            page = self.api.get_or_create_page(title, parent_id.page_id)
+            page = self.api.get_or_create_page(title, parent_id)
             catalog.add_parent(page_id=page.id, parent_id=page.parentId)
 
             if page.status is ConfluenceStatus.ARCHIVED:
@@ -218,7 +218,7 @@ class SynchronizingProcessor(Processor):
         base_path = path.parent
         for image_data in document.images:
             self.api.upload_attachment(
-                page_id.page_id,
+                page_id,
                 attachment_name(path_relative_to(image_data.path, base_path)),
                 attachment_path=image_data.path,
                 comment=image_data.description,
@@ -226,7 +226,7 @@ class SynchronizingProcessor(Processor):
 
         for name, file_data in document.embedded_files.items():
             self.api.upload_attachment(
-                page_id.page_id,
+                page_id,
                 name,
                 raw_data=file_data.data,
                 comment=file_data.description,
@@ -246,8 +246,8 @@ class SynchronizingProcessor(Processor):
         title = self._get_unique_title(document, path)
 
         # fetch existing page
-        page = self.api.get_page(page_id.page_id)
-        prop = self.api.get_content_property_for_page(page_id.page_id, CONTENT_PROPERTY_TAG)
+        page = self.api.get_page(page_id)
+        prop = self.api.get_content_property_for_page(page_id, CONTENT_PROPERTY_TAG)
         source_tag: ConfluenceMarkdownTag | None = None
         if prop is not None:
             try:
@@ -373,7 +373,10 @@ class SynchronizingProcessor(Processor):
         index = 0
         if document.startswith("---\n"):
             index = document.find("\n---\n", 4) + 4
+        elif document.startswith("<!--\n"):
+            index = document.find("\n-->\n", 5) + 4
 
+        if index > 0:
             # insert the Confluence keys after the frontmatter
             content.append(document[:index])
 

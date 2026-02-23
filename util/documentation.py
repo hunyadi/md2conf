@@ -14,7 +14,7 @@ from dataclasses import fields, is_dataclass
 from importlib.util import find_spec
 from io import StringIO
 from pathlib import Path
-from typing import Any, get_type_hints
+from typing import Any, NewType, get_type_hints
 
 from md2conf.__main__ import get_help
 from md2conf.api import ConfluenceAPI
@@ -72,7 +72,7 @@ def update_console(text: str) -> str:
 def update_python(text: str) -> str:
     "Updates the Python sample code section in `README.md`."
 
-    tps: set[type[Any]] = {ConfluenceAPI, Publisher}
+    tps: set[NewType | type[Any]] = {ConfluenceAPI, Publisher}
     tps.update(get_nested_types([ConnectionProperties, ProcessorOptions]))
 
     python_code = f"""
@@ -121,12 +121,12 @@ def format_dataclass(tp: Any, indent: str = "") -> str:
     return s.getvalue()
 
 
-def get_imports(tps: Sequence[type[Any]]) -> str:
+def get_imports(tps: Sequence[NewType | type[Any]]) -> str:
     "Returns a list of `import` statements to bring the specified classes into scope."
 
     s = StringIO()
     for module in sorted(list(set(tp.__module__ for tp in tps if tp.__module__ != "builtins"))):
-        items = sorted(tp.__name__ for tp in tps if tp.__module__ == module)
+        items = sorted(tp.__name__ for tp in tps if tp.__module__ == module)  # type: ignore[union-attr]
         if not items:
             continue
         print(f"from {module} import {', '.join(name for name in items)}", file=s)

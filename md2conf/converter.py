@@ -1779,7 +1779,7 @@ class ConfluenceDocument:
 
         # modify HTML as necessary
         if self.options.generated_by is not None:
-            generated_by = props.generated_by or self.options.generated_by.string
+            generated_by = props.generated_by or self.options.generated_by
         else:
             generated_by = None
 

@@ -660,6 +660,12 @@ You can synchronize a (directory of) Markdown file(s) with Confluence using the 
 $ python3 -m md2conf sample/index.md
 ```
 
+When the Python package is installed, a console script called `md2conf` is also created, which means the above command may be written more compactly so long as the script is in your `PATH`:
+
+```sh
+$ md2conf sample/index.md
+```
+
 Use the `--help` switch to get a full list of supported command-line options:
 
 ```console

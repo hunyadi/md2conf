@@ -91,7 +91,7 @@ class TestAPI(TypedTestCase):
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
             cls.feature_test_page_id = ConfluencePageID(api.get_or_create_page(title=FEATURE_TEST_PAGE_TITLE, parent_id=homepage_id).id)
-            cls.image_test_page_id = ConfluencePageID(api.get_or_create_page(title=IMAGE_TEST_PAGE_TITLE, parent_id=cls.feature_test_page_id.page_id).id)
+            cls.image_test_page_id = ConfluencePageID(api.get_or_create_page(title=IMAGE_TEST_PAGE_TITLE, parent_id=cls.feature_test_page_id).id)
 
     @override
     def setUp(self) -> None:
@@ -110,11 +110,11 @@ class TestAPI(TypedTestCase):
         with ConfluenceAPI() as api:
             page = api.get_page_properties_by_title(FEATURE_TEST_PAGE_TITLE)
             self.assertGreater(datetime.now(timezone.utc), page.createdAt)
-            self.assertEqual(page.id, self.feature_test_page_id.page_id)
+            self.assertEqual(page.id, self.feature_test_page_id)
 
     def test_get_page(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(self.feature_test_page_id.page_id)
+            page = api.get_page(self.feature_test_page_id)
             self.assertIsInstance(page, ConfluencePage)
 
         with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
@@ -123,7 +123,7 @@ class TestAPI(TypedTestCase):
     def test_attachment(self) -> None:
         with ConfluenceAPI() as api:
             api.upload_attachment(
-                self.image_test_page_id.page_id,
+                self.image_test_page_id,
                 "figure_interoperability.png",
                 attachment_path=self.sample_dir / "figure" / "interoperability.png",
                 comment="A sample figure",
@@ -131,7 +131,7 @@ class TestAPI(TypedTestCase):
             )
 
         with ConfluenceAPI() as api:
-            data = api.get_attachment_by_name(self.image_test_page_id.page_id, "figure_interoperability.png")
+            data = api.get_attachment_by_name(self.image_test_page_id, "figure_interoperability.png")
             self.assertIsInstance(data, ConfluenceAttachment)
 
     def test_synchronize(self) -> None:

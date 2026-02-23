@@ -7,37 +7,15 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, NewType
 
 from .clio import boolean_option, composite_option, nullable_option, value_option
 
+# Encapsulates a Confluence page ID
+ConfluencePageID = NewType("ConfluencePageID", str)
 
-@dataclass(frozen=True)
-class ConfluencePageID:
-    """
-    Encapsulates a Confluence page ID.
-
-    :param page_id: Confluence page ID.
-    """
-
-    page_id: str
-
-    def __str__(self) -> str:
-        return self.page_id
-
-
-@dataclass(frozen=True)
-class Markdown:
-    """
-    Encapsulates a snippet of Markdown text.
-
-    :param string: Markdown text.
-    """
-
-    string: str
-
-    def __str__(self) -> str:
-        return self.string
+# Encapsulates a snippet of Markdown text
+Markdown = NewType("Markdown", str)
 
 
 @dataclass
