@@ -15,7 +15,7 @@ from typing import Literal
 
 from md2conf.attachment import attachment_name
 from md2conf.coalesce import coalesce
-from md2conf.converter import title_to_identifier
+from md2conf.converter import title_to_identifier, title_to_slug
 from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
@@ -97,6 +97,14 @@ class TestUnit(TypedTestCase):
         self.assertEqual(title_to_identifier("C++ & C# Comparison"), "c-c-comparison")
         self.assertEqual(title_to_identifier("Hello -- World!!"), "hello----world")
         self.assertEqual(title_to_identifier("árvíztűrő tükörfúrógép"), "rvztr-tkrfrgp")  # spellchecker:disable-line
+
+    def test_title_to_slug(self) -> None:
+        self.assertEqual(title_to_slug("This is  a Heading  "), "this-is-a-heading")
+        self.assertEqual(title_to_slug("What's New in v2.0?"), "whats-new-in-v20")
+        self.assertEqual(title_to_slug("C++ & C# Comparison"), "c-c-comparison")
+        self.assertEqual(title_to_slug("Hello -- World!!"), "hello----world")
+        self.assertEqual(title_to_slug("paramètres"), "parametres")
+        self.assertEqual(title_to_slug("árvíztűrő tükörfúrógép"), "arvizturo-tukorfurogep")  # spellchecker:disable-line
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:

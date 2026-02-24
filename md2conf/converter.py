@@ -10,6 +10,7 @@ import copy
 import logging
 import os.path
 import re
+import unicodedata
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -273,17 +274,65 @@ class NodeVisitor(ABC):
     def transform(self, child: ElementType) -> ElementType | ElementAction: ...
 
 
-_DISALLOWED_CHAR_REGEXP = re.compile(r"[^\sA-Za-z0-9_\-]")
+_DISALLOWED_CHAR_REGEXP = re.compile(r"[^\sa-z0-9_-]")
 _SPACE_COLLAPSE_REGEXP = re.compile(r"\s+")
 
 
 def title_to_identifier(title: str) -> str:
-    "Converts a section heading title to a GitHub-style Markdown same-page anchor."
+    """
+    Converts a section heading title to a GitHub-style Markdown same-page anchor.
 
+    :param title: Heading title text without formatting.
+    """
+
+    # remove leading and trailing whitespace, convert letters to lowercase
     s = title.strip().lower()
+    # remove international characters
     s = _DISALLOWED_CHAR_REGEXP.sub("", s)
+    # collapse whitespace to hyphens
     s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
     return s
+
+
+def title_to_slug(title: str) -> str:
+    """
+    Converts a section heading title to a GitHub-style Markdown same-page anchor with accent removal.
+
+    :param title: Heading title text without formatting.
+    """
+
+    s = title.strip()
+    # normalize to NFD (decomposes accents)
+    s = unicodedata.normalize("NFD", s)
+    # remove nonspacing combining diacritic marks (zero advance width) (Unicode category `Mn`)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    # transform to lowercase
+    s = s.lower()
+    # remove punctuation except spaces and hyphens
+    s = _DISALLOWED_CHAR_REGEXP.sub("", s)
+    # collapse whitespace to hyphens
+    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
+
+    return s
+
+
+_HEADING_IDENTIFIER_REGEXP = re.compile(r"\s*\{#(?P<id>[^{}]+)\}$")
+
+
+class _HeadingIdentifierMatcher:
+    value: str | None = None
+
+    def __call__(self, match: re.Match[str]) -> str:
+        self.value = match.group("id")
+        return ""
+
+
+def heading_id_text(title: str) -> tuple[str | None, str]:
+    "Extracts an identifier from the heading title text."
+
+    matcher = _HeadingIdentifierMatcher()
+    title = _HEADING_IDENTIFIER_REGEXP.sub(matcher, title, count=1)
+    return matcher.value, title
 
 
 def element_text_starts_with_any(node: ElementType, prefixes: list[str]) -> bool:
@@ -491,6 +540,21 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         for e in heading:
             self.visit(e)
 
+        identifier: str | None = None
+        if len(heading) > 0:
+            # heading has formatting, use tail of last child
+            last_child = heading[-1]
+            if last_child.tail:
+                identifier, last_child.tail = heading_id_text(last_child.tail)
+        else:
+            # heading has no formatting, use text
+            if heading.text:
+                identifier, heading.text = heading_id_text(heading.text)
+
+        # infer identifier from title text if explicit identifier is not present
+        if identifier is None:
+            identifier = title_to_slug(element_to_text(heading))
+
         anchor = AC_ELEM(
             "structured-macro",
             {
@@ -500,7 +564,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             AC_ELEM(
                 "parameter",
                 {AC_ATTR("name"): ""},
-                title_to_identifier(element_to_text(heading)),
+                identifier,
             ),
         )
 
