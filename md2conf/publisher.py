@@ -14,6 +14,7 @@ from pathlib import Path
 from .api_base import ConfluenceSession
 from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
+from .coalesce import coalesce_json
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, ElementType, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, elements_from_string
@@ -286,8 +287,9 @@ class SynchronizingProcessor(Processor):
 
             target_tag = ConfluenceMarkdownTag(version, source_digest)
             props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(target_tag))]
-            if document.properties is not None:
-                props.extend(ConfluenceContentProperty(key, value) for key, value in document.properties.items())
+            properties = coalesce_json(document.properties, self.global_properties)
+            if properties is not None:
+                props.extend(ConfluenceContentProperty(key, value) for key, value in properties.items())
                 self.api.update_content_properties_for_page(page.id, props)
             else:
                 if source_tag is None or source_tag != target_tag:

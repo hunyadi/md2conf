@@ -646,6 +646,15 @@ properties:
 -->
 ```
 
+Confluence content properties can be defined globally for the entire set of Markdown files to be synchronized. Use the command-line option `--global-properties` to specify the JSON/YAML file to parse as a key-value dictionary. For example, to set display style for every Confluence page that is synchronized from a Markdown file, create a YAML file with the following:
+
+```yaml
+content-appearance-published: fixed-width
+content-appearance-draft: full-width
+```
+
+Content properties in the Markdown front-matter override globally configured content properties.
+
 ### Local output
 
 *md2conf* supports local output, in which the tool doesn't communicate with the Confluence REST API. Instead, it reads a single Markdown file or a directory of Markdown files, and writes Confluence Storage Format (`*.csf`) output for each document. (Confluence Storage Format is a derivative of XHTML with Confluence-specific tags for complex elements such as images with captions, code blocks, info panels, collapsed sections, etc.) You can push the generated output to Confluence by invoking the API (e.g. with `curl`).
@@ -743,6 +752,8 @@ options:
                         Default alignment for block-level content.
   --line-numbers        Inject line numbers in Markdown source file to help localize conversion errors.
   --no-line-numbers     Leave Markdown source file unmodified. (default)
+  --global-properties PATH
+                        JSON or YAML file of Confluence content properties to merge for every synchronized Markdown file.
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations. (deprecated)
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
@@ -758,6 +769,7 @@ from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
 from md2conf.options import ConfluencePageID, ConverterOptions, ImageLayoutOptions, LayoutOptions, Markdown, ProcessorOptions, TableLayoutOptions
 from md2conf.publisher import Publisher
+from pathlib import Path
 
 properties = ConnectionProperties(
     domain=str() or None,
@@ -802,6 +814,7 @@ options = ProcessorOptions(
         ),
     ),
     line_numbers=bool(),
+    global_properties=Path() or None,
 )
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)

@@ -9,9 +9,12 @@ Copyright 2022-2026, Levente Hunyadi
 import hashlib
 import logging
 import os
+import typing
 from abc import abstractmethod
 from pathlib import Path
 from typing import Iterable
+
+import yaml
 
 from .collection import ConfluencePageCollection
 from .converter import ConfluenceDocument
@@ -20,6 +23,7 @@ from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .scanner import Scanner
+from .serializer import JsonType
 from .toc import unique_title
 
 LOGGER = logging.getLogger(__name__)
@@ -101,6 +105,7 @@ class Processor:
     options: ProcessorOptions
     site: ConfluenceSiteMetadata
     root_dir: Path
+    global_properties: dict[str, JsonType]
 
     page_metadata: ConfluencePageCollection
 
@@ -113,6 +118,15 @@ class Processor:
         self.options = options
         self.site = site
         self.root_dir = root_dir
+
+        self.global_properties = {}
+        if self.options.global_properties is not None:
+            with open(self.options.global_properties, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if not isinstance(data, dict):
+                    raise ValueError("expected: YAML/JSON dictionary of Confluence content properties")
+                self.global_properties = typing.cast(dict[str, JsonType], data)
+
         self.page_metadata = ConfluencePageCollection()
 
     def process_directory(self, local_dir: Path) -> None:
@@ -268,7 +282,7 @@ class Processor:
 
         document = Scanner().parse(text)
         props = document.properties
-        title = props.title or unique_title(text)
+        title = props.title or unique_title(document.text)
 
         return DocumentNode(
             absolute_path=path,

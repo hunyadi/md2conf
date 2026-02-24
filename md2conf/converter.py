@@ -22,7 +22,7 @@ from urllib.parse import ParseResult, quote_plus, urlparse
 import lxml.etree as ET
 
 from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
-from .coalesce import coalesce
+from .coalesce import coalesce_dataclass
 from .collection import ConfluencePageCollection
 from .compatibility import override, path_relative_to
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
@@ -1869,7 +1869,7 @@ class ConfluenceDocument:
         # configure HTML-to-Confluence converter
         converter_options = copy.deepcopy(self.options.converter)
         if props.layout is not None:
-            converter_options.layout = coalesce(props.layout, converter_options.layout)
+            converter_options.layout = coalesce_dataclass(props.layout, converter_options.layout)
         converter = ConfluenceStorageFormatConverter(converter_options, path, root_dir, site_metadata, page_metadata)
 
         # execute HTML-to-Confluence converter

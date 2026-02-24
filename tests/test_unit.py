@@ -14,13 +14,13 @@ from datetime import datetime
 from typing import Literal
 
 from md2conf.attachment import attachment_name
-from md2conf.coalesce import coalesce
+from md2conf.coalesce import coalesce_dataclass, coalesce_json
 from md2conf.converter import title_to_identifier, title_to_slug
 from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
 from md2conf.reflection import get_nested_types
-from md2conf.serializer import json_to_object, object_to_json_payload
+from md2conf.serializer import JsonType, json_to_object, object_to_json_payload
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -71,7 +71,7 @@ class TestUnit(TypedTestCase):
         with self.assertRaises(ValueError):
             _ = attachment_name("/path/to/image.png")
 
-    def test_merged(self) -> None:
+    def test_coalesce_dataclass(self) -> None:
         @dataclass(frozen=True)
         class A:
             s: str | None = None
@@ -82,14 +82,20 @@ class TestUnit(TypedTestCase):
             a: A = dataclasses.field(default_factory=A)
             i: int | None = None
 
-        self.assertEqual(coalesce(B(), B(a=A("a"))), B(a=A("a")))
-        self.assertEqual(coalesce(B(a=A("a")), B()), B(a=A("a")))
-        self.assertEqual(coalesce(B(a=A("a")), B(i=2)), B(a=A("a"), i=2))
-        self.assertEqual(coalesce(B(a=A("a")), B(a=A("a", 1))), B(a=A("a", 1)))
-        self.assertEqual(coalesce(B(a=A("a", 1)), B(a=A("a", 2))), B(a=A("a", 1)))
-        self.assertEqual(coalesce(B(a=A("a", 1)), B(i=2)), B(a=A("a", 1), i=2))
-        self.assertEqual(coalesce(B(i=2), B(i=3)), B(i=2))
-        self.assertEqual(coalesce(B(i=2), B(a=A("a", 1))), B(a=A("a", 1), i=2))
+        self.assertEqual(coalesce_dataclass(B(), B(a=A("a"))), B(a=A("a")))
+        self.assertEqual(coalesce_dataclass(B(a=A("a")), B()), B(a=A("a")))
+        self.assertEqual(coalesce_dataclass(B(a=A("a")), B(i=2)), B(a=A("a"), i=2))
+        self.assertEqual(coalesce_dataclass(B(a=A("a")), B(a=A("a", 1))), B(a=A("a", 1)))
+        self.assertEqual(coalesce_dataclass(B(a=A("a", 1)), B(a=A("a", 2))), B(a=A("a", 1)))
+        self.assertEqual(coalesce_dataclass(B(a=A("a", 1)), B(i=2)), B(a=A("a", 1), i=2))
+        self.assertEqual(coalesce_dataclass(B(i=2), B(i=3)), B(i=2))
+        self.assertEqual(coalesce_dataclass(B(i=2), B(a=A("a", 1))), B(a=A("a", 1), i=2))
+
+    def test_coalesce_json(self) -> None:
+        target: dict[str, JsonType] = {"name": "Laura", "country": None, "settings": {"theme": None, "notifications": True}}
+        source: dict[str, JsonType] = {"age": 32, "country": "Hungary", "settings": {"theme": "dark", "notifications": False, "language": "en"}}
+        merged: dict[str, JsonType] = {"name": "Laura", "age": 32, "country": "Hungary", "settings": {"theme": "dark", "notifications": True, "language": "en"}}
+        self.assertEqual(coalesce_json(target, source), merged)
 
     def test_title_to_identifier(self) -> None:
         self.assertEqual(title_to_identifier("This is  a Heading  "), "this-is-a-heading")

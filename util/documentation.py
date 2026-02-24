@@ -129,6 +129,8 @@ def get_imports(tps: Sequence[NewType | type[Any]]) -> str:
         items = sorted(tp.__name__ for tp in tps if tp.__module__ == module)  # type: ignore[union-attr]
         if not items:
             continue
+        if module == "pathlib._local":
+            module = "pathlib"
         print(f"from {module} import {', '.join(name for name in items)}", file=s)
     return s.getvalue()
 

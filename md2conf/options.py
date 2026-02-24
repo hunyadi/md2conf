@@ -7,6 +7,7 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal, NewType
 
 from .clio import boolean_option, composite_option, nullable_option, value_option
@@ -187,6 +188,7 @@ class ProcessorOptions:
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
     :param converter: Options for converting an HTML tree into Confluence Storage Format.
     :param line_numbers: Inject line numbers in Markdown source file to help localize conversion errors.
+    :param global_properties: JSON or YAML file of Confluence content properties to merge for every synchronized Markdown file.
     """
 
     root_page: ConfluencePageID | None = field(
@@ -234,6 +236,9 @@ class ProcessorOptions:
             "Inject line numbers in Markdown source file to help localize conversion errors.",
             "Leave Markdown source file unmodified.",
         ),
+    )
+    global_properties: Path | None = field(
+        default=None, metadata=value_option("JSON or YAML file of Confluence content properties to merge for every synchronized Markdown file.")
     )
 
 
