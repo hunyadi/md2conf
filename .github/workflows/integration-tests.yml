@@ -66,8 +66,10 @@ jobs:
           dot -V
 
       - name: Download PlantUML JAR
+        env:
+          PLANTUML_VERSION: "1.2026.2"
         run: |
-          curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-${{ env.PLANTUML_VERSION }}.jar
           java -jar plantuml.jar -version
 
       # Setup Node.js for Mermaid
