@@ -62,6 +62,8 @@ npm install -g @mermaid-js/mermaid-cli
    * **Windows**: Download from [graphviz.org](https://graphviz.org/download/)
 3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and set `PLANTUML_JAR` environment variable to point to it
 
+> The recommended minimum version is **v1.2026.2**; older versions may work but feature support might be limited.
+
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
 ```sh
