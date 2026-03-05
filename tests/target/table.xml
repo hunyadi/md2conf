@@ -88,3 +88,30 @@
     </tr>
   </tbody>
 </table>
+<p>Table with header column</p>
+<table data-layout="default" data-table-width="640">
+  <thead>
+    <tr>
+      <th><p>Number</p></th>
+      <th><p>English</p></th>
+      <th><p>Hungarian</p></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th><p>1</p></th>
+      <td><p>one</p></td>
+      <td><p>egy</p></td>
+    </tr>
+    <tr>
+      <th><p>2</p></th>
+      <td><p>two</p></td>
+      <td><p>kettő</p></td>
+    </tr>
+    <tr>
+      <th><p>3</p></th>
+      <td><p>three</p></td>
+      <td><p>három</p></td>
+    </tr>
+  </tbody>
+</table>

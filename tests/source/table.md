@@ -38,3 +38,11 @@ Table with no header row
 |     |       |
 | --- | ----- |
 | Key | Value |
+
+Table with header column
+
+| Number | | English | Hungarian |
+| ------ |-| ------- | --------- |
+| 1      | | one     | egy       |
+| 2      | | two     | kettő     |
+| 3      | | three   | három     |
