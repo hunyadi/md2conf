@@ -184,7 +184,7 @@ class TestAPI(TypedTestCase):
                 frontmatter: list[str] = []
                 if absolute_path.name != "index.md":
                     unique_string = f"md2conf/{relative_path}"
-                    digest = hashlib.sha1(unique_string.encode("utf-8")).hexdigest()
+                    digest = hashlib.sha1(unique_string.encode()).hexdigest()
                     frontmatter.extend(
                         [
                             "---",

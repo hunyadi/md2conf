@@ -427,17 +427,12 @@ _FOOTNOTE_REF_REGEXP = re.compile(r"^fnref(\d*):(.+)$")
 _TASKLIST_REGEXP = re.compile(r"^\[([x X])\]")
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConfluencePanel:
     emoji: str
     emoji_shortname: str
     background_color: str
     from_class: ClassVar[dict[str, "ConfluencePanel"]]
-
-    def __init__(self, emoji: str, emoji_shortname: str, background_color: str) -> None:
-        self.emoji = emoji
-        self.emoji_shortname = emoji_shortname
-        self.background_color = background_color
 
     @property
     def emoji_unicode(self) -> str:
@@ -766,7 +761,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             height=pixel_height,
             alt=alt,
             title=title,
-            caption=None,
+            show_caption=True,
             alignment=ImageAlignment(self.options.layout.get_image_alignment()),
         )
 
@@ -796,8 +791,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 {RI_ATTR("value"): url},
             )
         )
-        if attrs.caption:
-            elements.append(AC_ELEM("caption", attrs.caption))
+        caption = attrs.get_caption()
+        if caption:
+            elements.append(AC_ELEM("caption", caption))
 
         return AC_ELEM("image", attrs.as_dict(max_width=self.options.layout.image.max_width), *elements)
 
@@ -833,12 +829,13 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
         if attrs.context is FormattingContext.BLOCK:
             message = HTML.p("❌ Missing image: ", HTML.code(path.as_posix()))
-            if attrs.caption is not None:
+            caption = attrs.get_caption()
+            if caption:
                 content = [
                     AC_ELEM(
                         "parameter",
                         {AC_ATTR("name"): "title"},
-                        attrs.caption,
+                        caption,
                     ),
                     AC_ELEM("rich-text-body", {}, message),
                 ]
@@ -1239,10 +1236,10 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             height=None,
             alt=content,
             title=None,
-            caption="",
+            show_caption=False,
             alignment=ImageAlignment(self.options.layout.get_image_alignment()),
         )
-        return self.image_generator.transform_attached_data(image_data, attrs, image_type="formula")
+        return self.image_generator.transform_attached_data(image_data, attrs, image_type="formula", content=content)
 
     def _transform_inline_math(self, elem: ElementType) -> ElementType:
         """

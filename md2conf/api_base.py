@@ -241,6 +241,16 @@ class ConfluenceSession(ABC):
         ...
 
     @abstractmethod
+    def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
+        """
+        Retrieves a list of Confluence page attachments.
+
+        :param page_id: The Confluence page ID.
+        :returns: Confluence attachment information.
+        """
+        ...
+
+    @abstractmethod
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         """
         Retrieves a Confluence page attachment by an unprefixed file name.
@@ -250,6 +260,9 @@ class ConfluenceSession(ABC):
         :returns: Confluence attachment information.
         """
         ...
+
+    @abstractmethod
+    def delete_attachment(self, attachment_id: str) -> None: ...
 
     def upload_attachment(
         self,

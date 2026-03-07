@@ -23,7 +23,7 @@ class ExtensionError(RuntimeError):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExtensionOptions:
     """
     Customizes how Confluence content is generated for a drawing or diagram.

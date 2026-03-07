@@ -70,4 +70,4 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
         root = os.path.dirname(__file__)
         cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
 
-    return execute_subprocess(cmd, source.encode("utf-8"), application="Mermaid")
+    return execute_subprocess(cmd, source.encode(), application="Mermaid")

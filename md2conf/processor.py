@@ -298,7 +298,7 @@ class Processor:
         """
 
         relative_path = absolute_path.relative_to(self.root_dir)
-        hash = hashlib.md5(relative_path.as_posix().encode("utf-8"))
+        hash = hashlib.md5(relative_path.as_posix().encode())
         return "".join(f"{c:x}" for c in hash.digest())
 
 

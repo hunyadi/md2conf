@@ -216,29 +216,35 @@ class SynchronizingProcessor(Processor):
         Invokes Confluence REST API to persist the new version.
         """
 
+        # fetch list of existing attachments
+        attachments: dict[str, str] = {}
+        for attachment in self.api.get_attachments(page_id):
+            attachments[attachment.title] = attachment.id
+
+        # update attachments with relative path
         base_path = path.parent
         for image_data in document.images:
-            self.api.upload_attachment(
-                page_id,
-                attachment_name(path_relative_to(image_data.path, base_path)),
-                attachment_path=image_data.path,
-                comment=image_data.description,
-            )
+            name = attachment_name(path_relative_to(image_data.path, base_path))
+            self.api.upload_attachment(page_id, name, attachment_path=image_data.path, comment=image_data.description)
+            attachments.pop(name, None)
 
+        # update attachments with embedded content
         for name, file_data in document.embedded_files.items():
-            self.api.upload_attachment(
-                page_id,
-                name,
-                raw_data=file_data.data,
-                comment=file_data.description,
-            )
+            self.api.upload_attachment(page_id, name, raw_data=file_data.data, comment=file_data.description)
+            attachments.pop(name, None)
 
+        # delete attachments no longer referenced
+        for attachment_id in attachments.values():
+            self.api.delete_attachment(attachment_id)
+
+        # generate page storage format content
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
         # compute hash to help detect if document content or conversion options have changed
         m = hashlib.md5()
         m.update(object_to_json_payload(self.options.converter))
+        m.update(b"\n")
         with open(path, "rb") as f:
             m.update(f.read())
         source_digest = m.hexdigest()

@@ -45,7 +45,7 @@ def substitute(root_dir: Path, content: str) -> str:
         absolute_path = root_dir / relative_path
         with open(absolute_path, "r", encoding="utf-8") as f:
             file_content = f.read().rstrip()
-        hash = hashlib.md5(file_content.encode("utf-8")).hexdigest()
+        hash = hashlib.md5(file_content.encode()).hexdigest()
         extension = absolute_path.suffix if absolute_path.suffix != ".puml" else ".svg"
         return attachment_name(f"embedded_{hash}{extension}")
 

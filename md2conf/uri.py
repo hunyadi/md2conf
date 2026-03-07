@@ -24,7 +24,7 @@ def to_uuid(data: str) -> uuid.UUID:
     "Generates a UUID that represents the data."
 
     # create SHA-1 hash of the SVG content
-    sha1_hash = hashlib.sha1(data.encode("utf-8")).digest()
+    sha1_hash = hashlib.sha1(data.encode()).digest()
 
     # generate UUID using the first 16 bytes of the hash
     return uuid.UUID(bytes=sha1_hash[:16])

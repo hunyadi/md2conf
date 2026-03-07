@@ -11,13 +11,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImageData:
     path: Path
     description: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class EmbeddedFileData:
     data: bytes
     description: str | None = None

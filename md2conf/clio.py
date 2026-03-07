@@ -21,7 +21,7 @@ class BaseOption:
         return "argument"
 
 
-@dataclass
+@dataclass(frozen=True)
 class BooleanOption(BaseOption):
     true_text: LiteralString
     false_text: LiteralString
@@ -33,7 +33,7 @@ def boolean_option(true_text: LiteralString, false_text: LiteralString) -> dict[
     return {BaseOption.field_name(): BooleanOption(true_text, false_text)}
 
 
-@dataclass
+@dataclass(frozen=True)
 class ValueOption(BaseOption):
     text: LiteralString
 
@@ -44,7 +44,7 @@ def value_option(text: LiteralString) -> dict[str, Any]:
     return {BaseOption.field_name(): ValueOption(text)}
 
 
-@dataclass
+@dataclass(frozen=True)
 class NullableOption(BaseOption):
     value_text: LiteralString
     omit_text: LiteralString
@@ -56,7 +56,7 @@ def nullable_option(value_text: LiteralString, omit_text: LiteralString) -> dict
     return {BaseOption.field_name(): NullableOption(value_text, omit_text)}
 
 
-@dataclass
+@dataclass(frozen=True)
 class CompositeOption(BaseOption):
     """
     Determines how a data-class populates command-line arguments.

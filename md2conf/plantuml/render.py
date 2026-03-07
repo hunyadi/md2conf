@@ -109,7 +109,7 @@ def render_diagram(
     if config.scale is not None:
         cmd.extend(["-scale", str(config.scale)])
 
-    return execute_subprocess(cmd, source.encode("utf-8"), application="PlantUML")
+    return execute_subprocess(cmd, source.encode(), application="PlantUML")
 
 
 def compress_plantuml_data(source: str) -> str:
@@ -132,7 +132,7 @@ def compress_plantuml_data(source: str) -> str:
 
     # Step 2: Deflate with raw deflate (remove zlib header/trailer)
     # zlib.compress() adds 2-byte header and 4-byte trailer
-    deflated = zlib.compress(encoded.encode("utf-8"))[2:-4]
+    deflated = zlib.compress(encoded.encode())[2:-4]
 
     # Step 3: Base64 encode
     return base64.b64encode(deflated).decode("ascii")

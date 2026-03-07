@@ -88,7 +88,7 @@ class ConfluenceAttachmentLinks:
 class ConfluenceAttachmentV1:
     id: str
     status: ConfluenceStatus
-    title: str | None
+    title: str
     extensions: ConfluenceAttachmentExtensions
     metadata: ConfluenceAttachmentMetadata
     _links: ConfluenceAttachmentLinks
@@ -198,16 +198,19 @@ class ConfluenceSessionV1(ConfluenceSession):
         return cast(str, homepage_data["id"])
 
     @override
+    def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
+        path = f"/content/{page_id}/child/attachment"
+        items = self._fetch(path)
+        return [self._parse_attachment(page_id, json_to_object(ConfluenceAttachmentV1, item)) for item in items]
+
+    @override
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         path = f"/content/{page_id}/child/attachment"
         query = {"filename": filename}
-        data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
-
-        results = cast(list[JsonType], data["results"])
-        if len(results) != 1:
+        items = self._fetch(path, query=query)
+        if len(items) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
-        attachment = json_to_object(ConfluenceAttachmentV1, results[0])
-        return self._parse_attachment(page_id, attachment)
+        return self._parse_attachment(page_id, json_to_object(ConfluenceAttachmentV1, items[0]))
 
     def _parse_attachment(self, page_id: str, att: ConfluenceAttachmentV1) -> ConfluenceAttachment:
         """
@@ -238,6 +241,14 @@ class ConfluenceSessionV1(ConfluenceSession):
                 minorEdit=False,
             ),
         )
+
+    @override
+    def delete_attachment(self, attachment_id: str) -> None:
+        if not attachment_id.startswith("att"):
+            attachment_id = "att" + attachment_id
+        path = f"/content/{attachment_id}"
+        LOGGER.info("Moving attachment to trash: %s", attachment_id)
+        self._delete(ConfluenceVersion.VERSION_1, path)
 
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:

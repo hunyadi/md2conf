@@ -19,7 +19,7 @@ def wrap_text(text: str, line_length: int = 160) -> str:
     if line_length < 1:
         raise ValueError("expected: line_length > 0")
 
-    input = text.encode("utf-8")
+    input = text.encode()
     output = bytearray(len(input))
     pos = 0
     length = len(input)
@@ -51,4 +51,4 @@ def wrap_text(text: str, line_length: int = 160) -> str:
             output[right - 1] = 0x0A  # linefeed '\n'
             pos = right  # skip the whitespace (already replaced)
 
-    return output.decode("utf-8")
+    return output.decode()

@@ -74,7 +74,10 @@ class PlantUMLExtension(MarketplaceExtension):
             # render diagram as image file (PNG or SVG based on diagram output format)
             config = self._extract_plantuml_config(content)
             image_data = render_diagram(content, self.generator.options.output_format, config=config)
-            return self.generator.transform_attached_data(image_data, attrs, relative_path)
+            if relative_path is not None:
+                return self.generator.transform_attached_data(image_data, attrs, relative_path=relative_path)
+            else:
+                return self.generator.transform_attached_data(image_data, attrs, content=content)
         else:
             if relative_path is not None:
                 absolute_path = self.base_dir / relative_path
@@ -94,7 +97,7 @@ class PlantUMLExtension(MarketplaceExtension):
                     svg_filename = attachment_name(relative_path.with_suffix(".svg"))
                     self.attachments.add_embed(svg_filename, EmbeddedFileData(image_data, attrs.alt))
                 else:
-                    plantuml_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
+                    plantuml_hash = hashlib.md5(content.encode()).hexdigest()
                     svg_filename = attachment_name(f"embedded_{plantuml_hash}.svg")
                     self.attachments.add_embed(svg_filename, EmbeddedFileData(image_data))
 

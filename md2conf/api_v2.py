@@ -183,15 +183,24 @@ class ConfluenceSessionV2(ConfluenceSession):
         return typing.cast(str, data["homepageId"])
 
     @override
+    def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
+        path = f"/pages/{page_id}/attachments"
+        items = self._fetch(path)
+        return [json_to_object(ConfluenceAttachment, item) for item in items]
+
+    @override
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         path = f"/pages/{page_id}/attachments"
-        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType], query={"filename": filename})
-
-        results = typing.cast(list[JsonType], data["results"])
-        if len(results) != 1:
+        items = self._fetch(path, query={"filename": filename})
+        if len(items) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
-        result = typing.cast(dict[str, JsonType], results[0])
-        return json_to_object(ConfluenceAttachment, result)
+        return json_to_object(ConfluenceAttachment, items[0])
+
+    @override
+    def delete_attachment(self, attachment_id: str) -> None:
+        path = f"/attachments/{attachment_id}"
+        LOGGER.info("Moving attachment to trash: %s", attachment_id)
+        self._delete(ConfluenceVersion.VERSION_2, path)
 
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:

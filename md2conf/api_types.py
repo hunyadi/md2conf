@@ -104,7 +104,7 @@ class ConfluenceAttachment:
 
     id: str
     status: ConfluenceStatus
-    title: str | None
+    title: str
     createdAt: datetime.datetime
     pageId: str
     mediaType: str

@@ -85,7 +85,7 @@ class Entry:
         return (not self.is_dir, self.lower_name, self.name) > (not other.is_dir, other.lower_name, other.name)
 
 
-@dataclass
+@dataclass(frozen=True)
 class MatcherOptions:
     """
     Options for checking against a list of exclude/include patterns.
@@ -97,9 +97,12 @@ class MatcherOptions:
     source: str
     extension: str | None = None
 
-    def __post_init__(self) -> None:
-        if self.extension is not None and not self.extension.startswith("."):
-            self.extension = f".{self.extension}"
+    @property
+    def dot_extension(self) -> str | None:
+        if self.extension is None or self.extension.startswith("."):
+            return self.extension
+        else:
+            return f".{self.extension}"
 
 
 def _entry_name_dir(entry: Entry | os.DirEntry[str]) -> tuple[str, bool]:
@@ -131,7 +134,8 @@ class Matcher:
     def extension_matches(self, name: str) -> bool:
         "True if the file name has the expected extension."
 
-        return self.options.extension is None or name.endswith(self.options.extension)
+        dot_extension = self.options.dot_extension
+        return dot_extension is None or name.endswith(dot_extension)
 
     @overload
     def is_excluded(self, entry: Entry) -> bool:

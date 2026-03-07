@@ -119,7 +119,7 @@ def elements_from_string(content: str) -> ElementType:
 
 def _content_to_string(dtd_path: Path, content: str) -> str:
     tree = _elements_from_strings(dtd_path, [content])
-    return ET.tostring(tree, pretty_print=True).decode("utf-8")
+    return ET.tostring(tree, pretty_print=True).decode()
 
 
 def content_to_string(content: str) -> str:

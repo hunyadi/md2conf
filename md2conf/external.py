@@ -43,7 +43,7 @@ def execute_subprocess(command: Sequence[str], data: bytes, *, application: str)
         messages = [message]
         if stdout:
             try:
-                console_output = stdout.decode("utf-8")
+                console_output = stdout.decode()
                 LOGGER.error(console_output)
                 messages.append(f"output:\n{console_output}")
             except UnicodeDecodeError:
@@ -51,7 +51,7 @@ def execute_subprocess(command: Sequence[str], data: bytes, *, application: str)
                 pass
         if stderr:
             try:
-                console_error = stderr.decode("utf-8")
+                console_error = stderr.decode()
                 LOGGER.error(console_error)
 
                 # omit Node.js exception stack trace

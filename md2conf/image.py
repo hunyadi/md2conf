@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, overload
 
 import lxml.etree as ET
 
@@ -23,7 +23,7 @@ from .svg import fix_svg_get_dimensions, get_svg_dimensions
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImageGeneratorOptions:
     """
     Configures how images are pre-rendered and what Confluence Storage Format output they produce.
@@ -61,22 +61,20 @@ class ImageGenerator:
             dimensions = get_svg_dimensions(absolute_path)
             if dimensions is not None:
                 width, height = dimensions
-                attrs = ImageAttributes(
-                    context=attrs.context,
-                    width=width,
-                    height=height,
-                    alt=attrs.alt,
-                    title=attrs.title,
-                    caption=attrs.caption,
-                    alignment=attrs.alignment,
-                )
+                attrs = attrs.with_dimensions(width, height)
 
         self.attachments.add_image(ImageData(absolute_path, attrs.alt))
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
         return self.create_attached_image(image_name, attrs)
 
+    @overload
+    def transform_attached_data(self, image_data: bytes, attrs: ImageAttributes, *, relative_path: Path, image_type: str = "embedded") -> ElementType: ...
+
+    @overload
+    def transform_attached_data(self, image_data: bytes, attrs: ImageAttributes, *, content: str, image_type: str = "embedded") -> ElementType: ...
+
     def transform_attached_data(
-        self, image_data: bytes, attrs: ImageAttributes, relative_path: Path | None = None, *, image_type: str = "embedded"
+        self, image_data: bytes, attrs: ImageAttributes, relative_path: Path | None = None, content: str | None = None, *, image_type: str = "embedded"
     ) -> ElementType:
         "Emits Confluence Storage Format XHTML for an attached raster or vector image."
 
@@ -92,19 +90,14 @@ class ImageGenerator:
         if dimensions is not None and (attrs.width is None and attrs.height is None):
             # create updated image attributes with extracted dimensions
             width, height = dimensions
-            attrs = ImageAttributes(
-                context=attrs.context,
-                width=width,
-                height=height,
-                alt=attrs.alt,
-                title=attrs.title,
-                caption=attrs.caption,
-                alignment=attrs.alignment,
-            )
+            attrs = attrs.with_dimensions(width, height)
 
         # generate filename
         if relative_path is not None:
             image_filename = attachment_name(relative_path.with_suffix(f".{self.options.output_format}"))
+        elif content is not None:
+            image_hash = hashlib.md5(content.encode()).hexdigest()
+            image_filename = attachment_name(f"{image_type}_{image_hash}.{self.options.output_format}")
         else:
             image_hash = hashlib.md5(image_data).hexdigest()
             image_filename = attachment_name(f"{image_type}_{image_hash}.{self.options.output_format}")
@@ -124,7 +117,8 @@ class ImageGenerator:
                 {RI_ATTR("filename"): image_name},
             )
         )
-        if attrs.caption:
-            elements.append(AC_ELEM("caption", attrs.caption))
+        caption = attrs.get_caption()
+        if caption:
+            elements.append(AC_ELEM("caption", caption))
 
         return AC_ELEM("image", attrs.as_dict(max_width=self.options.max_width), *elements)

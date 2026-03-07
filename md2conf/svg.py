@@ -248,7 +248,7 @@ def fix_svg_dimensions(data: bytes) -> bytes:
         root.set("height", str(vb_height))
 
     # Serialize just the opening tag with modified attributes
-    new_tag = _serialize_svg_opening_tag(root).encode("utf-8")
+    new_tag = _serialize_svg_opening_tag(root).encode()
 
     # Replace the original opening tag with the new one
     return data.replace(original_tag, new_tag, 1)

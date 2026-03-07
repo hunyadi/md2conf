@@ -48,7 +48,7 @@ class DrawioExtension(MarketplaceExtension):
         relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render:
             image_data = render_diagram(absolute_path, self.generator.options.output_format)
-            return self.generator.transform_attached_data(image_data, attrs, relative_path)
+            return self.generator.transform_attached_data(image_data, attrs, relative_path=relative_path)
         else:
             self.attachments.add_image(ImageData(absolute_path, attrs.alt))
             image_filename = attachment_name(relative_path)

@@ -40,7 +40,7 @@ def extract_value(expr: re.Pattern[str], text: str) -> tuple[str | None, str]:
     return matcher.value, text
 
 
-@dataclass
+@dataclass(frozen=True)
 class FrontMatterProperties:
     data: dict[str, JsonType] | None
     inner_line_count: int
