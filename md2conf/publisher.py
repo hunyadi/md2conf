@@ -216,27 +216,6 @@ class SynchronizingProcessor(Processor):
         Invokes Confluence REST API to persist the new version.
         """
 
-        # fetch list of existing attachments
-        attachments: dict[str, str] = {}
-        for attachment in self.api.get_attachments(page_id):
-            attachments[attachment.title] = attachment.id
-
-        # update attachments with relative path
-        base_path = path.parent
-        for image_data in document.images:
-            name = attachment_name(path_relative_to(image_data.path, base_path))
-            self.api.upload_attachment(page_id, name, attachment_path=image_data.path, comment=image_data.description)
-            attachments.pop(name, None)
-
-        # update attachments with embedded content
-        for name, file_data in document.embedded_files.items():
-            self.api.upload_attachment(page_id, name, raw_data=file_data.data, comment=file_data.description)
-            attachments.pop(name, None)
-
-        # delete attachments no longer referenced
-        for attachment_id in attachments.values():
-            self.api.delete_attachment(attachment_id)
-
         # generate page storage format content
         content = document.xhtml()
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
@@ -267,39 +246,59 @@ class SynchronizingProcessor(Processor):
         if not title:  # empty or `None`
             title = page.title
 
-        # synchronize page if page has any changes
-        allow_write = True
-        if self._has_changes(page, source_tag, title, document.root, source_digest):
+        # check if page has any changes
+        if has_changes := self._has_changes(page, source_tag, title, document.root, source_digest):
             if source_tag is not None and page.version.number != source_tag.page_version:
                 LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
                 if not self.options.overwrite:
-                    allow_write = False
+                    return
 
-            if allow_write:
-                relative_path = path_relative_to(path, self.root_dir)
-                version = page.version.number + 1
-                self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
-            else:
-                version = 0  # never used
+        # fetch list of existing attachments
+        attachments: dict[str, str] = {}
+        for attachment in self.api.get_attachments(page_id):
+            attachments[attachment.title] = attachment.id
+
+        # update attachments with relative path
+        base_path = path.parent
+        for image_data in document.images:
+            name = attachment_name(path_relative_to(image_data.path, base_path))
+            self.api.upload_attachment(page_id, name, attachment_path=image_data.path, comment=image_data.description)
+            attachments.pop(name, None)
+
+        # update attachments with embedded content
+        for name, file_data in document.embedded_files.items():
+            self.api.upload_attachment(page_id, name, raw_data=file_data.data, comment=file_data.description)
+            attachments.pop(name, None)
+
+        # delete attachments no longer referenced
+        for attachment_id in attachments.values():
+            self.api.delete_attachment(attachment_id)
+
+        # synchronize page if page has any changes
+        if has_changes:
+            version = page.version.number + 1
+            relative_path = path_relative_to(path, self.root_dir)
+            self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
         else:
             version = page.version.number
 
-        if allow_write:
-            if document.labels is not None:
-                self.api.update_labels(
-                    page.id,
-                    [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
-                )
+        # update page labels
+        if document.labels is not None:
+            self.api.update_labels(
+                page.id,
+                [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
+            )
 
-            target_tag = ConfluenceMarkdownTag(version, source_digest)
-            props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(target_tag))]
-            properties = coalesce_json(document.properties, self.global_properties)
-            if properties is not None:
-                props.extend(ConfluenceContentProperty(key, value) for key, value in properties.items())
-                self.api.update_content_properties_for_page(page.id, props)
-            else:
-                if source_tag is None or source_tag != target_tag:
-                    self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
+        # update content properties
+        target_tag = ConfluenceMarkdownTag(version, source_digest)
+        props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(target_tag))]
+        properties = coalesce_json(document.properties, self.global_properties)
+        if properties is not None:
+            props.extend(ConfluenceContentProperty(key, value) for key, value in properties.items())
+            self.api.update_content_properties_for_page(page.id, props)
+        else:
+            if source_tag is None or source_tag != target_tag:
+                self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
 
     def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
         "True if the Confluence Storage Format content generated from the Markdown source file matches the Confluence target page content."
