@@ -13,6 +13,7 @@ import re
 import unicodedata
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -25,18 +26,18 @@ from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachme
 from .coalesce import coalesce_dataclass
 from .collection import ConfluencePageCollection
 from .compatibility import override, path_relative_to
-from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ParseError, elements_from_strings, elements_to_string, normalize_inline
+from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ElementType, ParseError, elements_from_strings, elements_to_string, normalize_inline
 from .drawio.extension import DrawioExtension
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
-from .extension import ExtensionOptions, MarketplaceExtension
+from .extension import DiagramExtension, ExtensionOptions
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
 from .image import ImageGenerator, ImageGeneratorOptions
 from .latex import render_latex
 from .markdown import markdown_to_html, markdown_with_line_numbers
 from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, ConverterOptions, ProcessorOptions
+from .options import ConfluencePageID, ConverterOptions, MarketplaceExtension, ProcessorOptions
 from .plantuml.extension import PlantUMLExtension
 from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner
@@ -44,8 +45,6 @@ from .serializer import JsonType
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text, remove_element
-
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 
 def apply_generated_by_template(template: str, path: Path) -> str:
@@ -480,7 +479,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
     page_metadata: ConfluencePageCollection
 
     image_generator: ImageGenerator
-    extensions: list[MarketplaceExtension]
+    extensions: Sequence[MarketplaceExtension]
 
     def __init__(
         self,
@@ -511,11 +510,15 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             ImageGeneratorOptions(self.options.diagram_output_format, self.options.prefer_raster, self.options.layout.image.max_width),
         )
 
-        self.extensions = [
-            DrawioExtension(self.image_generator, ExtensionOptions(render=self.options.render_drawio)),
-            MermaidExtension(self.image_generator, ExtensionOptions(render=self.options.render_mermaid)),
-            PlantUMLExtension(self.image_generator, ExtensionOptions(render=self.options.render_plantuml)),
-        ]
+        if options.extensions is not None:
+            self.extensions = options.extensions
+        else:
+            extensions: Sequence[DiagramExtension] = [
+                DrawioExtension(self.image_generator, ExtensionOptions(render=self.options.render_drawio)),
+                MermaidExtension(self.image_generator, ExtensionOptions(render=self.options.render_mermaid)),
+                PlantUMLExtension(self.image_generator, ExtensionOptions(render=self.options.render_plantuml)),
+            ]
+            self.extensions = extensions
 
     def _transform_heading(self, heading: ElementType) -> None:
         """

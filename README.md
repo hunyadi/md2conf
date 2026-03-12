@@ -836,6 +836,7 @@ options = ProcessorOptions(
             ),
             alignment='center' or 'left' or 'right' or None,
         ),
+        extensions=... or None,
     ),
     line_numbers=bool(),
     global_properties=Path() or None,

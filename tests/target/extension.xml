@@ -1,0 +1,25 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2>Mermaid</h2>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">mermaid</ac:parameter>
+  <ac:plain-text-body><![CDATA[Entity
+├── Product
+├── Customer
+├── Vendor
+│   └── Store
+└── Project]]></ac:plain-text-body>
+</ac:structured-macro>
+<h2>PlantUML</h2>
+<ac:structured-macro ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">none</ac:parameter>
+  <ac:plain-text-body><![CDATA[@startuml
+:User: --> (Login)
+:User: --> (Browse Products)
+:Admin: --> (Manage Inventory)
+(Manage Inventory) ..> (Browse Products) : includes
+@enduml]]></ac:plain-text-body>
+</ac:structured-macro>

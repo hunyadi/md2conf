@@ -15,19 +15,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar, Literal
 
-import lxml.etree as ET
-
 from md2conf.api import ConfluenceAPI
 from md2conf.api_types import ConfluenceAttachment, ConfluencePage
 from md2conf.compatibility import override
 from md2conf.converter import ElementAction, NodeVisitor, get_volatile_attributes, get_volatile_elements
-from md2conf.csf import elements_from_string, elements_to_string
+from md2conf.csf import ElementType, elements_from_string, elements_to_string
 from md2conf.options import ConfluencePageID, ConverterOptions, ProcessorOptions
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.utility import TypedTestCase
-
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 FEATURE_TEST_PAGE_TITLE = "Publish Markdown to Confluence"
 IMAGE_TEST_PAGE_TITLE = "Images and documents"

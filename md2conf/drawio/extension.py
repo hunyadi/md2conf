@@ -9,20 +9,16 @@ Copyright 2022-2026, Levente Hunyadi
 import uuid
 from pathlib import Path
 
-import lxml.etree as ET
-
 from md2conf.attachment import EmbeddedFileData, ImageData, attachment_name
 from md2conf.compatibility import override, path_relative_to
-from md2conf.csf import AC_ATTR, AC_ELEM
-from md2conf.extension import ExtensionError, MarketplaceExtension
+from md2conf.csf import AC_ATTR, AC_ELEM, ElementType
+from md2conf.extension import DiagramExtension, ExtensionError
 from md2conf.formatting import ImageAlignment, ImageAttributes
 
 from .render import extract_diagram, render_diagram
 
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
-
-class DrawioExtension(MarketplaceExtension):
+class DrawioExtension(DiagramExtension):
     @override
     def matches_image(self, absolute_path: Path) -> bool:
         return absolute_path.name.endswith((".drawio", ".drawio.png", ".drawio.svg", ".drawio.xml"))

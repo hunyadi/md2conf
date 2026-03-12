@@ -6,17 +6,12 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-import lxml.etree as ET
-
 from .attachment import AttachmentCatalog
-from .formatting import ImageAttributes
 from .image import ImageGenerator
-
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
+from .options import MarketplaceExtension
 
 
 class ExtensionError(RuntimeError):
@@ -34,7 +29,7 @@ class ExtensionOptions:
     render: bool
 
 
-class MarketplaceExtension:
+class DiagramExtension(MarketplaceExtension):
     """
     Base class for integrating third-party Atlassian Marketplace extensions.
 
@@ -59,24 +54,3 @@ class MarketplaceExtension:
         "Maintains a list of files and binary data to be uploaded to Confluence as attachments."
 
         return self.generator.attachments
-
-    @abstractmethod
-    def matches_image(self, absolute_path: Path) -> bool:
-        "True if the extension is able to process the external file."
-        ...
-
-    @abstractmethod
-    def matches_fenced(self, language: str, content: str) -> bool:
-        "True if the extension can process the fenced code block."
-        ...
-
-    @abstractmethod
-    def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram linked as an image."
-        ...
-
-    @abstractmethod
-    def transform_fenced(self, content: str) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram defined in a fenced code block."
-
-        ...

@@ -16,8 +16,8 @@ from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePag
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .compatibility import override, path_relative_to
-from .converter import ConfluenceDocument, ElementType, get_orderless_elements, get_volatile_attributes, get_volatile_elements
-from .csf import AC_ATTR, elements_from_string
+from .converter import ConfluenceDocument, get_orderless_elements, get_volatile_attributes, get_volatile_elements
+from .csf import AC_ATTR, ElementType, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions

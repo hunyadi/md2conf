@@ -12,11 +12,9 @@ from typing import Iterable
 
 import lxml.etree as ET
 
-from md2conf.csf import elements_from_string, normalize_inline
+from md2conf.csf import ElementType, elements_from_string, normalize_inline
 from md2conf.xml import ElementComparatorOptions, is_xml_equal, unwrap_substitute
 from tests.utility import TypedTestCase
-
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 logging.basicConfig(
     level=logging.INFO,

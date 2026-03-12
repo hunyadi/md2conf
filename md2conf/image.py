@@ -11,16 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, overload
 
-import lxml.etree as ET
-
 from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
 from .compatibility import path_relative_to
-from .csf import AC_ELEM, RI_ATTR, RI_ELEM
+from .csf import AC_ELEM, RI_ATTR, RI_ELEM, ElementType
 from .formatting import ImageAttributes
 from .png import extract_png_dimensions
 from .svg import fix_svg_get_dimensions, get_svg_dimensions
-
-ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 
 @dataclass(frozen=True)
