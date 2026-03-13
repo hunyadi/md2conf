@@ -10,8 +10,6 @@ import enum
 from dataclasses import dataclass
 from typing import ClassVar
 
-from .csf import AC_ATTR
-
 
 @enum.unique
 class FormattingContext(enum.Enum):
@@ -86,51 +84,6 @@ class ImageAttributes:
             show_caption=self.show_caption,
             alignment=self.alignment,
         )
-
-    def as_dict(self, *, max_width: int | None) -> dict[str, str]:
-        """
-        Produces a key-value store of element attributes.
-
-        :param max_width: The desired maximum width of the image in pixels.
-        """
-
-        attributes: dict[str, str] = {}
-        match self.context:
-            case FormattingContext.BLOCK:
-                match self.alignment:
-                    case ImageAlignment.LEFT:
-                        align = "left"
-                        layout = "align-start"
-                    case ImageAlignment.RIGHT:
-                        align = "right"
-                        layout = "align-end"
-                    case ImageAlignment.CENTER:
-                        align = "center"
-                        layout = "center"
-                attributes[AC_ATTR("align")] = align
-                attributes[AC_ATTR("layout")] = layout
-
-                if self.width is not None:
-                    attributes[AC_ATTR("original-width")] = str(self.width)
-                if self.height is not None:
-                    attributes[AC_ATTR("original-height")] = str(self.height)
-                if self.width is not None:
-                    attributes[AC_ATTR("custom-width")] = "true"
-                    # Use display_width if set, otherwise use natural width
-                    effective_width = display_width(width=self.width, max_width=max_width) or self.width
-                    attributes[AC_ATTR("width")] = str(effective_width)
-
-            case FormattingContext.INLINE:
-                if self.width is not None:
-                    attributes[AC_ATTR("width")] = str(self.width)
-                if self.height is not None:
-                    attributes[AC_ATTR("height")] = str(self.height)
-
-        if self.alt is not None:
-            attributes.update({AC_ATTR("alt"): self.alt})
-        if self.title is not None:
-            attributes.update({AC_ATTR("title"): self.title})
-        return attributes
 
     EMPTY_BLOCK: ClassVar["ImageAttributes"]
     EMPTY_INLINE: ClassVar["ImageAttributes"]

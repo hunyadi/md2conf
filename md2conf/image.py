@@ -13,10 +13,56 @@ from typing import Literal, overload
 
 from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
 from .compatibility import path_relative_to
-from .csf import AC_ELEM, RI_ATTR, RI_ELEM, ElementType
-from .formatting import ImageAttributes
+from .csf import AC_ATTR, AC_ELEM, RI_ATTR, RI_ELEM, ElementType
+from .formatting import FormattingContext, ImageAlignment, ImageAttributes, display_width
 from .png import extract_png_dimensions
 from .svg import fix_svg_get_dimensions, get_svg_dimensions
+
+
+def to_element_attrs(attrs: ImageAttributes, *, max_width: int | None) -> dict[str, str]:
+    """
+    Produces a key-value store of element attributes.
+
+    :param max_width: The desired maximum width of the image in pixels.
+    """
+
+    attributes: dict[str, str] = {}
+    match attrs.context:
+        case FormattingContext.BLOCK:
+            match attrs.alignment:
+                case ImageAlignment.LEFT:
+                    align = "left"
+                    layout = "align-start"
+                case ImageAlignment.RIGHT:
+                    align = "right"
+                    layout = "align-end"
+                case ImageAlignment.CENTER:
+                    align = "center"
+                    layout = "center"
+            attributes[AC_ATTR("align")] = align
+            attributes[AC_ATTR("layout")] = layout
+
+            if attrs.width is not None:
+                attributes[AC_ATTR("original-width")] = str(attrs.width)
+            if attrs.height is not None:
+                attributes[AC_ATTR("original-height")] = str(attrs.height)
+            if attrs.width is not None:
+                attributes[AC_ATTR("custom-width")] = "true"
+                # Use display_width if set, otherwise use natural width
+                effective_width = display_width(width=attrs.width, max_width=max_width) or attrs.width
+                attributes[AC_ATTR("width")] = str(effective_width)
+
+        case FormattingContext.INLINE:
+            if attrs.width is not None:
+                attributes[AC_ATTR("width")] = str(attrs.width)
+            if attrs.height is not None:
+                attributes[AC_ATTR("height")] = str(attrs.height)
+
+    if attrs.alt is not None:
+        attributes.update({AC_ATTR("alt"): attrs.alt})
+    if attrs.title is not None:
+        attributes.update({AC_ATTR("title"): attrs.title})
+    return attributes
 
 
 @dataclass(frozen=True)
@@ -117,4 +163,4 @@ class ImageGenerator:
         if caption:
             elements.append(AC_ELEM("caption", caption))
 
-        return AC_ELEM("image", attrs.as_dict(max_width=self.options.max_width), *elements)
+        return AC_ELEM("image", to_element_attrs(attrs, max_width=self.options.max_width), *elements)

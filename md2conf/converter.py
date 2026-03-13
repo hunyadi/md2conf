@@ -32,7 +32,7 @@ from .emoticon import emoji_to_emoticon
 from .environment import PageError
 from .extension import DiagramExtension, ExtensionOptions
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
-from .image import ImageGenerator, ImageGeneratorOptions
+from .image import ImageGenerator, ImageGeneratorOptions, to_element_attrs
 from .latex import render_latex
 from .markdown import markdown_to_html, markdown_with_line_numbers
 from .mermaid.extension import MermaidExtension
@@ -798,7 +798,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if caption:
             elements.append(AC_ELEM("caption", caption))
 
-        return AC_ELEM("image", attrs.as_dict(max_width=self.options.layout.image.max_width), *elements)
+        return AC_ELEM("image", to_element_attrs(attrs, max_width=self.options.layout.image.max_width), *elements)
 
     def _warn_or_raise(self, image: ElementType, msg: str) -> None:
         "Emit a warning or raise an exception when a path points to a resource that doesn't exist or is outside of the permitted hierarchy."

@@ -62,7 +62,7 @@ npm install -g @mermaid-js/mermaid-cli
    * **Windows**: Download from [graphviz.org](https://graphviz.org/download/)
 3. **Download PlantUML JAR**: Download [plantuml.jar](https://github.com/plantuml/plantuml/releases) and set `PLANTUML_JAR` environment variable to point to it
 
-> The recommended minimum version is **v1.2026.2**; older versions may work but feature support might be limited.
+The recommended minimum version for PlantUML is **v1.2026.2**; older versions may work but feature support might be limited.
 
 **Optional.** Converting formulas and equations to PNG or SVG images requires [Matplotlib](https://matplotlib.org/):
 
@@ -83,6 +83,8 @@ As authors of *md2conf*, we don't endorse or support any particular Confluence m
 Installing `plantuml.jar` (see above) helps display embedded diagrams with pre-calculated optimal dimensions.
 
 **Optional.** Displaying formulas and equations in Confluence requires [marketplace app](https://marketplace.atlassian.com/apps/1226109/latex-math-for-confluence-math-formula-equations), refer to [LaTeX Math for Confluence - Math Formula & Equations](https://help.narva.net/latex-math-for-confluence/). (Refer to `--no-render-latex`.)
+
+> Refer to the section *Registering custom extensions* on how to add your own Marketplace app to *md2conf*.
 
 ## Getting started
 
@@ -682,6 +684,14 @@ Content properties in the Markdown front-matter override globally configured con
 ### Local output
 
 *md2conf* supports local output, in which the tool doesn't communicate with the Confluence REST API. Instead, it reads a single Markdown file or a directory of Markdown files, and writes Confluence Storage Format (`*.csf`) output for each document. (Confluence Storage Format is a derivative of XHTML with Confluence-specific tags for complex elements such as images with captions, code blocks, info panels, collapsed sections, etc.) You can push the generated output to Confluence by invoking the API (e.g. with `curl`).
+
+### Registering custom extensions
+
+When *md2conf* encounters an image reference (e.g. `*.mmd` file) or a fenced code block (e.g. with the language `mermaid`), it needs instructions how to process these. This information is encapsulated in an *extension integration*, code that implements the abstract base class `MarketplaceExtension`. The responsibility of the derived class is to emit Confluence Storage Format XHTML (typically `structured-macro`) for the drawing or diagram, which is specific to each Marketplace app.
+
+When developing your own integration, you might first want to add the Marketplace app widget to a Confluence page by hand using the GUI, publish changes, and then click *Advanced details* > *View storage format* to inspect the underlying Confluence Storage Format code.
+
+Registering custom extensions will disable the default draw\.io, Mermaid and PlantUML integrations that come bundled with *md2conf*.
 
 ### Running the tool
 
