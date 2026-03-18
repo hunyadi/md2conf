@@ -251,8 +251,8 @@ class TestConversion(TypedTestCase):
             self.assertEqual(doc.title, "Broken links")
             actual = standardize(doc.xhtml())
 
-        # check if 2 broken links have been found (anchor `href` & image `src`)
-        self.assertEqual(len(cm.records), 5)
+        # check if all broken links have been found (anchor `href` & image `src`)
+        self.assertEqual(len(cm.records), 6)
 
         with open(self.target_dir / "missing.xml", "r", encoding="utf-8") as f:
             expected = substitute(self.target_dir, f.read())

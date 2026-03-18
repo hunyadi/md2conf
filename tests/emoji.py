@@ -6,7 +6,7 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import pathlib
+from pathlib import Path
 
 import pymdownx.emoji1_db as emoji_db  # pyright: ignore[reportMissingTypeStubs]
 
@@ -30,10 +30,10 @@ def to_html(cp: int) -> str:
         return f"&#{cp};"
 
 
-def generate_source(path: pathlib.Path) -> None:
+def generate_source(path: Path) -> None:
     "Generates a source Markdown document for testing emojis."
 
-    if path.exists() and path.stat().st_mtime_ns > pathlib.Path(__file__).stat().st_mtime_ns:
+    if path.is_file() and path.stat().st_mtime_ns > Path(__file__).stat().st_mtime_ns:
         # target file has not changed since this file was last edited
         return
 
@@ -54,10 +54,10 @@ def generate_source(path: pathlib.Path) -> None:
         print("Counterexamples: 2:44:59 and 23:15:00", file=f)
 
 
-def generate_target(path: pathlib.Path) -> None:
+def generate_target(path: Path) -> None:
     "Generates a target Confluence Storage Format (XML) document for testing emojis."
 
-    if path.exists() and path.stat().st_mtime_ns > pathlib.Path(__file__).stat().st_mtime_ns:
+    if path.is_file() and path.stat().st_mtime_ns > Path(__file__).stat().st_mtime_ns:
         # target file has not changed since this file was last edited
         return
 

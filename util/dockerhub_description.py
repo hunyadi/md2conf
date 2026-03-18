@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import os
 import re
 import sys
 from pathlib import Path
@@ -19,45 +18,41 @@ BAKE_FILE = Path("docker-bake.hcl")
 
 def error(message: str) -> None:
     """Print error message to stderr."""
+
     print(f"Error: {message}", file=sys.stderr)
 
 
 def warn(message: str) -> None:
     """Print warning message to stderr."""
+
     print(f"Warning: {message}", file=sys.stderr)
 
 
 def get_bake_targets(file_path: Path) -> set[str]:
     """Extract target names from docker-bake.hcl."""
-    targets: set[str] = set()
-    if not os.path.exists(file_path):
-        return targets
+
+    if not file_path.is_file():
+        return set()
 
     content = file_path.read_text("utf-8")
 
     # Look for target "name" { ... }
-    matches = re.findall(r'target\s+"([^"]+)"\s+\{', content)
-    for m in matches:
-        targets.add(m)
-    return targets
+    return set(re.findall(r'target\s+"([^"]+)"\s+\{', content))
 
 
 def get_template_placeholders(file_path: Path) -> set[str]:
     """Extract %{PLACEHOLDER} tokens from the template."""
-    placeholders: set[str] = set()
-    if not os.path.exists(file_path):
-        return placeholders
+
+    if not file_path.is_file():
+        return set()
 
     content = file_path.read_text("utf-8")
-
-    matches = re.findall(r"%\{([^}]+)\}", content)
-    for m in matches:
-        placeholders.add(m)
-    return placeholders
+    return set(re.findall(r"%\{([^}]+)\}", content))
 
 
 def validate_sync() -> None:
     """Check if the template is in sync with the bake file."""
+
     targets = get_bake_targets(BAKE_FILE)
     placeholders = get_template_placeholders(TEMPLATE_FILE)
 
@@ -87,12 +82,13 @@ class Arguments(argparse.Namespace):
     tags_mermaid: str | None
     tags_plantuml: str | None
     tags_all: str | None
-    output: str
+    output: Path
 
 
 def generate_description(args: Arguments) -> None:
     """Generate the final description by replacing placeholders."""
-    if not os.path.exists(TEMPLATE_FILE):
+
+    if not TEMPLATE_FILE.exists():
         error(f"{TEMPLATE_FILE} not found.")
         sys.exit(1)
 
@@ -115,8 +111,7 @@ def generate_description(args: Arguments) -> None:
         if value is not None:
             content = content.replace(f"%{{{key}}}", value)
 
-    with open(args.output, "w") as f:
-        f.write(content)
+    args.output.write_text(content, encoding="utf-8")
     print(f"Generated {args.output}")
 
 
@@ -131,7 +126,7 @@ def main() -> None:
     parser.add_argument("--tags-mermaid", help="Tags for mermaid variant")
     parser.add_argument("--tags-plantuml", help="Tags for plantuml variant")
     parser.add_argument("--tags-all", help="Tags for all variant")
-    parser.add_argument("--output", default="DOCKER_HUB_FINAL.md", help="Output file path")
+    parser.add_argument("--output", default="DOCKER_HUB_FINAL.md", type=Path, help="Output file path")
 
     args = Arguments()
     parser.parse_args(namespace=args)

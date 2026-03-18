@@ -680,8 +680,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Transforms links to document binaries such as PDF, DOCX or XLSX.
         """
 
-        if not absolute_path.exists():
-            self._anchor_warn_or_raise(anchor, f"relative URL points to non-existing file: {absolute_path}")
+        if not absolute_path.is_file():
+            self._anchor_warn_or_raise(anchor, f"expected: path to file; got: {absolute_path}")
             return None
 
         file_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
@@ -817,12 +817,12 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             # resolve relative path into absolute path w.r.t. base dir
             absolute_path = (self.base_dir / path).resolve()
 
-        if not absolute_path.exists():
-            self._warn_or_raise(image, f"path to image does not exist: {path}")
+        if not absolute_path.is_file():
+            self._warn_or_raise(image, f"expected: path to image file; got: {path}")
             return None
 
         if not is_directory_within(absolute_path, self.root_dir):
-            self._warn_or_raise(image, f"path to image {path} points to outside root path {self.root_dir}")
+            self._warn_or_raise(image, f"expected: path to image file prefixed by root path {self.root_dir}; got: {path}")
             return None
 
         return absolute_path

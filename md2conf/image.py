@@ -95,7 +95,7 @@ class ImageGenerator:
         if self.options.prefer_raster and absolute_path.suffix == ".svg":
             # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
             png_file = absolute_path.with_suffix(".png")
-            if png_file.exists():
+            if png_file.is_file():
                 absolute_path = png_file
 
         # infer SVG dimensions if not already specified
