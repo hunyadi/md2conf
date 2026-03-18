@@ -94,12 +94,7 @@ class ConfluenceSession(ABC):
 
     def __init__(self, session: requests.Session) -> None:
         self._session = session
-        retry_strategy = Retry(
-            total = 3,
-            backoff_factor = 1,
-            status_forcelist = [429],
-            allowed_methods = ["GET", "POST", "PUT", "DELETE"]
-        )
+        retry_strategy = Retry(total=3, backoff_factor=1, status_forcelist=[429], allowed_methods=["GET", "POST", "PUT", "DELETE"])
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("https://", adapter)
         session.mount("http://", adapter)
