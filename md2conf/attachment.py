@@ -16,6 +16,10 @@ class ImageData:
     path: Path
     description: str | None = None
 
+    def __post_init__(self) -> None:
+        if not self.path.is_file():
+            raise ValueError(f"expected: absolute path to existing file; got: {self.path}")
+
 
 @dataclass(frozen=True)
 class EmbeddedFileData:
