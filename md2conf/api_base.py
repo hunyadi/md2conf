@@ -102,7 +102,7 @@ class ConfluenceSession(ABC):
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("htttps://", adapter)
-        session.mound("http://", adapter)
+        session.mount("http://", adapter)
 
     def _init_site(self, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         if not domain:
