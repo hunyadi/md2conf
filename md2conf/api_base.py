@@ -16,6 +16,8 @@ from typing import Any, TypeVar, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from .api_types import (
     ConfluenceAttachment,
@@ -92,6 +94,10 @@ class ConfluenceSession(ABC):
 
     def __init__(self, session: requests.Session) -> None:
         self._session = session
+        retry_strategy = Retry(total=3, backoff_factor=1, status_forcelist=[429], allowed_methods=["GET", "POST", "PUT", "DELETE"])
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
 
     def _init_site(self, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         if not domain:
