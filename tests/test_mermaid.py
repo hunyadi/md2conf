@@ -12,6 +12,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 from md2conf.mermaid.render import has_mmdc, render_diagram
+from tests.mermaid_tree import render_mermaid_tree
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -25,6 +26,32 @@ graph TD
   C --> D[ Reporting bugs ]
   C --> E[ Sharing ideas ]
 """
+
+MERMAID_CLASS_DIAGRAM = """classDiagram
+Entity <|-- Product
+Entity <|-- Stakeholder
+Stakeholder <|-- External
+External <|-- Customer
+Stakeholder <|-- Internal
+Entity <|-- Vendor
+Vendor <|-- Store
+Entity <|-- Project
+"""
+
+MERMAID_TREE_DIAGRAM = """Entity
+├── Product
+├── Stakeholder
+│   ├── External
+│   │   └── Customer
+│   └── Internal
+├── Vendor
+│   └── Store
+└── Project"""
+
+
+class TestMermaidTree(TypedTestCase):
+    def test_render_simple_svg(self) -> None:
+        self.assertEqual(render_mermaid_tree(MERMAID_CLASS_DIAGRAM), MERMAID_TREE_DIAGRAM)
 
 
 @unittest.skipUnless(has_mmdc(), "mmdc is not available")

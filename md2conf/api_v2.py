@@ -200,7 +200,13 @@ class ConfluenceSessionV2(ConfluenceSession):
     def delete_attachment(self, attachment_id: str) -> None:
         path = f"/attachments/{attachment_id}"
         LOGGER.info("Moving attachment to trash: %s", attachment_id)
-        self._delete(ConfluenceVersion.VERSION_2, path)
+        try:
+            self._delete(ConfluenceVersion.VERSION_2, path)
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                LOGGER.warning("Attachment already deleted: %s", attachment_id)
+            else:
+                raise
 
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:

@@ -14,22 +14,20 @@ import re
 import unittest
 from pathlib import Path
 
-from lxml.etree import CDATA
-
 from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
-from md2conf.csf import AC_ATTR, AC_ELEM, ElementType, canonicalize
-from md2conf.formatting import ImageAttributes
+from md2conf.csf import canonicalize
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid.render import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.options import ConverterOptions, ImageLayoutOptions, LayoutOptions, Markdown, MarketplaceExtension, ProcessorOptions
+from md2conf.options import ConverterOptions, ImageLayoutOptions, LayoutOptions, Markdown, ProcessorOptions
 from md2conf.plantuml.render import compress_plantuml_data, has_plantuml, render_diagram
 from md2conf.svg import get_svg_dimensions
 from tests import emoji
+from tests.mermaid_tree import MermaidTreeExtension
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -116,44 +114,6 @@ def standardize(content: str) -> str:
     content = uuid_pattern.sub("UUID", content)
 
     return canonicalize(content)
-
-
-class MermaidASCIIExtension(MarketplaceExtension):
-    @override
-    def matches_image(self, absolute_path: Path) -> bool:
-        return absolute_path.name.endswith((".mmd", ".mermaid"))
-
-    @override
-    def matches_fenced(self, language: str, content: str) -> bool:
-        return language == "mermaid"
-
-    @override
-    def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        raise NotImplementedError()
-
-    @override
-    def transform_fenced(self, content: str) -> ElementType:
-        hierarchy = [
-            "Entity",
-            "├── Product",
-            "├── Customer",
-            "├── Vendor",
-            "│   └── Store",
-            "└── Project",
-        ]
-        return AC_ELEM(
-            "structured-macro",
-            {
-                AC_ATTR("name"): "code",
-                AC_ATTR("schema-version"): "1",
-            },
-            AC_ELEM(
-                "parameter",
-                {AC_ATTR("name"): "language"},
-                "mermaid",
-            ),
-            AC_ELEM("plain-text-body", CDATA("\n".join(hierarchy))),
-        )
 
 
 class TestConversion(TypedTestCase):
@@ -265,7 +225,7 @@ class TestConversion(TypedTestCase):
             ProcessorOptions(
                 converter=ConverterOptions(
                     # disable default extensions, register a custom hook for Mermaid
-                    extensions=[MermaidASCIIExtension()]
+                    extensions=[MermaidTreeExtension()]
                 )
             ),
             self.source_dir,
