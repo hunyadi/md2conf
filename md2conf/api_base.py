@@ -15,9 +15,7 @@ from pathlib import Path
 from typing import Any, TypeVar, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from requests import Response, Session
 
 from .api_types import (
     ConfluenceAttachment,
@@ -58,14 +56,14 @@ def build_url(base_url: str, query: dict[str, str] | None = None) -> str:
 
 
 @overload
-def response_cast(response_type: None, response: requests.Response) -> None: ...
+def response_cast(response_type: None, response: Response) -> None: ...
 
 
 @overload
-def response_cast(response_type: type[T], response: requests.Response) -> T: ...
+def response_cast(response_type: type[T], response: Response) -> T: ...
 
 
-def response_cast(response_type: type[T] | None, response: requests.Response) -> T | None:
+def response_cast(response_type: type[T] | None, response: Response) -> T | None:
     "Converts a response body into the expected type."
 
     if response.text:
@@ -87,17 +85,13 @@ class ConfluenceUpdateAttachmentRequest:
 
 
 class ConfluenceSession(ABC):
-    _session: requests.Session
+    _session: Session
     _api_url: str
 
     site: ConfluenceSiteMetadata
 
-    def __init__(self, session: requests.Session) -> None:
+    def __init__(self, session: Session) -> None:
         self._session = session
-        retry_strategy = Retry(total=3, backoff_factor=1, status_forcelist=[429], allowed_methods=["GET", "POST", "PUT", "DELETE"])
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
 
     def _init_site(self, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         if not domain:
@@ -108,7 +102,7 @@ class ConfluenceSession(ABC):
 
     def close(self) -> None:
         self._session.close()
-        self._session = requests.Session()
+        self._session = Session()
 
     def _build_url(self, version: ConfluenceVersion, path: str, query: dict[str, str] | None = None) -> str:
         """
@@ -432,7 +426,7 @@ class ConfluenceSession(ABC):
         ...
 
     @abstractmethod
-    def get_page(self, page_id: str, *, retries: int = 3, retry_delay: float = 1.0) -> ConfluencePage:
+    def get_page(self, page_id: str) -> ConfluencePage:
         """
         Retrieves Confluence wiki page details and content.
 
@@ -440,8 +434,6 @@ class ConfluenceSession(ABC):
         a newly created page that may not be immediately available via the API.
 
         :param page_id: The Confluence page ID.
-        :param retries: Number of retry attempts for 404 errors (default: 3).
-        :param retry_delay: Initial delay in seconds between retries, doubles each attempt (default: 1.0).
         :returns: Confluence page info and content.
         """
         ...

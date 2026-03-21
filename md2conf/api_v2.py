@@ -7,13 +7,11 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import logging
-import random
-import time
 import typing
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-import requests
+from requests import HTTPError, RequestException, Session
 
 from .api_base import ConfluenceSession
 from .api_types import (
@@ -65,7 +63,7 @@ class ConfluenceSessionV2(ConfluenceSession):
     _space_id_to_key: dict[str, str]
     _space_key_to_id: dict[str, str]
 
-    def __init__(self, session: requests.Session, *, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None) -> None:
+    def __init__(self, session: Session, *, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         super().__init__(session)
         self._space_id_to_key = {}
         self._space_key_to_id = {}
@@ -104,7 +102,7 @@ class ConfluenceSessionV2(ConfluenceSession):
                 response.raise_for_status()
 
                 LOGGER.info("Configured scoped Confluence REST API URL: %s", self._api_url)
-            except requests.exceptions.HTTPError:
+            except HTTPError:
                 # fall back to classic REST API URL
                 self._api_url = f"https://{self.site.domain}{self.site.base_path}"
                 LOGGER.info("Configured classic Confluence REST API URL: %s", self._api_url)
@@ -202,7 +200,7 @@ class ConfluenceSessionV2(ConfluenceSession):
         LOGGER.info("Moving attachment to trash: %s", attachment_id)
         try:
             self._delete(ConfluenceVersion.VERSION_2, path)
-        except requests.HTTPError as e:
+        except RequestException as e:
             if e.response is not None and e.response.status_code == 404:
                 LOGGER.warning("Attachment already deleted: %s", attachment_id)
             else:
@@ -228,26 +226,9 @@ class ConfluenceSessionV2(ConfluenceSession):
         return page
 
     @override
-    def get_page(self, page_id: str, *, retries: int = 3, retry_delay: float = 1.0) -> ConfluencePage:
+    def get_page(self, page_id: str) -> ConfluencePage:
         path = f"/pages/{page_id}"
-        last_error: requests.HTTPError | None = None
-
-        for attempt in range(retries + 1):
-            try:
-                return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePage, query={"body-format": "storage"})
-            except requests.HTTPError as e:
-                if e.response is not None and e.response.status_code == 404 and attempt < retries:
-                    delay = retry_delay * (2**attempt) + random.uniform(0, 1)
-                    LOGGER.debug("Page %s not found, retrying in %.1f seconds (attempt %d/%d)", page_id, delay, attempt + 1, retries)
-                    time.sleep(delay)
-                    last_error = e
-                else:
-                    raise
-
-        # this should not be reached, but satisfies type checker
-        if last_error is not None:
-            raise last_error
-        raise ConfluenceError(f"failed to get page: {page_id}")
+        return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePage, query={"body-format": "storage"})
 
     @override
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
