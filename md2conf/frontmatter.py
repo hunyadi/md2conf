@@ -65,16 +65,16 @@ def _extract_frontmatter_block(expr: re.Pattern[str], text: str) -> tuple[FrontM
     return properties, text
 
 
-_FRONT_MATTER_REGEXP = re.compile(r"\A---\n(.+?)^---\n", flags=re.DOTALL | re.MULTILINE)
-_FRONT_COMMENT_REGEXP = re.compile(r"\A<!--\n(.+?)^-->\n", flags=re.DOTALL | re.MULTILINE)
+_FRONTMATTER_REGEXP = re.compile(r"\A---\n(.+?)^---(?:\n|\Z)", flags=re.DOTALL | re.MULTILINE)
+_FRONTMATTER_COMMENT_REGEXP = re.compile(r"\A<!--\n(.+?)^-->(?:\n|\Z)", flags=re.DOTALL | re.MULTILINE)
 
 
 def extract_frontmatter_json(text: str) -> tuple[FrontMatterProperties | None, str]:
     "Extracts the front-matter from a Markdown document into a structured object."
 
-    block, text = _extract_frontmatter_block(_FRONT_MATTER_REGEXP, text)
+    block, text = _extract_frontmatter_block(_FRONTMATTER_REGEXP, text)
     if block is None:
-        block, text = _extract_frontmatter_block(_FRONT_COMMENT_REGEXP, text)
+        block, text = _extract_frontmatter_block(_FRONTMATTER_COMMENT_REGEXP, text)
     return block, text
 
 

@@ -41,14 +41,18 @@ id_space_title = """---
 Text
 """
 
-comment_front_matter = """<!--
+blank_document_frontmatter = """---
+title: "Blank document"
+---"""
+
+comment_frontmatter = """<!--
 title: 🏠 árvíztűrő tükörfúrógép
 -->
 
 Text
 """
 
-mermaid_front_matter = """---
+mermaid_frontmatter = """---
 title: Tiny flow diagram
 config:
   scale: 1
@@ -58,12 +62,12 @@ flowchart LR
     B --> C[Component C]
 """
 
-mermaid_no_front_matter = """flowchart LR
+mermaid_no_frontmatter = """flowchart LR
     A[Component A] --> B[Component B]
     B --> C[Component C]
 """
 
-mermaid_malformed_front_matter = """---
+mermaid_malformed_frontmatter = """---
 title: Tiny flow diagram
 config:
   scale: 1.2.5
@@ -96,8 +100,13 @@ class TestScanner(TypedTestCase):
         self.assertEqual(props.space_key, "~hunyadi")
         self.assertEqual(props.title, "🏠 árvíztűrő tükörfúrógép")
 
+    def test_blank_document_frontmatter(self) -> None:
+        document = Scanner().parse(blank_document_frontmatter)
+        props = document.properties
+        self.assertEqual(props.title, "Blank document")
+
     def test_comment_frontmatter(self) -> None:
-        document = Scanner().parse(comment_front_matter)
+        document = Scanner().parse(comment_frontmatter)
         props = document.properties
         self.assertEqual(props.title, "🏠 árvíztűrő tükörfúrógép")
 
@@ -111,18 +120,18 @@ class TestScanner(TypedTestCase):
         self.assertEqual(props.tags, ["markdown", "confluence", "md", "wiki"])
 
     def test_mermaid_frontmatter(self) -> None:
-        properties = MermaidScanner().read(mermaid_front_matter)
+        properties = MermaidScanner().read(mermaid_frontmatter)
         if properties.config is None:
             self.fail()
         self.assertEqual(properties.config.scale, 1)
 
     def test_mermaid_no_frontmatter(self) -> None:
-        properties = MermaidScanner().read(mermaid_no_front_matter)
+        properties = MermaidScanner().read(mermaid_no_frontmatter)
         self.assertIsNone(properties.config)
 
     def test_mermaid_malformed_frontmatter(self) -> None:
         with self.assertRaises(BaseValidationError):
-            MermaidScanner().read(mermaid_malformed_front_matter)
+            MermaidScanner().read(mermaid_malformed_frontmatter)
 
 
 if __name__ == "__main__":

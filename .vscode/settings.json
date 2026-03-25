@@ -5,6 +5,7 @@
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}"
     },
+    "python.terminal.useEnvFile": true,
     "files.insertFinalNewline": true,
     "[python]": {
         "editor.codeActionsOnSave": {

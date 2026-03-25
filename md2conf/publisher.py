@@ -307,7 +307,7 @@ class SynchronizingProcessor(Processor):
             LOGGER.info("Detected page with new title: %s", page.id)
             return True
 
-        if tag is not None and tag.source_digest == source_digest:
+        if tag is not None and tag.source_digest == source_digest and tag.page_version == page.version.number:
             LOGGER.info("Up-to-date page (matching checksum): %s", page.id)
             return False
 

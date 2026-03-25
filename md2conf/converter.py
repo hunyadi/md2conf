@@ -1570,22 +1570,26 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
             # <p>...</p>
             case "p":
-                child_elem_count = child_count(child)
+                if child_count(child) == 1 and not child.text and not child[0].tail:
+                    # contains only a single child element (and no text)
+                    match child[0].tag:
+                        # <p><img src="..." /></p>
+                        case "img":
+                            return self._transform_image(FormattingContext.BLOCK, child[0])
 
-                # <p><img src="..." /></p>
-                if child_elem_count == 1 and not child.text and child[0].tag == "img" and not child[0].tail:
-                    return self._transform_image(FormattingContext.BLOCK, child[0])
+                        # <p><a href="..."> ... </a></p>
+                        case "a":
+                            link = self._transform_card(child)
+                            if link is not None:
+                                return link
+                            else:
+                                return ElementAction.RECURSE
 
-                # <p><a href="..."> ... </a></p>
-                elif child_elem_count == 1 and child[0].tag == "a" and not child[0].tail:
-                    link = self._transform_card(child)
-                    if link is not None:
-                        return link
-                    else:
-                        return ElementAction.RECURSE
+                        case _:
+                            pass
 
                 # <p>[[<em>TOC</em>]]</p> (represented in Markdown as `[[_TOC_]]`)
-                elif is_placeholder_for(child, "TOC"):
+                if is_placeholder_for(child, "TOC"):
                     return self._transform_toc(child)
 
                 # <p>[[<em>LISTING</em>]]</p> (represented in Markdown as `[[_LISTING_]]`)
