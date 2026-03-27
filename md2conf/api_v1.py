@@ -13,7 +13,7 @@ from typing import TypeVar, cast
 
 from requests import RequestException, Session
 
-from .api_base import ConfluenceSession
+from .api_base import ConfluenceSessionShared
 from .api_types import (
     ConfluenceAttachment,
     ConfluenceContentProperty,
@@ -111,7 +111,7 @@ class ConfluenceCreatePageRequestV1:
     ancestors: list[ConfluencePageRef]
 
 
-class ConfluenceSessionV1(ConfluenceSession):
+class ConfluenceSessionV1(ConfluenceSessionShared):
     """
     Represents an active connection to a Confluence server.
 

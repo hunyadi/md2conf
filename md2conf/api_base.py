@@ -30,6 +30,7 @@ from .api_types import (
     ConfluenceStatus,
     ConfluenceVersion,
 )
+from .compatibility import override
 from .environment import ArgumentError, ConfluenceError, PageError
 from .metadata import ConfluenceSiteMetadata
 from .serializer import JsonType, json_to_object, object_to_json_payload
@@ -85,10 +86,308 @@ class ConfluenceUpdateAttachmentRequest:
 
 
 class ConfluenceSession(ABC):
+    @property
+    @abstractmethod
+    def site(self) -> ConfluenceSiteMetadata: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+    @abstractmethod
+    def space_id_to_key(self, id: str) -> str:
+        "Finds the Confluence space key for a space ID."
+        ...
+
+    @abstractmethod
+    def space_key_to_id(self, key: str) -> str:
+        "Finds the Confluence space ID for a space key."
+        ...
+
+    @abstractmethod
+    def get_homepage_id(self, space_id: str) -> str:
+        """
+        Returns the page ID corresponding to the space home page.
+
+        :param space_id: The Confluence space ID.
+        :returns: Page ID of the space homepage.
+        """
+        ...
+
+    @abstractmethod
+    def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
+        """
+        Retrieves a list of Confluence page attachments.
+
+        :param page_id: The Confluence page ID.
+        :returns: Confluence attachment information.
+        """
+        ...
+
+    @abstractmethod
+    def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
+        """
+        Retrieves a Confluence page attachment by an unprefixed file name.
+
+        :param page_id: The Confluence page ID.
+        :param filename: The attachment filename to search for.
+        :returns: Confluence attachment information.
+        """
+        ...
+
+    @abstractmethod
+    def delete_attachment(self, attachment_id: str) -> None: ...
+
+    @abstractmethod
+    def upload_attachment(
+        self,
+        page_id: str,
+        attachment_name: str,
+        *,
+        attachment_path: Path | None = None,
+        raw_data: bytes | None = None,
+        content_type: str | None = None,
+        comment: str | None = None,
+        force: bool = False,
+    ) -> None:
+        """
+        Uploads a new attachment to a Confluence page.
+
+        :param page_id: Confluence page ID.
+        :param attachment_name: Unprefixed name unique to the page.
+        :param attachment_path: Path to the file to upload as an attachment.
+        :param raw_data: Raw data to upload as an attachment.
+        :param content_type: Attachment MIME type.
+        :param comment: Attachment description.
+        :param force: Overwrite an existing attachment even if there seem to be no changes.
+        """
+
+        ...
+
+    @abstractmethod
+    def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
+        """
+        Looks up a Confluence wiki page ID by title.
+
+        :param title: The page title.
+        :param space_id: The Confluence space ID (unless the default space is to be used). Exclusive with space key.
+        :param space_key: The Confluence space key (unless the default space is to be used). Exclusive with space ID.
+        :returns: Confluence page ID.
+        """
+        ...
+
+    @abstractmethod
+    def get_page(self, page_id: str) -> ConfluencePage:
+        """
+        Retrieves Confluence wiki page details and content.
+
+        Includes retry logic to handle eventual consistency issues when fetching
+        a newly created page that may not be immediately available via the API.
+
+        :param page_id: The Confluence page ID.
+        :returns: Confluence page info and content.
+        """
+        ...
+
+    @abstractmethod
+    def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
+        """
+        Retrieves Confluence wiki page details.
+
+        :param page_id: The Confluence page ID.
+        :returns: Confluence page information.
+        """
+        ...
+
+    def get_page_version(self, page_id: str) -> int:
+        """
+        Retrieves a Confluence wiki page version.
+
+        :param page_id: The Confluence page ID.
+        :returns: Confluence page version.
+        """
+
+        return self.get_page_properties(page_id).version.number
+
+    @abstractmethod
+    def update_page(self, page_id: str, content: str, *, title: str, version: int, message: str) -> None: ...
+    @abstractmethod
+    def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage: ...
+    @abstractmethod
+    def delete_page(self, page_id: str, *, purge: bool = False) -> None: ...
+
+    @abstractmethod
+    def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
+        """
+        Checks if a Confluence page exists with the given title.
+
+        :param title: Page title. Pages in the same Confluence space must have a unique title.
+        :param space_id: Identifies the Confluence space.
+        :returns: Confluence page ID of a matching page (if found), or `None`.
+        """
+        ...
+
+    def get_or_create_page(self, title: str, parent_id: str) -> ConfluencePage:
+        """
+        Finds a page with the given title, or creates a new page if no such page exists.
+
+        :param title: Page title. Pages in the same Confluence space must have a unique title.
+        :param parent_id: Identifies the parent page for a new child page.
+        :returns: Confluence page info for the found or newly created page.
+        """
+
+        parent_page = self.get_page_properties(parent_id)
+        space_id = parent_page.spaceId
+        page_id = self.page_exists(title, space_id=space_id)
+
+        if page_id is not None:
+            LOGGER.debug("Retrieving existing page: %s", page_id)
+            return self.get_page(page_id)
+        else:
+            LOGGER.debug("Creating new page with title: %s", title)
+            return self.create_page(title=title, content="", parent_id=parent_id, space_id=space_id)
+
+    @abstractmethod
+    def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
+        """
+        Retrieves labels for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :returns: A list of page labels.
+        """
+        ...
+
+    @abstractmethod
+    def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+        """
+        Adds labels to a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to add.
+        """
+
+        ...
+
+    @abstractmethod
+    def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
+        """
+        Removes labels from a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to remove.
+        """
+
+        ...
+
+    @abstractmethod
+    def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
+        """
+        Assigns the specified labels to a Confluence page. Existing labels are removed.
+
+        :param page_id: The Confluence page ID.
+        :param labels: A list of page labels to assign.
+        """
+
+        ...
+
+    @abstractmethod
+    def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
+        """
+        Retrieves a content property for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param key: The name of the property to fetch (with case-sensitive match).
+        :returns: The content property value, or `None` if not found.
+        """
+        ...
+
+    @abstractmethod
+    def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
+        """
+        Retrieves content properties for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :returns: A list of content properties.
+        """
+        ...
+
+    @abstractmethod
+    def add_content_property_to_page(self, page_id: str, property: ConfluenceContentProperty) -> ConfluenceIdentifiedContentProperty:
+        """
+        Adds a new content property to a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param property: Content property to add.
+        :returns: The created content property with ID and version.
+        """
+        ...
+
+    @abstractmethod
+    def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
+        """
+        Removes a content property from a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param property_id: Property ID, which uniquely identifies the property.
+        """
+        ...
+
+    @abstractmethod
+    def update_content_property_for_page(
+        self, page_id: str, property_id: str, version: int, property: ConfluenceContentProperty
+    ) -> ConfluenceIdentifiedContentProperty:
+        """
+        Updates an existing content property associated with a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param property_id: Property ID, which uniquely identifies the property.
+        :param version: Version number to assign.
+        :param property: Content property data to assign.
+        :returns: Updated content property data.
+        """
+        ...
+
+    def update_content_properties_for_page(self, page_id: str, properties: list[ConfluenceContentProperty], *, keep_existing: bool = False) -> None:
+        """
+        Updates content properties associated with a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :param properties: A list of content property data to update.
+        :param keep_existing: Whether to keep content property data whose key is not included in the list of properties passed as an argument.
+        """
+
+        old_mapping = {p.key: p for p in self.get_content_properties_for_page(page_id)}
+        new_mapping = {p.key: p for p in properties}
+
+        new_props = set(p.key for p in properties)
+        old_props = set(old_mapping.keys())
+
+        add_props = list(new_props - old_props)
+        remove_props = list(old_props - new_props)
+        update_props = list(old_props & new_props)
+
+        if add_props:
+            add_props.sort()
+            for key in add_props:
+                self.add_content_property_to_page(page_id, new_mapping[key])
+        if not keep_existing and remove_props:
+            remove_props.sort()
+            for key in remove_props:
+                self.remove_content_property_from_page(page_id, old_mapping[key].id)
+        if update_props:
+            update_props.sort()
+            for key in update_props:
+                old_prop = old_mapping[key]
+                new_prop = new_mapping[key]
+                if old_prop.value == new_prop.value:
+                    continue
+                self.update_content_property_for_page(page_id, old_prop.id, old_prop.version.number + 1, new_prop)
+
+
+class ConfluenceSessionShared(ConfluenceSession):
     _session: Session
     _api_url: str
 
-    site: ConfluenceSiteMetadata
+    _site: ConfluenceSiteMetadata
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -98,8 +397,13 @@ class ConfluenceSession(ABC):
             raise ArgumentError("Confluence domain not specified and cannot be inferred")
         if not base_path:
             raise ArgumentError("Confluence base path not specified and cannot be inferred")
-        self.site = ConfluenceSiteMetadata(domain, base_path, space_key)
+        self._site = ConfluenceSiteMetadata(domain, base_path, space_key)
 
+    @property
+    def site(self) -> ConfluenceSiteMetadata:
+        return self._site
+
+    @override
     def close(self) -> None:
         self._session.close()
         self._session = Session()
@@ -190,16 +494,6 @@ class ConfluenceSession(ABC):
         "Retrieves all results of a REST API paginated result-set."
         ...
 
-    @abstractmethod
-    def space_id_to_key(self, id: str) -> str:
-        "Finds the Confluence space key for a space ID."
-        ...
-
-    @abstractmethod
-    def space_key_to_id(self, key: str) -> str:
-        "Finds the Confluence space ID for a space key."
-        ...
-
     @overload
     def get_space_id(self, *, space_id: str | None = None) -> str | None: ...
 
@@ -230,40 +524,7 @@ class ConfluenceSession(ABC):
         # space ID and key are unset, and no default space is configured
         return None
 
-    @abstractmethod
-    def get_homepage_id(self, space_id: str) -> str:
-        """
-        Returns the page ID corresponding to the space home page.
-
-        :param space_id: The Confluence space ID.
-        :returns: Page ID of the space homepage.
-        """
-        ...
-
-    @abstractmethod
-    def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
-        """
-        Retrieves a list of Confluence page attachments.
-
-        :param page_id: The Confluence page ID.
-        :returns: Confluence attachment information.
-        """
-        ...
-
-    @abstractmethod
-    def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
-        """
-        Retrieves a Confluence page attachment by an unprefixed file name.
-
-        :param page_id: The Confluence page ID.
-        :param filename: The attachment filename to search for.
-        :returns: Confluence attachment information.
-        """
-        ...
-
-    @abstractmethod
-    def delete_attachment(self, attachment_id: str) -> None: ...
-
+    @override
     def upload_attachment(
         self,
         page_id: str,
@@ -275,18 +536,6 @@ class ConfluenceSession(ABC):
         comment: str | None = None,
         force: bool = False,
     ) -> None:
-        """
-        Uploads a new attachment to a Confluence page.
-
-        :param page_id: Confluence page ID.
-        :param attachment_name: Unprefixed name unique to the page.
-        :param attachment_path: Path to the file to upload as an attachment.
-        :param raw_data: Raw data to upload as an attachment.
-        :param content_type: Attachment MIME type.
-        :param comment: Attachment description.
-        :param force: Overwrite an existing attachment even if there seem to be no changes.
-        """
-
         if attachment_path is None and raw_data is None:
             raise ArgumentError("required: `attachment_path` or `raw_data`")
 
@@ -413,130 +662,19 @@ class ConfluenceSession(ABC):
         LOGGER.info("Updating attachment: %s", attachment_id)
         self._put(ConfluenceVersion.VERSION_1, path, request, None)
 
-    @abstractmethod
-    def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
-        """
-        Looks up a Confluence wiki page ID by title.
-
-        :param title: The page title.
-        :param space_id: The Confluence space ID (unless the default space is to be used). Exclusive with space key.
-        :param space_key: The Confluence space key (unless the default space is to be used). Exclusive with space ID.
-        :returns: Confluence page ID.
-        """
-        ...
-
-    @abstractmethod
-    def get_page(self, page_id: str) -> ConfluencePage:
-        """
-        Retrieves Confluence wiki page details and content.
-
-        Includes retry logic to handle eventual consistency issues when fetching
-        a newly created page that may not be immediately available via the API.
-
-        :param page_id: The Confluence page ID.
-        :returns: Confluence page info and content.
-        """
-        ...
-
-    @abstractmethod
-    def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
-        """
-        Retrieves Confluence wiki page details.
-
-        :param page_id: The Confluence page ID.
-        :returns: Confluence page information.
-        """
-        ...
-
-    def get_page_version(self, page_id: str) -> int:
-        """
-        Retrieves a Confluence wiki page version.
-
-        :param page_id: The Confluence page ID.
-        :returns: Confluence page version.
-        """
-
-        return self.get_page_properties(page_id).version.number
-
-    @abstractmethod
-    def update_page(self, page_id: str, content: str, *, title: str, version: int, message: str) -> None: ...
-    @abstractmethod
-    def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage: ...
-    @abstractmethod
-    def delete_page(self, page_id: str, *, purge: bool = False) -> None: ...
-
-    @abstractmethod
-    def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
-        """
-        Checks if a Confluence page exists with the given title.
-
-        :param title: Page title. Pages in the same Confluence space must have a unique title.
-        :param space_id: Identifies the Confluence space.
-        :returns: Confluence page ID of a matching page (if found), or `None`.
-        """
-        ...
-
-    def get_or_create_page(self, title: str, parent_id: str) -> ConfluencePage:
-        """
-        Finds a page with the given title, or creates a new page if no such page exists.
-
-        :param title: Page title. Pages in the same Confluence space must have a unique title.
-        :param parent_id: Identifies the parent page for a new child page.
-        :returns: Confluence page info for the found or newly created page.
-        """
-
-        parent_page = self.get_page_properties(parent_id)
-        space_id = parent_page.spaceId
-        page_id = self.page_exists(title, space_id=space_id)
-
-        if page_id is not None:
-            LOGGER.debug("Retrieving existing page: %s", page_id)
-            return self.get_page(page_id)
-        else:
-            LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(title=title, content="", parent_id=parent_id, space_id=space_id)
-
-    @abstractmethod
-    def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
-        """
-        Retrieves labels for a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :returns: A list of page labels.
-        """
-        ...
-
+    @override
     def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
-        """
-        Adds labels to a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param labels: A list of page labels to add.
-        """
-
         path = f"/content/{page_id}/label"
         self._post(ConfluenceVersion.VERSION_1, path, labels, None)
 
+    @override
     def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
-        """
-        Removes labels from a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param labels: A list of page labels to remove.
-        """
-
         path = f"/content/{page_id}/label"
         for label in labels:
             self._delete(ConfluenceVersion.VERSION_1, path, query={"name": label.name})
 
+    @override
     def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
-        """
-        Assigns the specified labels to a Confluence page. Existing labels are removed.
-
-        :param page_id: The Confluence page ID.
-        :param labels: A list of page labels to assign.
-        """
-
         new_labels = set(labels)
         old_labels = set(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in self.get_labels(page_id))
 
@@ -549,96 +687,3 @@ class ConfluenceSession(ABC):
         if not keep_existing and remove_labels:
             remove_labels.sort()
             self.remove_labels(page_id, remove_labels)
-
-    @abstractmethod
-    def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
-        """
-        Retrieves a content property for a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param key: The name of the property to fetch (with case-sensitive match).
-        :returns: The content property value, or `None` if not found.
-        """
-        ...
-
-    @abstractmethod
-    def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
-        """
-        Retrieves content properties for a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :returns: A list of content properties.
-        """
-        ...
-
-    @abstractmethod
-    def add_content_property_to_page(self, page_id: str, property: ConfluenceContentProperty) -> ConfluenceIdentifiedContentProperty:
-        """
-        Adds a new content property to a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param property: Content property to add.
-        :returns: The created content property with ID and version.
-        """
-        ...
-
-    @abstractmethod
-    def remove_content_property_from_page(self, page_id: str, property_id: str) -> None:
-        """
-        Removes a content property from a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param property_id: Property ID, which uniquely identifies the property.
-        """
-        ...
-
-    @abstractmethod
-    def update_content_property_for_page(
-        self, page_id: str, property_id: str, version: int, property: ConfluenceContentProperty
-    ) -> ConfluenceIdentifiedContentProperty:
-        """
-        Updates an existing content property associated with a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param property_id: Property ID, which uniquely identifies the property.
-        :param version: Version number to assign.
-        :param property: Content property data to assign.
-        :returns: Updated content property data.
-        """
-        ...
-
-    def update_content_properties_for_page(self, page_id: str, properties: list[ConfluenceContentProperty], *, keep_existing: bool = False) -> None:
-        """
-        Updates content properties associated with a Confluence page.
-
-        :param page_id: The Confluence page ID.
-        :param properties: A list of content property data to update.
-        :param keep_existing: Whether to keep content property data whose key is not included in the list of properties passed as an argument.
-        """
-
-        old_mapping = {p.key: p for p in self.get_content_properties_for_page(page_id)}
-        new_mapping = {p.key: p for p in properties}
-
-        new_props = set(p.key for p in properties)
-        old_props = set(old_mapping.keys())
-
-        add_props = list(new_props - old_props)
-        remove_props = list(old_props - new_props)
-        update_props = list(old_props & new_props)
-
-        if add_props:
-            add_props.sort()
-            for key in add_props:
-                self.add_content_property_to_page(page_id, new_mapping[key])
-        if not keep_existing and remove_props:
-            remove_props.sort()
-            for key in remove_props:
-                self.remove_content_property_from_page(page_id, old_mapping[key].id)
-        if update_props:
-            update_props.sort()
-            for key in update_props:
-                old_prop = old_mapping[key]
-                new_prop = new_mapping[key]
-                if old_prop.value == new_prop.value:
-                    continue
-                self.update_content_property_for_page(page_id, old_prop.id, old_prop.version.number + 1, new_prop)
