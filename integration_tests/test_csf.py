@@ -45,8 +45,7 @@ class TestConfluenceStorageFormat(TypedTestCase):
         with ConfluenceAPI() as api:
             page = api.get_page(self.test_page_id)
 
-        with open(self.test_dir / "example.csf", "w") as f:
-            f.write(content_to_string(page.content))
+        (self.test_dir / "example.csf").write_text(content_to_string(page.content), encoding="utf-8")
 
     def test_labels(self) -> None:
         with ConfluenceAPI() as api:

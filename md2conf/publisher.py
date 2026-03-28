@@ -136,24 +136,23 @@ class SynchronizingProcessor(Processor):
         Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        topmost_id = self._get_topmost_id(tree.page_id, root_id)
+        topmost_id: str | None = None
+        if tree.page_id is not None:
+            # explicitly associated page takes precedence
+            topmost_id = self.api.get_page_properties(tree.page_id).parentId
+        elif root_id is not None:
+            # explicit parameter value
+            topmost_id = root_id
+        elif self.site.space_key is not None:
+            # infer root page from space key
+            topmost_id = self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))
+
         if topmost_id is None:
             raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
 
         catalog = ParentCatalog(self.api)
         catalog.add_known(topmost_id)
         self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
-
-    def _get_topmost_id(self, page_id: str | None, root_id: str | None) -> str | None:
-        match (page_id, root_id):
-            case (None, None):
-                if self.site.space_key is not None:
-                    return self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))
-            case (None, _):
-                return root_id
-            case _:  # explicit page ID takes precedence
-                return self.api.get_page_properties(str(page_id)).parentId
-        return None
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
         if node.page_id is not None:
@@ -190,7 +189,7 @@ class SynchronizingProcessor(Processor):
             update = True
 
         space_key = self.api.space_id_to_key(page.spaceId)
-        if update and not self.options.skip_update:
+        if update and not self.options.skip_update and node.synchronized:
             self._update_markdown(
                 node.absolute_path,
                 page_id=page.id,
@@ -224,8 +223,7 @@ class SynchronizingProcessor(Processor):
         m = hashlib.md5()
         m.update(object_to_json_payload(self.options.converter))
         m.update(b"\n")
-        with open(path, "rb") as f:
-            m.update(f.read())
+        m.update(path.read_bytes())
         source_digest = m.hexdigest()
 
         # set Confluence title based on Markdown content
@@ -371,10 +369,7 @@ class SynchronizingProcessor(Processor):
         Writes the Confluence page ID and space key at the beginning of the Markdown file.
         """
 
-        with open(path, "r", encoding="utf-8") as file:
-            document = file.read()
-
-        content: list[str] = []
+        document = path.read_text(encoding="utf-8")
 
         # check if the file has frontmatter
         index = 0
@@ -383,6 +378,8 @@ class SynchronizingProcessor(Processor):
         elif document.startswith("<!--\n"):
             index = document.find("\n-->\n", 5) + 4
 
+        content: list[str] = []
+
         if index > 0:
             # insert the Confluence keys after the frontmatter
             content.append(document[:index])
@@ -390,9 +387,7 @@ class SynchronizingProcessor(Processor):
         content.append(f"<!-- confluence-page-id: {page_id} -->")
         content.append(f"<!-- confluence-space-key: {space_key} -->")
         content.append(document[index:])
-
-        with open(path, "w", encoding="utf-8") as file:
-            file.write("\n".join(content))
+        path.write_text("\n".join(content), encoding="utf-8")
 
 
 class SynchronizingProcessorFactory(ProcessorFactory):

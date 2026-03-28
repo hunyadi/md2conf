@@ -121,8 +121,7 @@ class Matcher:
     def __init__(self, options: MatcherOptions, directory: Path) -> None:
         self.options = options
         if os.path.exists(directory / options.source):
-            with open(directory / options.source, "r") as f:
-                rules = f.read().splitlines()
+            rules = (directory / options.source).read_text(encoding="utf-8").splitlines()
             self.rules = [rule for rule in rules if rule and not rule.startswith("#")]
         else:
             self.rules = []

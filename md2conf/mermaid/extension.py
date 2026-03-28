@@ -49,9 +49,7 @@ class MermaidExtension(DiagramExtension):
     def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         relative_path = path_relative_to(absolute_path, self.base_dir)
         if self.options.render:
-            with open(absolute_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
+            content = absolute_path.read_text(encoding="utf-8")
             config = self._extract_mermaid_config(content)
             image_data = render_diagram(content, self.generator.options.output_format, config=config)
             return self.generator.transform_attached_data(image_data, attrs, relative_path=relative_path)

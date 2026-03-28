@@ -1,7 +1,9 @@
 *.csf
+embedded_*.mmd
 embedded_*.png
 embedded_*.svg
 figure_*.png
 figure_*.svg
+figure_*.xml
 formula_*.png
 formula_*.svg

@@ -44,8 +44,7 @@ def substitute(root_dir: Path, content: str) -> str:
 
         relative_path = m.group(1)
         absolute_path = root_dir / relative_path
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            file_content = f.read().rstrip()
+        file_content = absolute_path.read_text(encoding="utf-8").rstrip()
         hash = hashlib.md5(file_content.encode()).hexdigest()
         extension = absolute_path.suffix if absolute_path.suffix != ".puml" else ".svg"
         return attachment_name(f"embedded_{hash}{extension}")
@@ -58,8 +57,7 @@ def substitute(root_dir: Path, content: str) -> str:
 
         relative_path = m.group(1)
         absolute_path = root_dir / relative_path
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            file_content = f.read().rstrip()
+        file_content = absolute_path.read_text(encoding="utf-8").rstrip()
         return compress_plantuml_data(file_content)
 
     data_pattern = re.compile(r"DATA\(([^()]+)\)")
@@ -77,8 +75,7 @@ def substitute(root_dir: Path, content: str) -> str:
         if dims is not None:
             width, height = dims
         else:
-            with open(absolute_path, "r", encoding="utf-8") as f:
-                file_content = f.read().rstrip()
+            file_content = absolute_path.read_text(encoding="utf-8").rstrip()
             svg_data = render_diagram(file_content, "svg")
             dims = get_svg_dimensions(svg_data)
             if dims is not None:

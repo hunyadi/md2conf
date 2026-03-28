@@ -113,8 +113,7 @@ class TestAPI(TypedTestCase):
             page = api.get_page(self.feature_test_page_id)
             self.assertIsInstance(page, ConfluencePage)
 
-        with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
-            f.write(sanitize_confluence(page.content))
+        (self.out_dir / "page.html").write_text(sanitize_confluence(page.content), encoding="utf-8")
 
     def test_attachment(self) -> None:
         with ConfluenceAPI() as api:

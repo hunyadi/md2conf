@@ -8,10 +8,24 @@ Copyright 2022-2026, Levente Hunyadi
 
 import logging
 import re
+import shutil
 import subprocess
+from functools import lru_cache
 from typing import Sequence
 
 LOGGER = logging.getLogger(__name__)
+
+
+@lru_cache
+def cached_which(executable: str) -> str | None:
+    """
+    Cached version of `shutil.which()`.
+
+    :param executable: Name or path of the executable to search for.
+    :returns: Full path to the executable, or `None` if not found.
+    """
+
+    return shutil.which(executable)
 
 
 def execute_subprocess(command: Sequence[str], data: bytes, *, application: str) -> bytes:

@@ -92,8 +92,7 @@ def generate_description(args: Arguments) -> None:
         error(f"{TEMPLATE_FILE} not found.")
         sys.exit(1)
 
-    with open(TEMPLATE_FILE, "r") as f:
-        content = f.read()
+    content = TEMPLATE_FILE.read_text("utf-8")
 
     # Required metadata placeholders
     replacements = {

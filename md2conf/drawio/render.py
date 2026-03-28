@@ -9,7 +9,6 @@ Copyright 2022-2026, Levente Hunyadi
 import base64
 import logging
 import os
-import shutil
 import subprocess
 import tempfile
 import typing
@@ -19,6 +18,8 @@ from struct import unpack
 from urllib.parse import unquote_to_bytes
 
 import lxml.etree as ET
+
+from md2conf.external import cached_which
 
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
@@ -223,11 +224,9 @@ def extract_diagram(path: Path) -> bytes:
     """
 
     if path.name.endswith(".drawio.png"):
-        with open(path, "rb") as png_file:
-            root = extract_xml_from_png(png_file.read())
+        root = extract_xml_from_png(path.read_bytes())
     elif path.name.endswith(".drawio.svg"):
-        with open(path, "rb") as svg_file:
-            root = extract_xml_from_svg(svg_file.read())
+        root = extract_xml_from_svg(path.read_bytes())
     else:
         raise DrawioError(f"unrecognized file type for {path.name}")
 
@@ -237,7 +236,7 @@ def extract_diagram(path: Path) -> bytes:
 def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "png") -> bytes:
     "Generates a PNG or SVG image from a draw.io diagram source."
 
-    executable = shutil.which("draw.io")
+    executable = cached_which("draw.io")
     if executable is None:
         raise DrawioError("draw.io executable not found")
 

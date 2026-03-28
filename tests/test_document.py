@@ -64,9 +64,7 @@ class TestDocument(TypedTestCase):
         )
         self.assertListEqual(document.links, [])
         self.assertListEqual(document.images, [])
-
-        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
-            f.write(document.xhtml())
+        (self.out_dir / "document.html").write_text(document.xhtml(), encoding="utf-8")
 
     def test_markdown_attachments(self) -> None:
         document_path = self.sample_dir / "attachments.md"
@@ -110,9 +108,7 @@ class TestDocument(TypedTestCase):
                 self.sample_dir / "docs" / "sample.ods",
             ],
         )
-
-        with open(self.out_dir / "document.html", "w", encoding="utf-8") as f:
-            f.write(document.xhtml())
+        (self.out_dir / "document.html").write_text(document.xhtml(), encoding="utf-8")
 
 
 if __name__ == "__main__":
