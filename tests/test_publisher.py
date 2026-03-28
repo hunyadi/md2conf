@@ -6,13 +6,20 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import hashlib
 import logging
 import unittest
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from md2conf.api_base import ConfluenceSession
+from md2conf.api_types import ConfluencePageProperties
 from md2conf.options import ConfluencePageID, ConverterOptions, ProcessorOptions
 from md2conf.publisher import Publisher
-from tests.api import MockConfluenceSession
+from md2conf.scanner import Scanner
+from tests.api import MockConfluenceAPI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,8 +27,68 @@ logging.basicConfig(
 )
 
 
+@contextmanager
+def _create_temporary_directory() -> Generator[Path]:
+    "Creates a temporary directory."
+
+    with TemporaryDirectory(dir=Path(__file__).parent) as temp_dir:
+        yield Path(temp_dir)
+
+
+def _create_document(absolute_path: Path, source_dir: Path, *, has_frontmatter: bool) -> None:
+    "Creates a Markdown document with some sample content."
+
+    absolute_path.parent.mkdir(parents=True, exist_ok=True)
+    relative_path = absolute_path.relative_to(source_dir).as_posix()
+
+    content: list[str] = [
+        f"# {relative_path}: A sample document",
+        "",
+        "This is a document without an explicitly assigned Confluence page ID or space key.",
+    ]
+
+    frontmatter: list[str] = []
+    if has_frontmatter:
+        unique_string = f"md2conf/{relative_path}"
+        digest = hashlib.sha1(unique_string.encode()).hexdigest()
+        frontmatter.extend(
+            [
+                "---",
+                f'title: "{relative_path}: {digest}"',
+                "---",
+                "",
+            ]
+        )
+
+    absolute_path.write_text("\n".join(frontmatter + content), encoding="utf-8")
+
+
+def _get_page_for_document(api: ConfluenceSession, absolute_path: Path) -> ConfluencePageProperties:
+    "Retrieves the Confluence page corresponding to the given document path."
+
+    document = Scanner().read(absolute_path)
+    props = document.properties
+    if props.page_id is None:
+        raise ValueError(f"document does not have a page ID assigned: {absolute_path}")
+    return api.get_page_properties(props.page_id)
+
+
 class TestPublisher(unittest.TestCase):
-    def test_process_sample_directory(self) -> None:
+    def get_processor_options(self, api: ConfluenceSession, *, skip_update: bool) -> ProcessorOptions:
+        return ProcessorOptions(
+            root_page=ConfluencePageID(api.get_homepage_id("SPACE_ID")),
+            skip_update=skip_update,
+            converter=ConverterOptions(
+                render_drawio=False,
+                render_mermaid=False,
+                render_plantuml=False,
+                render_latex=False,
+            ),
+        )
+
+    def test_synchronize_directory(self) -> None:
+        "Checks if a directory of Markdown files is synchronized to Confluence."
+
         parent_dir = Path(__file__).parent.parent
         sample_dir = parent_dir / "sample"
         docs_dir = sample_dir / "docs"
@@ -31,26 +98,67 @@ class TestPublisher(unittest.TestCase):
         docs_count = len(list(docs_dir.rglob("*.*")))
         figure_count = len(list(figure_dir.rglob("*.*")))
 
-        session = MockConfluenceSession()
+        with MockConfluenceAPI() as api:
+            publisher = Publisher(api, self.get_processor_options(api, skip_update=True))
+            publisher.process(sample_dir)
 
-        options = ProcessorOptions(
-            root_page=ConfluencePageID(session.get_homepage_id("SPACE_ID")),
-            skip_update=True,
-            converter=ConverterOptions(
-                render_drawio=False,
-                render_mermaid=False,
-                render_plantuml=False,
-                render_latex=False,
-            ),
-        )
+            self.assertEqual(api.get_page_count(), markdown_count + 1)  # add one for the homepage
+            self.assertEqual(api.get_attachment_count(), docs_count + figure_count)
 
-        publisher = Publisher(session, options)
-        publisher.process(sample_dir)
+            publisher.process(sample_dir)
 
-        self.assertEqual(session.get_page_count(), markdown_count + 1)  # add one for the homepage
-        self.assertEqual(session.get_attachment_count(), docs_count + figure_count)
+    def test_update(self) -> None:
+        "Checks if Markdown files are updated with a page ID when synchronized."
 
-        publisher.process(sample_dir)
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            documents: list[Path] = [
+                source_dir / "index.md",
+                source_dir / "doc1.md",
+                source_dir / "doc2.md",
+            ]
+
+            for absolute_path in documents:
+                # no front-matter to verify if documents with inferred title are handled correctly
+                _create_document(absolute_path, source_dir, has_frontmatter=False)
+
+            Publisher(api, self.get_processor_options(api, skip_update=False)).process_directory(source_dir)
+            self.assertEqual(api.get_page_count(), len(documents) + 1)  # add one for the homepage
+
+            for absolute_path in documents:
+                _get_page_for_document(api, absolute_path)
+
+    def test_hierarchy(self) -> None:
+        "Checks if a matching Confluence page hierarchy is created from a directory tree of Markdown files."
+
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            documents: list[Path] = [
+                doc_a := source_dir / "index.md",
+                doc_b := source_dir / "doc1.md",
+                doc_c := source_dir / "doc2.md",
+                doc_d := source_dir / "skip" / "nested" / "index.md",
+                doc_e := source_dir / "skip" / "nested" / "doc3.md",
+                doc_f := source_dir / "skip" / "nested" / "deep" / "index.md",
+            ]
+
+            for absolute_path in documents:
+                _create_document(absolute_path, source_dir, has_frontmatter=True)
+
+            Publisher(api, self.get_processor_options(api, skip_update=False)).process_directory(source_dir)
+            self.assertEqual(api.get_page_count(), len(documents) + 1)  # add one for the homepage
+
+            page_a = _get_page_for_document(api, doc_a)
+            page_b = _get_page_for_document(api, doc_b)
+            page_c = _get_page_for_document(api, doc_c)
+            page_d = _get_page_for_document(api, doc_d)
+            page_e = _get_page_for_document(api, doc_e)
+            page_f = _get_page_for_document(api, doc_f)
+
+            self.assertEqual(page_a.parentId, api.get_homepage_id("SPACE_ID"))
+            self.assertEqual(page_b.parentId, page_a.id)
+            self.assertEqual(page_c.parentId, page_a.id)
+            self.assertEqual(page_d.parentId, page_a.id)
+            self.assertEqual(page_e.parentId, page_d.id)
+            self.assertEqual(page_f.parentId, page_d.id)
 
 
 if __name__ == "__main__":

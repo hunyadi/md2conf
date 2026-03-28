@@ -35,6 +35,8 @@ from md2conf.metadata import ConfluenceSiteMetadata
 
 LOGGER = logging.getLogger(__name__)
 
+HOMEPAGE_ID = "1000000000"
+
 
 def _require_greater_version(source: int, target: int) -> None:
     if target <= source:
@@ -43,7 +45,7 @@ def _require_greater_version(source: int, target: int) -> None:
 
 class MockConfluenceSession(ConfluenceSession):
     """
-    Emulates Confluence REST API for unit tests.
+    Emulates Confluence REST API calls for unit tests.
 
     Employs an in-memory SQLite database to store attachments, pages and content properties.
     The session is initialized with a single homepage in the root of the space.
@@ -94,7 +96,7 @@ class MockConfluenceSession(ConfluenceSession):
             """
         )
         self._create_page(
-            page_id="HOMEPAGE_ID",
+            page_id=HOMEPAGE_ID,
             title="Home",
             content="<p>This is the root page of the space.</p>",
             parent_id=None,
@@ -265,7 +267,7 @@ class MockConfluenceSession(ConfluenceSession):
     @override
     def get_homepage_id(self, space_id: str) -> str:
         LOGGER.debug("space_id: %s", space_id)
-        return "HOMEPAGE_ID"
+        return HOMEPAGE_ID
 
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
@@ -333,7 +335,7 @@ class MockConfluenceSession(ConfluenceSession):
     @override
     def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage:
         LOGGER.debug("parent_id: %s, title: %s", parent_id, title)
-        page_id = f"PAGE_{uuid4().hex[:8].upper()}"
+        page_id = str(uuid4().int % 9_000_000_000 + 1_000_000_000)
         return self._create_page(page_id, title, content, parent_id, space_id)
 
     def _create_page(self, page_id: str, title: str, content: str, parent_id: str | None, space_id: str) -> ConfluencePage:
@@ -447,3 +449,20 @@ class MockConfluenceSession(ConfluenceSession):
             (property_id,),
         ).fetchone()
         return self._row_to_identified_content_property(row)
+
+
+class MockConfluenceAPI:
+    """
+    Emulates Confluence REST API calls for unit tests.
+    """
+
+    _session: MockConfluenceSession
+
+    def __init__(self) -> None:
+        self._session = MockConfluenceSession()
+
+    def __enter__(self) -> MockConfluenceSession:
+        return self._session
+
+    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object | None) -> None:
+        self._session.close()

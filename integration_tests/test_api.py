@@ -159,9 +159,8 @@ class TestAPI(TypedTestCase):
             source_dir / "index.md",
             source_dir / "doc1.md",
             source_dir / "doc2.md",
-            source_dir / "skip" / "nested" / "index.md",
-            source_dir / "skip" / "nested" / "doc3.md",
-            source_dir / "skip" / "nested" / "deep" / "index.md",
+            source_dir / "nested" / "index.md",
+            source_dir / "nested" / "doc3.md",
         ]
 
         for absolute_path in documents:
@@ -173,8 +172,6 @@ class TestAPI(TypedTestCase):
                     f"# {relative_path}: A sample document",
                     "",
                     "This is a document without an explicitly assigned Confluence page ID or space key.",
-                    "",
-                    "UTF-8 test sequence: árvíztűrő tükörfúrógép.",
                 ]
 
                 frontmatter: list[str] = []
