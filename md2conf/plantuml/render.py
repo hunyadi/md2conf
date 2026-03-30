@@ -10,14 +10,13 @@ import base64
 import logging
 import os
 import shlex
-import shutil
 import zlib
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
 
 import md2conf
-from md2conf.external import execute_subprocess
+from md2conf.external import cached_which, execute_subprocess
 
 from .config import PlantUMLConfigProperties
 
@@ -69,7 +68,7 @@ def _get_plantuml_command() -> list[str]:
 
     # JAR not found - fail with helpful message
     raise RuntimeError(
-        "PlantUML JAR not found. Download `plantuml.jar` from https://github.com/plantuml/plantuml/releases and set the PLANTUML_JAR environment variable."
+        "PlantUML JAR not found. Download `plantuml.jar` from <https://github.com/plantuml/plantuml/releases> and set the PLANTUML_JAR environment variable."
     )
 
 
@@ -79,7 +78,7 @@ def has_plantuml() -> bool:
     jar_path = _get_plantuml_jar_path()
 
     # Check if we have JAR file and Java is available
-    return jar_path.is_file() and shutil.which("java") is not None
+    return jar_path.is_file() and cached_which("java") is not None
 
 
 def render_diagram(

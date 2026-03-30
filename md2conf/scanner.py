@@ -83,9 +83,7 @@ class Scanner:
         Extracts essential properties from a Markdown document.
         """
 
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            text = f.read()
-
+        text = absolute_path.read_text(encoding="utf-8")
         return self.parse(text)
 
     def parse(self, text: str) -> ScannedDocument:

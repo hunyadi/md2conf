@@ -156,8 +156,7 @@ root_path = Path(__file__).parent.parent
 os.environ["COLUMNS"] = "160"  # ensures consistent column width across platforms
 help_text = patch_help(get_help())
 readme_path = root_path / "README.md"
-with open(readme_path, "r") as input_file:
-    input_content = input_file.read()
+input_content = readme_path.read_text(encoding="utf-8")
 
 # update README.md
 text = input_content
@@ -170,8 +169,7 @@ if args.check:
     if input_content != output_content:
         raise ValueError(f"outdated file: {readme_path}")
 else:
-    with open(root_path / "README.md", "w") as output_file:
-        output_file.write(output_content)
+    (root_path / "README.md").write_text(output_content, encoding="utf-8")
 
 # generate code documentation
 if find_spec("markdown_doc") is not None:

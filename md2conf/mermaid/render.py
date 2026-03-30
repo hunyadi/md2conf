@@ -9,10 +9,9 @@ Copyright 2022-2026, Levente Hunyadi
 import logging
 import os
 import os.path
-import shutil
 from typing import Literal
 
-from md2conf.external import execute_subprocess
+from md2conf.external import cached_which, execute_subprocess
 
 from .config import MermaidConfigProperties
 
@@ -44,7 +43,7 @@ def has_mmdc() -> bool:
     "True if Mermaid diagram converter is available on the OS."
 
     executable = get_mmdc()
-    return shutil.which(executable) is not None
+    return cached_which(executable) is not None
 
 
 def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", config: MermaidConfigProperties | None = None) -> bytes:
@@ -53,8 +52,12 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
     if config is None:
         config = MermaidConfigProperties()
 
+    executable = get_mmdc()
+    if cached_which(executable) is None:
+        raise RuntimeError("Mermaid CLI not found. Install Mermaid CLI from <https://github.com/mermaid-js/mermaid-cli>.")
+
     cmd = [
-        get_mmdc(),
+        executable,
         "--input",
         "-",
         "--output",

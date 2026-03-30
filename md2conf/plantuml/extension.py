@@ -49,11 +49,7 @@ class PlantUMLExtension(DiagramExtension):
     @override
     def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
         relative_path = path_relative_to(absolute_path, self.base_dir)
-
-        # read PlantUML source
-        with open(absolute_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
+        content = absolute_path.read_text(encoding="utf-8")
         return self._transform_plantuml(content, attrs, relative_path)
 
     @override

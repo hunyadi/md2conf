@@ -113,8 +113,7 @@ class TestAPI(TypedTestCase):
             page = api.get_page(self.feature_test_page_id)
             self.assertIsInstance(page, ConfluencePage)
 
-        with open(self.out_dir / "page.html", "w", encoding="utf-8") as f:
-            f.write(sanitize_confluence(page.content))
+        (self.out_dir / "page.html").write_text(sanitize_confluence(page.content), encoding="utf-8")
 
     def test_attachment(self) -> None:
         with ConfluenceAPI() as api:
@@ -159,9 +158,8 @@ class TestAPI(TypedTestCase):
             source_dir / "index.md",
             source_dir / "doc1.md",
             source_dir / "doc2.md",
-            source_dir / "skip" / "nested" / "index.md",
-            source_dir / "skip" / "nested" / "doc3.md",
-            source_dir / "skip" / "nested" / "deep" / "index.md",
+            source_dir / "nested" / "index.md",
+            source_dir / "nested" / "doc3.md",
         ]
 
         for absolute_path in documents:
@@ -173,8 +171,6 @@ class TestAPI(TypedTestCase):
                     f"# {relative_path}: A sample document",
                     "",
                     "This is a document without an explicitly assigned Confluence page ID or space key.",
-                    "",
-                    "UTF-8 test sequence: árvíztűrő tükörfúrógép.",
                 ]
 
                 frontmatter: list[str] = []

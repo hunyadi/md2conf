@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 from requests import HTTPError, RequestException, Session
 
-from .api_base import ConfluenceSession
+from .api_base import ConfluenceSessionShared
 from .api_types import (
     ConfluenceAttachment,
     ConfluenceContentProperty,
@@ -55,7 +55,7 @@ class ConfluenceUpdatePageRequest:
     version: ConfluenceContentVersion
 
 
-class ConfluenceSessionV2(ConfluenceSession):
+class ConfluenceSessionV2(ConfluenceSessionShared):
     """
     Represents an active connection to a Confluence server.
     """

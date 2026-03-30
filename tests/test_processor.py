@@ -90,9 +90,7 @@ class TestProcessor(TypedTestCase):
 
         csf_path = self.out_dir / "index.csf"
         self.assertTrue(csf_path.exists())
-
-        with open(csf_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        content = csf_path.read_text(encoding="utf-8")
 
         generated_by_html = (
             '<ac:structured-macro ac:name="info" ac:schema-version="1">'

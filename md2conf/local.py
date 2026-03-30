@@ -80,11 +80,9 @@ class LocalProcessor(Processor):
         csf_path = self.out_dir / path.relative_to(self.root_dir).with_suffix(".csf")
         csf_dir = csf_path.parent
         os.makedirs(csf_dir, exist_ok=True)
-        with open(csf_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        csf_path.write_text(content, encoding="utf-8")
         for name, file_data in document.embedded_files.items():
-            with open(csf_dir / name, "wb") as f:
-                f.write(file_data.data)
+            (csf_dir / name).write_bytes(file_data.data)
 
 
 class LocalProcessorFactory(ProcessorFactory):

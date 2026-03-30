@@ -55,6 +55,11 @@ class DocumentNode:
         self.synchronized = synchronized
         self._children = []
 
+    def __len__(self) -> int:
+        "Number of direct children of this node."
+
+        return len(self._children)
+
     def count(self) -> int:
         "Number of descendants in the sub-tree spanned by this node (excluding the top-level node)."
 
@@ -62,6 +67,13 @@ class DocumentNode:
         for child in self._children:
             c += child.count()
         return c
+
+    def first(self) -> "DocumentNode":
+        "Returns the first child node."
+
+        if not self._children:
+            raise IndexError("no children available")
+        return self._children[0]
 
     def add_child(self, child: "DocumentNode") -> None:
         "Adds a new node to the list of direct children."
@@ -138,10 +150,19 @@ class Processor:
         LOGGER.info("Processing directory: %s", local_dir)
 
         # build index of all Markdown files in directory hierarchy
-        root = self._index_directory(local_dir, None)
+        root = DocumentNode(
+            absolute_path=local_dir / "index.md",  # virtual node; not necessarily a real file
+            page_id=None,
+            space_key=None,
+            title=None,
+            synchronized=False,
+        )
+        self._index_directory(local_dir, root)
         LOGGER.info("Indexed %d document(s)", root.count())
 
-        self._process_items(root)
+        self._verify_items(root)
+        for child in root.children():
+            self._process_items(child)
 
     def process_page(self, path: Path) -> None:
         """
@@ -149,16 +170,12 @@ class Processor:
         """
 
         LOGGER.info("Processing page: %s", path)
-        root = self._index_file(path)
+        node = self._index_file(path)
+        self._process_items(node)
 
-        self._process_items(root)
+    def _verify_items(self, root: DocumentNode) -> None:
+        "Verifies if pages have a unique title to avoid overwrites within synchronized set."
 
-    def _process_items(self, root: DocumentNode) -> None:
-        """
-        Processes a sub-tree rooted at an ancestor node.
-        """
-
-        # verify if pages have a unique title to avoid overwrites within synchronized set
         title_to_path: dict[str, Path] = {}
         duplicates: set[Path] = set()
         for node in root.all():
@@ -173,6 +190,11 @@ class Processor:
             raise PageError(
                 f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
             )
+
+    def _process_items(self, root: DocumentNode) -> None:
+        """
+        Processes a sub-tree rooted at an ancestor node.
+        """
 
         # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
         self._synchronize_tree(root, self.options.root_page)
@@ -208,7 +230,7 @@ class Processor:
         """
         ...
 
-    def _index_directory(self, local_dir: Path, parent: DocumentNode | None) -> DocumentNode:
+    def _index_directory(self, local_dir: Path, parent: DocumentNode) -> None:
         """
         Indexes Markdown files in a directory hierarchy recursively.
         """
@@ -244,8 +266,7 @@ class Processor:
             parent_doc = local_dir / "index.md"
 
             # create a blank page for directory entry
-            with open(parent_doc, "w") as f:
-                print("[[_LISTING_]]", file=f)
+            parent_doc.write_text("[[_LISTING_]]\n", encoding="ascii")
 
         if parent_doc is not None:
             parent_entry = FileEntry(parent_doc.name)
@@ -254,11 +275,8 @@ class Processor:
 
             # promote Markdown document in directory as parent page in Confluence
             node = self._index_file(parent_doc)
-            if parent is not None:
-                parent.add_child(node)
+            parent.add_child(node)
             parent = node
-        elif parent is None:
-            raise ArgumentError(f"root page requires corresponding top-level Markdown document in {local_dir}")
 
         for file in files:
             node = self._index_file(local_dir / Path(file.name))
@@ -266,8 +284,6 @@ class Processor:
 
         for directory in directories:
             self._index_directory(local_dir / Path(directory.name), parent)
-
-        return parent
 
     def _index_file(self, path: Path) -> DocumentNode:
         """
@@ -277,9 +293,7 @@ class Processor:
         LOGGER.info("Indexing file: %s", path)
 
         # extract information from a Markdown document found in a local directory.
-        with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
-
+        text = path.read_text(encoding="utf-8")
         document = Scanner().parse(text)
         props = document.properties
         title = props.title or unique_title(document.text)

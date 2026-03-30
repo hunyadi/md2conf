@@ -33,22 +33,14 @@ class TestDrawio(TypedTestCase):
 
     def test_xml_from_png(self) -> None:
         image_dir = Path(__file__).parent / "source" / "figure"
-        with open(image_dir / "diagram.drawio", "r") as f:
-            expected = ET.fromstring(f.read())
-
-        with open(image_dir / "diagram.drawio.png", "rb") as f:
-            actual = extract_xml_from_png(f.read())
-
+        expected = ET.fromstring((image_dir / "diagram.drawio").read_text(encoding="utf-8"))
+        actual = extract_xml_from_png((image_dir / "diagram.drawio.png").read_bytes())
         self.assertTrue(is_xml_equal(expected, actual))
 
     def test_xml_from_svg(self) -> None:
         image_dir = Path(__file__).parent / "source" / "figure"
-        with open(image_dir / "diagram.drawio", "r") as f:
-            expected = ET.fromstring(f.read())
-
-        with open(image_dir / "diagram.drawio.svg", "rb") as f:
-            actual = extract_xml_from_svg(f.read())
-
+        expected = ET.fromstring((image_dir / "diagram.drawio").read_text(encoding="utf-8"))
+        actual = extract_xml_from_svg((image_dir / "diagram.drawio.svg").read_bytes())
         self.assertTrue(is_xml_equal(expected, actual))
 
 
