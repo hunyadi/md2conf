@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import logging
 import typing
 from dataclasses import dataclass
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from requests import HTTPError, RequestException, Session
 
@@ -104,8 +104,13 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
                 LOGGER.info("Configured scoped Confluence REST API URL: %s", self._api_url)
             except HTTPError:
                 # fall back to classic REST API URL
-                self._api_url = f"https://{self.site.domain}{self.site.base_path}"
+                self._api_url = self._get_base()
                 LOGGER.info("Configured classic Confluence REST API URL: %s", self._api_url)
+
+    def _get_base(self) -> str:
+        "Classic REST API URL (when scoped tokens are not used)."
+
+        return f"https://{self.site.domain}{self.site.base_path}"
 
     @override
     def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
@@ -115,6 +120,7 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
 
         # cursor-based pagination with JSON `_links.next`
         url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
+        classic_base = self._get_base()
         while True:
             response = self._session.get(url, headers={"Accept": "application/json"}, verify=True)
             response.raise_for_status()
@@ -124,10 +130,20 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
             items.extend(results)
 
             links = typing.cast(dict[str, JsonType], payload.get("_links", {}))
+            if not links:
+                break
+
+            base = typing.cast(str, links.get("base", ""))
+            if not base:
+                raise ConfluenceError(f"pagination error: {url}")
+
             link = typing.cast(str, links.get("next", ""))
-            if link:
-                url = f"https://{self.site.domain}{link}"
-            else:
+            if link:  # next page available
+                url = urljoin(base, link)
+                if not url.startswith(self._api_url) and url.startswith(classic_base):
+                    # occasionally, `base` in `_links` starts with the classic REST API URL prefix even if we use scoped tokens
+                    url = self._api_url + url.removeprefix(classic_base)
+            else:  # no more pages
                 break
 
         return items

@@ -89,7 +89,7 @@ def _get_metavar(field_type: Any) -> str | None:
     "Returns a descriptive name for the argument in usage messages."
 
     if isinstance(field_type, (NewType, type)):
-        return title_to_upper(field_type.__name__)  # type: ignore[union-attr]
+        return title_to_upper(field_type.__name__)
     else:
         return None
 

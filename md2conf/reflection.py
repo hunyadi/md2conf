@@ -69,6 +69,6 @@ def format_initializer(tp: Any) -> str:
     elif origin is UnionType or origin is Union:
         return " or ".join(format_initializer(arg) for arg in get_args(tp))
     elif isinstance(tp, (NewType, type)):
-        return f"{tp.__name__}()"  # type: ignore[union-attr]
+        return f"{tp.__name__}()"
     else:
         return "..."
