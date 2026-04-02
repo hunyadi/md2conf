@@ -15,7 +15,8 @@ from md2conf.collection import ConfluencePageCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
-from md2conf.options import ConverterOptions, ProcessorOptions
+from md2conf.options import ProcessorOptions
+from md2conf.options_converter import ConverterOptions
 from tests.utility import TypedTestCase
 
 

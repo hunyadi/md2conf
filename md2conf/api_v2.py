@@ -32,6 +32,7 @@ from .api_types import (
 )
 from .compatibility import override
 from .environment import ConfluenceError
+from .options_api import ConfluenceSessionOptions
 from .serializer import JsonType, json_to_object
 
 LOGGER = logging.getLogger(__name__)
@@ -63,8 +64,10 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     _space_id_to_key: dict[str, str]
     _space_key_to_id: dict[str, str]
 
-    def __init__(self, session: Session, *, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None) -> None:
-        super().__init__(session)
+    def __init__(
+        self, session: Session, *, options: ConfluenceSessionOptions, api_url: str | None, domain: str | None, base_path: str | None, space_key: str | None
+    ) -> None:
+        super().__init__(session, options)
         self._space_id_to_key = {}
         self._space_key_to_id = {}
 
@@ -269,7 +272,7 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
             status=ConfluenceStatus.CURRENT,
             title=title,
             body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
-            version=ConfluenceContentVersion(number=version, minorEdit=True, message=message),
+            version=ConfluenceContentVersion(number=version, minorEdit=not self._options.notify, message=message),
         )
         LOGGER.info("Updating page: %s", page_id)
         self._put(ConfluenceVersion.VERSION_2, path, request, None)

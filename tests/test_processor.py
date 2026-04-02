@@ -14,7 +14,8 @@ from pathlib import Path
 from md2conf.compatibility import override
 from md2conf.local import LocalConverter
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.options import ConfluencePageID, ConverterOptions, Markdown, ProcessorOptions
+from md2conf.options import ConfluencePageID, Markdown, ProcessorOptions
+from md2conf.options_converter import ConverterOptions
 from tests.utility import TypedTestCase
 
 logging.basicConfig(

@@ -27,6 +27,7 @@ from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
+from .options_api import ConfluenceSessionOptions
 
 LOGGER = logging.getLogger(__name__)
 
@@ -138,6 +139,7 @@ def get_parser() -> argparse.ArgumentParser:
         **deprecated,
     )
     add_arguments(parser, ProcessorOptions)
+    add_arguments(parser, ConfluenceSessionOptions)
     parser.add_argument(
         "--ignore-invalid-url",
         dest="force_valid_url",
@@ -199,8 +201,9 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
     )
 
-    options = get_options(args, ProcessorOptions)
-    LOGGER.debug("Parsed options: %s", options)
+    api_options = get_options(args, ConfluenceSessionOptions)
+    publisher_options = get_options(args, ProcessorOptions)
+    LOGGER.debug("Parsed options: %s", publisher_options)
     if args.local:
         from .local import LocalConverter
 
@@ -217,7 +220,7 @@ def main() -> None:
             base_path=site_properties.base_path,
             space_key=site_properties.space_key,
         )
-        converter = LocalConverter(options, site_metadata)
+        converter = LocalConverter(publisher_options, site_metadata)
         for item in args.mdpath:
             converter.process(item)
     else:
@@ -237,8 +240,8 @@ def main() -> None:
             )
         except ArgumentError as e:
             parser.error(str(e))
-        with ConfluenceAPI(properties) as api:
-            publisher = Publisher(api, options)
+        with ConfluenceAPI(properties, api_options) as api:
+            publisher = Publisher(api, publisher_options)
             for item in args.mdpath:
                 publisher.process(item)
 

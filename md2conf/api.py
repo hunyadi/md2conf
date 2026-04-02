@@ -23,6 +23,7 @@ from .api_v1 import ConfluenceSessionV1
 from .api_v2 import ConfluenceSessionV2
 from .compatibility import override
 from .environment import ConnectionProperties
+from .options_api import ConfluenceSessionOptions
 
 T = TypeVar("T")
 
@@ -102,9 +103,11 @@ class ConfluenceAPI:
 
     properties: ConnectionProperties
     session: "ConfluenceSession | None" = None
+    options: ConfluenceSessionOptions
 
-    def __init__(self, properties: ConnectionProperties | None = None) -> None:
+    def __init__(self, properties: ConnectionProperties | None = None, options: ConfluenceSessionOptions | None = None) -> None:
         self.properties = properties or ConnectionProperties()
+        self.options = options or ConfluenceSessionOptions()
 
     def __enter__(self) -> "ConfluenceSession":
         """
@@ -127,6 +130,7 @@ class ConfluenceAPI:
             case "v2" | None:
                 self.session = ConfluenceSessionV2(
                     session,
+                    options=self.options,
                     api_url=self.properties.api_url,
                     domain=self.properties.domain,
                     base_path=self.properties.base_path,
@@ -135,6 +139,7 @@ class ConfluenceAPI:
             case "v1":
                 self.session = ConfluenceSessionV1(
                     session,
+                    options=self.options,
                     domain=self.properties.domain,
                     base_path=self.properties.base_path,
                     space_key=self.properties.space_key,

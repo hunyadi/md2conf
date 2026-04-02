@@ -16,7 +16,8 @@ from tempfile import TemporaryDirectory
 
 from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import ConfluencePageProperties
-from md2conf.options import ConfluencePageID, ConverterOptions, ProcessorOptions
+from md2conf.options import ConfluencePageID, ProcessorOptions
+from md2conf.options_converter import ConverterOptions
 from md2conf.publisher import Publisher
 from md2conf.scanner import Scanner
 from tests.api import MockConfluenceAPI

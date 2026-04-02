@@ -788,6 +788,8 @@ options:
   --no-line-numbers     Leave Markdown source file unmodified. (default)
   --global-properties PATH
                         JSON or YAML file of Confluence content properties to merge for every synchronized Markdown file.
+  --notify              Notify users about changes when a Confluence page is updated.
+  --no-notify           Trigger a minor edit on page updates, don't notify users about changes. (default)
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations. (deprecated)
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
   --headers KEY=VALUE [KEY=VALUE ...]
@@ -801,7 +803,8 @@ options:
 ```python
 from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
-from md2conf.options import ConfluencePageID, ConverterOptions, ImageLayoutOptions, LayoutOptions, Markdown, ProcessorOptions, TableLayoutOptions
+from md2conf.options import ConfluencePageID, Markdown, ProcessorOptions
+from md2conf.options_converter import ConverterOptions, ImageLayoutOptions, LayoutOptions, TableLayoutOptions
 from md2conf.publisher import Publisher
 from pathlib import Path
 

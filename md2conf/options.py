@@ -6,207 +6,22 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, NewType
+from typing import NewType
 
 from .clio import boolean_option, composite_option, nullable_option, value_option
-from .csf import ElementType
-from .formatting import ImageAttributes
+from .options_converter import ConverterOptions
+from .options_converter import ImageLayoutOptions as ImageLayoutOptions
+from .options_converter import LayoutOptions as LayoutOptions
+from .options_converter import MarketplaceExtension as MarketplaceExtension
+from .options_converter import TableLayoutOptions as TableLayoutOptions
 
 # Encapsulates a Confluence page ID
 ConfluencePageID = NewType("ConfluencePageID", str)
 
 # Encapsulates a snippet of Markdown text
 Markdown = NewType("Markdown", str)
-
-
-@dataclass
-class ImageLayoutOptions:
-    """
-    Image layout options on a Confluence page.
-
-    :param alignment: Alignment for block-level images and formulas.
-    :param max_width: Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
-    """
-
-    alignment: Literal["center", "left", "right", None] = field(default=None, metadata=value_option("Alignment for block-level images and formulas."))
-    max_width: int | None = field(
-        default=None,
-        metadata=value_option("Maximum display width for images [px]. Wider images are scaled down for page display."),
-    )
-
-
-@dataclass
-class TableLayoutOptions:
-    """
-    Table layout options on a Confluence page.
-
-    :param width: Maximum table width in pixels.
-    :param display_mode: Whether to use fixed or responsive column widths.
-    """
-
-    width: int | None = field(default=None, metadata=value_option("Maximum table width in pixels."))
-    display_mode: Literal["responsive", "fixed"] = field(default="responsive", metadata=value_option("Set table display mode."))
-
-
-@dataclass
-class LayoutOptions:
-    """
-    Layout options for content on a Confluence page.
-
-    Layout options can be overridden in Markdown front-matter.
-
-    :param image: Image layout options.
-    :param table: Table layout options.
-    :param alignment: Default alignment (unless overridden with more specific setting).
-    """
-
-    image: ImageLayoutOptions = field(default_factory=ImageLayoutOptions, metadata=composite_option())
-    table: TableLayoutOptions = field(default_factory=TableLayoutOptions, metadata=composite_option())
-    alignment: Literal["center", "left", "right", None] = field(default=None, metadata=value_option("Default alignment for block-level content."))
-
-    def get_image_alignment(self) -> Literal["center", "left", "right"]:
-        return self.image.alignment or self.alignment or "center"
-
-
-class MarketplaceExtension(ABC):
-    """
-    Base class for integrating third-party Atlassian Marketplace extensions.
-
-    Derive from this class to generate custom Confluence Storage Format output for Markdown image references and fenced code blocks.
-    """
-
-    @abstractmethod
-    def matches_image(self, absolute_path: Path) -> bool:
-        "True if the extension is able to process the external file."
-        ...
-
-    @abstractmethod
-    def matches_fenced(self, language: str, content: str) -> bool:
-        "True if the extension can process the fenced code block."
-        ...
-
-    @abstractmethod
-    def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram linked as an image."
-        ...
-
-    @abstractmethod
-    def transform_fenced(self, content: str) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram defined in a fenced code block."
-        ...
-
-
-@dataclass
-class ConverterOptions:
-    """
-    Options for converting an HTML tree into Confluence Storage Format.
-
-    :param heading_anchors: When true, emit a structured macro *anchor* for each section heading using GitHub
-        conversion rules for the identifier.
-    :param force_valid_url: If enabled, raise an exception when relative URLs point to an invalid location. If disabled,
-        ignore invalid URLs, emit a warning and replace the anchor with plain text.
-    :param skip_title_heading: Whether to remove the first heading from document body when used as page title.
-    :param prefer_raster: Whether to choose PNG files over SVG files when available.
-    :param render_drawio: Whether to pre-render (or use the pre-rendered version of) draw.io diagrams.
-    :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
-    :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
-    :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
-    :param diagram_output_format: Target image format for diagrams.
-    :param webui_links: When true, convert relative URLs to Confluence Web UI links.
-    :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
-    :param force_valid_language: When true, only allow supported languages in code blocks (unsupported languages are ignored);
-        if disabled, use unknown language names as-is (Confluence may still highlight code).
-    :param layout: Layout options for content on a Confluence page.
-    :param extensions: Enables custom Atlassian Marketplace extension integrations.
-    """
-
-    heading_anchors: bool = field(
-        default=False,
-        metadata=boolean_option(
-            "Place an anchor at each section heading with GitHub-style same-page identifiers.",
-            "Omit the extra anchor from section headings. (May break manually placed same-page references.)",
-        ),
-    )
-    force_valid_url: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Raise an error when relative URLs point to an invalid location.",
-            "Emit a warning but otherwise ignore relative URLs that point to an invalid location.",
-        ),
-    )
-    skip_title_heading: bool = field(
-        default=False,
-        metadata=boolean_option(
-            "Remove the first heading from document body when it is used as the page title (does not apply if title comes from front-matter).",
-            "Keep the first heading in document body even when used as page title.",
-        ),
-    )
-    prefer_raster: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Prefer PNG over SVG when both exist.",
-            "Use SVG files directly instead of preferring PNG equivalents.",
-        ),
-    )
-    render_drawio: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Render draw.io diagrams as image files. (Installed utility required to covert.)",
-            "Upload draw.io diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-        ),
-    )
-    render_mermaid: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Render Mermaid diagrams as image files. (Installed utility required to convert.)",
-            "Upload Mermaid diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-        ),
-    )
-    render_plantuml: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Render PlantUML diagrams as image files. (Installed utility required to convert.)",
-            "Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)",
-        ),
-    )
-    render_latex: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Render LaTeX formulas as image files. (Matplotlib required to convert.)",
-            "Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)",
-        ),
-    )
-    diagram_output_format: Literal["png", "svg"] = field(
-        default="png",
-        metadata=value_option("Format for rendering Mermaid and draw.io diagrams."),
-    )
-    webui_links: bool = field(
-        default=False,
-        metadata=boolean_option(
-            "Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
-            "Use hierarchical links including space and page ID.",
-        ),
-    )
-    use_panel: bool = field(
-        default=False,
-        metadata=boolean_option(
-            "Transform admonitions and alerts into a Confluence custom panel.",
-            "Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning).",
-        ),
-    )
-    force_valid_language: bool = field(
-        default=True,
-        metadata=boolean_option(
-            "Only allow supported languages in code blocks (unsupported languages are ignored)",
-            "Use unknown language names as-is (Confluence may still highlight code).",
-        ),
-    )
-    layout: LayoutOptions = field(default_factory=LayoutOptions, metadata=composite_option())
-    extensions: Sequence[MarketplaceExtension] | None = None
 
 
 @dataclass

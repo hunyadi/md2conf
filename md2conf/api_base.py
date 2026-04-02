@@ -33,6 +33,7 @@ from .api_types import (
 from .compatibility import override
 from .environment import ArgumentError, ConfluenceError, PageError
 from .metadata import ConfluenceSiteMetadata
+from .options_api import ConfluenceSessionOptions
 from .serializer import JsonType, json_to_object, object_to_json_payload
 
 LOGGER = logging.getLogger(__name__)
@@ -388,9 +389,11 @@ class ConfluenceSessionShared(ConfluenceSession):
     _api_url: str
 
     _site: ConfluenceSiteMetadata
+    _options: ConfluenceSessionOptions
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, options: ConfluenceSessionOptions) -> None:
         self._session = session
+        self._options = options
 
     def _init_site(self, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         if not domain:

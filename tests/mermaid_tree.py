@@ -16,7 +16,7 @@ from lxml.etree import CDATA
 from md2conf.compatibility import override
 from md2conf.csf import AC_ATTR, AC_ELEM, ElementType
 from md2conf.formatting import ImageAttributes
-from md2conf.options import MarketplaceExtension
+from md2conf.options_converter import MarketplaceExtension
 
 _RELATION_REGEXP: re.Pattern[str] = re.compile(r"^\s*(?P<parent>\w+)\s*<\|--\s*(?P<child>\w+)\s*$")
 

@@ -23,7 +23,8 @@ from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
 from md2conf.mermaid.render import has_mmdc
 from md2conf.metadata import ConfluenceSiteMetadata
-from md2conf.options import ConverterOptions, ImageLayoutOptions, LayoutOptions, Markdown, ProcessorOptions
+from md2conf.options import Markdown, ProcessorOptions
+from md2conf.options_converter import ConverterOptions, ImageLayoutOptions, LayoutOptions
 from md2conf.plantuml.render import compress_plantuml_data, has_plantuml, render_diagram
 from md2conf.svg import get_svg_dimensions
 from tests import emoji

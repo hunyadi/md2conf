@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .attachment import AttachmentCatalog
 from .image import ImageGenerator
-from .options import MarketplaceExtension
+from .options_converter import MarketplaceExtension
 
 
 class ExtensionError(RuntimeError):

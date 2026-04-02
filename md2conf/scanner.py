@@ -13,7 +13,7 @@ from typing import TypeVar
 
 from .coalesce import coalesce_dataclass
 from .frontmatter import extract_frontmatter_json, extract_value
-from .options import LayoutOptions
+from .options_converter import LayoutOptions
 from .serializer import JsonType, json_to_object
 
 T = TypeVar("T")

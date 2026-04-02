@@ -37,7 +37,8 @@ from .latex import render_latex
 from .markdown import markdown_to_html, markdown_with_line_numbers
 from .mermaid.extension import MermaidExtension
 from .metadata import ConfluenceSiteMetadata
-from .options import ConfluencePageID, ConverterOptions, MarketplaceExtension, ProcessorOptions
+from .options import ConfluencePageID, ProcessorOptions
+from .options_converter import ConverterOptions, MarketplaceExtension
 from .plantuml.extension import PlantUMLExtension
 from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner

@@ -32,6 +32,7 @@ from .api_types import (
 )
 from .compatibility import override
 from .environment import ConfluenceError
+from .options_api import ConfluenceSessionOptions
 from .serializer import JsonType, json_to_object
 
 LOGGER = logging.getLogger(__name__)
@@ -121,8 +122,8 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
     ```
     """
 
-    def __init__(self, session: Session, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
-        super().__init__(session)
+    def __init__(self, session: Session, *, options: ConfluenceSessionOptions, domain: str | None, base_path: str | None, space_key: str | None) -> None:
+        super().__init__(session, options)
         self._init_site(domain=domain, base_path=base_path, space_key=space_key)
 
         LOGGER.info("Configuring classic Confluence REST API URL")
@@ -354,7 +355,7 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             title=title,
             space=ConfluenceSpace(key=self.site.space_key or ""),
             body=ConfluencePageBody(storage=ConfluencePageStorage(representation=ConfluenceRepresentation.STORAGE, value=content)),
-            version=ConfluenceContentVersion(number=version, minorEdit=True),
+            version=ConfluenceContentVersion(number=version, minorEdit=not self._options.notify),
         )
         self._put(ConfluenceVersion.VERSION_1, path, body, None)
 
