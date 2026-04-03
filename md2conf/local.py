@@ -45,7 +45,7 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     @override
-    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> None:
         """
         Creates the cross-reference index.
 

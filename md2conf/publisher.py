@@ -127,7 +127,7 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -140,9 +140,9 @@ class SynchronizingProcessor(Processor):
         if tree.page_id is not None:
             # explicitly associated page takes precedence
             topmost_id = self.api.get_page_properties(tree.page_id).parentId
-        elif root_id is not None:
+        elif self.options.root_page is not None:
             # explicit parameter value
-            topmost_id = root_id
+            topmost_id = self.options.root_page
         elif self.site.space_key is not None:
             # infer root page from space key
             topmost_id = self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))

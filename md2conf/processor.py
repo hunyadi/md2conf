@@ -160,9 +160,15 @@ class Processor:
         self._index_directory(local_dir, root)
         LOGGER.info("Indexed %d document(s)", root.count())
 
-        self._verify_items(root)
+        # verify if pages have a unique title
+        self._check_documents(root)
+
+        # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
         for child in root.children():
-            self._process_items(child)
+            self._synchronize_structure(child)
+
+        # synchronize Markdown files with Confluence pages
+        self._synchronize_content()
 
     def process_page(self, path: Path) -> None:
         """
@@ -171,9 +177,10 @@ class Processor:
 
         LOGGER.info("Processing page: %s", path)
         node = self._index_file(path)
-        self._process_items(node)
+        self._synchronize_structure(node)
+        self._synchronize_content()
 
-    def _verify_items(self, root: DocumentNode) -> None:
+    def _check_documents(self, root: DocumentNode) -> None:
         "Verifies if pages have a unique title to avoid overwrites within synchronized set."
 
         title_to_path: dict[str, Path] = {}
@@ -191,15 +198,11 @@ class Processor:
                 f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
             )
 
-    def _process_items(self, root: DocumentNode) -> None:
+    def _synchronize_content(self) -> None:
         """
-        Processes a sub-tree rooted at an ancestor node.
+        Synchronizes content in Markdown files with Confluence pages in space, traversing the indexed directory hierarchy.
         """
 
-        # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
-        self._synchronize_tree(root, self.options.root_page)
-
-        # synchronize files in directory hierarchy with pages in space
         for path, metadata in self.page_metadata.items():
             if metadata.synchronized:
                 self._synchronize_page(path, ConfluencePageID(metadata.page_id))
@@ -213,7 +216,7 @@ class Processor:
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_tree(self, tree: DocumentNode, root_id: ConfluencePageID | None) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> None:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 

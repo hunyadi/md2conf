@@ -1,3 +1,11 @@
+"""
+Publish Markdown files to Confluence wiki.
+
+Copyright 2022-2026, Levente Hunyadi
+
+:see: https://github.com/hunyadi/md2conf
+"""
+
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
