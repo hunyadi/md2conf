@@ -7,7 +7,7 @@ If you are a user who wants to publish pages to Confluence, you should install t
 Synchronize this folder with the following command (substituting `ROOT_PAGE` with the appropriate ID):
 
 ```sh
-python -m md2conf -r ROOT_PAGE --line-numbers --skip-update --use-panel sample
+python -m md2conf --root-page ROOT_PAGE --line-numbers --skip-update --use-panel sample
 ```
 
 # Publish Markdown to Confluence

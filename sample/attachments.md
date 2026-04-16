@@ -4,6 +4,8 @@ layout:
   alignment: left
 ---
 
+![JPEG image with caption](figure/blue.jpg)
+
 ![PNG image with caption](figure/interoperability.png)
 
 Prefer PNG over SVG if both are available in the same directory:

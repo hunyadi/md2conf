@@ -349,6 +349,13 @@ def child_count(node: ElementType) -> int:
     return len(node) - sum(1 for _ in node.iterchildren("line-number"))
 
 
+def is_top_level(node: ElementType) -> bool:
+    "True if the element is a top-level element, i.e. it is not nested within another element except the root."
+
+    parent = node.getparent()
+    return parent is None or parent.tag == "root"
+
+
 def is_placeholder_for(node: ElementType, name: str) -> bool:
     """
     Identifies a Confluence widget placeholder, e.g. `[[_TOC_]]` or `[[_LISTING_]]`.
@@ -1580,6 +1587,9 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
 
                         # <p><a href="..."> ... </a></p>
                         case "a":
+                            if not is_top_level(child):
+                                return ElementAction.RECURSE
+
                             link = self._transform_card(child)
                             if link is not None:
                                 return link

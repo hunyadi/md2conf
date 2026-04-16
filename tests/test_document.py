@@ -97,6 +97,7 @@ class TestDocument(TypedTestCase):
         self.assertListEqual(
             [item.path for item in document.images],
             [
+                self.sample_dir / "figure" / "blue.jpg",
                 self.sample_dir / "figure" / "interoperability.png",
                 self.sample_dir / "figure" / "interoperability.png",  # preferred over `interoperability.svg`
                 self.sample_dir / "figure" / "diagram.drawio",

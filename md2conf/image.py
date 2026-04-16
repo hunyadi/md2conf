@@ -15,6 +15,7 @@ from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachme
 from .compatibility import path_relative_to
 from .csf import AC_ATTR, AC_ELEM, RI_ATTR, RI_ELEM, ElementType
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes, display_width
+from .jpeg import extract_jpeg_dimensions
 from .png import extract_png_dimensions
 from .svg import fix_svg_get_dimensions, get_svg_dimensions
 
@@ -99,8 +100,16 @@ class ImageGenerator:
                 absolute_path = png_file
 
         # infer SVG dimensions if not already specified
-        if absolute_path.suffix == ".svg" and attrs.width is None and attrs.height is None:
-            dimensions = get_svg_dimensions(absolute_path)
+        if attrs.width is None and attrs.height is None:
+            match absolute_path.suffix:
+                case ".svg":
+                    dimensions = get_svg_dimensions(absolute_path)
+                case ".png":
+                    dimensions = extract_png_dimensions(path=absolute_path)
+                case ".jpg" | ".jpeg":
+                    dimensions = extract_jpeg_dimensions(path=absolute_path)
+                case _:
+                    dimensions = None
             if dimensions is not None:
                 width, height = dimensions
                 attrs = attrs.with_dimensions(width, height)

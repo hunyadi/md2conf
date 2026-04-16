@@ -4,7 +4,11 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Block images</h2>
-<ac:image ac:align="left" ac:layout="align-start" ac:alt="PNG image with caption">
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="1" ac:original-height="1" ac:custom-width="true" ac:width="1" ac:alt="JPEG image with caption">
+  <ri:attachment ri:filename="figure_raster.jpg"/>
+  <ac:caption>JPEG image with caption</ac:caption>
+</ac:image>
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="1" ac:original-height="1" ac:custom-width="true" ac:width="1" ac:alt="PNG image with caption">
   <ri:attachment ri:filename="figure_raster.png"/>
   <ac:caption>PNG image with caption</ac:caption>
 </ac:image>
@@ -12,7 +16,7 @@
   <ri:attachment ri:filename="figure_vector.svg"/>
   <ac:caption>A vector image</ac:caption>
 </ac:image>
-<ac:image ac:align="left" ac:layout="align-start" ac:alt="draw.io image embedded in PNG">
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="81" ac:original-height="121" ac:custom-width="true" ac:width="81" ac:alt="draw.io image embedded in PNG">
   <ri:attachment ri:filename="figure_diagram.drawio.png"/>
   <ac:caption>draw.io image embedded in PNG</ac:caption>
 </ac:image>

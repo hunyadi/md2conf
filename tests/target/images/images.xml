@@ -4,7 +4,7 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Images</h2>
-<ac:image ac:align="center" ac:layout="center" ac:alt="Image with relative path">
+<ac:image ac:align="center" ac:layout="center" ac:original-width="1" ac:original-height="1" ac:custom-width="true" ac:width="1" ac:alt="Image with relative path">
   <ri:attachment ri:filename="PAR_figure_raster.png"/>
   <ac:caption>Image with relative path</ac:caption>
 </ac:image>

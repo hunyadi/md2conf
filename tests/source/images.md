@@ -8,6 +8,8 @@ layout:
 
 ## Block images
 
+![JPEG image with caption](figure/raster.jpg)
+
 ![PNG image with caption](figure/raster.png)
 
 ![SVG image with caption](figure/vector.svg "A vector image")
