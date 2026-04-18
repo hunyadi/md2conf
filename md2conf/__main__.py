@@ -13,17 +13,15 @@ import argparse
 import logging
 import os.path
 import sys
-import typing
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Iterable, Literal, Sequence
+from typing import Any, Iterable, Literal
 
 from requests.exceptions import HTTPError, JSONDecodeError
 
 from . import __version__
 from .clio import add_arguments, get_options
-from .compatibility import override
 from .environment import ArgumentError, ConfluenceSiteProperties, ConnectionProperties
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
@@ -43,28 +41,6 @@ class Arguments(argparse.Namespace):
     api_version: Literal["v2", "v1"] | None
     loglevel: str
     local: bool
-    headers: dict[str, str]
-
-
-class KwargsAppendAction(argparse.Action):
-    """Append key-value pairs to a dictionary."""
-
-    @override
-    def __call__(
-        self,
-        parser: argparse.ArgumentParser,
-        namespace: argparse.Namespace,
-        values: str | Sequence[Any] | None,
-        option_string: str | None = None,
-    ) -> None:
-        try:
-            d = dict(map(lambda x: x.split("="), typing.cast(Sequence[str], values)))
-        except ValueError:
-            raise argparse.ArgumentError(
-                self,
-                f'Could not parse argument "{values}". It should follow the format: k1=v1 k2=v2 ...',
-            ) from None
-        setattr(namespace, self.dest, d)
 
 
 class PositionalOnlyHelpFormatter(argparse.HelpFormatter):
@@ -153,14 +129,6 @@ def get_parser() -> argparse.ArgumentParser:
         default=False,
         help="Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.",
     )
-    parser.add_argument(
-        "--headers",
-        nargs="+",
-        required=False,
-        action=KwargsAppendAction,
-        metavar="KEY=VALUE",
-        help="Apply custom headers to all Confluence API requests.",
-    )
     return parser
 
 
@@ -235,7 +203,6 @@ def main() -> None:
                 user_name=args.username,
                 api_key=args.api_key,
                 space_key=args.space,
-                headers=args.headers,
                 api_version=args.api_version,
             )
         except ArgumentError as e:

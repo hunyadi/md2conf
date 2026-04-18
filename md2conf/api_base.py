@@ -12,7 +12,7 @@ import mimetypes
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeVar, overload
+from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 from requests import Response, Session
@@ -28,6 +28,7 @@ from .api_types import (
     ConfluencePage,
     ConfluencePageProperties,
     ConfluenceStatus,
+    ConfluenceUser,
     ConfluenceVersion,
 )
 from .compatibility import override
@@ -113,6 +114,15 @@ class ConfluenceSession(ABC):
         :returns: Page ID of the space homepage.
         """
         ...
+
+    @abstractmethod
+    def get_users(self, expr: str) -> list[ConfluenceUser]:
+        """
+        Finds users by their partial full name or public name, whichever is visible.
+
+        :param expr: Search expression to match the user's name against with the *contains* operator (`~`).
+        :returns: List of users whose name matches the expression.
+        """
 
     @abstractmethod
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
@@ -526,6 +536,22 @@ class ConfluenceSessionShared(ConfluenceSession):
 
         # space ID and key are unset, and no default space is configured
         return None
+
+    @override
+    def get_users(self, expr: str) -> list[ConfluenceUser]:
+        path = "/search/user"
+        query = {"cql": f'user.fullname ~ "{expr}"', "sitePermissionTypeFilter": "all"}
+        response = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
+        results = cast(list[JsonType], response["results"])
+
+        users: list[ConfluenceUser] = []
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            user = result.get("user")
+            if user is not None:
+                users.append(json_to_object(ConfluenceUser, user))
+        return users
 
     @override
     def upload_attachment(

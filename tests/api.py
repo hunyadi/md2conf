@@ -28,6 +28,7 @@ from md2conf.api_types import (
     ConfluencePageStorage,
     ConfluenceRepresentation,
     ConfluenceStatus,
+    ConfluenceUser,
 )
 from md2conf.compatibility import override
 from md2conf.environment import ConfluenceError
@@ -268,6 +269,10 @@ class MockConfluenceSession(ConfluenceSession):
     def get_homepage_id(self, space_id: str) -> str:
         LOGGER.debug("space_id: %s", space_id)
         return HOMEPAGE_ID
+
+    @override
+    def get_users(self, expr: str) -> list[ConfluenceUser]:
+        return []
 
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:

@@ -792,8 +792,6 @@ options:
   --no-notify           Trigger a minor edit on page updates, don't notify users about changes. (default)
   --ignore-invalid-url  Emit a warning but otherwise ignore relative URLs that point to ill-specified locations. (deprecated)
   --local               Write XHTML-based Confluence Storage Format files locally without invoking Confluence API.
-  --headers KEY=VALUE [KEY=VALUE ...]
-                        Apply custom headers to all Confluence API requests.
 ```
 
 #### Python
@@ -816,7 +814,6 @@ properties = ConnectionProperties(
     user_name=str() or None,
     api_key=str(),
     api_version='v2' or 'v1' or None,
-    headers={str(): str()} or None,
 )
 options = ProcessorOptions(
     root_page=ConfluencePageID() or None,

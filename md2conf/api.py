@@ -123,9 +123,6 @@ class ConfluenceAPI:
         else:
             session.headers.update({"Authorization": f"Bearer {self.properties.api_key}"})
 
-        if self.properties.headers:
-            session.headers.update(self.properties.headers)
-
         match self.properties.api_version:
             case "v2" | None:
                 self.session = ConfluenceSessionV2(

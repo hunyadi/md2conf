@@ -102,7 +102,6 @@ class ConnectionProperties:
     :param user_name: Confluence user name.
     :param api_key: Confluence API key.
     :param api_version: Confluence REST API version to use (v2 for Cloud, v1 for Data Center/Server).
-    :param headers: Additional HTTP headers to pass to Confluence REST API calls.
     """
 
     domain: str | None
@@ -112,7 +111,6 @@ class ConnectionProperties:
     user_name: str | None
     api_key: str
     api_version: Literal["v2", "v1"] | None
-    headers: dict[str, str] | None
 
     def __init__(
         self,
@@ -123,7 +121,6 @@ class ConnectionProperties:
         user_name: str | None = None,
         api_key: str | None = None,
         space_key: str | None = None,
-        headers: dict[str, str] | None = None,
         api_version: Literal["v2", "v1"] | None = None,
     ) -> None:
         opt_api_url = api_url or os.getenv("CONFLUENCE_API_URL")
@@ -157,4 +154,3 @@ class ConnectionProperties:
         self.user_name = opt_user_name
         self.api_key = opt_api_key
         self.api_version = opt_api_version
-        self.headers = headers
