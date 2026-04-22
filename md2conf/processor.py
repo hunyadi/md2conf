@@ -174,11 +174,12 @@ class Processor:
         self._check_documents(root)
 
         # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
+        parent_to_children: dict[str, list[str]] = {}
         for child in root.children():
-            self._synchronize_structure(child)
+            parent_to_children.update(self._synchronize_structure(child))
 
         # synchronize Markdown files with Confluence pages
-        self._synchronize_content(root)
+        self._synchronize_content(root, parent_to_children)
 
     def process_page(self, path: Path) -> None:
         """
@@ -188,7 +189,7 @@ class Processor:
         LOGGER.info("Processing page: %s", path)
         node = self._index_file(path)
         self._synchronize_structure(node)
-        self._synchronize_content(node)
+        self._synchronize_content(node, {})
 
     def _check_documents(self, root: DocumentNode) -> None:
         "Verifies if pages have a unique title to avoid overwrites within synchronized set."
@@ -208,7 +209,7 @@ class Processor:
                 f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
             )
 
-    def _synchronize_content(self, tree: DocumentNode) -> None:
+    def _synchronize_content(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:
         """
         Synchronizes content in Markdown files with Confluence pages in space, traversing the indexed directory hierarchy.
         """
@@ -218,6 +219,9 @@ class Processor:
         for descendant in tree.all():
             users.update(descendant.users)
         self.user_metadata = self._synchronize_users(users)
+
+        # ensure child pages have the same order as Markdown files in a parent directory
+        self._synchronize_order(tree, parent_to_children)
 
         # synchronize page content with Markdown files
         for path, metadata in self.page_metadata.items():
@@ -233,13 +237,23 @@ class Processor:
         self._update_page(page_id, document, path)
 
     @abstractmethod
-    def _synchronize_structure(self, tree: DocumentNode) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> dict[str, list[str]]:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
         Creates new Confluence pages as necessary, e.g. if no page is linked in the Markdown document, or no page is found with lookup by page title.
 
         May update the original Markdown document to add tags to associate the document with its corresponding Confluence page.
+
+        :param tree: A hierarchy of documents to synchronize.
+        :returns: A dictionary that maps parent page IDs to the list of their direct children in the order they appear.
+        """
+        ...
+
+    @abstractmethod
+    def _synchronize_order(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:
+        """
+        Recursively arranges child pages of a parent page in the same order as files in their parent directory.
 
         :param tree: A hierarchy of documents to synchronize.
         """

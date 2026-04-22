@@ -22,6 +22,7 @@ from .csf import AC_ATTR, ElementType, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
+from .order import sort_items_in_order
 from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
 from .serializer import json_to_object, object_to_json, object_to_json_payload
 from .xml import ElementComparatorOptions, is_xml_equal, unwrap_substitute
@@ -44,11 +45,13 @@ class ParentCatalog:
 
     _api: ConfluenceSession
     _child_to_parent: dict[str, str | None]
+    _parent_to_children: dict[str, dict[str, int]]
     _known: set[str]
 
     def __init__(self, api: ConfluenceSession) -> None:
         self._api = api
         self._child_to_parent = {}
+        self._parent_to_children = {}
         self._known = set()
 
     def add_known(self, page_id: str) -> None:
@@ -58,7 +61,7 @@ class ParentCatalog:
 
         self._known.add(page_id)
 
-    def add_parent(self, *, page_id: str, parent_id: str | None) -> None:
+    def add_parent(self, *, page_id: str, parent_id: str | None, position: int | None) -> None:
         """
         Adds a new child-parent relationship.
 
@@ -66,6 +69,22 @@ class ParentCatalog:
         """
 
         self._child_to_parent[page_id] = parent_id
+        if parent_id is not None and position is not None:
+            children = self._parent_to_children.setdefault(parent_id, {})
+            children[page_id] = position
+
+    def get_tree(self) -> dict[str, list[str]]:
+        """
+        Maps each parent page to a list of its direct children.
+        """
+
+        tree: dict[str, list[str]] = {}
+        for parent_id, children_positions in self._parent_to_children.items():
+            children: list[str] = []
+            for _, child in sorted((position, child) for child, position in children_positions.items()):
+                children.append(child)
+            tree[parent_id] = children
+        return tree
 
     def is_traceable(self, page_id: str) -> bool:
         """
@@ -83,7 +102,11 @@ class ParentCatalog:
         else:
             page = self._api.get_page_properties(page_id)
             parent_id = page.parentId
+            position = page.position
             self._child_to_parent[page_id] = parent_id
+            if parent_id is not None and position is not None:
+                children = self._parent_to_children.setdefault(parent_id, {})
+                children[page_id] = position
 
         if parent_id is None:
             return False
@@ -128,7 +151,7 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _synchronize_structure(self, tree: DocumentNode) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> dict[str, list[str]]:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
 
@@ -154,6 +177,45 @@ class SynchronizingProcessor(Processor):
         catalog = ParentCatalog(self.api)
         catalog.add_known(topmost_id)
         self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
+        return catalog.get_tree()
+
+    @override
+    def _synchronize_order(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:
+        """
+        Recursively arranges child pages of a parent page in the same order as files in their parent directory.
+        """
+
+        metadata = self.page_metadata.get(tree.absolute_path)
+        if metadata is None:
+            return  # not associated with a page
+        parent_id = metadata.page_id
+
+        # get order of child pages
+        local_order: list[str] = []
+        for child in tree.children():
+            metadata = self.page_metadata.get(child.absolute_path)
+            if metadata is None:
+                continue
+            local_order.append(metadata.page_id)
+        if not local_order:
+            return  # nothing to sort
+        remote_order = [child_id for child_id in parent_to_children[parent_id] if child_id in local_order]
+
+        # rearrange direct child pages with minimal moves
+        def index_of(page_id: str) -> int:
+            return local_order.index(page_id)
+
+        def insert_before(page_id: str, ref_id: str) -> None:
+            self.api.move_page(page_id, "before", ref_id)
+
+        def insert_after(page_id: str, ref_id: str) -> None:
+            self.api.move_page(page_id, "after", ref_id)
+
+        sort_items_in_order(remote_order, key=index_of, insert_before=insert_before, insert_after=insert_after)
+
+        # rearrange nested children recursively
+        for child in tree.children():
+            self._synchronize_order(child, parent_to_children)
 
     @override
     def _synchronize_users(self, users: set[tuple[str, str]]) -> ConfluenceUserCollection:
@@ -179,7 +241,7 @@ class SynchronizingProcessor(Processor):
             # verify if page exists
             page = self.api.get_page_properties(node.page_id)
             catalog.add_known(page.id)
-            catalog.add_parent(page_id=page.id, parent_id=page.parentId)
+            catalog.add_parent(page_id=page.id, parent_id=page.parentId, position=page.position)
             update = False
         else:
             if node.title is not None:
@@ -194,7 +256,7 @@ class SynchronizingProcessor(Processor):
 
             # look up page by (possibly auto-generated) title
             page = self.api.get_or_create_page(title, parent_id)
-            catalog.add_parent(page_id=page.id, parent_id=page.parentId)
+            catalog.add_parent(page_id=page.id, parent_id=page.parentId, position=page.position)
 
             if page.status is ConfluenceStatus.ARCHIVED:
                 # user has archived a page with this (possibly auto-generated) title

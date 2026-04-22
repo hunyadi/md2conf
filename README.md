@@ -220,7 +220,7 @@ First, *md2conf* builds an index of pages in the directory hierarchy. The index 
 
 If a Markdown file doesn't yet pair up with a Confluence page, *md2conf* creates a new page and assigns a parent. Parent-child relationships are reflected in the navigation panel in Confluence. You can set a root page ID with the command-line option `-r`, which constitutes the topmost parent. (This could correspond to the landing page of your Confluence space. The Confluence page ID is always revealed when you edit a page.) Whenever a directory contains the file `index.md` or `README.md`, this page becomes the future parent page, and all Markdown files in this directory (and possibly nested directories) become its child pages (unless they already have a page ID). However, if an `index.md` or `README.md` file is subsequently found in one of the nested directories, it becomes the parent page of that directory, and any of its subdirectories.
 
-The top-level directory to be synchronized must always have an `index.md` or `README.md`, which maps to the root of the corresponding sub-tree in Confluence (specified with `-r`).
+*md2conf* synchronizes the order of child pages in Confluence with the order of Markdown files in a directory (as per lexicographical sort). Pages are rearranged when there is a mismatch. We employ a conservative approach and invoke a minimum number of *insert before* and *insert after* operations to ensure that wiki pages follow the same order as Markdown files. The position of pages not being synchronized by *md2conf* is maintained w.r.t. their siblings as much as possible.
 
 The concepts above are illustrated in the following sections.
 

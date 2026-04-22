@@ -12,7 +12,7 @@ import mimetypes
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeVar, cast, overload
+from typing import Any, Literal, TypeVar, cast, overload
 from urllib.parse import urlencode, urljoin, urlparse, urlunparse
 
 from requests import Response, Session
@@ -27,6 +27,7 @@ from .api_types import (
     ConfluenceLegacyType,
     ConfluencePage,
     ConfluencePageProperties,
+    ConfluencePageRef,
     ConfluenceStatus,
     ConfluenceUser,
     ConfluenceVersion,
@@ -258,6 +259,12 @@ class ConfluenceSession(ABC):
             return self.create_page(title=title, content="", parent_id=parent_id, space_id=space_id)
 
     @abstractmethod
+    def move_page(self, page_id: str, position: Literal["before", "after", "append"], ref_id: str) -> None:
+        """
+        Moves a page to a new position w.r.t. another Confluence page.
+        """
+
+    @abstractmethod
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
         """
         Retrieves labels for a Confluence page.
@@ -461,10 +468,15 @@ class ConfluenceSessionShared(ConfluenceSession):
         "Generates URL, headers and raw payload for a typed request/response."
 
         url = self._build_url(version, path)
-        headers = {"Content-Type": "application/json"}
+        headers: dict[str, str] = {}
+        if body is not None:
+            headers["Content-Type"] = "application/json"
         if response_type is not None:
             headers["Accept"] = "application/json"
-        data = object_to_json_payload(body)
+        if body is not None:
+            data = object_to_json_payload(body)
+        else:
+            data = bytes()
         return url, headers, data
 
     @overload
@@ -750,6 +762,11 @@ class ConfluenceSessionShared(ConfluenceSession):
 
         LOGGER.info("Updating attachment: %s", attachment_id)
         self._put(ConfluenceVersion.VERSION_1, path, request, None)
+
+    @override
+    def move_page(self, page_id: str, position: Literal["before", "after", "append"], ref_id: str) -> None:
+        path = f"/content/{page_id}/move/{position}/{ref_id}"
+        self._put(ConfluenceVersion.VERSION_1, path, None, ConfluencePageRef)
 
     @override
     def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:

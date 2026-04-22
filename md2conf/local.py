@@ -47,7 +47,7 @@ class LocalProcessor(Processor):
         self.out_dir = out_dir or root_dir
 
     @override
-    def _synchronize_structure(self, tree: DocumentNode) -> None:
+    def _synchronize_structure(self, tree: DocumentNode) -> dict[str, list[str]]:
         """
         Creates the cross-reference index.
 
@@ -71,6 +71,18 @@ class LocalProcessor(Processor):
                     synchronized=node.synchronized,
                 ),
             )
+
+        return {}
+
+    @override
+    def _synchronize_order(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:
+        """
+        Recursively arranges child pages of a parent page in the same order as files in their parent directory.
+
+        This implementation is a no-op.
+        """
+
+        pass
 
     @override
     def _synchronize_users(self, users: set[tuple[str, str]]) -> ConfluenceUserCollection:

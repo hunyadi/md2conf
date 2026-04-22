@@ -11,6 +11,7 @@ import json
 import logging
 import sqlite3
 from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 
 from md2conf.api_base import ConfluenceSession
@@ -367,6 +368,10 @@ class MockConfluenceSession(ConfluenceSession):
         if row is None:
             return None
         return str(row["id"])
+
+    @override
+    def move_page(self, page_id: str, position: Literal["before", "after", "append"], ref_id: str) -> None:
+        pass
 
     @override
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:

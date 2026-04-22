@@ -126,6 +126,11 @@ class ConfluenceAttachment:
 
 
 @dataclass(frozen=True)
+class ConfluencePageRef:
+    pageId: str
+
+
+@dataclass(frozen=True)
 class ConfluencePageProperties:
     """
     Holds Confluence page properties used for page synchronization.
