@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypeVar, cast, overload
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlencode, urljoin, urlparse, urlunparse
 
 from requests import Response, Session
 
@@ -405,6 +405,11 @@ class ConfluenceSessionShared(ConfluenceSession):
         self._session = session
         self._options = options
 
+    def _get_base(self) -> str:
+        "Classic REST API URL (when scoped tokens are not used)."
+
+        return f"https://{self.site.domain}{self.site.base_path}"
+
     def _init_site(self, *, domain: str | None, base_path: str | None, space_key: str | None) -> None:
         if not domain:
             raise ArgumentError("Confluence domain not specified and cannot be inferred")
@@ -502,10 +507,66 @@ class ConfluenceSessionShared(ConfluenceSession):
             LOGGER.debug("Received HTTP payload:\n%s", response.text)
         response.raise_for_status()
 
-    @abstractmethod
-    def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
-        "Retrieves all results of a REST API paginated result-set."
-        ...
+    def _fetch_v1(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
+        "Retrieves all results of a REST API v1 paginated result-set."
+
+        items: list[JsonType] = []
+
+        # offset-based pagination with start and limit parameters
+        start = 0
+        limit = 50
+
+        while True:
+            page_query = dict(query) if query else {}
+            page_query["start"] = str(start)
+            page_query["limit"] = str(limit)
+
+            data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=page_query)
+            results = cast(list[JsonType], data["results"])
+            items.extend(results)
+
+            # End pagination when we receive fewer results than the limit
+            if len(results) < limit:
+                break
+
+            start += limit
+
+        return items
+
+    def _fetch_v2(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
+        "Retrieves all results of a REST API v2 paginated result-set."
+
+        items: list[JsonType] = []
+
+        # cursor-based pagination with JSON `_links.next`
+        url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
+        classic_base = self._get_base()
+        while True:
+            response = self._session.get(url, headers={"Accept": "application/json"}, verify=True)
+            response.raise_for_status()
+
+            payload = cast(dict[str, JsonType], response.json())
+            results = cast(list[JsonType], payload["results"])
+            items.extend(results)
+
+            links = cast(dict[str, JsonType], payload.get("_links", {}))
+            if not links:
+                break
+
+            base = cast(str, links.get("base", ""))
+            if not base:
+                raise ConfluenceError(f"pagination error: {url}")
+
+            link = cast(str, links.get("next", ""))
+            if link:  # next page available
+                url = urljoin(base, link)
+                if not url.startswith(self._api_url) and url.startswith(classic_base):
+                    # occasionally, `base` in `_links` starts with the classic REST API URL prefix even if we use scoped tokens
+                    url = self._api_url + url.removeprefix(classic_base)
+            else:  # no more pages
+                break
+
+        return items
 
     @overload
     def get_space_id(self, *, space_id: str | None = None) -> str | None: ...
@@ -541,8 +602,7 @@ class ConfluenceSessionShared(ConfluenceSession):
     def get_users(self, expr: str) -> list[ConfluenceUser]:
         path = "/search/user"
         query = {"cql": f'user.fullname ~ "{expr}"', "sitePermissionTypeFilter": "all"}
-        response = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=query)
-        results = cast(list[JsonType], response["results"])
+        results = self._fetch_v1(path, query)
 
         users: list[ConfluenceUser] = []
         for result in results:

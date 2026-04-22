@@ -16,7 +16,7 @@ from typing import Iterable
 
 import yaml
 
-from .collection import ConfluencePageCollection
+from .collection import ConfluencePageCollection, ConfluenceUserCollection
 from .converter import ConfluenceDocument
 from .environment import ArgumentError, PageError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
@@ -24,6 +24,7 @@ from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .scanner import Scanner
 from .serializer import JsonType
+from .text import user_references
 from .toc import unique_title
 
 LOGGER = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class DocumentNode:
     space_key: str | None
     title: str | None
     synchronized: bool
+    users: set[tuple[str, str]]
 
     _children: list["DocumentNode"]
 
@@ -47,18 +49,24 @@ class DocumentNode:
         space_key: str | None,
         title: str | None,
         synchronized: bool,
+        users: set[tuple[str, str]],
     ):
         self.absolute_path = absolute_path
         self.page_id = page_id
         self.space_key = space_key
         self.title = title
         self.synchronized = synchronized
+        self.users = users
         self._children = []
 
     def __len__(self) -> int:
         "Number of direct children of this node."
 
         return len(self._children)
+
+    @property
+    def name(self) -> str:
+        return self.absolute_path.name
 
     def count(self) -> int:
         "Number of descendants in the sub-tree spanned by this node (excluding the top-level node)."
@@ -120,6 +128,7 @@ class Processor:
     global_properties: dict[str, JsonType]
 
     page_metadata: ConfluencePageCollection
+    user_metadata: ConfluenceUserCollection
 
     def __init__(
         self,
@@ -156,6 +165,7 @@ class Processor:
             space_key=None,
             title=None,
             synchronized=False,
+            users=set(),
         )
         self._index_directory(local_dir, root)
         LOGGER.info("Indexed %d document(s)", root.count())
@@ -168,7 +178,7 @@ class Processor:
             self._synchronize_structure(child)
 
         # synchronize Markdown files with Confluence pages
-        self._synchronize_content()
+        self._synchronize_content(root)
 
     def process_page(self, path: Path) -> None:
         """
@@ -178,7 +188,7 @@ class Processor:
         LOGGER.info("Processing page: %s", path)
         node = self._index_file(path)
         self._synchronize_structure(node)
-        self._synchronize_content()
+        self._synchronize_content(node)
 
     def _check_documents(self, root: DocumentNode) -> None:
         "Verifies if pages have a unique title to avoid overwrites within synchronized set."
@@ -198,11 +208,18 @@ class Processor:
                 f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
             )
 
-    def _synchronize_content(self) -> None:
+    def _synchronize_content(self, tree: DocumentNode) -> None:
         """
         Synchronizes content in Markdown files with Confluence pages in space, traversing the indexed directory hierarchy.
         """
 
+        # fetch users referenced in any Markdown document part of the synchronization set
+        users: set[tuple[str, str]] = set()
+        for descendant in tree.all():
+            users.update(descendant.users)
+        self.user_metadata = self._synchronize_users(users)
+
+        # synchronize page content with Markdown files
         for path, metadata in self.page_metadata.items():
             if metadata.synchronized:
                 self._synchronize_page(path, ConfluencePageID(metadata.page_id))
@@ -212,7 +229,7 @@ class Processor:
         Synchronizes a single Markdown document with its corresponding Confluence page.
         """
 
-        page_id, document = ConfluenceDocument.create(path, self.options, self.root_dir, self.site, self.page_metadata)
+        page_id, document = ConfluenceDocument.create(path, self.options, self.root_dir, self.site, self.page_metadata, self.user_metadata)
         self._update_page(page_id, document, path)
 
     @abstractmethod
@@ -223,6 +240,18 @@ class Processor:
         Creates new Confluence pages as necessary, e.g. if no page is linked in the Markdown document, or no page is found with lookup by page title.
 
         May update the original Markdown document to add tags to associate the document with its corresponding Confluence page.
+
+        :param tree: A hierarchy of documents to synchronize.
+        """
+        ...
+
+    @abstractmethod
+    def _synchronize_users(self, users: set[tuple[str, str]]) -> ConfluenceUserCollection:
+        """
+        Fetches Confluence user account IDs.
+
+        :param users: Set of tuples of email and (partial) display or public name for each user.
+        :returns: Dictionary that maps email addresses to user account IDs.
         """
         ...
 
@@ -307,6 +336,7 @@ class Processor:
             space_key=props.space_key,
             title=title,
             synchronized=props.synchronized if props.synchronized is not None else True,
+            users=user_references(document.text),
         )
 
     def _generate_hash(self, absolute_path: Path) -> str:

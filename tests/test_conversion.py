@@ -15,7 +15,7 @@ import unittest
 from pathlib import Path
 
 from md2conf.attachment import attachment_name
-from md2conf.collection import ConfluencePageCollection
+from md2conf.collection import ConfluencePageCollection, ConfluenceUserCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.csf import canonicalize
@@ -128,6 +128,7 @@ class TestConversion(TypedTestCase):
         self.target_dir = test_dir / "target"
         self.site_metadata = ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY")
         self.page_metadata = ConfluencePageCollection()
+        self.user_metadata = ConfluenceUserCollection()
 
     def test_markdown(self) -> None:
         emoji.generate_source(self.source_dir / "emoji.md")
@@ -167,6 +168,7 @@ class TestConversion(TypedTestCase):
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,
+                    self.user_metadata,
                 )
                 actual = standardize(doc.xhtml())
                 self.assertEqual(actual, expected)
@@ -177,6 +179,7 @@ class TestConversion(TypedTestCase):
                     self.source_dir,
                     self.site_metadata,
                     self.page_metadata,
+                    self.user_metadata,
                 )
                 actual = standardize(doc.xhtml())
                 self.assertEqual(actual, expected)
@@ -188,6 +191,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Admonitions")
         actual = standardize(doc.xhtml())
@@ -205,6 +209,7 @@ class TestConversion(TypedTestCase):
                 self.source_dir,
                 self.site_metadata,
                 self.page_metadata,
+                self.user_metadata,
             )
             self.assertEqual(doc.title, "Broken links")
             actual = standardize(doc.xhtml())
@@ -229,6 +234,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         actual = standardize(doc.xhtml())
 
@@ -244,6 +250,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Anchors")
         actual = standardize(doc.xhtml())
@@ -260,6 +267,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         actual = standardize(doc.xhtml())
 
@@ -275,6 +283,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertIsNone(doc.title)
 
@@ -285,6 +294,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Sections")
 
@@ -302,6 +312,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         figure_dir = self.target_dir / "mermaid"
         self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.mmd")))
@@ -320,6 +331,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         figure_dir = self.target_dir / "mermaid"
         self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.mmd")))
@@ -338,6 +350,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         figure_dir = self.target_dir / "plantuml"
         self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.puml")))
@@ -356,6 +369,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         figure_dir = self.target_dir / "plantuml"
         self.assertEqual(len(document.embedded_files), sum(1 for _ in figure_dir.glob("*.puml")))
@@ -373,6 +387,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(len(document.embedded_files), 4)
 
@@ -389,6 +404,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(len(document.embedded_files), 4)
 
@@ -405,6 +421,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         xhtml = doc.xhtml()
 
@@ -428,6 +445,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         xhtml = doc.xhtml()
 
@@ -446,6 +464,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         xhtml = doc.xhtml()
         self.assertIn("File: images.md", xhtml)
@@ -461,6 +480,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Document Title")
         actual = standardize(doc.xhtml())
@@ -478,6 +498,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Document Title")
         actual = standardize(doc.xhtml())
@@ -495,6 +516,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Title from Front-matter")
         actual = standardize(doc.xhtml())
@@ -512,6 +534,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertIsNone(doc.title)  # No unique title can be extracted
         actual = standardize(doc.xhtml())
@@ -529,6 +552,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         self.assertEqual(doc.title, "Document Title")
         actual = standardize(doc.xhtml())
@@ -549,6 +573,7 @@ class TestConversion(TypedTestCase):
             self.source_dir,
             self.site_metadata,
             self.page_metadata,
+            self.user_metadata,
         )
         actual = standardize(doc.xhtml())
 

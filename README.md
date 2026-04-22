@@ -501,6 +501,16 @@ The following table shows standard highlight colors (CSS `background-color`) tha
 
 If *md2conf* encounters a Markdown link that points to a file in the directory hierarchy being synchronized, it automatically uploads the file as an attachment to the Confluence page. Activating the link in Confluence downloads the file. Typical examples include PDFs (`*.pdf`), word processor documents (`*.docx`), spreadsheets (`*.xlsx`), plain text files (`*.txt`) or logs (`*.log`). The MIME type is set based on the file type.
 
+### User mentions
+
+Markdown links that point to an e-mail address may be converted into a *user mention* (e.g. `@hunyadi`). Mentions should follow the syntax below:
+
+```md
+[Levente Hunyadi](mailto:levente.hunyadi@example.com)
+```
+
+Both the name and the e-mail are significant. When *md2conf* processes Markdown documents, it extracts Markdown links that look like user mentions. Once all documents to synchronize have been scanned, it cross-references discovered Markdown links with Confluence users. Lookup is based on the name: *md2conf* searches for users with Confluence Query Language (CQL), comparing `user.fullname` against the label in the Markdown link. This is a fuzzy match, which may return zero or more users: *md2conf* filters the result-set by e-mail to find a unique match. If a user is identified, the Markdown link is replaced with a proper Confluence mention. Otherwise, the Markdown link is kept as a plain link, which may happen if the user lookup fails, e.g. the user's *display name* is unset, the name or e-mail doesn't match, e-mail addresses are private, etc.
+
 ### Setting generated-by prompt text for wiki pages
 
 In order to ensure readers are not editing a generated document, the tool adds a warning message at the top of the Confluence page as an *info panel*. You can customize the text that appears. The text can contain markup as per the [Confluence Storage Format](https://confluence.atlassian.com/doc/confluence-storage-format-790796544.html), and is emitted directly into the *info panel* macro.
@@ -629,7 +639,6 @@ Content between `<!-- confluence-skip-start -->` and `<!-- confluence-skip-end -
 - Content relevant only for developers with repository access
 
 Multiple exclusion blocks can be used in the same document.
-
 
 ### Labels
 

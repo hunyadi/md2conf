@@ -145,33 +145,6 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
         return self._delete_impl(version, path, query=query, headers={"Content-Type": "application/json"})
 
     @override
-    def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
-        "Retrieves all results of a REST API v1 paginated result-set."
-
-        items: list[JsonType] = []
-
-        # offset-based pagination with start and limit parameters
-        start = 0
-        limit = 50
-
-        while True:
-            page_query = dict(query) if query else {}
-            page_query["start"] = str(start)
-            page_query["limit"] = str(limit)
-
-            data = self._get(ConfluenceVersion.VERSION_1, path, dict[str, JsonType], query=page_query)
-            results = cast(list[JsonType], data["results"])
-            items.extend(results)
-
-            # End pagination when we receive fewer results than the limit
-            if len(results) < limit:
-                break
-
-            start += limit
-
-        return items
-
-    @override
     def space_id_to_key(self, id: str) -> str:
         return id
 
@@ -199,14 +172,14 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
         path = f"/content/{page_id}/child/attachment"
-        items = self._fetch(path)
+        items = self._fetch_v1(path)
         return [self._parse_attachment(page_id, json_to_object(ConfluenceAttachmentV1, item)) for item in items]
 
     @override
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         path = f"/content/{page_id}/child/attachment"
         query = {"filename": filename}
-        items = self._fetch(path, query=query)
+        items = self._fetch_v1(path, query=query)
         if len(items) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
         return self._parse_attachment(page_id, json_to_object(ConfluenceAttachmentV1, items[0]))
@@ -433,7 +406,7 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
     @override
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
         path = f"/content/{page_id}/label"
-        results = self._fetch(path)
+        results = self._fetch_v1(path)
         return json_to_object(list[ConfluenceIdentifiedLabel], results)
 
     @override
@@ -449,7 +422,7 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
     @override
     def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
         path = f"/content/{page_id}/property"
-        results = self._fetch(path)
+        results = self._fetch_v1(path)
         return json_to_object(list[ConfluenceIdentifiedContentProperty], results)
 
     @override

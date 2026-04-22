@@ -11,7 +11,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from md2conf.collection import ConfluencePageCollection
+from md2conf.collection import ConfluencePageCollection, ConfluenceUserCollection
 from md2conf.compatibility import override
 from md2conf.converter import ConfluenceDocument
 from md2conf.metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
@@ -62,6 +62,7 @@ class TestDocument(TypedTestCase):
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,
+            ConfluenceUserCollection(),
         )
         self.assertListEqual(document.links, [])
         self.assertListEqual(document.images, [])
@@ -92,6 +93,7 @@ class TestDocument(TypedTestCase):
             self.sample_dir,
             ConfluenceSiteMetadata(domain="example.com", base_path="/wiki/", space_key="SPACE_KEY"),
             metadata,
+            ConfluenceUserCollection(),
         )
         self.assertListEqual(document.links, [])
         self.assertListEqual(

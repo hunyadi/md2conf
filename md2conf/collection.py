@@ -28,6 +28,9 @@ class KeyValueCollection(Generic[K, V]):
     def __len__(self) -> int:
         return len(self._collection)
 
+    def __contains__(self, key: K) -> bool:
+        return key in self._collection
+
     def add(self, key: K, data: V) -> None:
         self._collection[key] = data
 
@@ -42,3 +45,11 @@ class KeyValueCollection(Generic[K, V]):
 
 
 class ConfluencePageCollection(KeyValueCollection[Path, ConfluencePageMetadata]): ...
+
+
+class ConfluenceUserCollection(KeyValueCollection[str, str]):
+    """
+    Maps Confluence user email addresses to their account ID.
+    """
+
+    ...

@@ -10,6 +10,8 @@ import logging
 import os
 from pathlib import Path
 
+from md2conf.collection import ConfluenceUserCollection
+
 from .compatibility import override
 from .converter import ConfluenceDocument
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
@@ -69,6 +71,16 @@ class LocalProcessor(Processor):
                     synchronized=node.synchronized,
                 ),
             )
+
+    @override
+    def _synchronize_users(self, users: set[tuple[str, str]]) -> ConfluenceUserCollection:
+        """
+        Fetches Confluence user account IDs.
+
+        This implementation does not fetch any account IDs, as it maintains no connection to a Confluence server.
+        """
+
+        return ConfluenceUserCollection()
 
     @override
     def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:

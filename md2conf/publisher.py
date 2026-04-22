@@ -15,6 +15,7 @@ from .api_base import ConfluenceSession
 from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .coalesce import coalesce_json
+from .collection import ConfluenceUserCollection
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, ElementType, elements_from_string
@@ -153,6 +154,25 @@ class SynchronizingProcessor(Processor):
         catalog = ParentCatalog(self.api)
         catalog.add_known(topmost_id)
         self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
+
+    @override
+    def _synchronize_users(self, users: set[tuple[str, str]]) -> ConfluenceUserCollection:
+        """
+        Fetches Confluence user account IDs.
+        """
+
+        user_metadata = ConfluenceUserCollection()
+        for email, name in users:
+            if email in user_metadata:
+                continue
+
+            remote_users = self.api.get_users(name)
+            for remote_user in remote_users:
+                if remote_user.email is None:
+                    continue
+                if remote_user.email == email:
+                    user_metadata.add(email, remote_user.accountId)
+        return user_metadata
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
         if node.page_id is not None:

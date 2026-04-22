@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import logging
 import unittest
 
-from md2conf.text import wrap_text
+from md2conf.text import user_references, wrap_text
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -19,6 +19,15 @@ logging.basicConfig(
 
 
 class TestText(TypedTestCase):
+    def test_reference(self) -> None:
+        text = (
+            "[](mailto:nobody@example.com): [Laura](mailto:laura@example.com), "
+            "[Levente](mailto:levente@example.com) and [Kornél](mailto:kornel@example.com) "
+            "at [example.com](https://example.com)."
+        )
+        refs = user_references(text)
+        self.assertCountEqual(refs, [("kornel@example.com", "Kornél"), ("laura@example.com", "Laura"), ("levente@example.com", "Levente")])
+
     def test_basic_wrap(self) -> None:
         text = "This is a simple test sentence that should wrap nicely with no issues whatsoever."
         wrapped = wrap_text(text, line_length=20)

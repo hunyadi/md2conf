@@ -6,6 +6,21 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import re
+
+
+def user_references(text: str) -> set[tuple[str, str]]:
+    """
+    Extracts user references from a Markdown document.
+
+    User references are expected to be in the format `[NAME](mailto:EMAIL)`, i.e. a Markdown link that points to an email address.
+
+    :param text: Input text.
+    :returns: A set of tuples `(EMAIL, NAME)` extracted from the input text.
+    """
+
+    return set((m.group("email"), m.group("name")) for m in re.finditer(r"\[(?P<name>[^\[\]]+)\]\(mailto:(?P<email>[^()]+)\)", text))
+
 
 def wrap_text(text: str, line_length: int = 160) -> str:
     """

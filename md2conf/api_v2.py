@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import logging
 import typing
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from requests import HTTPError, RequestException, Session
 
@@ -105,51 +105,16 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
                 response.raise_for_status()
 
                 LOGGER.info("Configured scoped Confluence REST API URL: %s", self._api_url)
-            except HTTPError:
+            except HTTPError as ex:
+                match ex.response.status_code:
+                    case 401:
+                        raise ConfluenceError("Confluence scoped API token has expired or is invalid") from ex
+                    case _:
+                        pass
+
                 # fall back to classic REST API URL
                 self._api_url = self._get_base()
                 LOGGER.info("Configured classic Confluence REST API URL: %s", self._api_url)
-
-    def _get_base(self) -> str:
-        "Classic REST API URL (when scoped tokens are not used)."
-
-        return f"https://{self.site.domain}{self.site.base_path}"
-
-    @override
-    def _fetch(self, path: str, query: dict[str, str] | None = None) -> list[JsonType]:
-        "Retrieves all results of a REST API v2 paginated result-set."
-
-        items: list[JsonType] = []
-
-        # cursor-based pagination with JSON `_links.next`
-        url = self._build_url(ConfluenceVersion.VERSION_2, path, query)
-        classic_base = self._get_base()
-        while True:
-            response = self._session.get(url, headers={"Accept": "application/json"}, verify=True)
-            response.raise_for_status()
-
-            payload = typing.cast(dict[str, JsonType], response.json())
-            results = typing.cast(list[JsonType], payload["results"])
-            items.extend(results)
-
-            links = typing.cast(dict[str, JsonType], payload.get("_links", {}))
-            if not links:
-                break
-
-            base = typing.cast(str, links.get("base", ""))
-            if not base:
-                raise ConfluenceError(f"pagination error: {url}")
-
-            link = typing.cast(str, links.get("next", ""))
-            if link:  # next page available
-                url = urljoin(base, link)
-                if not url.startswith(self._api_url) and url.startswith(classic_base):
-                    # occasionally, `base` in `_links` starts with the classic REST API URL prefix even if we use scoped tokens
-                    url = self._api_url + url.removeprefix(classic_base)
-            else:  # no more pages
-                break
-
-        return items
 
     @override
     def space_id_to_key(self, id: str) -> str:
@@ -202,13 +167,13 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
         path = f"/pages/{page_id}/attachments"
-        items = self._fetch(path)
+        items = self._fetch_v2(path)
         return [json_to_object(ConfluenceAttachment, item) for item in items]
 
     @override
     def get_attachment_by_name(self, page_id: str, filename: str) -> ConfluenceAttachment:
         path = f"/pages/{page_id}/attachments"
-        items = self._fetch(path, query={"filename": filename})
+        items = self._fetch_v2(path, query={"filename": filename})
         if len(items) != 1:
             raise ConfluenceError(f"no such attachment on page {page_id}: {filename}")
         return json_to_object(ConfluenceAttachment, items[0])
@@ -346,13 +311,13 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     @override
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
         path = f"/pages/{page_id}/labels"
-        results = self._fetch(path)
+        results = self._fetch_v2(path)
         return json_to_object(list[ConfluenceIdentifiedLabel], results)
 
     @override
     def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
         path = f"/pages/{page_id}/properties"
-        results = self._fetch(path, query={"key": key})
+        results = self._fetch_v2(path, query={"key": key})
         properties = json_to_object(list[ConfluenceIdentifiedContentProperty], results)
         if len(properties) == 1:
             return properties.pop()
@@ -362,7 +327,7 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     @override
     def get_content_properties_for_page(self, page_id: str) -> list[ConfluenceIdentifiedContentProperty]:
         path = f"/pages/{page_id}/properties"
-        results = self._fetch(path)
+        results = self._fetch_v2(path)
         return json_to_object(list[ConfluenceIdentifiedContentProperty], results)
 
     @override
