@@ -9,6 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import logging
 import os
 import os.path
+import shlex
 from typing import Literal
 
 from md2conf.external import cached_which, execute_subprocess
@@ -42,8 +43,33 @@ def get_mmdc() -> str:
 def has_mmdc() -> bool:
     "True if Mermaid diagram converter is available on the OS."
 
-    executable = get_mmdc()
-    return cached_which(executable) is not None
+    env_cmd = os.environ.get("MERMAID_CMD")
+    if env_cmd:
+        return True
+
+    executable = cached_which(get_mmdc())
+    return executable is not None
+
+
+def _get_mermaid_command() -> list[str]:
+    "Returns the command to invoke the Mermaid diagram converter `mmdc`."
+
+    env_cmd = os.environ.get("MERMAID_CMD")
+    if env_cmd:
+        LOGGER.debug(f"Using Mermaid converter command: {env_cmd}")
+        return shlex.split(env_cmd)
+
+    executable = cached_which(get_mmdc())
+    if executable is not None:
+        cmd = [executable]
+        LOGGER.debug(f"Using Mermaid CLI: {executable}")
+        if _is_docker():
+            root = os.path.dirname(__file__)
+            cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
+        return cmd
+
+    # command not found, fail with helpful message
+    raise RuntimeError("Mermaid CLI not found. Install Mermaid CLI from <https://github.com/mermaid-js/mermaid-cli>.")
 
 
 def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", config: MermaidConfigProperties | None = None) -> bytes:
@@ -52,25 +78,20 @@ def render_diagram(source: str, output_format: Literal["png", "svg"] = "png", co
     if config is None:
         config = MermaidConfigProperties()
 
-    executable = get_mmdc()
-    if cached_which(executable) is None:
-        raise RuntimeError("Mermaid CLI not found. Install Mermaid CLI from <https://github.com/mermaid-js/mermaid-cli>.")
-
-    cmd = [
-        executable,
-        "--input",
-        "-",
-        "--output",
-        "-",
-        "--outputFormat",
-        output_format,
-        "--backgroundColor",
-        "transparent",
-        "--scale",
-        str(config.scale or 2),
-    ]
-    if _is_docker():
-        root = os.path.dirname(__file__)
-        cmd.extend(["-p", os.path.join(root, "puppeteer-config.json")])
+    cmd = _get_mermaid_command()
+    cmd.extend(
+        [
+            "--input",
+            "-",
+            "--output",
+            "-",
+            "--outputFormat",
+            output_format,
+            "--backgroundColor",
+            "transparent",
+            "--scale",
+            str(config.scale or 2),
+        ]
+    )
 
     return execute_subprocess(cmd, source.encode(), application="Mermaid")

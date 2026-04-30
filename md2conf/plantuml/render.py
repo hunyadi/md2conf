@@ -61,24 +61,31 @@ def _get_plantuml_command() -> list[str]:
         LOGGER.debug(f"Using PlantUML command: {env_cmd}")
         return shlex.split(env_cmd)
 
-    jar_path = _get_plantuml_jar_path()
-    if jar_path.is_file():
-        LOGGER.debug(f"Using PlantUML JAR at: {jar_path}")
-        return ["java", "-jar", str(jar_path)]
+    java = cached_which("java")
+    if java is not None:
+        jar_path = _get_plantuml_jar_path()
+        if jar_path.is_file():
+            LOGGER.debug(f"Using PlantUML JAR at: {jar_path}")
+            return [java, "-jar", str(jar_path)]
 
-    # JAR not found - fail with helpful message
+    # command and/or JAR file not found, fail with helpful message
     raise RuntimeError(
         "PlantUML JAR not found. Download `plantuml.jar` from <https://github.com/plantuml/plantuml/releases> and set the PLANTUML_JAR environment variable."
     )
 
 
 def has_plantuml() -> bool:
-    """True if PlantUML JAR is available and Java is installed."""
+    "True if PlantUML JAR is available and Java is installed."
 
-    jar_path = _get_plantuml_jar_path()
+    env_cmd = os.environ.get("PLANTUML_CMD")
+    if env_cmd:
+        return True
 
-    # Check if we have JAR file and Java is available
-    return jar_path.is_file() and cached_which("java") is not None
+    if cached_which("java") is not None:
+        jar_path = _get_plantuml_jar_path()
+        return jar_path.is_file()
+
+    return False
 
 
 def render_diagram(
@@ -104,7 +111,7 @@ def render_diagram(
         ]
     )
 
-    # Add scale if specified
+    # add scale if specified
     if config.scale is not None:
         cmd.extend(["-scale", str(config.scale)])
 

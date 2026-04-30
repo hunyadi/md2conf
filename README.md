@@ -864,6 +864,10 @@ with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
 ```
 
+### Environment variables for external tools
+
+The environment variables `MERMAID_CMD` and `PLANTUML_CMD` let us pass a shell command to convert Mermaid and PlantUML diagrams, respectively. This allows us to set a full executable path and some command-line parameters, e.g. if we need to set the location of `puppeteer-config.json` for Mermaid CLI or use a specific version of `java` for PlantUML CLI. Additional command-line parameters are appended at the end.
+
 ### Confluence REST API v1 vs. v2
 
 *md2conf* version 0.3.0 has switched to using [Confluence REST API v2](https://developer.atlassian.com/cloud/confluence/rest/v2/) for API calls such as retrieving current page content. Earlier versions used [Confluence REST API v1](https://developer.atlassian.com/cloud/confluence/rest/v1/) exclusively. Unfortunately, Atlassian has decommissioned Confluence REST API v1 for several endpoints in Confluence Cloud as of due date March 31, 2025, and we don't have access to an environment where we could test retired v1 endpoints.
