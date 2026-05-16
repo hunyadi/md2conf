@@ -105,6 +105,8 @@ class TestDocument(TypedTestCase):
                 self.sample_dir / "figure" / "diagram.drawio",
                 self.sample_dir / "figure" / "mermaid.mmd",
                 self.sample_dir / "figure" / "plantuml.puml",
+                self.sample_dir / "figure" / "arrow-down-left.svg",
+                self.sample_dir / "figure" / "arrow-down-right.svg",
                 self.sample_dir / "docs" / "sample.pdf",
                 self.sample_dir / "docs" / "sample.docx",
                 self.sample_dir / "docs" / "sample.xlsx",

@@ -56,6 +56,10 @@ def entities() -> Generator[Path, None, None]:
             yield dtd_path
 
 
+_LINE_NUM_REGEXP = re.compile(r'<line-number value="(\d+)"\s?/>')
+_POSITION_REGEXP = re.compile(r",? line \d+(, column \d+)?")
+
+
 def _elements_from_strings(dtd_path: Path, items: list[str]) -> ElementType:
     """
     Creates an XML document tree from XML fragment strings.
@@ -89,7 +93,38 @@ def _elements_from_strings(dtd_path: Path, items: list[str]) -> ElementType:
     try:
         return ET.fromstringlist(data, parser=parser)
     except ET.XMLSyntaxError as ex:
-        raise ParseError() from ex
+        # extract informative error message from exception object
+        message = _POSITION_REGEXP.sub("", ex.msg)  # line and column do not map to Markdown source
+
+        # identify error location in XML string (which does not map to Markdown source)
+        line = ex.lineno
+        column = ex.offset
+        if line is None or column is None:
+            raise ParseError(f"XML parse error: {message}") from None
+
+        # get absolute position (zero-based offset) of XML parse error
+        xml_text = "".join(data)
+        xml_lines = xml_text.splitlines(True)
+        abs_pos = sum(len(xml_line) for xml_line in xml_lines[: line - 1]) + (column - 1)
+
+        # use embedded line number tags if available
+        m: re.Match[str] | None
+        start_line: int | None = None
+        for m in _LINE_NUM_REGEXP.finditer(xml_text):
+            if m.start() >= abs_pos:
+                break
+            start_line = int(m.group(1), base=10)
+        end_line: int | None = None
+        if m := _LINE_NUM_REGEXP.search(xml_text, pos=abs_pos):
+            end_line = int(m.group(1), base=10)
+
+        # (re-)raise custom exception object
+        if start_line is not None or end_line is not None:
+            start_line = start_line or 1
+            end_line = end_line or len(xml_lines)
+            raise ParseError(f"XML parse error in Markdown file between lines {start_line} and {end_line}: {message}") from None
+        else:
+            raise ParseError(f"XML parse error: {message}") from None
 
 
 def elements_from_strings(items: list[str]) -> ElementType:

@@ -4,6 +4,8 @@ layout:
   alignment: left
 ---
 
+## Images
+
 ![JPEG image with caption](figure/blue.jpg)
 
 ![PNG image with caption](figure/interoperability.png)
@@ -69,6 +71,13 @@ Animal <|-- Dog
 Animal <|-- Cat
 @enduml
 ```
+
+| Description      | Image                                            |
+| ---------------- | ------------------------------------------------ |
+| Down Left Arrow  | ![down left arrow](figure/arrow-down-left.svg)   |
+| Down Right Arrow | ![down right arrow](figure/arrow-down-right.svg) |
+
+## Links to attachments
 
 [PDF document](docs/sample.pdf)
 
