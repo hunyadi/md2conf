@@ -115,3 +115,27 @@
     </tr>
   </tbody>
 </table>
+<p>Table with image-only cell</p>
+<table data-layout="default" data-table-width="640">
+  <tbody>
+    <tr>
+      <td><p>Image</p></td>
+      <td><ac:image ac:align="center" ac:layout="center" ac:original-width="24" ac:original-height="24" ac:custom-width="true" ac:width="24"><ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/></ac:image></td>
+    </tr>
+  </tbody>
+</table>
+<p>Table with image-only header cell</p>
+<table data-layout="default" data-table-width="640">
+  <thead>
+    <tr>
+      <th><ac:image ac:align="center" ac:layout="center" ac:original-width="24" ac:original-height="24" ac:custom-width="true" ac:width="24"><ri:url ri:value="http://confluence.atlassian.com/images/logo/confluence_48_trans.png"/></ac:image></th>
+      <th><p>Value</p></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><p>Icon</p></td>
+      <td><p>Example</p></td>
+    </tr>
+  </tbody>
+</table>

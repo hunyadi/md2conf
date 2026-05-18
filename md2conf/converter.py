@@ -349,6 +349,16 @@ def child_count(node: ElementType) -> int:
     return len(node) - sum(1 for _ in node.iterchildren("line-number"))
 
 
+def has_meaningful_content(node: ElementType) -> bool:
+    """
+    True if an element contains visible non-whitespace text or an image.
+
+    Images are treated as visible content even if they lack alt text or title.
+    """
+
+    return any(text and not text.isspace() for text in node.itertext(with_tail=False)) or any(True for _ in node.iterchildren("img"))
+
+
 def is_top_level(node: ElementType) -> bool:
     "True if the element is a top-level element, i.e. it is not nested within another element except the root."
 
@@ -1727,7 +1737,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 # remove <thead> if it doesn't contain any text
                 for thead in list(child.iterchildren("thead")):
                     for th in thead.iterdescendants("td", "th"):
-                        if any(text and not text.isspace() for text in th.itertext()):
+                        if has_meaningful_content(th):
                             break
                     else:
                         child.remove(thead)
@@ -1736,8 +1746,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 for tr in child.iterdescendants("tr"):
                     if len(tr) < 2:
                         break
-                    column_text = tr[1].text
-                    if column_text and not column_text.isspace():
+                    if has_meaningful_content(tr[1]):
                         break
                 else:
                     for tr in child.iterdescendants("tr"):

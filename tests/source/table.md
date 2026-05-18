@@ -46,3 +46,15 @@ Table with header column
 | 1      | | one     | egy       |
 | 2      | | two     | kettő     |
 | 3      | | three   | három     |
+
+Table with image-only cell
+
+|       |                                                                                                          |
+| ----- | -------------------------------------------------------------------------------------------------------- |
+| Image | <img src="http://confluence.atlassian.com/images/logo/confluence_48_trans.png" width="24" height="24" /> |
+
+Table with image-only header cell
+
+| <img src="http://confluence.atlassian.com/images/logo/confluence_48_trans.png" width="24" height="24" /> | Value   |
+| -------------------------------------------------------------------------------------------------------- | ------- |
+| Icon                                                                                                     | Example |
