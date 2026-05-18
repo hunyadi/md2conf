@@ -305,6 +305,9 @@ class SynchronizingProcessor(Processor):
         m = hashlib.md5()
         m.update(object_to_json_payload(self.options.converter))
         m.update(b"\n")
+        if self.options.generated_by is not None:
+            m.update(self.options.generated_by.encode())
+            m.update(b"\n")
         m.update(path.read_bytes())
         source_digest = m.hexdigest()
 
