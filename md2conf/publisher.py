@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 import hashlib
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from .api_base import ConfluenceSession
@@ -17,11 +17,12 @@ from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
 from .compatibility import override, path_relative_to
-from .converter import ConfluenceDocument, get_orderless_elements, get_volatile_attributes, get_volatile_elements
+from .converter import ConfluenceDocument, apply_generated_by_template, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, ElementType, elements_from_string
 from .environment import PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
+from .options_converter import ConverterOptions
 from .order import sort_items_in_order
 from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
 from .serializer import json_to_object, object_to_json, object_to_json_payload
@@ -129,6 +130,49 @@ class ConfluenceMarkdownTag:
     def __post_init__(self) -> None:
         if self.page_version < 1:
             raise ValueError(f"expected: page version >= 1; got: {self.page_version}")
+
+
+@dataclass
+class AggregateOptions(ConverterOptions):
+    """
+    Options that impact the Confluence Storage Format output that is synchronized.
+
+    :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
+    """
+
+    generated_by: str | None = None
+
+    @classmethod
+    def create(cls, relative_path: Path, options: ConverterOptions, generated_by: str | None) -> "AggregateOptions":
+        field_names = {f.name for f in fields(ConverterOptions)}
+        field_values = {name: getattr(options, name) for name in field_names}
+
+        if generated_by is not None:
+            generated_by = apply_generated_by_template(generated_by, relative_path)
+
+        return cls(**field_values, generated_by=generated_by)
+
+
+class DocumentHasher:
+    """
+    Quickly determines whether a page needs to be synchronized.
+
+    Aggregates input that impact the Confluence Storage Format output that is synchronized.
+    """
+
+    options: AggregateOptions
+    absolute_path: Path
+
+    def __init__(self, options: AggregateOptions, absolute_path: Path) -> None:
+        self.options = options
+        self.absolute_path = absolute_path
+
+    def digest(self) -> str:
+        m = hashlib.md5()
+        m.update(object_to_json_payload(self.options))
+        m.update(b"\n")
+        m.update(self.absolute_path.read_bytes())
+        return m.hexdigest()
 
 
 class SynchronizingProcessor(Processor):
@@ -302,14 +346,10 @@ class SynchronizingProcessor(Processor):
         LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
         # compute hash to help detect if document content or conversion options have changed
-        m = hashlib.md5()
-        m.update(object_to_json_payload(self.options.converter))
-        m.update(b"\n")
-        if self.options.generated_by is not None:
-            m.update(self.options.generated_by.encode())
-            m.update(b"\n")
-        m.update(path.read_bytes())
-        source_digest = m.hexdigest()
+        source_digest = DocumentHasher(
+            AggregateOptions.create(path.relative_to(self.root_dir), self.options.converter, self.options.generated_by),
+            path,
+        ).digest()
 
         # set Confluence title based on Markdown content
         title = self._get_unique_title(document, path)
