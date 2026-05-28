@@ -8,6 +8,8 @@ layout:
 
 ## Block images
 
+![](figure/raster.png)
+
 ![JPEG image with caption](figure/raster.jpg)
 
 ![PNG image with caption](figure/raster.png)

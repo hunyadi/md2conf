@@ -79,6 +79,8 @@ jobs:
           node-version: '24'
 
       - name: Install Mermaid CLI
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
         run: |
           npm install -g @mermaid-js/mermaid-cli
           mmdc --version
@@ -92,6 +94,7 @@ jobs:
           CONFLUENCE_USER_NAME: ${{ vars.CONFLUENCE_USER_NAME }}
           CONFLUENCE_API_KEY: ${{ secrets.CONFLUENCE_API_KEY }}
           CONFLUENCE_SPACE_KEY: ${{ vars.CONFLUENCE_SPACE_KEY }}
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
           TEST_MERMAID: 1
           TEST_PLANTUML: 1
           PLANTUML_JAR: plantuml.jar

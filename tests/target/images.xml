@@ -4,6 +4,9 @@
   </ac:rich-text-body>
 </ac:structured-macro>
 <h2>Block images</h2>
+<ac:image ac:align="left" ac:layout="align-start" ac:original-width="1" ac:original-height="1" ac:custom-width="true" ac:width="1" ac:alt="">
+  <ri:attachment ri:filename="figure_raster.png"/>
+</ac:image>
 <ac:image ac:align="left" ac:layout="align-start" ac:original-width="1" ac:original-height="1" ac:custom-width="true" ac:width="1" ac:alt="JPEG image with caption">
   <ri:attachment ri:filename="figure_raster.jpg"/>
   <ac:caption>JPEG image with caption</ac:caption>
