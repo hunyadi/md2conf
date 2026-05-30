@@ -243,19 +243,21 @@ class SynchronizingProcessor(Processor):
             local_order.append(metadata.page_id)
         if not local_order:
             return  # nothing to sort
-        remote_order = [child_id for child_id in parent_to_children[parent_id] if child_id in local_order]
 
-        # rearrange direct child pages with minimal moves
-        def index_of(page_id: str) -> int:
-            return local_order.index(page_id)
+        child_pages = parent_to_children.get(parent_id)
+        if child_pages:
+            # rearrange direct child pages with minimal moves
+            def index_of(page_id: str) -> int:
+                return local_order.index(page_id)
 
-        def insert_before(page_id: str, ref_id: str) -> None:
-            self.api.move_page(page_id, "before", ref_id)
+            def insert_before(page_id: str, ref_id: str) -> None:
+                self.api.move_page(page_id, "before", ref_id)
 
-        def insert_after(page_id: str, ref_id: str) -> None:
-            self.api.move_page(page_id, "after", ref_id)
+            def insert_after(page_id: str, ref_id: str) -> None:
+                self.api.move_page(page_id, "after", ref_id)
 
-        sort_items_in_order(remote_order, key=index_of, insert_before=insert_before, insert_after=insert_after)
+            remote_order = [child_id for child_id in child_pages if child_id in local_order]
+            sort_items_in_order(remote_order, key=index_of, insert_before=insert_before, insert_after=insert_after)
 
         # rearrange nested children recursively
         for child in tree.children():
