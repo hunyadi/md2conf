@@ -9,6 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import base64
 import logging
 import os
+import shlex
 import subprocess
 import tempfile
 import typing
@@ -233,12 +234,36 @@ def extract_diagram(path: Path) -> bytes:
     return ET.tostring(root, encoding="utf8", method="xml")
 
 
+def _get_drawio_command() -> list[str]:
+    """
+    Returns the command to invoke draw.io.
+
+    :raises RuntimeError: Raised when `draw.io` is not found.
+    """
+
+    env_cmd = os.environ.get("DRAWIO_CMD")
+    if env_cmd:
+        LOGGER.debug(f"Using draw.io command: {env_cmd}")
+        return shlex.split(env_cmd)
+
+    executable = cached_which("draw.io")
+    if executable is not None:
+        LOGGER.debug(f"Using draw.io executable at: {executable}")
+        return [executable]
+
+    executable = cached_which("drawio")
+    if executable is not None:
+        LOGGER.debug(f"Using draw.io executable at: {executable}")
+        return [executable]
+
+    # command not found, fail with helpful message
+    raise RuntimeError("draw.io executable not found.")
+
+
 def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "png") -> bytes:
     "Generates a PNG or SVG image from a draw.io diagram source."
 
-    executable = cached_which("draw.io")
-    if executable is None:
-        raise DrawioError("draw.io executable not found")
+    cmd = _get_drawio_command()
 
     # create a temporary file and get its file descriptor and path
     fd, target = tempfile.mkstemp(prefix="drawio_", suffix=f".{output_format}")
@@ -247,7 +272,7 @@ def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "
         # close the descriptor, just use the filename
         os.close(fd)
 
-        cmd = [executable, "--export", "--format", output_format, "--output", target]
+        cmd.extend(["--export", "--format", output_format, "--output", target])
         if output_format == "png":
             cmd.extend(["--scale", "2", "--transparent"])
         elif output_format == "svg":
@@ -272,7 +297,17 @@ def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "
                 messages.append(f"error:\n{console_error}")
             raise DrawioError("\n".join(messages))
         with open(target, "rb") as f:
-            return f.read()
+            content = f.read()
+            if not content:
+                messages = ["draw.io did not produce any output"]
+                console_output = stdout.decode("utf-8")
+                if console_output:
+                    messages.append(f"output:\n{console_output}")
+                console_error = stderr.decode("utf-8")
+                if console_error:
+                    messages.append(f"error:\n{console_error}")
+                raise DrawioError("\n".join(messages))
+            return content
 
     finally:
         os.remove(target)
