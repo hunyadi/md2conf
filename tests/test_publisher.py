@@ -168,11 +168,18 @@ class TestPublisher(unittest.TestCase):
             self.assertEqual(page_e.parentId, page_d.id)
             self.assertEqual(page_f.parentId, page_d.id)
 
+            # order has files first, directories last, sorted by name
+            self.assertEqual(page_b.position, 0)
+            self.assertEqual(page_c.position, 1)
+            self.assertEqual(page_e.position, 0)
+            self.assertEqual(page_f.position, 1)
+
             self.assertIsNotNone(page_d.parentId)
             if page_d.parentId is not None:
                 implicit_page = api.get_page_properties(page_d.parentId)
                 self.assertEqual(page_d.parentId, implicit_page.id)
                 self.assertEqual(implicit_page.parentId, page_a.id)
+                self.assertEqual(implicit_page.position, 2)
 
     def test_toplevel(self) -> None:
         "Checks if a missing top-level document is handled correctly."
@@ -204,6 +211,60 @@ class TestPublisher(unittest.TestCase):
             self.assertEqual(page_c.parentId, homepage_id)
             self.assertEqual(page_d.parentId, page_c.id)
             self.assertEqual(page_e.parentId, homepage_id)
+
+            # order has files first, directories last, sorted by name
+            self.assertEqual(page_e.position, 0)
+            self.assertEqual(page_a.position, 1)
+            self.assertEqual(page_c.position, 2)
+            self.assertEqual(page_b.position, 0)
+            self.assertEqual(page_d.position, 0)
+
+    def test_move_page_positions(self) -> None:
+        "Checks if moving pages updates parent and child positions exactly as expected."
+
+        with MockConfluenceAPI() as api:
+            space_id = "SPACE_ID"
+            homepage_id = api.get_homepage_id(space_id)
+
+            page_a = api.create_page(title="A", content="", parent_id=homepage_id, space_id=space_id)
+            page_b = api.create_page(title="B", content="", parent_id=homepage_id, space_id=space_id)
+            page_c = api.create_page(title="C", content="", parent_id=homepage_id, space_id=space_id)
+            page_parent = api.create_page(title="Parent", content="", parent_id=homepage_id, space_id=space_id)
+            page_child = api.create_page(title="Child", content="", parent_id=page_parent.id, space_id=space_id)
+
+            self.assertEqual(api.get_page_properties(page_a.id).position, 0)
+            self.assertEqual(api.get_page_properties(page_b.id).position, 1)
+            self.assertEqual(api.get_page_properties(page_c.id).position, 2)
+            self.assertEqual(api.get_page_properties(page_parent.id).position, 3)
+            self.assertEqual(api.get_page_properties(page_child.id).position, 0)
+
+            api.move_page(page_c.id, "before", page_a.id)
+            self.assertEqual(api.get_page_properties(page_c.id).position, 0)
+            self.assertEqual(api.get_page_properties(page_a.id).position, 1)
+            self.assertEqual(api.get_page_properties(page_b.id).position, 2)
+            self.assertEqual(api.get_page_properties(page_parent.id).position, 3)
+
+            api.move_page(page_a.id, "after", page_b.id)
+            self.assertEqual(api.get_page_properties(page_c.id).position, 0)
+            self.assertEqual(api.get_page_properties(page_b.id).position, 1)
+            self.assertEqual(api.get_page_properties(page_a.id).position, 2)
+            self.assertEqual(api.get_page_properties(page_parent.id).position, 3)
+
+            api.move_page(page_b.id, "append", page_parent.id)
+
+            moved_page = api.get_page_properties(page_b.id)
+            child_page = api.get_page_properties(page_child.id)
+            top_c = api.get_page_properties(page_c.id)
+            top_a = api.get_page_properties(page_a.id)
+            top_parent = api.get_page_properties(page_parent.id)
+
+            self.assertEqual(moved_page.parentId, page_parent.id)
+            self.assertEqual(moved_page.position, 1)
+            self.assertEqual(child_page.position, 0)
+
+            self.assertEqual(top_c.position, 0)
+            self.assertEqual(top_a.position, 1)
+            self.assertEqual(top_parent.position, 2)
 
 
 if __name__ == "__main__":

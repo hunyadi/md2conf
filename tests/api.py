@@ -79,6 +79,7 @@ class MockConfluenceSession(ConfluenceSession):
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 parentId TEXT,
+                position INTEGER NOT NULL,  -- uses multiples of 2 to allow inserting between existing pages without immediate renumbering
                 createdAt INTEGER NOT NULL,  -- stored as UNIX timestamp
                 version INTEGER NOT NULL,
                 body TEXT NOT NULL
@@ -108,12 +109,19 @@ class MockConfluenceSession(ConfluenceSession):
 
     def _get_page_row(self, page_id: str) -> sqlite3.Row:
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, createdAt, version, body FROM pages WHERE id = ?",
+            "SELECT id, title, parentId, position, createdAt, version, body FROM pages WHERE id = ?",
             (page_id,),
         ).fetchone()
         if row is None:
             raise ConfluenceError(f"page not found with ID: {page_id}")
         return row
+
+    def _get_child_ids(self, parent_id: str | None) -> list[str]:
+        rows = self._db.execute(
+            "SELECT id FROM pages WHERE parentId IS ? ORDER BY position",
+            (parent_id,),
+        ).fetchall()
+        return [str(row["id"]) for row in rows]
 
     def _get_content_property_row(self, page_id: str, property_id: str) -> sqlite3.Row:
         row: sqlite3.Row | None = self._db.execute(
@@ -158,7 +166,7 @@ class MockConfluenceSession(ConfluenceSession):
             spaceId="SPACE_ID",
             parentId=row["parentId"],
             parentType=ConfluencePageParentContentType.PAGE,
-            position=0,
+            position=int(row["position"]) // 2,
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
             lastOwnerId=None,
@@ -250,7 +258,6 @@ class MockConfluenceSession(ConfluenceSession):
                 (int(now.timestamp()), file_size, version, attachment_id),
             )
         self._db.commit()
-        return None
 
     @override
     def close(self) -> None:
@@ -301,13 +308,12 @@ class MockConfluenceSession(ConfluenceSession):
         self._get_attachment_row(attachment_id)
         self._db.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
         self._db.commit()
-        return None
 
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
         LOGGER.debug("title: %s", title)
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, createdAt, version, body FROM pages WHERE title = ? LIMIT 1",
+            "SELECT id, title, parentId, position, createdAt, version, body FROM pages WHERE title = ? LIMIT 1",
             (title,),
         ).fetchone()
         if row is None:
@@ -336,7 +342,6 @@ class MockConfluenceSession(ConfluenceSession):
         self._db.commit()
         if cursor.rowcount == 0:
             raise ConfluenceError(f"page not found with ID: {page_id}")
-        return None
 
     @override
     def create_page(self, *, title: str, content: str, parent_id: str, space_id: str) -> ConfluencePage:
@@ -347,9 +352,16 @@ class MockConfluenceSession(ConfluenceSession):
     def _create_page(self, page_id: str, title: str, content: str, parent_id: str | None, space_id: str) -> ConfluencePage:
         created_at = datetime.datetime.now(datetime.timezone.utc)
         version = 1
+
+        row: sqlite3.Row = self._db.execute(
+            "SELECT COALESCE(MAX(position), -2) + 2 AS position FROM pages WHERE parentId IS ?",
+            (parent_id,),
+        ).fetchone()
+        position = int(row["position"])
+
         self._db.execute(
-            "INSERT INTO pages (id, title, parentId, createdAt, version, body) VALUES (?, ?, ?, ?, ?, ?)",
-            (page_id, title, parent_id, int(created_at.timestamp()), version, content),
+            "INSERT INTO pages (id, title, parentId, position, createdAt, version, body) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (page_id, title, parent_id, position, int(created_at.timestamp()), version, content),
         )
         self._db.commit()
         return self.get_page(page_id)
@@ -359,7 +371,6 @@ class MockConfluenceSession(ConfluenceSession):
         LOGGER.debug("page_id: %s", page_id)
         self._db.execute("DELETE FROM pages WHERE id = ?", (page_id,))
         self._db.commit()
-        return None
 
     @override
     def page_exists(self, title: str, *, space_id: str | None = None) -> str | None:
@@ -371,7 +382,67 @@ class MockConfluenceSession(ConfluenceSession):
 
     @override
     def move_page(self, page_id: str, position: Literal["before", "after", "append"], ref_id: str) -> None:
-        pass
+        LOGGER.debug("page_id: %s, position: %s, ref_id: %s", page_id, position, ref_id)
+        page_row = self._get_page_row(page_id)
+        source_parent_id = page_row["parentId"]
+
+        match position:
+            case "append":
+                target_parent_id = ref_id
+                self._get_page_row(target_parent_id)  # validate target parent exists
+            case "before" | "after":
+                if page_id == ref_id:
+                    raise ConfluenceError("cannot move page relative to itself")
+
+                ref_row = self._get_page_row(ref_id)
+                target_parent_id = ref_row["parentId"]
+
+        source_children = self._get_child_ids(source_parent_id)
+        target_children = source_children if source_parent_id == target_parent_id else self._get_child_ids(target_parent_id)
+
+        source_children = [id for id in source_children if id != page_id]
+        target_children = [id for id in target_children if id != page_id]
+
+        match position:
+            case "append":
+                target_children.append(page_id)
+            case "before" | "after":
+                try:
+                    ref_index = target_children.index(ref_id)
+                except ValueError as exc:
+                    raise ConfluenceError(f"reference page not found with ID: {ref_id}") from exc
+                insert_index = ref_index if position == "before" else ref_index + 1
+                target_children.insert(insert_index, page_id)
+
+        self._db.execute(
+            "UPDATE pages SET parentId = ? WHERE id = ?",
+            (target_parent_id, page_id),
+        )
+        params: list[str | int]
+        if target_children:
+            values_clause = ", ".join(["(?, ?)"] * len(target_children))
+            params = []
+            for index, child_id in enumerate(target_children):
+                params.extend([child_id, index * 2])
+            self._db.execute(
+                f"WITH ranked(id, position) AS (VALUES {values_clause}) "
+                "UPDATE pages SET position = (SELECT ranked.position FROM ranked WHERE ranked.id = pages.id) "
+                "WHERE id IN (SELECT id FROM ranked)",
+                tuple(params),
+            )
+        if source_parent_id != target_parent_id:
+            if source_children:
+                values_clause = ", ".join(["(?, ?)"] * len(source_children))
+                params = []
+                for index, child_id in enumerate(source_children):
+                    params.extend([child_id, index * 2])
+                self._db.execute(
+                    f"WITH ranked(id, position) AS (VALUES {values_clause}) "
+                    "UPDATE pages SET position = (SELECT ranked.position FROM ranked WHERE ranked.id = pages.id) "
+                    "WHERE id IN (SELECT id FROM ranked)",
+                    tuple(params),
+                )
+        self._db.commit()
 
     @override
     def get_labels(self, page_id: str) -> list[ConfluenceIdentifiedLabel]:
@@ -381,17 +452,14 @@ class MockConfluenceSession(ConfluenceSession):
     @override
     def add_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
         LOGGER.debug("page_id: %s", page_id)
-        return None
 
     @override
     def remove_labels(self, page_id: str, labels: list[ConfluenceLabel]) -> None:
         LOGGER.debug("page_id: %s", page_id)
-        return None
 
     @override
     def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
         LOGGER.debug("page_id: %s", page_id)
-        return None
 
     @override
     def get_content_property_for_page(self, page_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
@@ -434,7 +502,6 @@ class MockConfluenceSession(ConfluenceSession):
             (property_id, page_id),
         )
         self._db.commit()
-        return None
 
     @override
     def update_content_property_for_page(
