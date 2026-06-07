@@ -149,6 +149,7 @@ class Processor:
                 self.global_properties = typing.cast(dict[str, JsonType], data)
 
         self.page_metadata = ConfluencePageCollection()
+        self.user_metadata = ConfluenceUserCollection()
 
     def process_directory(self, local_dir: Path) -> None:
         """
@@ -218,7 +219,9 @@ class Processor:
         users: set[tuple[str, str]] = set()
         for descendant in tree.all():
             users.update(descendant.users)
-        self.user_metadata = self._synchronize_users(users)
+
+        if self.options.converter.user_mentions:
+            self.user_metadata = self._synchronize_users(users)
 
         # ensure child pages have the same order as Markdown files in a parent directory
         self._synchronize_order(tree, parent_to_children)

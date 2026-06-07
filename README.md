@@ -777,6 +777,8 @@ options:
                         Format for rendering Mermaid and draw.io diagrams. (default: png)
   --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
   --no-webui-links      Use hierarchical links including space and page ID. (default)
+  --user-mentions       Transform `mailto:` links into Confluence user mentions (`@...`) with name-based lookup. (default)
+  --no-user-mentions    Keep `mailto:` links as regular links.
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
   --no-use-panel        Use standard Confluence macro types for admonitions and alerts (info, tip, note and warning). (default)
   --force-valid-language
@@ -842,6 +844,7 @@ options = ProcessorOptions(
         render_latex=bool(),
         diagram_output_format='png' or 'svg',
         webui_links=bool(),
+        user_mentions=bool(),
         use_panel=bool(),
         force_valid_language=bool(),
         layout=LayoutOptions(

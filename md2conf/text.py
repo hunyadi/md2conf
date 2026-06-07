@@ -11,7 +11,7 @@ import re
 
 def user_references(text: str) -> set[tuple[str, str]]:
     """
-    Extracts user references from a Markdown document.
+    Extracts user references (a.k.a. user mentions) from a Markdown document.
 
     User references are expected to be in the format `[NAME](mailto:EMAIL)`, i.e. a Markdown link that points to an email address.
 
