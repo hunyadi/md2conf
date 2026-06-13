@@ -389,7 +389,7 @@ Unfortunately, not every third-party app supports every alignment variant. For e
 
 When a link to an absolute URL fully occupies a paragraph, it is automatically transformed into a block-level *card*, showing a document preview. These previews are represented in Confluence by the HTML element `<a>` having an attribute `data-card-appearance` with the value `block`. Thus, the following Markdown syntax will produce equivalent Confluence Storage Format output when the source file is converted:
 
-```md
+```markdown
 [Project page](https://github.com/hunyadi/md2conf)
 
 <a href="https://github.com/hunyadi/md2conf" data-card-appearance="block">Project page</a>
@@ -490,12 +490,14 @@ The following table shows standard highlight colors (CSS `background-color`) tha
 
 ### HTML in Markdown
 
-*md2conf* relays HTML elements nested in Markdown content to Confluence (such as `e<sup>x</sup>` for superscript). However, Confluence uses an extension of XHTML, i.e. the content must qualify as valid XML too. In particular, unterminated tags (e.g. `<br>` or `<img ...>`) or inconsistent nesting (e.g. `<b><i></b></i>`) are not permitted, and will raise an XML parsing error. When an HTML element has no content such as `<br>` or `<img>`, use a self-closing tag:
+*md2conf* relays HTML elements nested in Markdown content to Confluence (such as `e<sup>x</sup>` for superscript). However, Confluence uses an extension of XHTML (so-called Confluence Storage Format), i.e. the content must qualify as valid XML too. In particular, unterminated tags (e.g. `<br>` or `<img ...>`) or inconsistent nesting (e.g. `<b><i></b></i>`) are not permitted, and will raise an XML parse error.
 
-```html
-<br/>
-<img src="image.png" width="24" height="24" />
-```
+Follow these guidelines to use HTML in Markdown safely:
+
+* When an HTML element has no content such as `<br>` or `<img>`, use a self-closing tag: e.g. `<br/>` or `<img src="image.png" width="24" height="24" />`.
+* When inline HTML appears in a Markdown paragraph, both the opening and the closing tag must be in the same paragraph, the element content cannot span over multiple Markdown paragraphs.
+* Block-level HTML elements (e.g. `<table>`), which can nest other elements, must appear at the top level. Their content is passed unaltered from Markdown input into Confluence Storage Format output.
+* If an HTML element must appear as typed, enclose the text in inline code (single tick) or a fenced code block (triple ticks).
 
 ### Links to attachments
 
@@ -505,7 +507,7 @@ If *md2conf* encounters a Markdown link that points to a file in the directory h
 
 Markdown links that point to an e-mail address may be converted into a *user mention* (e.g. `@hunyadi`). Mentions should follow the syntax below:
 
-```md
+```markdown
 [Levente Hunyadi](mailto:levente.hunyadi@example.com)
 ```
 

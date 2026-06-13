@@ -51,9 +51,20 @@ class ConfluenceRepresentation(enum.Enum):
 
 @enum.unique
 class ConfluenceStatus(enum.Enum):
+    """
+    The status of the content.
+
+    Values `current` and `draft` are supported for both `GET` and `UPDATE` operations.
+    Other values can be returned by `GET` but not allowed for `UPDATE`.
+    """
+
     CURRENT = "current"
     DRAFT = "draft"
     ARCHIVED = "archived"
+    HISTORICAL = "historical"
+    TRASHED = "trashed"
+    DELETED = "deleted"
+    ANY = "any"
 
 
 @enum.unique

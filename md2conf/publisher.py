@@ -304,9 +304,12 @@ class SynchronizingProcessor(Processor):
             page = self.api.get_or_create_page(title, parent_id)
             catalog.add_parent(page_id=page.id, parent_id=page.parentId, position=page.position)
 
-            if page.status is ConfluenceStatus.ARCHIVED:
-                # user has archived a page with this (possibly auto-generated) title
-                raise PageError(f"unable to update archived page with ID {page.id} when synchronizing {node.absolute_path}")
+            match page.status:
+                case ConfluenceStatus.CURRENT | ConfluenceStatus.DRAFT:
+                    pass
+                case _:
+                    # user has archived, trashed or deleted a page with this (possibly auto-generated) title
+                    raise PageError(f"unable to update page with ID {page.id} and status {page.status.value} when synchronizing {node.absolute_path}")
 
             if not catalog.is_traceable(page.id):
                 raise PageError(
