@@ -16,6 +16,7 @@ from requests import HTTPError, RequestException, Session
 from .api_base import ConfluenceSessionShared
 from .api_types import (
     ConfluenceAttachment,
+    ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentVersion,
     ConfluenceIdentifiedContentProperty,
@@ -355,3 +356,10 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
             ),
             ConfluenceIdentifiedContentProperty,
         )
+
+    @override
+    def get_comments(self, page_id: str) -> list[ConfluenceComment]:
+        path = f"/pages/{page_id}/inline-comments"
+        query = {"body-format": "storage", "status": "current"}
+        items = self._fetch_v2(path, query)
+        return [json_to_object(ConfluenceComment, item) for item in items]

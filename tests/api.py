@@ -17,6 +17,7 @@ from uuid import uuid4
 from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import (
     ConfluenceAttachment,
+    ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentVersion,
     ConfluenceIdentifiedContentProperty,
@@ -526,6 +527,11 @@ class MockConfluenceSession(ConfluenceSession):
             (property_id,),
         ).fetchone()
         return self._row_to_identified_content_property(row)
+
+    @override
+    def get_comments(self, page_id: str) -> list[ConfluenceComment]:
+        LOGGER.debug("page_id: %s", page_id)
+        return []
 
 
 class MockConfluenceAPI:

@@ -16,6 +16,7 @@ from requests import RequestException, Session
 from .api_base import ConfluenceSessionShared
 from .api_types import (
     ConfluenceAttachment,
+    ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentVersion,
     ConfluenceIdentifiedContentProperty,
@@ -469,3 +470,9 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             ConfluenceVersionedContentProperty(key=property.key, value=property.value, version=ConfluenceContentVersion(number=version)),
             ConfluenceIdentifiedContentProperty,
         )
+
+    @override
+    def get_comments(self, page_id: str) -> list[ConfluenceComment]:
+        # path = f"/content/{page_id}/child/comment"
+        # items = self._fetch_v1(path)
+        return []

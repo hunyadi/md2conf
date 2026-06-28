@@ -19,6 +19,7 @@ from requests import Response, Session
 
 from .api_types import (
     ConfluenceAttachment,
+    ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentVersion,
     ConfluenceIdentifiedContentProperty,
@@ -399,6 +400,17 @@ class ConfluenceSession(ABC):
                 if old_prop.value == new_prop.value:
                     continue
                 self.update_content_property_for_page(page_id, old_prop.id, old_prop.version.number + 1, new_prop)
+
+    @abstractmethod
+    def get_comments(self, page_id: str) -> list[ConfluenceComment]:
+        """
+        Fetches inline comments for a Confluence page.
+
+        :param page_id: The Confluence page ID.
+        :returns: A list of comments associated with the page.
+        """
+
+        ...
 
 
 class ConfluenceSessionShared(ConfluenceSession):

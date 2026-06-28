@@ -12,7 +12,7 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 
 from .api_base import ConfluenceSession
-from .api_types import ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
+from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
@@ -380,6 +380,20 @@ class SynchronizingProcessor(Processor):
                 LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
                 if not self.options.overwrite:
                     return
+
+            # check if page has open inline comments
+            match self.options.comments:
+                case "remove":
+                    pass
+                case "check-open":
+                    comments = [
+                        comment
+                        for comment in self.api.get_comments(page.id)
+                        if comment.resolutionStatus in (ConfluenceCommentStatus.OPEN, ConfluenceCommentStatus.REOPENED)
+                    ]
+                    if len(comments) > 0:
+                        LOGGER.warning("Page with ID %s has open inline comments: %s", page.id, page.title)
+                        return
 
         # fetch list of existing attachments
         attachments: dict[str, str] = {}

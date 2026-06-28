@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import NewType
+from typing import Literal, NewType
 
 from .clio import boolean_option, composite_option, nullable_option, value_option
 from .options_converter import ConverterOptions
@@ -34,6 +34,7 @@ class ProcessorOptions:
     :param title_prefix: String to prepend to Confluence page title for each published page.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param overwrite: Whether to overwrite (manual) page changes that occurred since last synchronization.
+    :param comments: Behavior for inline comments when page is updated: remove, check if open, or keep.
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
     :param converter: Options for converting an HTML tree into Confluence Storage Format.
     :param line_numbers: Inject line numbers in Markdown source file to help localize conversion errors.
@@ -71,6 +72,7 @@ class ProcessorOptions:
             "Skip pages with (manual) changes that occurred since last synchronization.",
         ),
     )
+    comments: Literal["remove", "check-open"] = field(default="remove", metadata=value_option("Behavior for inline comments when page is updated."))
     skip_update: bool = field(
         default=False,
         metadata=boolean_option(
