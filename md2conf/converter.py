@@ -296,20 +296,15 @@ def title_to_identifier(title: str) -> str:
 
 def title_to_slug(title: str) -> str:
     """
-    Converts a section heading title to a GitHub-style Markdown same-page anchor with accent removal.
+    Converts a section heading title to a GitHub-style Markdown same-page anchor.
 
     :param title: Heading title text without formatting.
     """
 
-    s = title.strip()
-    # normalize to NFD (decomposes accents)
-    s = unicodedata.normalize("NFD", s)
-    # remove nonspacing combining diacritic marks (zero advance width) (Unicode category `Mn`)
-    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
-    # transform to lowercase
-    s = s.lower()
-    # remove punctuation except spaces and hyphens
-    s = _DISALLOWED_CHAR_REGEXP.sub("", s)
+    # normalize equivalent Unicode sequences and transform letters to lowercase
+    s = unicodedata.normalize("NFC", title.strip()).lower()
+    # remove punctuation except spaces, hyphens and Unicode word characters
+    s = re.sub(r"[^\s\w-]", "", s)
     # collapse whitespace to hyphens
     s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
 

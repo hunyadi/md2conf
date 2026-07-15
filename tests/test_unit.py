@@ -109,8 +109,8 @@ class TestUnit(TypedTestCase):
         self.assertEqual(title_to_slug("What's New in v2.0?"), "whats-new-in-v20")
         self.assertEqual(title_to_slug("C++ & C# Comparison"), "c-c-comparison")
         self.assertEqual(title_to_slug("Hello -- World!!"), "hello----world")
-        self.assertEqual(title_to_slug("paramètres"), "parametres")
-        self.assertEqual(title_to_slug("árvíztűrő tükörfúrógép"), "arvizturo-tukorfurogep")  # spellchecker:disable-line
+        self.assertEqual(title_to_slug("paramètres"), "paramètres")
+        self.assertEqual(title_to_slug("árvíztűrő tükörfúrógép"), "árvíztűrő-tükörfúrógép")  # spellchecker:disable-line
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:
