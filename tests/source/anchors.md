@@ -4,7 +4,7 @@
 
 [Project page](https://github.com/hunyadi/md2conf)
 
-[Link to Subsection 1](#subsection-1) | [Link to Subsection 2](#subsection-links) | [Link to Subsection 3](#subsection-empty) | [Link to Subsection 4](#arvizturo-tukorfurogep)
+[Link to Subsection 1](#subsection-1) | [Link to Subsection 2](#subsection-links) | [Link to Subsection 3](#subsection-empty) | [Link to Subsection 4](#árvíztűrő-tükörfúrógép)
 
 ### Subsection 1
 

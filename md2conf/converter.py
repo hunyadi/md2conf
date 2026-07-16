@@ -275,12 +275,13 @@ class NodeVisitor(ABC):
 
 
 _DISALLOWED_CHAR_REGEXP = re.compile(r"[^\sa-z0-9_-]")
+_PUNCTUATION_REMOVE_REGEXP = re.compile(r"[^\s\w-]")
 _SPACE_COLLAPSE_REGEXP = re.compile(r"\s+")
 
 
 def title_to_identifier(title: str) -> str:
     """
-    Converts a section heading title to a GitHub-style Markdown same-page anchor.
+    Converts a section heading title to a Markdown same-page anchor.
 
     :param title: Heading title text without formatting.
     """
@@ -294,9 +295,9 @@ def title_to_identifier(title: str) -> str:
     return s
 
 
-def title_to_slug(title: str) -> str:
+def title_to_ascii_slug(title: str) -> str:
     """
-    Converts a section heading title to a GitHub-style Markdown same-page anchor with accent removal.
+    Converts a section heading title to a Markdown same-page anchor with accent removal.
 
     :param title: Heading title text without formatting.
     """
@@ -304,7 +305,7 @@ def title_to_slug(title: str) -> str:
     s = title.strip()
     # normalize to NFD (decomposes accents)
     s = unicodedata.normalize("NFD", s)
-    # remove nonspacing combining diacritic marks (zero advance width) (Unicode category `Mn`)
+    # remove non-spacing combining diacritic marks (zero advance width) (Unicode category `Mn`)
     s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
     # transform to lowercase
     s = s.lower()
@@ -313,6 +314,23 @@ def title_to_slug(title: str) -> str:
     # collapse whitespace to hyphens
     s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
 
+    return s
+
+
+def title_to_slug(title: str) -> str:
+    """
+    Converts a section heading title to a Markdown same-page anchor retaining Unicode word characters.
+
+    :param title: Heading title text without formatting.
+    :returns: A slug compatible with GitHub and GitLab flavor Markdown.
+    """
+
+    # normalize equivalent Unicode sequences and transform letters to lowercase
+    s = unicodedata.normalize("NFC", title.strip()).lower()
+    # remove punctuation except spaces, hyphens and Unicode word characters
+    s = _PUNCTUATION_REMOVE_REGEXP.sub("", s)
+    # collapse whitespace to hyphens
+    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
     return s
 
 
