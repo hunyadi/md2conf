@@ -328,7 +328,7 @@ def title_to_slug(title: str) -> str:
     # normalize equivalent Unicode sequences and transform letters to lowercase
     s = unicodedata.normalize("NFC", title.strip()).lower()
     # remove punctuation except spaces, hyphens and Unicode word characters
-    s = re.sub(_PUNCTUATION_REMOVE_REGEXP, "", s)
+    s = _PUNCTUATION_REMOVE_REGEXP.sub("", s)
     # collapse whitespace to hyphens
     s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
     return s
