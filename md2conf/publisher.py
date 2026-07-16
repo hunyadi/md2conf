@@ -19,7 +19,7 @@ from .collection import ConfluenceUserCollection
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, apply_generated_by_template, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import AC_ATTR, ElementType, elements_from_string
-from .environment import PageError
+from .environment import ArgumentError, PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .options_converter import ConverterOptions
@@ -404,12 +404,24 @@ class SynchronizingProcessor(Processor):
         base_path = path.parent
         for image_data in document.images:
             name = attachment_name(path_relative_to(image_data.path, base_path))
-            self.api.upload_attachment(page_id, name, attachment_path=image_data.path, comment=image_data.description)
+            self._synchronize_attachment(
+                page_id,
+                attachments.get(name),
+                name,
+                attachment_path=image_data.path,
+                comment=image_data.description,
+            )
             attachments.pop(name, None)
 
         # update attachments with embedded content
         for name, file_data in document.embedded_files.items():
-            self.api.upload_attachment(page_id, name, raw_data=file_data.data, comment=file_data.description)
+            self._synchronize_attachment(
+                page_id,
+                attachments.get(name),
+                name,
+                raw_data=file_data.data,
+                comment=file_data.description,
+            )
             attachments.pop(name, None)
 
         # delete attachments no longer referenced
@@ -441,6 +453,60 @@ class SynchronizingProcessor(Processor):
         else:
             if source_tag is None or source_tag != target_tag:
                 self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
+
+    def _synchronize_attachment(
+        self,
+        page_id: str,
+        attachment_id: str | None,
+        attachment_name: str,
+        *,
+        attachment_path: Path | None = None,
+        raw_data: bytes | None = None,
+        comment: str | None = None,
+    ) -> None:
+        """Synchronizes an attachment using a checksum when the API supports content properties."""
+
+        if attachment_path is None and raw_data is None:
+            raise ArgumentError("required: `attachment_path` or `raw_data`")
+        if attachment_path is not None and raw_data is not None:
+            raise ArgumentError("expected: either `attachment_path` or `raw_data`")
+
+        if not self.api.supports_attachment_content_properties:
+            self.api.upload_attachment(page_id, attachment_name, attachment_path=attachment_path, raw_data=raw_data, comment=comment)
+            return
+
+        digest = hashlib.md5()
+        if attachment_path is not None:
+            if not attachment_path.is_file():
+                raise PageError(f"file not found: {attachment_path}")
+            with attachment_path.open("rb") as attachment_file:
+                while chunk := attachment_file.read(1024 * 1024):
+                    digest.update(chunk)
+        elif raw_data is not None:
+            digest.update(raw_data)
+        else:
+            raise AssertionError("parameter match not exhaustive")
+
+        source_digest = digest.hexdigest()
+        if attachment_id is not None:
+            property = self.api.get_content_property_for_attachment(attachment_id, CONTENT_PROPERTY_TAG)
+            if property is not None and property.value == source_digest:
+                LOGGER.info("Up-to-date attachment (matching checksum): %s", attachment_name)
+                return
+
+        self.api.upload_attachment(
+            page_id,
+            attachment_name,
+            attachment_path=attachment_path,
+            raw_data=raw_data,
+            comment=comment,
+            force=True,
+        )
+        attachment = self.api.get_attachment_by_name(page_id, attachment_name)
+        self.api.update_content_property_for_attachment(
+            attachment.id,
+            ConfluenceContentProperty(CONTENT_PROPERTY_TAG, source_digest),
+        )
 
     def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
         "True if the Confluence Storage Format content generated from the Markdown source file matches the Confluence target page content."

@@ -99,6 +99,18 @@ class MockConfluenceSession(ConfluenceSession):
             )
             """
         )
+        self._db.execute(
+            """
+            CREATE TABLE attachmentContentProperties (
+                id TEXT PRIMARY KEY,
+                attachmentId TEXT NOT NULL,
+                key TEXT NOT NULL,
+                value TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                UNIQUE (attachmentId, key)
+            )
+            """
+        )
         self._create_page(
             page_id=HOMEPAGE_ID,
             title="Home",
@@ -308,6 +320,43 @@ class MockConfluenceSession(ConfluenceSession):
         LOGGER.debug("attachment_id: %s", attachment_id)
         self._get_attachment_row(attachment_id)
         self._db.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
+        self._db.commit()
+
+    @property
+    @override
+    def supports_attachment_content_properties(self) -> bool:
+        return True
+
+    @override
+    def get_content_property_for_attachment(self, attachment_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
+        LOGGER.debug("attachment_id: %s, property_key: %s", attachment_id, key)
+        row: sqlite3.Row | None = self._db.execute(
+            "SELECT id, key, value, version FROM attachmentContentProperties WHERE attachmentId = ? AND key = ? LIMIT 1",
+            (attachment_id, key),
+        ).fetchone()
+        return self._row_to_identified_content_property(row) if row is not None else None
+
+    @override
+    def update_content_property_for_attachment(self, attachment_id: str, property: ConfluenceContentProperty) -> None:
+        old_property = self.get_content_property_for_attachment(attachment_id, property.key)
+        if old_property is None:
+            property_id = f"PROP_{uuid4().hex[:8].upper()}"
+            self._db.execute(
+                "INSERT INTO attachmentContentProperties (id, attachmentId, key, value, version) VALUES (?, ?, ?, ?, ?)",
+                (property_id, attachment_id, property.key, json.dumps(property.value), 1),
+            )
+        elif old_property.value != property.value:
+            self._db.execute(
+                "UPDATE attachmentContentProperties SET key = ?, value = ?, version = ? WHERE id = ? AND attachmentId = ?",
+                (property.key, json.dumps(property.value), old_property.version.number + 1, old_property.id, attachment_id),
+            )
+        self._db.commit()
+
+    def remove_content_property_from_attachment(self, attachment_id: str, property_id: str) -> None:
+        self._db.execute(
+            "DELETE FROM attachmentContentProperties WHERE id = ? AND attachmentId = ?",
+            (property_id, attachment_id),
+        )
         self._db.commit()
 
     @override

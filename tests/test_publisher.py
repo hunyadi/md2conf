@@ -112,6 +112,57 @@ class TestPublisher(unittest.TestCase):
 
             publisher.process(sample_dir)
 
+    def _synchronize_attachment(
+        self,
+        *,
+        remove_checksum_after_first_upload: bool,
+        change_content: bool,
+    ) -> None:
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            document_path = source_dir / "index.md"
+            attachment_path = source_dir / "diagram.png"
+            document_path.write_text("# Diagram\n\n![diagram](diagram.png)\n", encoding="utf-8")
+            attachment_data = (Path(__file__).parent / "source" / "figure" / "raster.png").read_bytes()
+            attachment_path.write_bytes(attachment_data)
+
+            publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=False, skip_update=True))
+            publisher.process_directory(source_dir)
+
+            page = api.get_page_properties_by_title("Diagram")
+            attachment = api.get_attachment_by_name(page.id, "diagram.png")
+            first_version = attachment.version.number
+
+            if remove_checksum_after_first_upload:
+                property = api.get_content_property_for_attachment(attachment.id, "md2conf")
+                self.assertIsNotNone(property)
+                if property is not None:
+                    api.remove_content_property_from_attachment(attachment.id, property.id)
+            if change_content:
+                attachment_path.write_bytes(attachment_data[:-1] + bytes([attachment_data[-1] ^ 1]))
+            publisher.process_directory(source_dir)
+            changed_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
+            self.assertEqual(changed_version, first_version + 1)
+
+            publisher.process_directory(source_dir)
+            unchanged_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
+            self.assertEqual(unchanged_version, changed_version)
+
+    def test_synchronize_same_size_attachment_by_checksum(self) -> None:
+        """Checks if REST API v2 detects attachment changes whose byte length is unchanged."""
+
+        self._synchronize_attachment(
+            remove_checksum_after_first_upload=False,
+            change_content=True,
+        )
+
+    def test_initialize_missing_attachment_checksum(self) -> None:
+        """Checks if REST API v2 initializes a missing checksum with one upload."""
+
+        self._synchronize_attachment(
+            remove_checksum_after_first_upload=True,
+            change_content=False,
+        )
+
     def test_update(self) -> None:
         "Checks if Markdown files are updated with a page ID when synchronized."
 
