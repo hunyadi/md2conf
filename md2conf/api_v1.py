@@ -229,6 +229,19 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             else:
                 raise
 
+    @property
+    @override
+    def supports_attachment_content_properties(self) -> bool:
+        return False
+
+    @override
+    def get_content_property_for_attachment(self, attachment_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
+        raise NotImplementedError("attachment content properties are not supported")
+
+    @override
+    def update_content_property_for_attachment(self, attachment_id: str, property: ConfluenceContentProperty) -> None:
+        raise NotImplementedError("attachment content properties are not supported")
+
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
         LOGGER.info("Looking up page with title: %s", title)

@@ -150,6 +150,36 @@ class ConfluenceSession(ABC):
     @abstractmethod
     def delete_attachment(self, attachment_id: str) -> None: ...
 
+    @property
+    @abstractmethod
+    def supports_attachment_content_properties(self) -> bool:
+        """Whether attachment content properties are available in this Confluence API."""
+
+        ...
+
+    @abstractmethod
+    def get_content_property_for_attachment(self, attachment_id: str, key: str) -> ConfluenceIdentifiedContentProperty | None:
+        """
+        Retrieves a content property for an attachment.
+
+        :param attachment_id: The attachment ID.
+        :param key: The name of the property to fetch (with case-sensitive match).
+        :returns: The content property value, or `None` if not found.
+        """
+
+        ...
+
+    @abstractmethod
+    def update_content_property_for_attachment(self, attachment_id: str, property: ConfluenceContentProperty) -> None:
+        """
+        Creates or updates a content property for an attachment.
+
+        :param attachment_id: The attachment ID.
+        :param property: Content property data to assign.
+        """
+
+        ...
+
     @abstractmethod
     def upload_attachment(
         self,
