@@ -168,7 +168,7 @@ class Processor:
             synchronized=False,
             users=set(),
         )
-        self._index_directory(local_dir, root)
+        self._index_directory(local_dir, root, Matcher(local_dir, options=MatcherOptions(source=".mdignore", extension="md")))
         LOGGER.info("Indexed %d document(s)", root.count())
 
         # verify if pages have a unique title
@@ -279,14 +279,12 @@ class Processor:
         """
         ...
 
-    def _index_directory(self, local_dir: Path, parent: DocumentNode) -> None:
+    def _index_directory(self, local_dir: Path, parent: DocumentNode, matcher: Matcher) -> None:
         """
         Indexes Markdown files in a directory hierarchy recursively.
         """
 
         LOGGER.info("Indexing directory: %s", local_dir)
-
-        matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), local_dir)
 
         files: list[FileEntry] = []
         directories: list[DirectoryEntry] = []
@@ -332,7 +330,8 @@ class Processor:
             parent.add_child(node)
 
         for directory in directories:
-            self._index_directory(local_dir / Path(directory.name), parent)
+            subdirectory = local_dir / Path(directory.name)
+            self._index_directory(subdirectory, parent, Matcher(subdirectory, parent=matcher))
 
     def _index_file(self, path: Path) -> DocumentNode:
         """

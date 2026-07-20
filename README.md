@@ -595,11 +595,30 @@ While the structure remains semantically correct, the visual separation is lost.
 
 ### Ignoring files
 
-Skip files and subdirectories in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax (and constraints) of [fnmatch](https://docs.python.org/3/library/fnmatch.html#fnmatch.fnmatch). Specifically, `?` matches any single character, and `*` matches zero or more characters. For example, use `up-*.md` to exclude Markdown files that start with `up-`. Lines that start with `#` are treated as comments.
+Skip files and subdirectories in a directory with rules defined in `.mdignore`. Each rule should occupy a single line. Rules follow the syntax of [`.gitignore` patterns](https://git-scm.com/docs/gitignore). Specifically:
 
-Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into. To skip an entire directory, add the name of the directory without a trailing `/`.
+* `*` matches zero or more characters (but not `/`)
+* `?` matches any single character (but not `/`)
+* `**` matches zero or more directories
+* Patterns with `/` match relative to the directory containing `.mdignore`
+* Patterns without `/` match at any nesting level within that directory and below
+* Lines starting with `#` are treated as comments
+* Patterns prefixed with `!` negate (un-ignore) previously matched files
 
-Relative paths to items in a nested directory are not supported. You must put `.mdignore` in the same directory where the items to be skipped reside.
+For example:
+* `up-*.md` excludes Markdown files starting with `up-` at any level
+* `build/` excludes the `build` directory and its contents
+* `*.tmp` excludes all files with `.tmp` extension
+* `docs/temp/` excludes files only within the `docs/temp/` path
+* `!important.txt` un-ignores `important.txt` even if `*.txt` was previously excluded
+
+Rules defined in `.mdignore` files cascade from parent directories to subdirectories. When *md2conf* traverses the directory hierarchy, it accumulates rules from all `.mdignore` files it encounters. This means:
+
+* Rules in a parent `.mdignore` apply to all subdirectories
+* Rules in a child `.mdignore` add to (and do not override) parent rules
+* Each directory can have its own `.mdignore` file
+
+Files that don't have the extension `*.md` are skipped automatically. Hidden directories (whose name starts with `.`) are not recursed into.
 
 If you add the `synchronized` attribute to JSON or YAML front-matter with the value `false`, the document content (including attachments) and metadata (e.g. tags) will not be synchronized with Confluence:
 

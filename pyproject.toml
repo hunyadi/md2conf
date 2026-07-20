@@ -36,6 +36,7 @@ dependencies = [
     "orjson>=3.11",
     "pymdown-extensions>=10.21",
     "pyyaml>=6.0",
+    "pathspec>=1.1",
     "requests>=2.33",
     "truststore>=0.10",
     "typing-extensions>=4.15; python_version<'3.11'"

@@ -10,8 +10,10 @@ import sys
 
 if sys.version_info >= (3, 11):
     from typing import LiteralString as LiteralString  # noqa: F401
+    from typing import Self as Self  # noqa: F401
 else:
     from typing_extensions import LiteralString as LiteralString  # noqa: F401
+    from typing_extensions import Self as Self  # noqa: F401
 
 if sys.version_info >= (3, 12):
     from typing import override as override  # noqa: F401

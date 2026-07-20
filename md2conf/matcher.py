@@ -8,9 +8,12 @@ Copyright 2022-2026, Levente Hunyadi
 
 import os.path
 from dataclasses import dataclass
-from fnmatch import fnmatch
 from pathlib import Path
 from typing import Iterable, final, overload
+
+from pathspec import GitIgnoreSpec
+
+from .compatibility import Self
 
 
 @dataclass(frozen=True, eq=True)
@@ -116,19 +119,36 @@ class Matcher:
     "Compares file and directory names against a list of exclude/include patterns."
 
     options: MatcherOptions
-    rules: list[str]
+    _dir: Path
+    _specs: list[tuple[Path, GitIgnoreSpec]]
 
-    def __init__(self, options: MatcherOptions, directory: Path) -> None:
-        self.options = options
-        if os.path.exists(directory / options.source):
-            rules = (directory / options.source).read_text(encoding="utf-8").splitlines()
-            self.rules = [rule for rule in rules if rule and not rule.startswith("#")]
+    @overload
+    def __init__(self, directory: Path, *, options: MatcherOptions) -> None:
+        """Creates a root matcher from explicit options."""
+        ...
+
+    @overload
+    def __init__(self, directory: Path, *, parent: Self) -> None:
+        """Creates a child matcher that inherits options and accumulated rules from its parent."""
+        ...
+
+    def __init__(self, directory: Path, *, options: MatcherOptions | None = None, parent: Self | None = None) -> None:
+        if options is not None and parent is None:
+            self.options = options
+            self._specs = []
+        elif options is None and parent is not None:
+            self.options = parent.options
+            self._specs = list(parent._specs)  # force copy to avoid false sharing
         else:
-            self.rules = []
+            raise NotImplementedError(f"expected: {MatcherOptions.__name__} as `options` or {Matcher.__name__} as `parent`")
 
-        for rule in self.rules:
-            if "/" in rule or os.path.sep in rule:
-                raise ValueError(f"nested matching not supported: {rule}")
+        self._dir = directory
+
+        ignore_file = directory / self.options.source
+        if os.path.exists(ignore_file):
+            rules = ignore_file.read_text(encoding="utf-8").splitlines()
+            spec = GitIgnoreSpec.from_lines(rules)
+            self._specs.append((directory, spec))
 
     def extension_matches(self, name: str) -> bool:
         "True if the file name has the expected extension."
@@ -169,11 +189,15 @@ class Matcher:
         if not is_dir and not self.extension_matches(name):
             return True
 
-        for rule in self.rules:
-            if fnmatch(name, rule):
+        for base_dir, spec in self._specs:
+            rel = (self._dir / name).relative_to(base_dir)
+            rel_str = rel.as_posix()
+            if is_dir:
+                rel_str += "/"
+            if spec.match_file(rel_str):
                 return True
-        else:
-            return False
+
+        return False
 
     @overload
     def is_included(self, entry: Entry) -> bool:

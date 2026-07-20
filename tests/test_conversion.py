@@ -134,7 +134,7 @@ class TestConversion(TypedTestCase):
         emoji.generate_source(self.source_dir / "emoji.md")
         emoji.generate_target(self.target_dir / "emoji.xml")
 
-        matcher = Matcher(MatcherOptions(source=".mdignore", extension="md"), self.source_dir)
+        matcher = Matcher(self.source_dir, options=MatcherOptions(source=".mdignore", extension="md"))
 
         entries: list[os.DirEntry[str]] = []
         for entry in os.scandir(self.source_dir):

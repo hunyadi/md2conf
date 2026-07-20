@@ -1,0 +1,4 @@
+source/skip.md
+excluded.md
+*.log
+!important.log
