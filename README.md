@@ -839,6 +839,7 @@ options:
 
 *md2conf* has a Python interface. Create a `ConnectionProperties` object to set connection parameters to the Confluence server, and a `ProcessorOptions` object to configure how Markdown files are converted into pages on a Confluence wiki site. Open a connection to the Confluence server with the context manager `ConfluenceAPI`, and instantiate a `Publisher` to start converting documents.
 
+<!-- fmt:off -->
 ```python
 from md2conf.api import ConfluenceAPI
 from md2conf.environment import ConnectionProperties
@@ -897,6 +898,7 @@ options = ProcessorOptions(
 with ConfluenceAPI(properties) as api:
     Publisher(api, options).process(mdpath)
 ```
+<!-- fmt:on -->
 
 ### Environment variables for external tools
 
