@@ -201,6 +201,22 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_task_list_disabled(self) -> None:
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "tasklist.md",
+            ProcessorOptions(converter=ConverterOptions(task_lists=False)),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+            self.user_metadata,
+        )
+        actual = doc.xhtml()
+
+        self.assertNotIn("<ac:task-list>", actual)
+        self.assertIn("<ul>", actual)
+        self.assertIn("[x]", actual)
+        self.assertIn("[ ]", actual)
+
     def test_broken_links(self) -> None:
         with self.assertLogs(level=logging.WARNING) as cm:
             _, doc = ConfluenceDocument.create(

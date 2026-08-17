@@ -524,8 +524,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         path: Path,
         root_dir: Path,
         site_metadata: ConfluenceSiteMetadata,
-        page_metadata: ConfluencePageCollection,
-        user_metadata: ConfluenceUserCollection,
+        page_metadata: ConfluencePageCollection | None = None,
+        user_metadata: ConfluenceUserCollection | None = None,
     ) -> None:
         super().__init__()
 
@@ -540,8 +540,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.links = []
         self.attachments = AttachmentCatalog()
         self.site_metadata = site_metadata
-        self.page_metadata = page_metadata
-        self.user_metadata = user_metadata
+        self.page_metadata = page_metadata or ConfluencePageCollection()
+        self.user_metadata = user_metadata or ConfluenceUserCollection()
 
         self.image_generator = ImageGenerator(
             self.base_dir,
@@ -1172,8 +1172,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         :param blockquote: HTML element tree to transform to Confluence Storage Format (CSF).
         :param class_name: Corresponds to `name` attribute for CSF `structured-macro`.
 
-        :see: https://docs.github.com/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts
-        :see: https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes
+        :see: https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts
+        :see: https://docs.gitlab.com/user/markdown/#alerts
         """
 
         return AC_ELEM(
@@ -1584,6 +1584,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         Transforms a list of tasks into an action widget.
 
         :see: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists
+        :see: https://docs.gitlab.com/user/markdown/#task-lists
         """
 
         if elem.tag != "ul":
@@ -1746,7 +1747,7 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
             #   <li>[x] ...</li>
             # </ul>
             case "ul":
-                if len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
+                if self.options.task_lists and len(child) > 0 and all(element_text_starts_with_any(item, ["[ ]", "[x]", "[X]"]) for item in child):
                     return self._transform_tasklist(child)
 
                 return ElementAction.RECURSE

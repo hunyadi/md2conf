@@ -24,9 +24,9 @@ This Python package
 * Tables
 * Footnotes
 * [Table of contents](https://docs.gitlab.com/ee/user/markdown.html#table-of-contents)
-* [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/ee/development/documentation/styleguide/#alert-boxes)
+* [Admonitions](https://python-markdown.github.io/extensions/admonition/) and alert boxes in [GitHub](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts) and [GitLab](https://docs.gitlab.com/user/markdown/#alerts)
 * [Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
-* [Tasklists](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)
+* Task lists in [GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists) and [GitLab](https://docs.gitlab.com/user/markdown/#task-lists)
 * draw\.io diagrams
 * [Mermaid diagrams](https://mermaid.live/)
 * PlantUML diagrams
@@ -807,6 +807,8 @@ options:
                         Format for rendering Mermaid and draw.io diagrams. (default: png)
   --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
   --no-webui-links      Use hierarchical links including space and page ID. (default)
+  --task-lists          Transform GitHub/GitLab-style task lists into Confluence task list objects. (default)
+  --no-task-lists       Keep task lists as regular itemized lists.
   --user-mentions       Transform `mailto:` links into Confluence user mentions (`@...`) with name-based lookup. (default)
   --no-user-mentions    Keep `mailto:` links as regular links.
   --use-panel           Transform admonitions and alerts into a Confluence custom panel.
@@ -876,6 +878,7 @@ options = ProcessorOptions(
         render_latex=bool(),
         diagram_output_format='png' or 'svg',
         webui_links=bool(),
+        task_lists=bool(),
         user_mentions=bool(),
         use_panel=bool(),
         force_valid_language=bool(),

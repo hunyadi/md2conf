@@ -14,7 +14,7 @@ layout:
 
 ![PNG image with caption](figure/raster.png)
 
-![SVG image with caption](figure/vector.svg "A vector image")
+![SVG image with caption](vector.svg "A vector image")
 
 ![draw.io image embedded in PNG](figure/diagram.drawio.png)
 

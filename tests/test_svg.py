@@ -127,7 +127,7 @@ class TestSvgDimensions(TypedTestCase):
         "Test with the actual vector.svg file in the test fixtures."
 
         test_dir = Path(__file__).parent
-        svg_path = test_dir / "source" / "figure" / "vector.svg"
+        svg_path = test_dir / "source" / "vector.svg"
         dimensions = get_svg_dimensions(svg_path)
         self.assertDimensions(dimensions, 200, 200)
 

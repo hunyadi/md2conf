@@ -111,6 +111,7 @@ class ConverterOptions:
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
+    :param task_lists: When true, convert GitHub/GitLab-style task lists into Confluence task list objects.
     :param user_mentions: When true, convert `mailto:` links into Confluence user mentions.
     :param use_panel: Whether to transform admonitions and alerts into a Confluence custom panel.
     :param force_valid_language: When true, only allow supported languages in code blocks (unsupported languages are ignored);
@@ -184,6 +185,13 @@ class ConverterOptions:
         metadata=boolean_option(
             "Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)",
             "Use hierarchical links including space and page ID.",
+        ),
+    )
+    task_lists: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Transform GitHub/GitLab-style task lists into Confluence task list objects.",
+            "Keep task lists as regular itemized lists.",
         ),
     )
     user_mentions: bool = field(

@@ -16,7 +16,7 @@
   <ac:caption>PNG image with caption</ac:caption>
 </ac:image>
 <ac:image ac:align="left" ac:layout="align-start" ac:original-width="200" ac:original-height="200" ac:custom-width="true" ac:width="200" ac:alt="SVG image with caption" ac:title="A vector image">
-  <ri:attachment ri:filename="figure_vector.svg"/>
+  <ri:attachment ri:filename="vector.svg"/>
   <ac:caption>A vector image</ac:caption>
 </ac:image>
 <ac:image ac:align="left" ac:layout="align-start" ac:original-width="81" ac:original-height="121" ac:custom-width="true" ac:width="81" ac:alt="draw.io image embedded in PNG">
