@@ -65,3 +65,15 @@ A block quote:
 UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.
 
 Some HTML entities are supported, e.g.&nbsp;&copy; or &para;.
+
+Wrapped list items:
+
+- a bullet whose text wraps
+  onto a continuation line
+
+1. a numbered item that wraps
+   onto a continuation line
+
+A plain paragraph that
+wraps
+onto a continuation line.

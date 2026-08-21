@@ -68,3 +68,11 @@
 </blockquote>
 <p>UTF-8 characters outside of the ASCII range are also supported: e.g. árvíztűrő tükörfúrógép.</p>
 <p>Some HTML entities are supported, e.g. © or ¶.</p>
+<p>Wrapped list items:</p>
+<ul>
+  <li><p>a bullet whose text wraps onto a continuation line</p></li>
+</ul>
+<ol start="1">
+  <li><p>a numbered item that wraps onto a continuation line</p></li>
+</ol>
+<p>A plain paragraph that wraps onto a continuation line.</p>

@@ -123,6 +123,7 @@ def fix_absolute_path(path: Path, root_path: Path) -> Path:
 
 _UNSAFE_CHAR_REGEXP = re.compile(r"[^A-Za-z0-9._~()'!*:@,;+?-]+")
 _MULTIPLE_SPACE_REGEXP = re.compile(r"\s\s+")
+_LINE_BREAK = re.compile(r"[ \t]*\n[ \t]*")
 
 
 def encode_title(text: str) -> str:
@@ -1631,10 +1632,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         """
 
         # replace line breaks with regular space in element text to minimize phantom changes
+        # a soft line break, plus any indentation the continuation line carries (e.g. the hanging indent of a wrapped list item)
         if child.text:
-            child.text = child.text.replace("\n", " ")
+            child.text = _LINE_BREAK.sub(" ", child.text)
         if child.tail:
-            child.tail = child.tail.replace("\n", " ")
+            child.tail = _LINE_BREAK.sub(" ", child.tail)
 
         if not isinstance(child.tag, str):
             return ElementAction.RECURSE
