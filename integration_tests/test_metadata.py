@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import ClassVar
 
 from md2conf.api import ConfluenceAPI
+from md2conf.api_types import ConfluenceContentProperty, ConfluenceLabel
 from md2conf.compatibility import override
-from md2conf.csf import content_to_string
 from tests.utility import TypedTestCase
 
 
@@ -31,7 +31,7 @@ class TestConfluenceStorageFormat(TypedTestCase):
 
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
-            cls.test_page_id = api.get_or_create_page(title="Publish Markdown to Confluence", parent_id=homepage_id).id
+            cls.test_page_id = api.get_or_create_page(title="Confluence Storage Format", parent_id=homepage_id).id
 
     @override
     def setUp(self) -> None:
@@ -40,11 +40,28 @@ class TestConfluenceStorageFormat(TypedTestCase):
 
         self.sample_dir = parent_dir / "sample"
 
-    def test_markdown(self) -> None:
+    def test_labels(self) -> None:
         with ConfluenceAPI() as api:
-            page = api.get_page(self.test_page_id)
+            expected_labels = [
+                ConfluenceLabel(name="advanced", prefix="global"),
+                ConfluenceLabel(name="code", prefix="global"),
+            ]
+            api.update_labels(self.test_page_id, expected_labels)
+            assigned_labels = sorted(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in api.get_labels(self.test_page_id))
+            self.assertListEqual(assigned_labels, expected_labels)
 
-        (self.test_dir / "example.csf").write_text(content_to_string(page.content), encoding="utf-8")
+    def test_properties(self) -> None:
+        with ConfluenceAPI() as api:
+            properties = api.get_content_properties_for_page(self.test_page_id)
+            self.assertGreater(len(properties), 0)
+
+            api.update_content_properties_for_page(
+                self.test_page_id,
+                [
+                    ConfluenceContentProperty(key="content-appearance-published", value="full-width"),
+                    ConfluenceContentProperty(key="content-appearance-draft", value="full-width"),
+                ],
+            )
 
 
 if __name__ == "__main__":

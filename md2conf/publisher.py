@@ -16,9 +16,10 @@ from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, Confl
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
+from .comment import MergeResult, merge_comments, remove_comments
 from .compatibility import override, path_relative_to
 from .converter import ConfluenceDocument, apply_generated_by_template, get_orderless_elements, get_volatile_attributes, get_volatile_elements
-from .csf import AC_ATTR, ElementType, elements_from_string
+from .csf import ElementType, elements_from_string, elements_to_string
 from .environment import ArgumentError, PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
@@ -26,7 +27,7 @@ from .options_converter import ConverterOptions
 from .order import sort_items_in_order
 from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
 from .serializer import json_to_object, object_to_json, object_to_json_payload
-from .xml import ElementComparatorOptions, is_xml_equal, unwrap_substitute
+from .xml import ElementComparatorOptions, is_xml_equal
 
 LOGGER = logging.getLogger(__name__)
 
@@ -347,8 +348,7 @@ class SynchronizingProcessor(Processor):
         """
 
         # generate page storage format content
-        content = document.xhtml()
-        LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
+        root = document.root
 
         # compute hash to help detect if document content or conversion options have changed
         source_digest = DocumentHasher(
@@ -374,8 +374,12 @@ class SynchronizingProcessor(Processor):
         if not title:  # empty or `None`
             title = page.title
 
+        # discard comments
+        tree_with_comments = elements_from_string(page.content)
+        tree_without_comments = remove_comments(tree_with_comments)
+
         # check if page has any changes
-        if has_changes := self._has_changes(page, source_tag, title, document.root, source_digest):
+        if has_changes := self._has_changes(page, source_tag, title, tree_without_comments, root, source_digest):
             if source_tag is not None and page.version.number != source_tag.page_version:
                 LOGGER.warning("Page with ID %s has been edited since last synchronized: %s", page.id, page.title)
                 if not self.options.overwrite:
@@ -383,6 +387,22 @@ class SynchronizingProcessor(Processor):
 
             # check if page has open inline comments
             match self.options.comments:
+                case "keep":
+                    match merge_comments(
+                        root,
+                        tree_with_comments,
+                        ElementComparatorOptions(
+                            skip_attributes=get_volatile_attributes(),
+                            skip_elements=get_volatile_elements(),
+                            orderless_elements=get_orderless_elements(),
+                        ),
+                    ):
+                        case MergeResult.UNCHANGED:
+                            LOGGER.debug("No comments found on page with ID %s: %s", page.id, page.title)
+                        case MergeResult.MERGED:
+                            LOGGER.debug("All comments fully merged on page with ID %s: %s", page.id, page.title)
+                        case MergeResult.INCOMPATIBLE:
+                            LOGGER.warning("Some comments discarded on page with ID %s: %s", page.id, page.title)
                 case "remove":
                     pass
                 case "check-open":
@@ -430,6 +450,9 @@ class SynchronizingProcessor(Processor):
 
         # synchronize page if page has any changes
         if has_changes:
+            content = elements_to_string(root)
+            LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
+
             version = page.version.number + 1
             relative_path = path_relative_to(path, self.root_dir)
             self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
@@ -508,8 +531,20 @@ class SynchronizingProcessor(Processor):
             ConfluenceContentProperty(CONTENT_PROPERTY_TAG, source_digest),
         )
 
-    def _has_changes(self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, root: ElementType, source_digest: str) -> bool:
-        "True if the Confluence Storage Format content generated from the Markdown source file matches the Confluence target page content."
+    def _has_changes(
+        self, page: ConfluencePage, tag: ConfluenceMarkdownTag | None, title: str, tree: ElementType, root: ElementType, source_digest: str
+    ) -> bool:
+        """
+        True if the Confluence Storage Format content generated from the Markdown source file differs from the Confluence target page content.
+
+        :param page: Page fetched from Confluence.
+        :param tag: Meta-information about the page stored alongside the page in Confluence.
+        :param title: String to set the Confluence page title to.
+        :param tree: XML tree fetched from Confluence but pruned of inline comment markers.
+        :param root: XML tree generated from the Markdown source file.
+        :param source_digest: Digest generated from the Markdown source.
+        :returns: True if the Confluence page and the Markdown source differ.
+        """
 
         if page.title != title:
             LOGGER.info("Detected page with new title: %s", page.id)
@@ -518,10 +553,6 @@ class SynchronizingProcessor(Processor):
         if tag is not None and tag.source_digest == source_digest and tag.page_version == page.version.number:
             LOGGER.info("Up-to-date page (matching checksum): %s", page.id)
             return False
-
-        # discard comments
-        tree = elements_from_string(page.content)
-        unwrap_substitute(AC_ATTR("inline-comment-marker"), tree)
 
         # visit XML nodes recursively
         if is_xml_equal(

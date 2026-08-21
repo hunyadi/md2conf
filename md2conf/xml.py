@@ -6,6 +6,8 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Iterable
 
 import lxml.etree as ET
@@ -190,6 +192,63 @@ def remove_element(child: ElementType) -> None:
     parent.remove(child)
 
 
+@dataclass(frozen=True)
+class ElementSpan:
+    element: ElementType
+    start: int
+    end: int
+
+
+class _SpanVisitor:
+    """
+    Finds all occurrences of a given tag in an XML tree and returns their start and end positions w.r.t. the inner text
+    of the root element.
+    """
+
+    tag_name: str
+    start: int = 0
+    spans: list[ElementSpan]
+
+    def __init__(self, tag_name: str):
+        """
+        Initializes a new visitor to find all occurrences of a tag among the descendants of an element.
+
+        :param tag_name: Tag name to find.
+        """
+
+        self.tag_name = tag_name
+        self.spans = []
+
+    def visit(self, root: ElementType) -> list[ElementSpan]:
+        """
+        Finds all occurrences of a tag among the descendants of an element.
+
+        :param root: Root element to start the search from.
+        :returns: List of :class:`ElementSpan` instances containing the element, start, and end positions.
+        """
+
+        self.start = len(root.text or "")
+        self.spans = []
+        self._visit(root)
+        spans, self.spans = self.spans, []
+        return spans
+
+    def _visit(self, node: ElementType) -> None:
+        for child in node.iterchildren():
+            if child.tag == self.tag_name:
+                end = self.start + sum(len(t) for t in child.itertext())
+                self.spans.append(ElementSpan(child, self.start, end))
+                self.start = end
+            else:
+                self.start += len(child.text or "")
+                self._visit(child)
+            self.start += len(child.tail or "")
+
+
+def get_element_spans(tag_name: str, root: ElementType) -> list[ElementSpan]:
+    return _SpanVisitor(tag_name).visit(root)
+
+
 def unwrap_substitute(name: str, root: ElementType) -> None:
     """
     Substitutes all occurrences of an element with its contents.
@@ -223,3 +282,69 @@ def unwrap_substitute(name: str, root: ElementType) -> None:
             node.addnext(child)
         if (parent_node := node.getparent()) is not None:  # always true except for root
             parent_node.remove(node)
+
+
+class WrapVisitor:
+    """
+    Wraps a specified range of text in an element, mutating the tree in place.
+    """
+
+    span_start: int
+    span_end: int
+    factory: Callable[[str, str | None], ElementType]
+    position: int = 0
+
+    def __init__(self, start: int, end: int, factory: Callable[[str, str | None], ElementType]):
+        self.span_start = start
+        self.span_end = end
+        self.factory = factory
+
+    def visit(self, root: ElementType) -> bool:
+        self.position = 0
+        return self._visit(root)
+
+    def _visit(self, node: ElementType) -> bool:
+        inserted = False
+        if node.text:
+            length = len(node.text)
+            if self.span_start < self.position + length:
+                if self.span_end <= self.position + length:
+                    elem = self.factory(node.text[self.span_start - self.position : self.span_end - self.position], node.text[self.span_end - self.position :])
+                    node.insert(0, elem)
+                    node.text = node.text[: self.span_start - self.position]
+                    return True
+                else:
+                    elem = self.factory(node.text[self.span_start - self.position :], None)
+                    node.insert(0, elem)
+                    node.text = node.text[: self.span_start - self.position]
+                    self.position += length
+                    self.span_start = self.position
+                    inserted = True
+            else:
+                self.position += length
+
+        iterator = node.iterchildren()
+        if inserted:
+            next(iterator)
+        for child in iterator:
+            if self._visit(child):
+                return True
+
+        if node.tail:
+            length = len(node.tail)
+            if self.span_start < self.position + length:
+                if self.span_end <= self.position + length:
+                    elem = self.factory(node.tail[self.span_start - self.position : self.span_end - self.position], node.tail[self.span_end - self.position :])
+                    node.addnext(elem)
+                    node.tail = node.tail[: self.span_start - self.position]
+                    return True
+                else:
+                    elem = self.factory(node.tail[self.span_start - self.position :], None)
+                    node.addnext(elem)
+                    node.tail = node.tail[: self.span_start - self.position]
+                    self.position += length
+                    self.span_start = self.position
+            else:
+                self.position += length
+
+        return False

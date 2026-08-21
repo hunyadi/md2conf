@@ -72,7 +72,7 @@ class ProcessorOptions:
             "Skip pages with (manual) changes that occurred since last synchronization.",
         ),
     )
-    comments: Literal["remove", "check-open"] = field(default="remove", metadata=value_option("Behavior for inline comments when page is updated."))
+    comments: Literal["keep", "remove", "check-open"] = field(default="remove", metadata=value_option("Behavior for inline comments when page is updated."))
     skip_update: bool = field(
         default=False,
         metadata=boolean_option(
