@@ -28,7 +28,7 @@
 
 ARG PYTHON_VERSION=3.13
 ARG ALPINE_VERSION=3.22
-ARG MERMAID_VERSION=11.12
+ARG MERMAID_VERSION=11.16
 ARG PLANTUML_VERSION=1.2026.2
 
 # ===== Stage 1: builder =====
@@ -36,7 +36,8 @@ ARG PLANTUML_VERSION=1.2026.2
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 # Install build dependencies
 RUN --mount=type=cache,target=/var/cache/apk \
@@ -58,7 +59,8 @@ RUN python -m build --wheel --outdir wheel
 FROM python:${PYTHON_VERSION}-alpine${ALPINE_VERSION} AS runtime-base
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 # Create md2conf user
 RUN addgroup md2conf && adduser -D -G md2conf md2conf

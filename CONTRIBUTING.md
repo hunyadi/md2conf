@@ -291,7 +291,7 @@ To release a new version, pushing a git tag triggers automated publication to bo
 This automatically triggers GitHub Actions workflows that:
 
 - **Build and publish to PyPI**: `pypi.org/project/markdown-to-confluence/1.0.0/`
-  - Requires `PYPI_ID_TOKEN` secret configured in repository secrets
+  - Requires trusted publishing set up
 - **Build and push Docker images**: `leventehunyadi/md2conf` with version tags
   - All 4 variants: base (minimal), mermaid, plantuml, and all (full)
   - Tags: `latest`, `latest-*`, and version-specific tags (e.g., `1.0.0`, `1.0.0-minimal`)
@@ -301,5 +301,3 @@ This automatically triggers GitHub Actions workflows that:
 ### Working with Forks
 
 If you're working with a fork, use the manual workflow dispatch approach described in **Testing Docker Builds** above to validate Docker image changes before submitting pull requests. The tag-based release workflow is only applicable to this repository.
-
-Note that the `publish-python.yml` workflow will fail in forks because the `PYPI_ID_TOKEN` secret is not available.

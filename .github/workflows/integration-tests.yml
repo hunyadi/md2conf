@@ -7,29 +7,29 @@ on:
   workflow_dispatch:
     inputs:
       render_mermaid:
-        description: 'Render Mermaid diagrams to images'
+        description: "Render Mermaid diagrams to images"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
       render_plantuml:
-        description: 'Render PlantUML diagrams to images'
+        description: "Render PlantUML diagrams to images"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
       diagram_output_format:
-        description: 'Output format for rendered diagrams'
+        description: "Output format for rendered diagrams"
         required: false
-        default: 'svg'
+        default: "svg"
         type: choice
         options:
-          - 'svg'
-          - 'png'
+          - "svg"
+          - "png"
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -56,8 +56,8 @@ jobs:
       - name: Set up Java for PlantUML
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Install Graphviz for PlantUML
         run: |
@@ -76,7 +76,7 @@ jobs:
       - name: Set up Node.js for Mermaid
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install Mermaid CLI
         env:
