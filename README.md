@@ -679,9 +679,25 @@ If a document has no `tags` attribute, existing Confluence labels are left intac
 
 ### Comments
 
-Confluence users may add inline comments to pages. When synchronizing Markdown documents to Confluence pages, the generated content has no comments, and will cause all inline comments in the page to transition to the *resolved* state on an update. However, the configuration option `comments` allows us to check for open comments, and skip synchronizing the page when unresolved inline comments are found.
+Confluence users may add inline comments to a page. When synchronizing a Markdown document with a Confluence page, the generated content has no comments but the content that comments pertain to may have been updated in the Markdown source. Several approaches exist to reconcile possible conflicts (refer to the configuration option `comments`):
+
+* The most straightforward is to *remove* comments on an update, i.e. transition all inline comments on the page to the *resolved* state when the Markdown source file is updated anywhere.
+* Another option is to *check for open* comments, and skip synchronizing the page when unresolved inline comments are found.
+* Usually, we prefer to *keep* comments, and merge comments added in Confluence with content generated from Markdown.
 
 > Inspecting inline comments requires the `read:comment:confluence` scope when connecting to Confluence with a scoped token.
+
+From a technical point of view, inline comments appear in the storage format as the XML element `ac:inline-comment-marker` that wraps ordinary text. The attribute `ac:ref` connects the text range (a selection) to the full comment text.
+
+#### Transferring comments
+
+Merging comments added to a Confluence page with the content generated from an updated Markdown file involves a heuristic match:
+
+* First, a word-level [sequence matcher](https://docs.python.org/3/library/difflib.html#difflib.SequenceMatcher) pairs paragraphs in Confluence with their best match in the output produced from the Markdown source. This helps cover use cases when a new paragraph is inserted, an existing paragraph is deleted or a paragraph is moved within the document in Markdown. Even if paragraphs are no longer in the same order or have been slightly edited, their match is found.
+* Next, a character-level sequence matcher identifies unchanged blocks of text. This helps associate text ranges in Confluence with text ranges in Markdown at a more granular level, which allows us to transfer comments even if a paragraph has been partially edited.
+* Finally, a merge algorithm inserts inline comments into the XML tree generated from Markdown.
+
+If a Confluence comment cannot be mapped to the updated Markdown content, a warning is emitted and the comment is marked as *resolved*.
 
 ### Content properties
 
