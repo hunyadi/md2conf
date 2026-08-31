@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass, fields
 from pathlib import Path
 
+from . import __version__
 from .api_base import ConfluenceSession
 from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
@@ -139,9 +140,11 @@ class AggregateOptions(ConverterOptions):
     Options that impact the Confluence Storage Format output that is synchronized.
 
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
+    :param converter_version: md2conf version that generated the output.
     """
 
     generated_by: str | None = None
+    converter_version: str = __version__
 
     @classmethod
     def create(cls, relative_path: Path, options: ConverterOptions, generated_by: str | None) -> "AggregateOptions":
