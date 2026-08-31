@@ -1086,11 +1086,37 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if len(blockquote) < 1:
             raise DocumentError(blockquote, "empty GitHub alert")
 
+        pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
+        alert_groups: list[tuple[str, list[ElementType]]] = []
+        for element in blockquote:
+            match = pattern.match(element.text or "") if element.tag == "p" else None
+            if match is not None:
+                alert_element = copy.deepcopy(element)
+                alert_element.text = alert_element.text[len(match.group(0)) :] if alert_element.text is not None else None
+                alert_groups.append((match.group(1), [alert_element]))
+            elif alert_groups:
+                alert_groups[-1][1].append(copy.deepcopy(element))
+
+        if len(alert_groups) > 1:
+            alert_elements: list[ElementType] = []
+            alert_to_csf = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
+            for alert, elements in alert_groups:
+                alert_block = copy.deepcopy(blockquote)
+                alert_block[:] = elements
+                if self.options.use_panel:
+                    alert_elements.append(self._transform_panel(alert_block, alert.lower()))
+                else:
+                    class_name = alert_to_csf.get(alert)
+                    if class_name is None:
+                        raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
+                    alert_elements.append(self._transform_alert(alert_block, class_name))
+
+            return AC_ELEM("div", {}, *alert_elements)
+
         content = blockquote[0]
         if content.text is None:
             raise DocumentError(blockquote, "empty content for GitHub alert")
 
-        pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
         match = pattern.match(content.text)
         if not match:
             raise DocumentError(blockquote, "not a GitHub alert")

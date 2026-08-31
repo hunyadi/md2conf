@@ -201,6 +201,42 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_github_adjacent_alerts_are_split(self) -> None:
+        content = """<!-- confluence-page-id: 123 -->
+# Test
+
+> [!WARNING]
+> Status: work in progress.
+>
+> This paragraph belongs to the warning.
+>
+> [!NOTE]
+> Source of truth: this page is generated from the source repo.
+"""
+
+        temp_path = self.source_dir / "github_alerts.md"
+        temp_path.write_text(content, encoding="utf-8")
+
+        try:
+            _, doc = ConfluenceDocument.create(
+                temp_path,
+                ProcessorOptions(converter=ConverterOptions(use_panel=True)),
+                self.source_dir,
+                self.site_metadata,
+                self.page_metadata,
+                self.user_metadata,
+            )
+            actual = doc.xhtml()
+            self.assertIn('ac:name="panel"', actual)
+            self.assertIn('panelIconId">26a0-fe0f', actual)
+            self.assertIn('panelIconId">1f4dd', actual)
+            self.assertIn("This paragraph belongs to the warning.", actual)
+            self.assertEqual(actual.count('ac:name="panel"'), 2)
+            self.assertNotIn("[!WARNING]", actual)
+            self.assertNotIn("[!NOTE]", actual)
+        finally:
+            temp_path.unlink(missing_ok=True)
+
     def test_task_list_disabled(self) -> None:
         _, doc = ConfluenceDocument.create(
             self.source_dir / "tasklist.md",
