@@ -76,14 +76,14 @@ def _get_page_for_document(api: ConfluenceSession, absolute_path: Path) -> Confl
 
 class TestPublisher(unittest.TestCase):
     def test_document_hash_includes_converter_version(self) -> None:
-        """Checks if a converter release invalidates previously generated content."""
+        "Checks if the document hash changes when the library version changes."
 
         with _create_temporary_directory() as source_dir:
             document_path = source_dir / "index.md"
             document_path.write_text("# Document\n", encoding="utf-8")
 
-            current_digest = DocumentHasher(AggregateOptions(converter_version="current"), document_path).digest()
-            previous_digest = DocumentHasher(AggregateOptions(converter_version="previous"), document_path).digest()
+            current_digest = DocumentHasher("1.0.0", AggregateOptions(), document_path).digest()
+            previous_digest = DocumentHasher("2.0.0", AggregateOptions(), document_path).digest()
 
             self.assertNotEqual(current_digest, previous_digest)
 
