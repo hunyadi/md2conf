@@ -7,8 +7,10 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import base64
+import hashlib
 import logging
 import os
+import re
 import shlex
 import subprocess
 import tempfile
@@ -25,6 +27,9 @@ from md2conf.external import cached_which
 ElementType = ET._Element  # pyright: ignore [reportPrivateUsage]
 
 LOGGER = logging.getLogger(__name__)
+
+# random identifier that draw.io generates anew on each SVG export, used to scope light/dark mode CSS rules
+GE_SVG_ID = re.compile(rb"ge-svg-[A-Za-z0-9_-]{20}")
 
 
 class DrawioError(ValueError):
@@ -234,6 +239,48 @@ def extract_diagram(path: Path) -> bytes:
     return ET.tostring(root, encoding="utf8", method="xml")
 
 
+def normalize_svg_ids(svg_data: bytes) -> bytes:
+    """
+    Replaces random identifiers that draw.io assigns on export with values derived from the diagram content.
+
+    This ensures that exporting an unchanged diagram yields byte-identical output.
+
+    :param svg_data: SVG image data produced by draw.io.
+    :returns: SVG image data in which random identifiers have been substituted with deterministic identifiers.
+    """
+
+    matches = list(GE_SVG_ID.finditer(svg_data))
+    if not matches:
+        return svg_data
+
+    view = memoryview(svg_data)
+
+    # checksum of the data with identifiers skipped over, computed without copying the data
+    hash = hashlib.sha256()
+    offset = 0
+    for match in matches:
+        hash.update(view[offset : match.start()])
+        offset = match.end()
+    hash.update(view[offset:])
+    digest = hash.hexdigest()[:16]
+
+    replacements: dict[bytes, bytes] = {}
+    parts: list[bytes] = []
+    offset = 0
+    for match in matches:
+        identifier = match.group()
+        replacement = replacements.get(identifier)
+        if replacement is None:
+            replacement = f"ge-svg-{digest}{len(replacements):04d}".encode("ascii")
+            replacements[identifier] = replacement
+        parts.append(svg_data[offset : match.start()])
+        parts.append(replacement)
+        offset = match.end()
+    parts.append(svg_data[offset:])
+
+    return b"".join(parts)
+
+
 def _get_drawio_command() -> list[str]:
     """
     Returns the command to invoke draw.io.
@@ -307,6 +354,8 @@ def render_diagram(source: Path, output_format: typing.Literal["png", "svg"] = "
                 if console_error:
                     messages.append(f"error:\n{console_error}")
                 raise DrawioError("\n".join(messages))
+            if output_format == "svg":
+                return normalize_svg_ids(content)
             return content
 
     finally:
