@@ -18,7 +18,7 @@ from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import ConfluencePageProperties
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
-from md2conf.publisher import Publisher
+from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
 from md2conf.scanner import Scanner
 from tests.api import MockConfluenceAPI
 
@@ -75,6 +75,18 @@ def _get_page_for_document(api: ConfluenceSession, absolute_path: Path) -> Confl
 
 
 class TestPublisher(unittest.TestCase):
+    def test_document_hash_includes_converter_version(self) -> None:
+        "Checks if the document hash changes when the library version changes."
+
+        with _create_temporary_directory() as source_dir:
+            document_path = source_dir / "index.md"
+            document_path.write_text("# Document\n", encoding="utf-8")
+
+            current_digest = DocumentHasher("1.0.0", AggregateOptions(), document_path).digest()
+            previous_digest = DocumentHasher("2.0.0", AggregateOptions(), document_path).digest()
+
+            self.assertNotEqual(current_digest, previous_digest)
+
     def get_processor_options(self, api: ConfluenceSession, *, keep_hierarchy: bool, skip_update: bool) -> ProcessorOptions:
         return ProcessorOptions(
             root_page=ConfluencePageID(api.get_homepage_id("SPACE_ID")),

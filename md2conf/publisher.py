@@ -11,13 +11,14 @@ import logging
 from dataclasses import dataclass, fields
 from pathlib import Path
 
+from . import __version__
 from .api_base import ConfluenceSession
 from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
 from .comment import MergeResult, merge_comments, remove_comments
-from .compatibility import override, path_relative_to
+from .compatibility import LiteralString, override, path_relative_to
 from .converter import ConfluenceDocument, apply_generated_by_template, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import ElementType, elements_from_string, elements_to_string
 from .environment import ArgumentError, PageError
@@ -161,15 +162,28 @@ class DocumentHasher:
     Aggregates input that impact the Confluence Storage Format output that is synchronized.
     """
 
+    version: LiteralString
     options: AggregateOptions
     absolute_path: Path
 
-    def __init__(self, options: AggregateOptions, absolute_path: Path) -> None:
+    def __init__(self, version: LiteralString, options: AggregateOptions, absolute_path: Path) -> None:
+        """
+        Initializes a new document hasher instance.
+
+        :param version: Semantic version string of the library that is generating the hash.
+            Used to capture behavior changes across library versions.
+        :param options: User-configured options that impact the Confluence Storage Format output.
+        :param absolute_path: Absolute path to the Markdown source file.
+        """
+
+        self.version = version
         self.options = options
         self.absolute_path = absolute_path
 
     def digest(self) -> str:
         m = hashlib.md5()
+        m.update(self.version.encode("utf-8"))
+        m.update(b"\n")
         m.update(object_to_json_payload(self.options))
         m.update(b"\n")
         m.update(self.absolute_path.read_bytes())
@@ -352,6 +366,7 @@ class SynchronizingProcessor(Processor):
 
         # compute hash to help detect if document content or conversion options have changed
         source_digest = DocumentHasher(
+            __version__,
             AggregateOptions.create(path.relative_to(self.root_dir), self.options.converter, self.options.generated_by),
             path,
         ).digest()
