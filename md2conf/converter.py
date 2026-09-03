@@ -465,6 +465,47 @@ _GITHUB_ALERT_REGEXP = re.compile(r"^\[!([A-Z]+)\]\s*")
 _GITHUB_ALERT_TO_CSF = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
 
 
+def split_github_alert_groups(root: ElementType) -> None:
+    """
+    Splits a block-quote with several back-to-back `[!TYPE]` alerts into one block-quote per alert.
+
+    GitHub alerts written without a blank line between them (e.g. a `[!WARNING]` paragraph directly
+    followed by a `[!NOTE]` paragraph within the same block-quote) parse as a single block-quote with
+    multiple embedded paragraphs, each starting with its own `[!TYPE]` marker. This runs as a preprocessing
+    step on the raw parsed tree, before the tree visitor, so it can replace one such block-quote with
+    several sibling block-quotes -- one per alert -- moving each paragraph (and the non-alert content that
+    follows it) into its own block-quote. The tree visitor then sees the same structure it would see had
+    the alerts been written as genuinely separate block-quotes in the Markdown source, and produces
+    identical output for both cases.
+
+    :param root: Root of the parsed HTML element tree, mutated in place.
+    """
+
+    for blockquote in list(root.iter("blockquote")):
+        children = list(blockquote)
+        if not children or children[0].tag != "p" or not _GITHUB_ALERT_REGEXP.match(children[0].text or ""):
+            continue
+
+        group_count = sum(1 for e in children if e.tag == "p" and _GITHUB_ALERT_REGEXP.match(e.text or ""))
+        if group_count < 2:
+            continue
+
+        parent = blockquote.getparent()
+        if parent is None:
+            continue
+
+        groups: list[ElementType] = []
+        for element in children:
+            if element.tag == "p" and _GITHUB_ALERT_REGEXP.match(element.text or ""):
+                groups.append(blockquote.makeelement(blockquote.tag, blockquote.attrib))
+            blockquote.remove(element)
+            groups[-1].append(element)
+
+        index = parent.index(blockquote)
+        groups[-1].tail = blockquote.tail
+        parent[index : index + 1] = groups
+
+
 @dataclass(frozen=True)
 class ConfluencePanel:
     emoji: str
@@ -1077,32 +1118,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ELEM("rich-text-body", {}, *list(elem)),
             )
 
-    def _split_github_alert_blocks(self, blockquote: ElementType) -> list[ElementType]:
+    def _transform_github_alert(self, blockquote: ElementType) -> ElementType:
         """
-        Splits a block-quote with several back-to-back `[!TYPE]` alerts into one block-quote per alert.
+        Creates a GitHub-style panel, normally triggered with a block-quote starting with a capitalized string such as `[!TIP]`.
 
-        GitHub alerts written without a blank line between them (e.g. a `[!WARNING]` paragraph directly
-        followed by a `[!NOTE]` paragraph within the same block-quote) parse as a single block-quote with
-        multiple embedded paragraphs, each starting with its own `[!TYPE]` marker. This moves each such
-        paragraph (and the non-alert content that follows it) into its own block-quote, so the existing
-        single-alert logic can process each one independently.
-
-        :param blockquote: A `<blockquote>` element, possibly holding more than one `[!TYPE]`-tagged alert.
-        :returns: One block-quote per alert found; a single-element list when there is only one alert.
+        By the time this runs, `split_github_alert_groups` has already ensured `blockquote` holds a single
+        alert, even if the Markdown source had several `[!TYPE]` markers back-to-back in one block-quote.
         """
 
-        blocks: list[ElementType] = []
-        for element in list(blockquote):
-            if element.tag == "p" and _GITHUB_ALERT_REGEXP.match(element.text or ""):
-                blocks.append(blockquote.makeelement(blockquote.tag, blockquote.attrib))
-            if not blocks:
-                raise DocumentError(blockquote, "not a GitHub alert")
-            blockquote.remove(element)
-            blocks[-1].append(element)
-        return blocks
+        for e in blockquote:
+            self.visit(e)
 
-    def _transform_github_alert_block(self, blockquote: ElementType) -> ElementType:
-        "Converts a single GitHub alert block-quote (as produced by `_split_github_alert_blocks`) into a Confluence panel or macro."
+        if len(blockquote) < 1:
+            raise DocumentError(blockquote, "empty GitHub alert")
 
         content = blockquote[0]
         if content.text is None:
@@ -1124,23 +1152,6 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
 
             return self._transform_alert(blockquote, class_name)
-
-    def _transform_github_alert(self, blockquote: ElementType) -> ElementType:
-        """
-        Creates a GitHub-style panel, normally triggered with a block-quote starting with a capitalized string such as `[!TIP]`.
-        """
-
-        for e in blockquote:
-            self.visit(e)
-
-        if len(blockquote) < 1:
-            raise DocumentError(blockquote, "empty GitHub alert")
-
-        alert_blocks = self._split_github_alert_blocks(blockquote)
-        if len(alert_blocks) == 1:
-            return self._transform_github_alert_block(alert_blocks[0])
-
-        return AC_ELEM("div", {}, *(self._transform_github_alert_block(alert_block) for alert_block in alert_blocks))
 
     def _transform_gitlab_alert(self, blockquote: ElementType) -> ElementType:
         """
@@ -1996,6 +2007,9 @@ class ConfluenceDocument:
             self.root = elements_from_strings(content)
         except ParseError as ex:
             raise ConversionError(f"failed to convert Markdown file: {path}") from ex
+
+        # normalize back-to-back GitHub alerts into separate block-quotes before the tree visitor runs
+        split_github_alert_groups(self.root)
 
         # configure HTML-to-Confluence converter
         converter_options = copy.deepcopy(self.options.converter)

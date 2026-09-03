@@ -35,6 +35,18 @@
     <p>Advises about risks or negative outcomes of certain actions.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+<p>Consecutive alerts, written back-to-back with no blank line between them:</p>
+<ac:structured-macro ac:name="note" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Status: work in progress.</p>
+    <p>This paragraph belongs to the warning.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Source of truth: this page is generated from the source repo.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
 <h3>GitLab</h3>
 <p>Flag:</p>
 <ac:structured-macro ac:name="note" ac:schema-version="1">

@@ -29,6 +29,16 @@ Caution:
 > [!CAUTION]
 > Advises about risks or negative outcomes of certain actions.
 
+Consecutive alerts, written back-to-back with no blank line between them:
+
+> [!WARNING]
+> Status: work in progress.
+>
+> This paragraph belongs to the warning.
+>
+> [!NOTE]
+> Source of truth: this page is generated from the source repo.
+
 ### GitLab
 
 Flag:

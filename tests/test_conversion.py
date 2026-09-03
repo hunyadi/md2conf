@@ -17,7 +17,7 @@ from pathlib import Path
 from md2conf.attachment import attachment_name
 from md2conf.collection import ConfluencePageCollection, ConfluenceUserCollection
 from md2conf.compatibility import override
-from md2conf.converter import ConfluenceDocument, ConfluencePanel
+from md2conf.converter import ConfluenceDocument
 from md2conf.csf import canonicalize
 from md2conf.latex import LATEX_ENABLED
 from md2conf.matcher import Matcher, MatcherOptions
@@ -200,83 +200,6 @@ class TestConversion(TypedTestCase):
             expected = substitute(self.target_dir, f.read())
 
         self.assertEqual(actual, expected)
-
-    def test_github_adjacent_alerts_are_split(self) -> None:
-        content = """<!-- confluence-page-id: 123 -->
-# Test
-
-> [!WARNING]
-> Status: work in progress.
->
-> This paragraph belongs to the warning.
->
-> [!NOTE]
-> Source of truth: this page is generated from the source repo.
-"""
-
-        temp_path = self.source_dir / "github_alerts.md"
-        temp_path.write_text(content, encoding="utf-8")
-
-        warning_icon = ConfluencePanel.from_class["warning"].emoji_unicode
-        note_icon = ConfluencePanel.from_class["note"].emoji_unicode
-
-        try:
-            _, doc = ConfluenceDocument.create(
-                temp_path,
-                ProcessorOptions(converter=ConverterOptions(use_panel=True)),
-                self.source_dir,
-                self.site_metadata,
-                self.page_metadata,
-                self.user_metadata,
-            )
-            actual = doc.xhtml()
-            self.assertIn('ac:name="panel"', actual)
-            self.assertIn(f'panelIconId">{warning_icon}', actual)
-            self.assertIn(f'panelIconId">{note_icon}', actual)
-            self.assertIn("This paragraph belongs to the warning.", actual)
-            self.assertEqual(actual.count('ac:name="panel"'), 2)
-            self.assertNotIn("[!WARNING]", actual)
-            self.assertNotIn("[!NOTE]", actual)
-        finally:
-            temp_path.unlink(missing_ok=True)
-
-    def test_github_separate_alerts_are_unaffected(self) -> None:
-        "Two GitHub alerts as genuinely separate block-quotes (no continuous `>` streak) must keep working as before."
-
-        content = """<!-- confluence-page-id: 123 -->
-# Test
-
-> [!WARNING]
-> Status: work in progress.
-
-> [!NOTE]
-> Source of truth: this page is generated from the source repo.
-"""
-
-        temp_path = self.source_dir / "github_alerts_separate.md"
-        temp_path.write_text(content, encoding="utf-8")
-
-        warning_icon = ConfluencePanel.from_class["warning"].emoji_unicode
-        note_icon = ConfluencePanel.from_class["note"].emoji_unicode
-
-        try:
-            _, doc = ConfluenceDocument.create(
-                temp_path,
-                ProcessorOptions(converter=ConverterOptions(use_panel=True)),
-                self.source_dir,
-                self.site_metadata,
-                self.page_metadata,
-                self.user_metadata,
-            )
-            actual = doc.xhtml()
-            self.assertIn('ac:name="panel"', actual)
-            self.assertIn(f'panelIconId">{warning_icon}', actual)
-            self.assertIn(f'panelIconId">{note_icon}', actual)
-            self.assertEqual(actual.count('ac:name="panel"'), 2)
-            self.assertNotIn("[!WARNING]", actual)
-            self.assertNotIn("[!NOTE]", actual)
-        finally:
-            temp_path.unlink(missing_ok=True)
 
     def test_task_list_disabled(self) -> None:
         _, doc = ConfluenceDocument.create(
