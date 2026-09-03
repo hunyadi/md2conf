@@ -461,6 +461,8 @@ def transform_skip_comments_in_html(html: str) -> str:
 
 _FOOTNOTE_REF_REGEXP = re.compile(r"^fnref(\d*):(.+)$")
 _TASKLIST_REGEXP = re.compile(r"^\[([x X])\]")
+_GITHUB_ALERT_REGEXP = re.compile(r"^\[!([A-Z]+)\]\s*")
+_GITHUB_ALERT_TO_CSF = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
 
 
 @dataclass(frozen=True)
@@ -1075,6 +1077,54 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
                 AC_ELEM("rich-text-body", {}, *list(elem)),
             )
 
+    def _split_github_alert_blocks(self, blockquote: ElementType) -> list[ElementType]:
+        """
+        Splits a block-quote with several back-to-back `[!TYPE]` alerts into one block-quote per alert.
+
+        GitHub alerts written without a blank line between them (e.g. a `[!WARNING]` paragraph directly
+        followed by a `[!NOTE]` paragraph within the same block-quote) parse as a single block-quote with
+        multiple embedded paragraphs, each starting with its own `[!TYPE]` marker. This moves each such
+        paragraph (and the non-alert content that follows it) into its own block-quote, so the existing
+        single-alert logic can process each one independently.
+
+        :param blockquote: A `<blockquote>` element, possibly holding more than one `[!TYPE]`-tagged alert.
+        :returns: One block-quote per alert found; a single-element list when there is only one alert.
+        """
+
+        blocks: list[ElementType] = []
+        for element in list(blockquote):
+            if element.tag == "p" and _GITHUB_ALERT_REGEXP.match(element.text or ""):
+                blocks.append(blockquote.makeelement(blockquote.tag, blockquote.attrib))
+            if not blocks:
+                raise DocumentError(blockquote, "not a GitHub alert")
+            blockquote.remove(element)
+            blocks[-1].append(element)
+        return blocks
+
+    def _transform_github_alert_block(self, blockquote: ElementType) -> ElementType:
+        "Converts a single GitHub alert block-quote (as produced by `_split_github_alert_blocks`) into a Confluence panel or macro."
+
+        content = blockquote[0]
+        if content.text is None:
+            raise DocumentError(blockquote, "empty content for GitHub alert")
+
+        match = _GITHUB_ALERT_REGEXP.match(content.text)
+        if not match:
+            raise DocumentError(blockquote, "not a GitHub alert")
+        alert = match.group(1)
+
+        # remove alert indicator prefix
+        content.text = content.text[len(match.group(0)) :]
+
+        if self.options.use_panel:
+            return self._transform_panel(blockquote, alert.lower())
+        else:
+            class_name = _GITHUB_ALERT_TO_CSF.get(alert)
+            if class_name is None:
+                raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
+
+            return self._transform_alert(blockquote, class_name)
+
     def _transform_github_alert(self, blockquote: ElementType) -> ElementType:
         """
         Creates a GitHub-style panel, normally triggered with a block-quote starting with a capitalized string such as `[!TIP]`.
@@ -1086,54 +1136,11 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if len(blockquote) < 1:
             raise DocumentError(blockquote, "empty GitHub alert")
 
-        pattern = re.compile(r"^\[!([A-Z]+)\]\s*")
-        alert_groups: list[tuple[str, list[ElementType]]] = []
-        for element in blockquote:
-            match = pattern.match(element.text or "") if element.tag == "p" else None
-            if match is not None:
-                alert_element = copy.deepcopy(element)
-                alert_element.text = alert_element.text[len(match.group(0)) :] if alert_element.text is not None else None
-                alert_groups.append((match.group(1), [alert_element]))
-            elif alert_groups:
-                alert_groups[-1][1].append(copy.deepcopy(element))
+        alert_blocks = self._split_github_alert_blocks(blockquote)
+        if len(alert_blocks) == 1:
+            return self._transform_github_alert_block(alert_blocks[0])
 
-        if len(alert_groups) > 1:
-            alert_elements: list[ElementType] = []
-            alert_to_csf = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
-            for alert, elements in alert_groups:
-                alert_block = copy.deepcopy(blockquote)
-                alert_block[:] = elements
-                if self.options.use_panel:
-                    alert_elements.append(self._transform_panel(alert_block, alert.lower()))
-                else:
-                    class_name = alert_to_csf.get(alert)
-                    if class_name is None:
-                        raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
-                    alert_elements.append(self._transform_alert(alert_block, class_name))
-
-            return AC_ELEM("div", {}, *alert_elements)
-
-        content = blockquote[0]
-        if content.text is None:
-            raise DocumentError(blockquote, "empty content for GitHub alert")
-
-        match = pattern.match(content.text)
-        if not match:
-            raise DocumentError(blockquote, "not a GitHub alert")
-        alert = match.group(1)
-
-        # remove alert indicator prefix
-        content.text = content.text[len(match.group(0)) :]
-
-        if self.options.use_panel:
-            return self._transform_panel(blockquote, alert.lower())
-        else:
-            alert_to_csf = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
-            class_name = alert_to_csf.get(alert)
-            if class_name is None:
-                raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
-
-            return self._transform_alert(blockquote, class_name)
+        return AC_ELEM("div", {}, *(self._transform_github_alert_block(alert_block) for alert_block in alert_blocks))
 
     def _transform_gitlab_alert(self, blockquote: ElementType) -> ElementType:
         """
