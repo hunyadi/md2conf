@@ -167,6 +167,29 @@ class TestPublisher(unittest.TestCase):
             change_content=True,
         )
 
+    def test_synchronize_repeated_attachment_reference(self) -> None:
+        """Checks if an image shown several times on a page is uploaded only once."""
+
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            document_path = source_dir / "index.md"
+            attachment_path = source_dir / "diagram.png"
+            document_path.write_text(
+                "# Diagram\n\n" + "![diagram](diagram.png)\n\n" * 3,
+                encoding="utf-8",
+            )
+            attachment_path.write_bytes((Path(__file__).parent / "source" / "figure" / "raster.png").read_bytes())
+
+            publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=False, skip_update=True))
+            publisher.process_directory(source_dir)
+
+            page = api.get_page_properties_by_title("Diagram")
+            first_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
+            self.assertEqual(first_version, 1)
+
+            publisher.process_directory(source_dir)
+            unchanged_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
+            self.assertEqual(unchanged_version, first_version)
+
     def test_initialize_missing_attachment_checksum(self) -> None:
         """Checks if REST API v2 initializes a missing checksum with one upload."""
 

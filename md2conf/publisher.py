@@ -435,10 +435,16 @@ class SynchronizingProcessor(Processor):
         for attachment in self.api.get_attachments(page_id):
             attachments[attachment.title] = attachment.id
 
+        # attachment names synchronized in this pass; a document may reference the same image
+        # several times, and each reference must see the attachment ID the first one used
+        synchronized: set[str] = set()
+
         # update attachments with relative path
         base_path = path.parent
         for image_data in document.images:
             name = attachment_name(path_relative_to(image_data.path, base_path))
+            if name in synchronized:
+                continue
             self._synchronize_attachment(
                 page_id,
                 attachments.get(name),
@@ -446,10 +452,12 @@ class SynchronizingProcessor(Processor):
                 attachment_path=image_data.path,
                 comment=image_data.description,
             )
-            attachments.pop(name, None)
+            synchronized.add(name)
 
         # update attachments with embedded content
         for name, file_data in document.embedded_files.items():
+            if name in synchronized:
+                continue
             self._synchronize_attachment(
                 page_id,
                 attachments.get(name),
@@ -457,10 +465,12 @@ class SynchronizingProcessor(Processor):
                 raw_data=file_data.data,
                 comment=file_data.description,
             )
-            attachments.pop(name, None)
+            synchronized.add(name)
 
         # delete attachments no longer referenced
-        for attachment_id in attachments.values():
+        for name, attachment_id in attachments.items():
+            if name in synchronized:
+                continue
             self.api.delete_attachment(attachment_id)
 
         # synchronize page if page has any changes
