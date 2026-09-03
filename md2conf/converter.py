@@ -462,10 +462,15 @@ def transform_skip_comments_in_html(html: str) -> str:
 _FOOTNOTE_REF_REGEXP = re.compile(r"^fnref(\d*):(.+)$")
 _TASKLIST_REGEXP = re.compile(r"^\[([x X])\]")
 _GITHUB_ALERT_REGEXP = re.compile(r"^\[!([A-Z]+)\]\s*")
-_GITHUB_ALERT_TO_CSF = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
 
 
-def split_github_alert_groups(root: ElementType) -> None:
+def _is_alert_paragraph(element: ElementType) -> bool:
+    "True if the element is a paragraph that starts with a GitHub alert marker `[!TYPE]`."
+
+    return element.tag == "p" and element.text is not None and _GITHUB_ALERT_REGEXP.match(element.text) is not None
+
+
+def _split_github_alert_groups(root: ElementType) -> None:
     """
     Splits a block-quote with several back-to-back `[!TYPE]` alerts into one block-quote per alert.
 
@@ -481,29 +486,25 @@ def split_github_alert_groups(root: ElementType) -> None:
     :param root: Root of the parsed HTML element tree, mutated in place.
     """
 
-    for blockquote in list(root.iter("blockquote")):
+    for blockquote in list(root.iterchildren("blockquote")):
         children = list(blockquote)
-        if not children or children[0].tag != "p" or not _GITHUB_ALERT_REGEXP.match(children[0].text or ""):
+        if not children or not _is_alert_paragraph(children[0]):
             continue
 
-        group_count = sum(1 for e in children if e.tag == "p" and _GITHUB_ALERT_REGEXP.match(e.text or ""))
+        group_count = sum(1 for e in children if _is_alert_paragraph(e))
         if group_count < 2:
-            continue
-
-        parent = blockquote.getparent()
-        if parent is None:
             continue
 
         groups: list[ElementType] = []
         for element in children:
-            if element.tag == "p" and _GITHUB_ALERT_REGEXP.match(element.text or ""):
+            if _is_alert_paragraph(element):
                 groups.append(blockquote.makeelement(blockquote.tag, blockquote.attrib))
             blockquote.remove(element)
             groups[-1].append(element)
 
-        index = parent.index(blockquote)
+        index = root.index(blockquote)
         groups[-1].tail = blockquote.tail
-        parent[index : index + 1] = groups
+        root[index : index + 1] = groups
 
 
 @dataclass(frozen=True)
@@ -1147,7 +1148,8 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         if self.options.use_panel:
             return self._transform_panel(blockquote, alert.lower())
         else:
-            class_name = _GITHUB_ALERT_TO_CSF.get(alert)
+            alert_to_csf = {"NOTE": "info", "TIP": "tip", "IMPORTANT": "note", "WARNING": "note", "CAUTION": "warning"}
+            class_name = alert_to_csf.get(alert)
             if class_name is None:
                 raise DocumentError(blockquote, f"unsupported GitHub alert: {alert}")
 
@@ -2009,7 +2011,7 @@ class ConfluenceDocument:
             raise ConversionError(f"failed to convert Markdown file: {path}") from ex
 
         # normalize back-to-back GitHub alerts into separate block-quotes before the tree visitor runs
-        split_github_alert_groups(self.root)
+        _split_github_alert_groups(self.root)
 
         # configure HTML-to-Confluence converter
         converter_options = copy.deepcopy(self.options.converter)
