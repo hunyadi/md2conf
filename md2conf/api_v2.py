@@ -6,6 +6,7 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+import datetime
 import logging
 import typing
 from dataclasses import dataclass
@@ -251,8 +252,36 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
 
     @override
     def get_page_properties(self, page_id: str) -> ConfluencePageProperties:
-        path = f"/pages/{page_id}"
-        return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePageProperties)
+        try:
+            path = f"/pages/{page_id}"
+            return self._get(ConfluenceVersion.VERSION_2, path, ConfluencePageProperties)
+        except HTTPError as exc:
+            if exc.response is None or exc.response.status_code != 404:
+                raise
+            return self._get_folder_as_page_properties(page_id)
+
+    def _get_folder_as_page_properties(self, folder_id: str) -> ConfluencePageProperties:
+        """
+        Retrieves a Confluence folder through the page properties type, allowing a folder to act as a page parent.
+
+        Confluence Cloud places folders in the page hierarchy: pages report `parentType: "folder"`, and creating a
+        page accepts a folder ID as `parentId`. However, a folder is not a page, and `GET /pages/{id}` responds with
+        HTTP 404 for a folder ID.
+
+        :param folder_id: The Confluence folder ID.
+        :returns: Folder details in the shape of page properties.
+        """
+
+        path = f"/folders/{folder_id}"
+        data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType])
+
+        # a folder reports `createdAt` as epoch milliseconds where a page uses an ISO-8601 string, and omits `lastOwnerId`
+        created = data.get("createdAt")
+        if isinstance(created, (int, float)):
+            data["createdAt"] = datetime.datetime.fromtimestamp(created / 1000, datetime.timezone.utc).isoformat()
+        data.setdefault("lastOwnerId", None)
+
+        return json_to_object(ConfluencePageProperties, data)
 
     @override
     def update_page(self, page_id: str, content: str, *, title: str, version: int, message: str) -> None:
