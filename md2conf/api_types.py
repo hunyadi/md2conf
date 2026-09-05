@@ -270,6 +270,36 @@ class ConfluenceIdentifiedContentProperty(ConfluenceVersionedContentProperty):
     id: str
 
 
+@dataclass(frozen=True)
+class ConfluenceContentState:
+    """
+    Represents a content state assigned to a page, e.g. a custom "Draft" or "Verified" flag.
+
+    Content states are only exposed via REST API v1; there is no v2 equivalent.
+
+    :param id: State ID. When set, takes precedence over `name` and `color`.
+    :param name: Name of the state.
+    :param color: Color assigned to the state.
+    """
+
+    id: int
+    name: str
+    color: str
+
+
+@dataclass(frozen=True)
+class ConfluenceContentStateResponse:
+    """
+    Response payload for content state operations.
+
+    :param contentState: The content state assigned to the page.
+    :param lastUpdated: Timestamp when the content state was last updated.
+    """
+
+    contentState: ConfluenceContentState | None = None
+    lastUpdated: datetime.datetime | None = None
+
+
 @enum.unique
 class ConfluenceCommentStatus(enum.Enum):
     """

@@ -806,6 +806,8 @@ options:
                         Behavior for inline comments when page is updated. (default: remove)
   --skip-update         Skip saving Confluence page ID in Markdown files.
   --keep-update         Inject published Confluence page ID in Markdown files. (default)
+  --keep-state          Keep the Confluence content state (rough draft, in progress, ready for review, verified, etc.) when updating a page.
+  --skip-state          Clear the Confluence content state when updating a page. (default)
   --heading-anchors     Place an anchor at each section heading with GitHub-style same-page identifiers.
   --no-heading-anchors  Omit the extra anchor from section headings. (May break manually placed same-page references.) (default)
   --force-valid-url     Raise an error when relative URLs point to an invalid location. (default)
@@ -886,6 +888,7 @@ options = ProcessorOptions(
     overwrite=bool(),
     comments='keep' or 'remove' or 'check-open',
     skip_update=bool(),
+    keep_state=bool(),
     converter=ConverterOptions(
         heading_anchors=bool(),
         force_valid_url=bool(),

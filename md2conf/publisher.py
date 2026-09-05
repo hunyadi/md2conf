@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import __version__
 from .api_base import ConfluenceSession
-from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceLabel, ConfluencePage, ConfluenceStatus
+from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceContentState, ConfluenceLabel, ConfluencePage, ConfluenceStatus
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
@@ -383,6 +383,11 @@ class SynchronizingProcessor(Processor):
             except Exception:
                 pass
 
+        # capture content state since updating the body or content properties clears it
+        content_state: ConfluenceContentState | None = None
+        if self.options.keep_state:
+            content_state = self.api.get_content_state(page.id)
+
         # keep existing Confluence title if cannot infer meaningful title from Markdown source
         if not title:  # empty or `None`
             title = page.title
@@ -489,6 +494,10 @@ class SynchronizingProcessor(Processor):
                 [ConfluenceLabel(name=label, prefix="global") for label in document.labels],
             )
 
+        if self.options.keep_state and content_state is not None:
+            # account for version increment triggered by setting content state to ensure next synchronization pass does not detect a change
+            version += 1
+
         # update content properties
         target_tag = ConfluenceMarkdownTag(version, source_digest)
         props = [ConfluenceContentProperty(CONTENT_PROPERTY_TAG, object_to_json(target_tag))]
@@ -499,6 +508,10 @@ class SynchronizingProcessor(Processor):
         else:
             if source_tag is None or source_tag != target_tag:
                 self.api.update_content_properties_for_page(page.id, props, keep_existing=True)
+
+        if self.options.keep_state and content_state is not None:
+            # re-apply content state last to avoid clearing it when updating the body or content properties
+            self.api.set_content_state(page.id, content_state)
 
     def _synchronize_attachment(
         self,

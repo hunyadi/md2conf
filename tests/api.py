@@ -19,6 +19,7 @@ from md2conf.api_types import (
     ConfluenceAttachment,
     ConfluenceComment,
     ConfluenceContentProperty,
+    ConfluenceContentState,
     ConfluenceContentVersion,
     ConfluenceIdentifiedContentProperty,
     ConfluenceIdentifiedLabel,
@@ -591,6 +592,15 @@ class MockConfluenceSession(ConfluenceSession):
     def get_comments(self, page_id: str) -> list[ConfluenceComment]:
         LOGGER.debug("page_id: %s", page_id)
         return []
+
+    @override
+    def get_content_state(self, page_id: str) -> ConfluenceContentState | None:
+        LOGGER.debug("page_id: %s", page_id)
+        return None
+
+    @override
+    def set_content_state(self, page_id: str, state: ConfluenceContentState) -> None:
+        LOGGER.debug("page_id: %s, state: %s", page_id, state)
 
 
 class MockConfluenceAPI:
