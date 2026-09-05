@@ -18,7 +18,7 @@ from requests.adapters import HTTPAdapter
 from truststore import SSLContext
 from urllib3.util import Retry
 
-from .api_base import ConfluenceSession
+from .api_base import NO_RETRY_HEADER, ConfluenceSession
 from .api_v1 import ConfluenceSessionV1
 from .api_v2 import ConfluenceSessionV2
 from .compatibility import override
@@ -45,10 +45,14 @@ LOGGER = logging.getLogger(__name__)
 class RetryAdapter(HTTPAdapter):
     """
     Retries with exponential back-off to handle rate-limited endpoints (HTTP 429) and eventual consistency (HTTP 404).
+
+    A caller can opt out of retries for a specific request by setting the `NO_RETRY_HEADER` request header; the header
+    is stripped before the request is transmitted to the server.
     """
 
     _retry_rate_limit: Retry
     _retry_eventual_consistency: Retry
+    _retry_disabled: Retry
 
     def __init__(self) -> None:
         # spellchecker: disable
@@ -58,6 +62,7 @@ class RetryAdapter(HTTPAdapter):
         self._retry_eventual_consistency = Retry(
             total=3, allowed_methods=["GET"], status_forcelist=[404, 429], backoff_factor=1, raise_on_redirect=False, raise_on_status=False
         )
+        self._retry_disabled = Retry(total=0, raise_on_redirect=False, raise_on_status=False)
         # spellchecker: enable
         super().__init__()
 
@@ -71,7 +76,12 @@ class RetryAdapter(HTTPAdapter):
         cert: bytes | str | tuple[bytes | str, bytes | str] | None = None,
         proxies: Mapping[str, str] | None = None,
     ) -> Response:
-        self.max_retries = self._retry_eventual_consistency if request.method == "GET" else self._retry_rate_limit
+        if request.headers.pop(NO_RETRY_HEADER, None) is not None:
+            self.max_retries = self._retry_disabled
+        elif request.method == "GET":
+            self.max_retries = self._retry_eventual_consistency
+        else:
+            self.max_retries = self._retry_rate_limit
         return super().send(request, stream, timeout, verify, cert, proxies)
 
 

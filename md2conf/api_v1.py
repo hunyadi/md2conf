@@ -23,9 +23,9 @@ from .api_types import (
     ConfluenceIdentifiedLabel,
     ConfluencePage,
     ConfluencePageBody,
-    ConfluencePageParentContentType,
     ConfluencePageProperties,
     ConfluencePageStorage,
+    ConfluenceParentType,
     ConfluenceRepresentation,
     ConfluenceStatus,
     ConfluenceVersion,
@@ -132,11 +132,11 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
         LOGGER.info("Configured classic Confluence REST API URL: %s", self._api_url)
 
     @override
-    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
+    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None, retry: bool = True) -> T:
         "Executes an HTTP request via Confluence API."
 
         # many Confluence Data Center/Server versions are buggy, they require a `Content-Type` header even though an HTTP GET request has no payload
-        return self._get_impl(version, path, response_type, query=query, headers={"Content-Type": "application/json"})
+        return self._get_impl(version, path, response_type, query=query, headers={"Content-Type": "application/json"}, retry=retry)
 
     @override
     def _delete(self, version: ConfluenceVersion, path: str, *, query: dict[str, str] | None = None, headers: dict[str, str] | None = None) -> None:
@@ -160,6 +160,18 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             return self.site.space_key
         else:
             return ""
+
+    @override
+    def get_object_space_id(self, object_id: str) -> str:
+        page = self.get_page_properties(object_id)
+        return page.spaceId
+
+    @override
+    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
+        page = self.get_page_properties(object_id)
+        parent_id = page.parentId
+        position = page.position
+        return parent_id, position
 
     @override
     def get_homepage_id(self, space_id: str) -> str:
@@ -280,11 +292,10 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             title=page.title,
             spaceId=self.space_key_to_id(page.space.key),
             parentId=parent_id,
-            parentType=ConfluencePageParentContentType.PAGE if parent_id else None,
+            parentType=ConfluenceParentType.PAGE if parent_id else None,
             position=None,
             authorId="",  # REST API v1 doesn't include this in basic response
             ownerId="",
-            lastOwnerId=None,
             createdAt=datetime.datetime.now(),  # REST API v1 doesn't include this in basic response
             version=page.version,
             body=page.body,
@@ -305,11 +316,10 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             title=page.title,
             spaceId=self.space_key_to_id(page.space.key),
             parentId=parent_id,
-            parentType=ConfluencePageParentContentType.PAGE if parent_id else None,
+            parentType=ConfluenceParentType.PAGE if parent_id else None,
             position=None,
             authorId="",  # REST API v1 doesn't include this in basic response
             ownerId="",
-            lastOwnerId=None,
             createdAt=datetime.datetime.now(),  # REST API v1 doesn't include this in basic response
             version=page.version,
         )

@@ -25,9 +25,9 @@ from md2conf.api_types import (
     ConfluenceLabel,
     ConfluencePage,
     ConfluencePageBody,
-    ConfluencePageParentContentType,
     ConfluencePageProperties,
     ConfluencePageStorage,
+    ConfluenceParentType,
     ConfluenceRepresentation,
     ConfluenceStatus,
     ConfluenceUser,
@@ -178,11 +178,10 @@ class MockConfluenceSession(ConfluenceSession):
             title=row["title"],
             spaceId="SPACE_ID",
             parentId=row["parentId"],
-            parentType=ConfluencePageParentContentType.PAGE,
+            parentType=ConfluenceParentType.PAGE,
             position=int(row["position"]) // 2,
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
-            lastOwnerId=None,
             createdAt=datetime.datetime.fromtimestamp(row["createdAt"], tz=datetime.timezone.utc),
             version=ConfluenceContentVersion(number=row["version"]),
         )
@@ -207,7 +206,6 @@ class MockConfluenceSession(ConfluenceSession):
             position=props.position,
             authorId=props.authorId,
             ownerId=props.ownerId,
-            lastOwnerId=props.lastOwnerId,
             createdAt=props.createdAt,
             version=props.version,
             body=ConfluencePageBody(
@@ -217,6 +215,18 @@ class MockConfluenceSession(ConfluenceSession):
                 )
             ),
         )
+
+    @override
+    def get_object_space_id(self, object_id: str) -> str:
+        LOGGER.debug("object_id: %s", object_id)
+        return self.get_page_properties(object_id).spaceId
+
+    @override
+    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
+        page = self.get_page_properties(object_id)
+        parent_id = page.parentId
+        position = page.position
+        return parent_id, position
 
     def get_attachment_count(self) -> int:
         row: sqlite3.Row = self._db.execute("SELECT COUNT(*) AS count FROM attachments").fetchone()

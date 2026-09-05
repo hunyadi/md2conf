@@ -30,7 +30,7 @@ class ConfluenceVersion(enum.Enum):
 
 
 @enum.unique
-class ConfluencePageParentContentType(enum.Enum):
+class ConfluenceParentType(enum.Enum):
     """
     Content types that can be a parent to a Confluence page.
     """
@@ -155,7 +155,6 @@ class ConfluencePageProperties:
     :param position: Position of child page within the given parent page tree.
     :param authorId: The account ID of the user who created this page originally.
     :param ownerId: The account ID of the user who owns this page.
-    :param lastOwnerId: The account ID of the user who owned this page previously, or `None` if there is no previous owner.
     :param createdAt: Date and time when the page was created.
     :param version: Page version. Incremented when the page is updated.
     """
@@ -165,11 +164,10 @@ class ConfluencePageProperties:
     title: str
     spaceId: str
     parentId: str | None
-    parentType: ConfluencePageParentContentType | None
+    parentType: ConfluenceParentType | None
     position: int | None
     authorId: str
     ownerId: str
-    lastOwnerId: str | None
     createdAt: datetime.datetime
     version: ConfluenceContentVersion
 

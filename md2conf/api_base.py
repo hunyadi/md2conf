@@ -43,6 +43,9 @@ LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+# request header an endpoint can set to opt out of transport-level retries (e.g. non-idempotent calls)
+NO_RETRY_HEADER = "X-No-Retry"
+
 
 def build_url(base_url: str, query: dict[str, str] | None = None) -> str:
     "Builds a URL with scheme, host, port, path and query string parameters."
@@ -98,6 +101,26 @@ class ConfluenceSession(ABC):
     def close(self) -> None: ...
 
     @abstractmethod
+    def get_object_space_id(self, object_id: str) -> str:
+        """
+        Returns the space ID that contains the given Confluence object (page, folder, etc.).
+
+        :param object_id: The Confluence object ID.
+        :returns: The space ID that contains the given Confluence object.
+        """
+        ...
+
+    @abstractmethod
+    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
+        """
+        Returns the parent of the given Confluence object (page, folder, etc.) and its position among its siblings.
+
+        :param object_id: The Confluence object ID.
+        :returns: A tuple containing the parent ID (or `None` if no parent) and the position among siblings (or `None` if not applicable).
+        """
+        ...
+
+    @abstractmethod
     def space_id_to_key(self, id: str) -> str:
         "Finds the Confluence space key for a space ID."
         ...
@@ -125,6 +148,7 @@ class ConfluenceSession(ABC):
         :param expr: Search expression to match the user's name against with the *contains* operator (`~`).
         :returns: List of users whose name matches the expression.
         """
+        ...
 
     @abstractmethod
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
@@ -278,8 +302,7 @@ class ConfluenceSession(ABC):
         :returns: Confluence page info for the found or newly created page.
         """
 
-        parent_page = self.get_page_properties(parent_id)
-        space_id = parent_page.spaceId
+        space_id = self.get_object_space_id(parent_id)
         page_id = self.page_exists(title, space_id=space_id)
 
         if page_id is not None:
@@ -488,18 +511,27 @@ class ConfluenceSessionShared(ConfluenceSession):
         base_url = f"{self._api_url}{version.value}{path}"
         return build_url(base_url, query)
 
-    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None) -> T:
+    def _get(self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None, retry: bool = True) -> T:
         "Executes an HTTP request via Confluence API."
 
-        return self._get_impl(version, path, response_type, query=query)
+        return self._get_impl(version, path, response_type, query=query, retry=retry)
 
     def _get_impl(
-        self, version: ConfluenceVersion, path: str, response_type: type[T], *, query: dict[str, str] | None = None, headers: dict[str, str] | None = None
+        self,
+        version: ConfluenceVersion,
+        path: str,
+        response_type: type[T],
+        *,
+        query: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        retry: bool = True,
     ) -> T:
         url = self._build_url(version, path, query)
         if headers is None:
             headers = {}
         headers["Accept"] = "application/json"
+        if not retry:
+            headers[NO_RETRY_HEADER] = "1"
         response = self._session.get(url, headers=headers, verify=True)
         if response.text:
             LOGGER.debug("Received HTTP payload:\n%s", response.text)

@@ -103,9 +103,7 @@ class ParentCatalog:
         if not isinstance(known_parent_id, _MissingType):
             parent_id = known_parent_id
         else:
-            page = self._api.get_page_properties(page_id)
-            parent_id = page.parentId
-            position = page.position
+            parent_id, position = self._api.get_object_parent_position(page_id)
             self._child_to_parent[page_id] = parent_id
             if parent_id is not None and position is not None:
                 children = self._parent_to_children.setdefault(parent_id, {})

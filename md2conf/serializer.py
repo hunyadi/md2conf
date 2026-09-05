@@ -7,8 +7,8 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import sys
-from datetime import datetime
-from typing import TypeVar, cast
+from datetime import datetime, timezone
+from typing import NewType, TypeVar, cast
 
 from cattrs.preconf.orjson import make_converter  # spellchecker:disable-line
 
@@ -16,6 +16,9 @@ JsonType = None | bool | int | float | str | dict[str, "JsonType"] | list["JsonT
 JsonComposite = dict[str, "JsonType"] | list["JsonType"]
 
 T = TypeVar("T")
+
+UnixTimestamp = NewType("UnixTimestamp", datetime)
+"Date and time transmitted as a UNIX timestamp in milliseconds rather than an ISO-8601 string."
 
 
 _converter = make_converter(forbid_extra_keys=False)
@@ -39,6 +42,18 @@ def json_type_structure_hook(value: JsonType, cls: type[JsonType]) -> JsonType:
 @_converter.register_structure_hook
 def json_composite_structure_hook(value: JsonComposite, cls: type[JsonComposite]) -> JsonComposite:
     return value
+
+
+@_converter.register_structure_hook
+def unix_timestamp_structure_hook(value: int, cls: type) -> UnixTimestamp:
+    dt = datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+    print(dt)
+    return UnixTimestamp(dt)
+
+
+@_converter.register_unstructure_hook
+def unix_timestamp_unstructure_hook(value: UnixTimestamp) -> int:
+    return int(value.timestamp() * 1000)
 
 
 def json_to_object(typ: type[T], data: JsonType) -> T:
