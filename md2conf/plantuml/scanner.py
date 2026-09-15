@@ -16,8 +16,7 @@ from .config import PlantUMLConfigProperties
 @dataclass
 class PlantUMLProperties:
     """
-    An object that holds the front-matter properties structure
-    for PlantUML diagrams.
+    An object that holds the front-matter properties structure for PlantUML diagrams.
 
     :param title: The title of the diagram.
     :param config: Configuration options for rendering.

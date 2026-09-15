@@ -360,7 +360,6 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
     def create_page(self, *, title: str, content: str, parent_id: str, space_id: str | None = None) -> ConfluencePage:
         """
         Creates a new page using Confluence REST API v1.
-        ```
 
         :param title: Page title.
         :param content: Page content in Confluence Storage Format.

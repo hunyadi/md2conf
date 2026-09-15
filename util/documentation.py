@@ -125,7 +125,7 @@ def get_imports(tps: Sequence[NewType | type[Any]]) -> str:
     "Returns a list of `import` statements to bring the specified classes into scope."
 
     s = StringIO()
-    for module in sorted(list(set(tp.__module__ for tp in tps if tp.__module__ != "builtins"))):
+    for module in sorted({tp.__module__ for tp in tps if tp.__module__ != "builtins"}):
         items = sorted(tp.__name__ for tp in tps if tp.__module__ == module)  # type: ignore[union-attr]
         if not items:
             continue

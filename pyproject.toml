@@ -30,13 +30,13 @@ classifiers = [
     "Typing :: Typed"
 ]
 dependencies = [
-    "cattrs>=26.1",
+    "cattrs>=26.2",
     "lxml>=6.1",
     "markdown>=3.10",
     "orjson>=3.12",
-    "pymdown-extensions>=11.0",
-    "pyyaml>=6.0",
     "pathspec>=1.1",
+    "pymdown-extensions>=12.0",
+    "pyyaml>=6.0",
     "requests>=2.34",
     "truststore>=0.10",
     "typing-extensions>=4.16; python_version<'3.11'"
@@ -83,4 +83,5 @@ version = { attr = "md2conf.__version__" }
 line-length = 160
 
 [tool.ruff.lint]
-select = ["E", "F", "B", "I", "Q"]
+select = ["B", "C4", "D205", "D400", "E", "F", "I", "ISC", "PERF", "Q", "TID", "UP", "W"]
+ignore = ["UP015"]

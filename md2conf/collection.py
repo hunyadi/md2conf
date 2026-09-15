@@ -6,9 +6,9 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Generic, Iterable, TypeVar
+from typing import Generic, TypeVar
 
 from .metadata import ConfluencePageMetadata
 

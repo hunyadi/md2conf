@@ -13,10 +13,11 @@ import argparse
 import logging
 import os.path
 import sys
+from collections.abc import Iterable
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 from requests.exceptions import HTTPError, JSONDecodeError
 

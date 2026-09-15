@@ -11,8 +11,8 @@ import logging
 import os
 import typing
 from abc import abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import yaml
 
@@ -91,8 +91,7 @@ class DocumentNode:
     def children(self) -> Iterable["DocumentNode"]:
         "Direct children of this node."
 
-        for child in self._children:
-            yield child
+        yield from self._children
 
     def descendants(self) -> Iterable["DocumentNode"]:
         """
@@ -207,7 +206,7 @@ class Processor:
                     title_to_path[node.title] = node.absolute_path
         if duplicates:
             raise PageError(
-                f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(list(duplicates)))}"
+                f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(duplicates))}"
             )
 
     def _synchronize_content(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:

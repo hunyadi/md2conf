@@ -7,8 +7,8 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import re
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Iterable, Iterator
 
 
 @dataclass(eq=True)

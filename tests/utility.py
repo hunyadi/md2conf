@@ -60,8 +60,5 @@ class TypedTestCase(unittest.TestCase):
             """Just like self.assertTrue(text.startswith(prefix)), but with a nicer default message."""
 
             if not text.startswith(prefix):
-                standardMsg = "%s does not start with %s" % (
-                    safe_repr(text),
-                    safe_repr(prefix),
-                )
+                standardMsg = f"{safe_repr(text)} does not start with {safe_repr(prefix)}"
                 self.fail(self._formatMessage(msg, standardMsg))

@@ -8,7 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 import logging
 import unittest
-from typing import Iterable
+from collections.abc import Iterable
 
 import lxml.etree as ET
 

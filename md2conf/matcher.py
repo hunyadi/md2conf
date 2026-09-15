@@ -7,9 +7,10 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import os.path
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, final, overload
+from typing import final, overload
 
 from pathspec import GitIgnoreSpec
 

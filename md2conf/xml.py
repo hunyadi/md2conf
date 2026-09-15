@@ -6,9 +6,8 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 import lxml.etree as ET
 
@@ -201,8 +200,7 @@ class ElementSpan:
 
 class _SpanVisitor:
     """
-    Finds all occurrences of a given tag in an XML tree and returns their start and end positions w.r.t. the inner text
-    of the root element.
+    Returns the start and end positions of all occurrences of a given tag in an XML tree w.r.t. the inner text of the root element.
     """
 
     tag_name: str

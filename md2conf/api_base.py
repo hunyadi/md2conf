@@ -433,7 +433,7 @@ class ConfluenceSession(ABC):
         old_mapping = {p.key: p for p in self.get_content_properties_for_page(page_id)}
         new_mapping = {p.key: p for p in properties}
 
-        new_props = set(p.key for p in properties)
+        new_props = {p.key for p in properties}
         old_props = set(old_mapping.keys())
 
         add_props = list(new_props - old_props)
@@ -585,7 +585,7 @@ class ConfluenceSessionShared(ConfluenceSession):
         if body is not None:
             data = object_to_json_payload(body)
         else:
-            data = bytes()
+            data = b""
         return url, headers, data
 
     @overload
@@ -908,7 +908,7 @@ class ConfluenceSessionShared(ConfluenceSession):
     @override
     def update_labels(self, page_id: str, labels: list[ConfluenceLabel], *, keep_existing: bool = False) -> None:
         new_labels = set(labels)
-        old_labels = set(ConfluenceLabel(name=label.name, prefix=label.prefix) for label in self.get_labels(page_id))
+        old_labels = {ConfluenceLabel(name=label.name, prefix=label.prefix) for label in self.get_labels(page_id)}
 
         add_labels = list(new_labels - old_labels)
         remove_labels = list(old_labels - new_labels)

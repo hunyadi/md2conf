@@ -10,8 +10,8 @@ import logging
 import re
 import shutil
 import subprocess
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import Sequence
 
 LOGGER = logging.getLogger(__name__)
 

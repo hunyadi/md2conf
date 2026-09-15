@@ -6,10 +6,11 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
+from collections.abc import Iterable
 from io import BytesIO
 from pathlib import Path
 from struct import unpack
-from typing import BinaryIO, Iterable, overload
+from typing import BinaryIO, overload
 
 
 class ImageFormatError(RuntimeError):
@@ -142,7 +143,7 @@ def _remove_png_chunks(names: Iterable[str], source_file: BinaryIO, target_file:
     :param target_file: A binary file opened for writing to receive PNG image data.
     """
 
-    exclude_set = set(name.encode("ascii") for name in names)
+    exclude_set = {name.encode("ascii") for name in names}
 
     _read_signature(source_file)
     target_file.write(b"\x89PNG\r\n\x1a\n")

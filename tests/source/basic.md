@@ -4,7 +4,7 @@
 
 Text formatted with **bold**, *italic*, `monospace`, <ins>underline</ins> and ~~strikethrough~~.
 
-Text with subscript (H<sub>2</sub>O or H~2~O) and superscript (e<sup>-ix</sup> or e^-ix^).
+Text with subscript (H<sub>2</sub>O or H~2~O) and superscript (e<sup>ix</sup> or e^ix^).
 
 Text in <span style="color: rgb(255,86,48);">red</span>, <span style="color: rgb(54,179,126);">green</span> and <span style="color: rgb(76,154,255);">blue</span>.
 

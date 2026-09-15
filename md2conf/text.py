@@ -19,7 +19,7 @@ def user_references(text: str) -> set[tuple[str, str]]:
     :returns: A set of tuples `(EMAIL, NAME)` extracted from the input text.
     """
 
-    return set((m.group("email"), m.group("name")) for m in re.finditer(r"\[(?P<name>[^\[\]]+)\]\(mailto:(?P<email>[^()]+)\)", text))
+    return {(m.group("email"), m.group("name")) for m in re.finditer(r"\[(?P<name>[^\[\]]+)\]\(mailto:(?P<email>[^()]+)\)", text)}
 
 
 def wrap_text(text: str, line_length: int = 160) -> str:

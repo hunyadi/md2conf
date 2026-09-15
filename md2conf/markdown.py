@@ -77,6 +77,7 @@ _CONVERTER = markdown.Markdown(
         "markdown.extensions.tables",
         "md_in_html",
         "pymdownx.arithmatex",
+        "pymdownx.betterem",
         "pymdownx.caret",
         "pymdownx.emoji",
         "pymdownx.highlight",  # required by `pymdownx.superfences`
