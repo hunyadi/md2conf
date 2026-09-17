@@ -51,7 +51,7 @@ class ConfluenceChildProperties:
     :param status: Content status.
     :param title: Content title.
     :param type: Content type.
-    :param spaceId: Confluence space ID.
+    :param spaceId: Confluence space ID, if returned by the endpoint.
     :param childPosition: Position of the item among its siblings.
     """
 
@@ -59,8 +59,8 @@ class ConfluenceChildProperties:
     status: "ConfluenceStatus"
     title: str
     type: ConfluenceParentType
-    spaceId: str
     childPosition: int
+    spaceId: str | None = None
 
 
 @enum.unique

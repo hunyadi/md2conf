@@ -77,6 +77,7 @@ class ScannedDocument:
 
 
 _PAGE_ID_REGEXP = re.compile(r"<!--\s+confluence[-_]page[-_]id:\s*(\d+)\s+-->")
+_FOLDER_ID_REGEXP = re.compile(r"<!--\s+confluence[-_]folder[-_]id:\s*(\S+)\s+-->")
 _SPACE_KEY_REGEXP = re.compile(r"<!--\s+confluence[-_]space[-_]key:\s*(\S+)\s+-->")
 _GENERATED_BY_REGEXP = re.compile(r"<!--\s+generated[-_]by:\s*(.*)\s+-->")
 
@@ -98,13 +99,16 @@ class Scanner:
         # extract Confluence page ID
         page_id, text = extract_value(_PAGE_ID_REGEXP, text)
 
+        # extract Confluence folder ID
+        folder_id, text = extract_value(_FOLDER_ID_REGEXP, text)
+
         # extract Confluence space key
         space_key, text = extract_value(_SPACE_KEY_REGEXP, text)
 
         # extract 'generated-by' tag text
         generated_by, text = extract_value(_GENERATED_BY_REGEXP, text)
 
-        body_props = DocumentProperties(page_id=page_id, space_key=space_key, generated_by=generated_by)
+        body_props = DocumentProperties(page_id=page_id, folder_id=folder_id, space_key=space_key, generated_by=generated_by)
 
         # extract front-matter
         frontmatter, text = extract_frontmatter_json(text)

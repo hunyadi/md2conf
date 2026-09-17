@@ -359,7 +359,8 @@ class SynchronizingProcessor(Processor):
         if update and not self.options.skip_update and node.synchronized:
             self._update_markdown(
                 node.absolute_path,
-                page_id=page.id,
+                object_id=page.id,
+                object_type=ConfluenceParentType.PAGE,
                 space_key=space_key,
             )
 
@@ -401,7 +402,12 @@ class SynchronizingProcessor(Processor):
 
         space_key = self.api.space_id_to_key(folder.spaceId)
         if update and not self.options.skip_update and node.synchronized:
-            self._update_folder_markdown(node.absolute_path, folder_id=folder.id, space_key=space_key)
+            self._update_markdown(
+                node.absolute_path,
+                object_id=folder.id,
+                object_type=ConfluenceParentType.FOLDER,
+                space_key=space_key,
+            )
 
         node.object_id = folder.id
         for child_node in node.children():
@@ -697,49 +703,39 @@ class SynchronizingProcessor(Processor):
 
         return title
 
-    def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
+    def _update_markdown(self, path: Path, *, object_id: str, object_type: ConfluenceParentType, space_key: str) -> None:
         """
-        Writes the Confluence page ID and space key at the beginning of the Markdown file.
+        Writes the Confluence object ID and space key at the beginning of the Markdown file.
         """
 
         document = path.read_text(encoding="utf-8")
 
-        # check if the file has frontmatter
+        # Insert identifiers after optional front-matter, preserving it as author-managed metadata.
         index = 0
         if document.startswith("---\n"):
-            index = document.find("\n---\n", 4) + 4
-        elif document.startswith("<!--\n"):
-            index = document.find("\n-->\n", 5) + 4
-
-        content: list[str] = []
-
-        if index > 0:
-            # insert the Confluence keys after the frontmatter
-            content.append(document[:index])
-
-        content.append(f"<!-- confluence-page-id: {page_id} -->")
-        content.append(f"<!-- confluence-space-key: {space_key} -->")
-        content.append(document[index:])
-        path.write_text("\n".join(content), encoding="utf-8")
-
-    def _update_folder_markdown(self, path: Path, *, folder_id: str, space_key: str) -> None:
-        """Writes a Confluence folder ID into the descriptor front-matter."""
-
-        document = path.read_text(encoding="utf-8")
-        if document.startswith("---\n"):
             closing_marker = "\n---"
+            closing_index = document.find(closing_marker, 4)
         elif document.startswith("<!--\n"):
             closing_marker = "\n-->"
+            closing_index = document.find(closing_marker, 5)
         else:
-            raise PageError(f"expected: front-matter in folder descriptor: {path}")
+            closing_index = -1
 
-        index = document.find(closing_marker, 4)
-        if index < 0:
-            raise PageError(f"expected: closing front-matter delimiter in folder descriptor: {path}")
-        document = f'{document[:index]}\nfolder_id: "{folder_id}"{document[index:]}'
+        if closing_index >= 0:
+            index = closing_index + len(closing_marker)
+            if document[index : index + 1] == "\n":
+                index += 1
 
-        marker_end = index + len(folder_id) + len('\nfolder_id: ""') + len(closing_marker)
-        document = f"{document[:marker_end]}\n<!-- confluence-space-key: {space_key} -->{document[marker_end:]}"
+        match object_type:
+            case ConfluenceParentType.PAGE:
+                identifier = "confluence-page-id"
+            case ConfluenceParentType.FOLDER:
+                identifier = "confluence-folder-id"
+            case _:
+                raise ArgumentError(f"unsupported Confluence object type for Markdown metadata: {object_type.value}")
+
+        metadata = f"<!-- {identifier}: {object_id} -->\n<!-- confluence-space-key: {space_key} -->\n"
+        document = f"{document[:index]}{metadata}{document[index:]}"
         path.write_text(document, encoding="utf-8")
 
 

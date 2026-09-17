@@ -235,7 +235,7 @@ content_type: folder
 ---
 ```
 
-When the folder is created or matched by title among the intended parent's direct children, *md2conf* writes its ID back as `folder_id`. A known folder can also be associated explicitly by supplying `folder_id`; in that case, `content_type` is optional. `page_id` and `folder_id` are mutually exclusive. Folder descriptors require Confluence REST API v2. Without `--keep-hierarchy`, `content_type: folder` retains the existing flattened page behavior, while `folder_id` is rejected because a folder ID must never be used as a page ID.
+When the folder is created or matched by title among the intended parent's direct children, *md2conf* writes its ID back as a `confluence-folder-id` HTML comment. A known folder can also be associated explicitly by supplying `folder_id` in front-matter; in that case, `content_type` is optional. `page_id` and `folder_id` are mutually exclusive. Folder descriptors require Confluence REST API v2. Without `--keep-hierarchy`, `content_type: folder` retains the existing flattened page behavior, while `folder_id` is rejected because a folder ID must never be used as a page ID.
 
 *md2conf* synchronizes the order of child pages in Confluence with the order of Markdown files in a directory (as per lexicographical sort). Pages are rearranged when there is a mismatch. We employ a conservative approach and invoke a minimum number of *insert before* and *insert after* operations to ensure that wiki pages follow the same order as Markdown files. The position of pages not being synchronized by *md2conf* is maintained w.r.t. their siblings as much as possible.
 

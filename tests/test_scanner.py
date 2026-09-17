@@ -52,6 +52,13 @@ folder_id: "7654321"
 ---
 """
 
+folder_comment = """---
+title: Product Guides
+content_type: folder
+---
+<!-- confluence-folder-id: FOLDER_7654321 -->
+"""
+
 comment_frontmatter = """<!--
 title: 🏠 árvíztűrő tükörfúrógép
 -->
@@ -118,6 +125,12 @@ class TestScanner(TypedTestCase):
         self.assertEqual(props.title, "Product Guides")
         self.assertEqual(props.content_type, "folder")
         self.assertEqual(props.folder_id, "7654321")
+        self.assertFalse(document.text.strip())
+
+    def test_folder_comment(self) -> None:
+        document = Scanner().parse(folder_comment)
+        props = document.properties
+        self.assertEqual(props.folder_id, "FOLDER_7654321")
         self.assertFalse(document.text.strip())
 
     def test_comment_frontmatter(self) -> None:

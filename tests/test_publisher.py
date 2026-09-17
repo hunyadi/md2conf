@@ -315,6 +315,8 @@ class TestPublisher(unittest.TestCase):
             self.assertEqual(guides_folder.parentId, root_folder.id)
             self.assertEqual(guide_page.parentId, guides_folder.id)
             self.assertNotIn("confluence-page-id", root_descriptor.read_text(encoding="utf-8"))
+            self.assertIn(f"<!-- confluence-folder-id: {root_folder.id} -->", root_descriptor.read_text(encoding="utf-8"))
+            self.assertNotIn("folder_id:", root_descriptor.read_text(encoding="utf-8"))
 
             publisher.process_directory(source_dir)
             self.assertEqual(api.get_folder_count(), 2)
