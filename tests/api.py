@@ -21,6 +21,7 @@ from md2conf.api_types import (
     ConfluenceContentProperty,
     ConfluenceContentState,
     ConfluenceContentVersion,
+    ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
     ConfluenceIdentifiedLabel,
     ConfluenceLabel,
@@ -90,6 +91,18 @@ class MockConfluenceSession(ConfluenceSession):
         )
         self._db.execute(
             """
+            CREATE TABLE folders (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                parentId TEXT,
+                position INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                version INTEGER NOT NULL
+            )
+            """
+        )
+        self._db.execute(
+            """
             CREATE TABLE contentProperties (
                 id TEXT PRIMARY KEY,
                 pageId TEXT NOT NULL,
@@ -130,10 +143,19 @@ class MockConfluenceSession(ConfluenceSession):
             raise ConfluenceError(f"page not found with ID: {page_id}")
         return row
 
+    def _get_folder_row(self, folder_id: str) -> sqlite3.Row:
+        row: sqlite3.Row | None = self._db.execute(
+            "SELECT id, title, parentId, position, createdAt, version FROM folders WHERE id = ?",
+            (folder_id,),
+        ).fetchone()
+        if row is None:
+            raise ConfluenceError(f"folder not found with ID: {folder_id}")
+        return row
+
     def _get_child_ids(self, parent_id: str | None) -> list[str]:
         rows = self._db.execute(
-            "SELECT id FROM pages WHERE parentId IS ? ORDER BY position",
-            (parent_id,),
+            "SELECT id, position FROM pages WHERE parentId IS ? UNION ALL SELECT id, position FROM folders WHERE parentId IS ? ORDER BY position",
+            (parent_id, parent_id),
         ).fetchall()
         return [str(row["id"]) for row in rows]
 
@@ -173,17 +195,34 @@ class MockConfluenceSession(ConfluenceSession):
         )
 
     def _row_to_page_properties(self, row: sqlite3.Row) -> ConfluencePageProperties:
+        parent_id = row["parentId"]
         return ConfluencePageProperties(
             id=row["id"],
             status=ConfluenceStatus.CURRENT,
             title=row["title"],
             spaceId="SPACE_ID",
-            parentId=row["parentId"],
-            parentType=ConfluenceParentType.PAGE,
+            parentId=parent_id,
+            parentType=None if parent_id is None else self.get_object_type(parent_id),
             position=int(row["position"]) // 2,
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
             createdAt=datetime.datetime.fromtimestamp(row["createdAt"], tz=datetime.timezone.utc),
+            version=ConfluenceContentVersion(number=row["version"]),
+        )
+
+    def _row_to_folder_properties(self, row: sqlite3.Row) -> ConfluenceFolderProperties:
+        parent_id = row["parentId"]
+        parent_type = None if parent_id is None else self.get_object_type(parent_id)
+        return ConfluenceFolderProperties(
+            id=row["id"],
+            status=ConfluenceStatus.CURRENT,
+            title=row["title"],
+            spaceId="SPACE_ID",
+            parentId=parent_id,
+            parentType=parent_type,
+            position=int(row["position"]) // 2,
+            authorId="AUTHOR_ID",
+            ownerId="OWNER_ID",
             version=ConfluenceContentVersion(number=row["version"]),
         )
 
@@ -220,14 +259,60 @@ class MockConfluenceSession(ConfluenceSession):
     @override
     def get_object_space_id(self, object_id: str) -> str:
         LOGGER.debug("object_id: %s", object_id)
-        return self.get_page_properties(object_id).spaceId
+        return "SPACE_ID"
 
     @override
     def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
-        page = self.get_page_properties(object_id)
-        parent_id = page.parentId
-        position = page.position
+        obj: ConfluenceFolderProperties | ConfluencePageProperties
+        if self.get_object_type(object_id) == ConfluenceParentType.FOLDER:
+            obj = self.get_folder_properties(object_id)
+        else:
+            obj = self.get_page_properties(object_id)
+        parent_id = obj.parentId
+        position = obj.position
         return parent_id, position
+
+    @property
+    @override
+    def supports_folders(self) -> bool:
+        return True
+
+    @override
+    def get_object_type(self, object_id: str) -> ConfluenceParentType:
+        row = self._db.execute("SELECT 1 FROM folders WHERE id = ?", (object_id,)).fetchone()
+        return ConfluenceParentType.FOLDER if row is not None else ConfluenceParentType.PAGE
+
+    @override
+    def get_folder_properties(self, folder_id: str) -> ConfluenceFolderProperties:
+        return self._row_to_folder_properties(self._get_folder_row(folder_id))
+
+    @override
+    def get_folder_properties_by_title(self, title: str, *, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties | None:
+        row: sqlite3.Row | None = self._db.execute(
+            "SELECT id, title, parentId, position, createdAt, version FROM folders WHERE title = ? AND parentId = ? LIMIT 1",
+            (title, parent_id),
+        ).fetchone()
+        return self._row_to_folder_properties(row) if row is not None else None
+
+    @override
+    def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:
+        folder_id = f"FOLDER_{uuid4().hex[:8].upper()}"
+        created_at = datetime.datetime.now(datetime.timezone.utc)
+        row: sqlite3.Row = self._db.execute(
+            "SELECT COALESCE(MAX(position), -2) + 2 AS position FROM ("
+            "SELECT position FROM pages WHERE parentId = ? UNION ALL SELECT position FROM folders WHERE parentId = ?)",
+            (parent_id, parent_id),
+        ).fetchone()
+        self._db.execute(
+            "INSERT INTO folders (id, title, parentId, position, createdAt, version) VALUES (?, ?, ?, ?, ?, ?)",
+            (folder_id, title, parent_id, int(row["position"]), int(created_at.timestamp()), 1),
+        )
+        self._db.commit()
+        return self.get_folder_properties(folder_id)
+
+    def get_folder_count(self) -> int:
+        row: sqlite3.Row = self._db.execute("SELECT COUNT(*) AS count FROM folders").fetchone()
+        return int(row["count"])
 
     def get_attachment_count(self) -> int:
         row: sqlite3.Row = self._db.execute("SELECT COUNT(*) AS count FROM attachments").fetchone()
@@ -415,8 +500,9 @@ class MockConfluenceSession(ConfluenceSession):
         version = 1
 
         row: sqlite3.Row = self._db.execute(
-            "SELECT COALESCE(MAX(position), -2) + 2 AS position FROM pages WHERE parentId IS ?",
-            (parent_id,),
+            "SELECT COALESCE(MAX(position), -2) + 2 AS position FROM ("
+            "SELECT position FROM pages WHERE parentId IS ? UNION ALL SELECT position FROM folders WHERE parentId IS ?)",
+            (parent_id, parent_id),
         ).fetchone()
         position = int(row["position"])
 

@@ -24,6 +24,7 @@ from .api_types import (
     ConfluenceContentState,
     ConfluenceContentStateResponse,
     ConfluenceContentVersion,
+    ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
     ConfluenceIdentifiedLabel,
     ConfluenceLabel,
@@ -31,6 +32,7 @@ from .api_types import (
     ConfluencePage,
     ConfluencePageProperties,
     ConfluencePageRef,
+    ConfluenceParentType,
     ConfluenceStatus,
     ConfluenceUser,
     ConfluenceVersion,
@@ -141,6 +143,44 @@ class ConfluenceSession(ABC):
         :returns: Page ID of the space homepage.
         """
         ...
+
+    @property
+    def supports_folders(self) -> bool:
+        """Whether this Confluence API supports folders in the content tree."""
+
+        return False
+
+    def get_object_type(self, object_id: str) -> ConfluenceParentType:
+        """Returns the content type for an object ID."""
+
+        return ConfluenceParentType.PAGE
+
+    def get_folder_properties(self, folder_id: str) -> ConfluenceFolderProperties:
+        """Retrieves a Confluence folder by its explicitly identified folder ID."""
+
+        raise PageError("Confluence folders require REST API v2")
+
+    def get_folder_properties_by_title(self, title: str, *, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties | None:
+        """Finds a direct child folder with a matching title."""
+
+        raise PageError("Confluence folders require REST API v2")
+
+    def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:
+        """Creates a folder in the Confluence content tree."""
+
+        raise PageError("Confluence folders require REST API v2")
+
+    def get_or_create_folder(self, title: str, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties:
+        """Finds a direct child folder with the given title, or creates it."""
+
+        folder = self.get_folder_properties_by_title(title, parent_id=parent_id, parent_type=parent_type)
+        if folder is not None:
+            LOGGER.debug("Retrieving existing folder: %s", folder.id)
+            return folder
+
+        LOGGER.debug("Creating new folder with title: %s", title)
+        space_id = self.get_object_space_id(parent_id)
+        return self.create_folder(title=title, parent_id=parent_id, space_id=space_id)
 
     @abstractmethod
     def get_users(self, expr: str) -> list[ConfluenceUser]:

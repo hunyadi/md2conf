@@ -35,6 +35,9 @@ class DocumentNode:
 
     absolute_path: Path
     page_id: str | None
+    folder_id: str | None
+    is_folder: bool
+    object_id: str | None
     space_key: str | None
     title: str | None
     synchronized: bool
@@ -46,6 +49,8 @@ class DocumentNode:
         self,
         absolute_path: Path,
         page_id: str | None,
+        folder_id: str | None,
+        is_folder: bool,
         space_key: str | None,
         title: str | None,
         synchronized: bool,
@@ -53,6 +58,9 @@ class DocumentNode:
     ):
         self.absolute_path = absolute_path
         self.page_id = page_id
+        self.folder_id = folder_id
+        self.is_folder = is_folder
+        self.object_id = None
         self.space_key = space_key
         self.title = title
         self.synchronized = synchronized
@@ -162,6 +170,8 @@ class Processor:
         root = DocumentNode(
             absolute_path=local_dir / "index.md",  # virtual node; not necessarily a real file
             page_id=None,
+            folder_id=None,
+            is_folder=False,
             space_key=None,
             title=None,
             synchronized=False,
@@ -197,6 +207,8 @@ class Processor:
         title_to_path: dict[str, Path] = {}
         duplicates: set[Path] = set()
         for node in root.all():
+            if node.is_folder:
+                continue  # unlike page titles, folder titles need not be unique across a space
             if node.title is not None:
                 path = title_to_path.get(node.title)
                 if path is not None:
@@ -343,11 +355,29 @@ class Processor:
         text = path.read_text(encoding="utf-8")
         document = Scanner().parse(text)
         props = document.properties
-        title = props.title or unique_title(document.text)
+        if props.page_id is not None and props.folder_id is not None:
+            raise PageError(f"expected: only one of `page_id` and `folder_id` in {path}")
+        if props.page_id is not None and props.content_type == "folder":
+            raise PageError(f"expected: `folder_id` instead of `page_id` for folder descriptor: {path}")
+        if props.folder_id is not None and props.content_type == "page":
+            raise PageError(f"expected: `content_type: folder` or no `content_type` when using `folder_id` in {path}")
+
+        is_folder = self.options.keep_hierarchy and (props.content_type == "folder" or props.folder_id is not None)
+        if props.folder_id is not None and not self.options.keep_hierarchy:
+            raise PageError(f"expected: `--keep-hierarchy` when using `folder_id` in {path}")
+        if is_folder:
+            if path.name != "index.md":
+                raise PageError(f"expected: folder descriptor named `index.md`; got: {path}")
+            if document.text.strip():
+                raise PageError(f"expected: folder descriptor with no Markdown body: {path}")
+
+        title = props.title or (path.parent.name if is_folder else unique_title(document.text))
 
         return DocumentNode(
             absolute_path=path,
             page_id=props.page_id,
+            folder_id=props.folder_id,
+            is_folder=is_folder,
             space_key=props.space_key,
             title=title,
             synchronized=props.synchronized if props.synchronized is not None else True,

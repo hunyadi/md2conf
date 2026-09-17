@@ -13,7 +13,15 @@ from pathlib import Path
 
 from . import __version__
 from .api_base import ConfluenceSession
-from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceContentState, ConfluenceLabel, ConfluencePage, ConfluenceStatus
+from .api_types import (
+    ConfluenceCommentStatus,
+    ConfluenceContentProperty,
+    ConfluenceContentState,
+    ConfluenceLabel,
+    ConfluencePage,
+    ConfluenceParentType,
+    ConfluenceStatus,
+)
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
@@ -218,22 +226,35 @@ class SynchronizingProcessor(Processor):
         """
 
         topmost_id: str | None = None
-        if tree.page_id is not None:
+        topmost_type: ConfluenceParentType | None = None
+        if tree.is_folder and not self.api.supports_folders:
+            raise PageError(f"Confluence folders require REST API v2 when synchronizing {tree.absolute_path}")
+
+        if tree.folder_id is not None:
+            folder = self.api.get_folder_properties(tree.folder_id)
+            topmost_id = folder.parentId
+            topmost_type = folder.parentType
+        elif tree.page_id is not None:
             # explicitly associated page takes precedence
-            topmost_id = self.api.get_page_properties(tree.page_id).parentId
+            page = self.api.get_page_properties(tree.page_id)
+            topmost_id = page.parentId
+            topmost_type = page.parentType
         elif self.options.root_page is not None:
             # explicit parameter value
             topmost_id = self.options.root_page
+            # resolving a generic object type is only necessary when a folder must be matched beneath this root
+            topmost_type = self.api.get_object_type(topmost_id) if any(node.is_folder for node in tree.all()) else ConfluenceParentType.PAGE
         elif self.site.space_key is not None:
             # infer root page from space key
             topmost_id = self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))
+            topmost_type = ConfluenceParentType.PAGE
 
-        if topmost_id is None:
+        if topmost_id is None or topmost_type is None:
             raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
 
         catalog = ParentCatalog(self.api)
         catalog.add_known(topmost_id)
-        self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
+        self._synchronize_subtree(tree, ConfluencePageID(topmost_id), topmost_type, catalog)
         return catalog.get_tree()
 
     @override
@@ -242,18 +263,16 @@ class SynchronizingProcessor(Processor):
         Recursively arranges child pages of a parent page in the same order as files in their parent directory.
         """
 
-        metadata = self.page_metadata.get(tree.absolute_path)
-        if metadata is None:
+        if tree.object_id is None:
             return  # not associated with a page
-        parent_id = metadata.page_id
+        parent_id = tree.object_id
 
         # get order of child pages
         local_order: list[str] = []
         for child in tree.children():
-            metadata = self.page_metadata.get(child.absolute_path)
-            if metadata is None:
+            if child.object_id is None:
                 continue
-            local_order.append(metadata.page_id)
+            local_order.append(child.object_id)
         if not local_order:
             return  # nothing to sort
 
@@ -295,7 +314,11 @@ class SynchronizingProcessor(Processor):
                     user_metadata.add(email, remote_user.accountId)
         return user_metadata
 
-    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
+    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, parent_type: ConfluenceParentType, catalog: ParentCatalog) -> None:
+        if node.is_folder:
+            self._synchronize_folder_subtree(node, parent_id, parent_type, catalog)
+            return
+
         if node.page_id is not None:
             # verify if page exists
             page = self.api.get_page_properties(node.page_id)
@@ -347,9 +370,42 @@ class SynchronizingProcessor(Processor):
             synchronized=node.synchronized,
         )
         self.page_metadata.add(node.absolute_path, data)
+        node.object_id = page.id
 
         for child_node in node.children():
-            self._synchronize_subtree(child_node, ConfluencePageID(page.id), catalog)
+            self._synchronize_subtree(child_node, ConfluencePageID(page.id), ConfluenceParentType.PAGE, catalog)
+
+    def _synchronize_folder_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, parent_type: ConfluenceParentType, catalog: ParentCatalog) -> None:
+        """Associates a metadata-only index document with a Confluence folder."""
+
+        if not self.api.supports_folders:
+            raise PageError(f"Confluence folders require REST API v2 when synchronizing {node.absolute_path}")
+
+        if node.folder_id is not None:
+            folder = self.api.get_folder_properties(node.folder_id)
+            catalog.add_known(folder.id)
+            catalog.add_parent(page_id=folder.id, parent_id=folder.parentId, position=folder.position)
+            update = False
+        else:
+            title = self._get_extended_title(node.title or node.absolute_path.parent.name)
+            folder = self.api.get_or_create_folder(title, parent_id, parent_type)
+            catalog.add_parent(page_id=folder.id, parent_id=folder.parentId, position=folder.position)
+            if folder.status != ConfluenceStatus.CURRENT:
+                raise PageError(f"unable to use folder with ID {folder.id} and status {folder.status.value} when synchronizing {node.absolute_path}")
+            if not catalog.is_traceable(folder.id):
+                raise PageError(
+                    f"expected: folder with ID {folder.id} to be a descendant of the root page or one of the objects paired with a Markdown file using an "
+                    f"explicit ID when synchronizing {node.absolute_path}"
+                )
+            update = True
+
+        space_key = self.api.space_id_to_key(folder.spaceId)
+        if update and not self.options.skip_update and node.synchronized:
+            self._update_folder_markdown(node.absolute_path, folder_id=folder.id, space_key=space_key)
+
+        node.object_id = folder.id
+        for child_node in node.children():
+            self._synchronize_subtree(child_node, ConfluencePageID(folder.id), ConfluenceParentType.FOLDER, catalog)
 
     @override
     def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:
@@ -665,6 +721,26 @@ class SynchronizingProcessor(Processor):
         content.append(f"<!-- confluence-space-key: {space_key} -->")
         content.append(document[index:])
         path.write_text("\n".join(content), encoding="utf-8")
+
+    def _update_folder_markdown(self, path: Path, *, folder_id: str, space_key: str) -> None:
+        """Writes a Confluence folder ID into the descriptor front-matter."""
+
+        document = path.read_text(encoding="utf-8")
+        if document.startswith("---\n"):
+            closing_marker = "\n---"
+        elif document.startswith("<!--\n"):
+            closing_marker = "\n-->"
+        else:
+            raise PageError(f"expected: front-matter in folder descriptor: {path}")
+
+        index = document.find(closing_marker, 4)
+        if index < 0:
+            raise PageError(f"expected: closing front-matter delimiter in folder descriptor: {path}")
+        document = f'{document[:index]}\nfolder_id: "{folder_id}"{document[index:]}'
+
+        marker_end = index + len(folder_id) + len('\nfolder_id: ""') + len(closing_marker)
+        document = f"{document[:marker_end]}\n<!-- confluence-space-key: {space_key} -->{document[marker_end:]}"
+        path.write_text(document, encoding="utf-8")
 
 
 class SynchronizingProcessorFactory(ProcessorFactory):

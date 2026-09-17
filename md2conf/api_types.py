@@ -42,6 +42,27 @@ class ConfluenceParentType(enum.Enum):
     FOLDER = "folder"
 
 
+@dataclass(frozen=True)
+class ConfluenceChildProperties:
+    """
+    Minimal properties returned for an item in the Confluence content tree.
+
+    :param id: Confluence content ID.
+    :param status: Content status.
+    :param title: Content title.
+    :param type: Content type.
+    :param spaceId: Confluence space ID.
+    :param childPosition: Position of the item among its siblings.
+    """
+
+    id: str
+    status: "ConfluenceStatus"
+    title: str
+    type: ConfluenceParentType
+    spaceId: str
+    childPosition: int
+
+
 @enum.unique
 class ConfluenceRepresentation(enum.Enum):
     STORAGE = "storage"
@@ -169,6 +190,38 @@ class ConfluencePageProperties:
     authorId: str
     ownerId: str
     createdAt: datetime.datetime
+    version: ConfluenceContentVersion
+
+
+@dataclass(frozen=True)
+class ConfluenceFolderProperties:
+    """
+    Holds Confluence folder properties used for folder synchronization.
+
+    The `createdAt` field is intentionally omitted because Confluence has returned it in a format inconsistent with
+    other content objects.
+
+    :param id: Confluence folder ID.
+    :param status: Folder status.
+    :param title: Folder title.
+    :param spaceId: Confluence space ID.
+    :param parentId: ID of the immediate parent.
+    :param parentType: Identifies the content type of the parent.
+    :param position: Position of the folder among its siblings.
+    :param authorId: Account ID of the user who created the folder.
+    :param ownerId: Account ID of the user who owns the folder.
+    :param version: Folder version.
+    """
+
+    id: str
+    status: ConfluenceStatus
+    title: str
+    spaceId: str
+    parentId: str | None
+    parentType: ConfluenceParentType | None
+    position: int | None
+    authorId: str
+    ownerId: str
     version: ConfluenceContentVersion
 
 

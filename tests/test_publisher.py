@@ -15,12 +15,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from md2conf.api_base import ConfluenceSession
-from md2conf.api_types import ConfluencePageProperties
+from md2conf.api_types import ConfluenceFolderProperties, ConfluencePageProperties
+from md2conf.compatibility import override
+from md2conf.environment import PageError
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
 from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
 from md2conf.scanner import Scanner
-from tests.api import MockConfluenceAPI
+from tests.api import MockConfluenceAPI, MockConfluenceSession
 
 logging.basicConfig(
     level=logging.INFO,
@@ -72,6 +74,28 @@ def _get_page_for_document(api: ConfluenceSession, absolute_path: Path) -> Confl
     if props.page_id is None:
         raise ValueError(f"document does not have a page ID assigned: {absolute_path}")
     return api.get_page_properties(props.page_id)
+
+
+def _get_folder_for_document(api: ConfluenceSession, absolute_path: Path) -> ConfluenceFolderProperties:
+    """Retrieves the Confluence folder corresponding to the given descriptor path."""
+
+    document = Scanner().read(absolute_path)
+    folder_id = document.properties.folder_id
+    if folder_id is None:
+        raise ValueError(f"document does not have a folder ID assigned: {absolute_path}")
+    return api.get_folder_properties(folder_id)
+
+
+class MockConfluenceSessionV1(MockConfluenceSession):
+    @property
+    @override
+    def supports_folders(self) -> bool:
+        return False
+
+
+class MockConfluenceAPIV1(MockConfluenceAPI):
+    def __init__(self) -> None:
+        self._session = MockConfluenceSessionV1()
 
 
 class TestPublisher(unittest.TestCase):
@@ -266,6 +290,78 @@ class TestPublisher(unittest.TestCase):
                 self.assertEqual(page_d.parentId, implicit_page.id)
                 self.assertEqual(implicit_page.parentId, page_a.id)
                 self.assertEqual(implicit_page.position, 2)
+
+    def test_folder_hierarchy(self) -> None:
+        """Checks if metadata-only index documents create an idempotent folder hierarchy."""
+
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            root_descriptor = source_dir / "index.md"
+            guides_descriptor = source_dir / "guides" / "index.md"
+            guide = source_dir / "guides" / "getting-started.md"
+            root_descriptor.write_text("---\ntitle: Documentation\ncontent_type: folder\n---\n", encoding="utf-8")
+            guides_descriptor.parent.mkdir()
+            guides_descriptor.write_text("---\ntitle: Product Guides\ncontent_type: folder\n---\n", encoding="utf-8")
+            guide.write_text("# Getting Started\n", encoding="utf-8")
+
+            publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False))
+            publisher.process_directory(source_dir)
+
+            root_folder = _get_folder_for_document(api, root_descriptor)
+            guides_folder = _get_folder_for_document(api, guides_descriptor)
+            guide_page = _get_page_for_document(api, guide)
+            self.assertEqual(api.get_folder_count(), 2)
+            self.assertEqual(api.get_page_count(), 2)  # homepage and guide page
+            self.assertEqual(root_folder.parentId, api.get_homepage_id("SPACE_ID"))
+            self.assertEqual(guides_folder.parentId, root_folder.id)
+            self.assertEqual(guide_page.parentId, guides_folder.id)
+            self.assertNotIn("confluence-page-id", root_descriptor.read_text(encoding="utf-8"))
+
+            publisher.process_directory(source_dir)
+            self.assertEqual(api.get_folder_count(), 2)
+            self.assertEqual(api.get_page_count(), 2)
+
+    def test_reuse_existing_folder_by_title_and_parent(self) -> None:
+        """Checks if an existing direct child folder is reused by implicit association."""
+
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            homepage_id = api.get_homepage_id("SPACE_ID")
+            existing = api.create_folder(title="Documentation", parent_id=homepage_id, space_id="SPACE_ID")
+            descriptor = source_dir / "index.md"
+            descriptor.write_text("---\ntitle: Documentation\ncontent_type: folder\n---\n", encoding="utf-8")
+
+            Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
+
+            self.assertEqual(_get_folder_for_document(api, descriptor).id, existing.id)
+            self.assertEqual(api.get_folder_count(), 1)
+
+    def test_explicit_folder_id(self) -> None:
+        """Checks if `folder_id` binds a descriptor to a folder without treating it as a page ID."""
+
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            existing = api.create_folder(
+                title="Documentation",
+                parent_id=api.get_homepage_id("SPACE_ID"),
+                space_id="SPACE_ID",
+            )
+            descriptor = source_dir / "index.md"
+            descriptor.write_text(f'---\ntitle: Documentation\nfolder_id: "{existing.id}"\n---\n', encoding="utf-8")
+
+            Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
+
+            self.assertEqual(api.get_folder_count(), 1)
+            self.assertEqual(api.get_page_count(), 1)
+
+    def test_folder_descriptor_rejects_markdown_body(self) -> None:
+        with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+            (source_dir / "index.md").write_text("---\ncontent_type: folder\n---\n\nNot allowed.\n", encoding="utf-8")
+            with self.assertRaisesRegex(PageError, "no Markdown body"):
+                Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
+
+    def test_folder_descriptor_rejects_rest_api_v1(self) -> None:
+        with MockConfluenceAPIV1() as api, _create_temporary_directory() as source_dir:
+            (source_dir / "index.md").write_text("---\ncontent_type: folder\n---\n", encoding="utf-8")
+            with self.assertRaisesRegex(PageError, "require REST API v2"):
+                Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
     def test_toplevel(self) -> None:
         "Checks if a missing top-level document is handled correctly."

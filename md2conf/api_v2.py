@@ -16,9 +16,11 @@ from requests import HTTPError, RequestException, Session
 from .api_base import ConfluenceSessionShared
 from .api_types import (
     ConfluenceAttachment,
+    ConfluenceChildProperties,
     ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentVersion,
+    ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
     ConfluenceIdentifiedLabel,
     ConfluencePage,
@@ -41,38 +43,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class ConfluenceFolderProperties:
-    """
-    Holds Confluence folder properties used for folder synchronization.
-
-    We intentionally exclude `createdAt`, which is transmitted as a UNIX timestamp in milliseconds, unlike datetime
-    fields in other Confluence objects, which are transmitted as ISO 8601 strings.
-
-    :param id: Confluence folder ID.
-    :param status: Folder status.
-    :param title: Folder title.
-    :param spaceId: Confluence space ID.
-    :param parentId: Confluence folder ID of the immediate parent.
-    :param parentType: Identifies the content type of the parent.
-    :param position: Position of child folder within the given parent folder tree.
-    :param authorId: The account ID of the user who created this folder originally.
-    :param ownerId: The account ID of the user who owns this folder.
-    :param version: Folder version. Incremented when the folder is updated.
-    """
-
-    id: str
-    status: ConfluenceStatus
-    title: str
-    spaceId: str
-    parentId: str | None
-    parentType: ConfluenceParentType | None
-    position: int | None
-    authorId: str
-    ownerId: str
-    version: ConfluenceContentVersion
-
-
-@dataclass(frozen=True)
 class ConfluenceCreatePageRequest:
     spaceId: str
     status: ConfluenceStatus | None
@@ -88,6 +58,13 @@ class ConfluenceUpdatePageRequest:
     title: str
     body: ConfluencePageBody
     version: ConfluenceContentVersion
+
+
+@dataclass(frozen=True)
+class ConfluenceCreateFolderRequest:
+    spaceId: str
+    title: str
+    parentId: str
 
 
 class ConfluenceSessionV2(ConfluenceSessionShared):
@@ -228,6 +205,25 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
         data = self._get(ConfluenceVersion.VERSION_2, path, dict[str, JsonType])
         return typing.cast(str, data["homepageId"])
 
+    @property
+    @override
+    def supports_folders(self) -> bool:
+        return True
+
+    @override
+    def get_object_type(self, object_id: str) -> ConfluenceParentType:
+        data = self._post(
+            ConfluenceVersion.VERSION_2,
+            "/content/convert-ids-to-types",
+            {"contentIds": [object_id]},
+            dict[str, JsonType],
+        )
+        results = typing.cast(dict[str, JsonType], data["results"])
+        content_type = results.get(object_id)
+        if not isinstance(content_type, str):
+            raise ConfluenceError(f"content type not found for ID: {object_id}")
+        return ConfluenceParentType(content_type)
+
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
         path = f"/pages/{page_id}/attachments"
@@ -291,6 +287,34 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     def _get_folder_properties(self, folder_id: str, *, retry: bool) -> ConfluenceFolderProperties:
         path = f"/folders/{folder_id}"
         return self._get(ConfluenceVersion.VERSION_2, path, ConfluenceFolderProperties, retry=retry)
+
+    @override
+    def get_folder_properties(self, folder_id: str) -> ConfluenceFolderProperties:
+        return self._get_folder_properties(folder_id, retry=True)
+
+    @override
+    def get_folder_properties_by_title(self, title: str, *, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties | None:
+        match parent_type:
+            case ConfluenceParentType.PAGE:
+                path = f"/pages/{parent_id}/direct-children"
+            case ConfluenceParentType.FOLDER:
+                path = f"/folders/{parent_id}/direct-children"
+            case _:
+                raise ConfluenceError(f"unsupported parent type for folder: {parent_type.value}")
+
+        children = json_to_object(list[ConfluenceChildProperties], self._fetch_v2(path))
+        matches = [child for child in children if child.type == ConfluenceParentType.FOLDER and child.title == title]
+        if len(matches) > 1:
+            raise ConfluenceError(f"multiple folders named {title!r} found under parent with ID: {parent_id}")
+        if not matches:
+            return None
+        return self.get_folder_properties(matches[0].id)
+
+    @override
+    def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:
+        LOGGER.info("Creating folder: %s", title)
+        request = ConfluenceCreateFolderRequest(spaceId=space_id, title=title, parentId=parent_id)
+        return self._post(ConfluenceVersion.VERSION_2, "/folders", request, ConfluenceFolderProperties)
 
     @override
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:

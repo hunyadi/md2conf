@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from .coalesce import coalesce_dataclass
 from .frontmatter import extract_frontmatter_json, extract_value
@@ -38,6 +38,8 @@ class DocumentProperties:
     An object that holds properties extracted from the front-matter of a Markdown document.
 
     :param page_id: Confluence page ID.
+    :param folder_id: Confluence folder ID.
+    :param content_type: Confluence content type represented by this document.
     :param space_key: Confluence space key.
     :param generated_by: Text identifying the tool that generated the document.
     :param title: The title extracted from front-matter.
@@ -48,6 +50,8 @@ class DocumentProperties:
     """
 
     page_id: str | None = None
+    folder_id: str | None = None
+    content_type: Literal["page", "folder"] | None = None
     space_key: str | None = None
     generated_by: str | None = None
     title: str | None = None

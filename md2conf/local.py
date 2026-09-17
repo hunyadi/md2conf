@@ -55,12 +55,18 @@ class LocalProcessor(Processor):
         """
 
         for node in tree.all():
-            if node.page_id is not None:
+            if node.folder_id is not None:
+                page_id = node.folder_id
+            elif node.page_id is not None:
                 page_id = node.page_id
             else:
                 digest = self._generate_hash(node.absolute_path)
                 LOGGER.info("Identifier %s assigned to page: %s", digest, node.absolute_path)
                 page_id = digest
+
+            node.object_id = page_id
+            if node.is_folder:
+                continue
 
             self.page_metadata.add(
                 node.absolute_path,
