@@ -28,7 +28,7 @@ from md2conf.options_converter import ConverterOptions, ImageLayoutOptions, Layo
 from md2conf.plantuml.render import compress_plantuml_data, has_plantuml, render_diagram
 from md2conf.svg import get_svg_dimensions
 from tests import emoji
-from tests.mermaid_tree import MermaidTreeExtension
+from tests.mermaid_tree import MermaidTreeExtensionFactory
 from tests.utility import TypedTestCase
 
 logging.basicConfig(
@@ -244,7 +244,7 @@ class TestConversion(TypedTestCase):
             ProcessorOptions(
                 converter=ConverterOptions(
                     # disable default extensions, register a custom hook for Mermaid
-                    extensions=[MermaidTreeExtension()]
+                    extensions=[MermaidTreeExtensionFactory()]
                 )
             ),
             self.source_dir,

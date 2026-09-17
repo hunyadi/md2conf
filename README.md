@@ -824,6 +824,8 @@ options:
   --no-render-plantuml  Upload PlantUML diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --render-latex        Render LaTeX formulas as image files. (Matplotlib required to convert.) (default)
   --no-render-latex     Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)
+  --render-other        Render other supported diagrams as image files. (Installed utilities required to convert.) (default)
+  --no-render-other     Upload other diagram sources as Confluence page attachments. (Marketplace app required to display.)
   --diagram-output-format {png,svg}
                         Format for rendering Mermaid and draw.io diagrams. (default: png)
   --webui-links         Enable Confluence Web UI links. (Typically required for on-prem versions of Confluence.)
@@ -898,6 +900,7 @@ options = ProcessorOptions(
         render_mermaid=bool(),
         render_plantuml=bool(),
         render_latex=bool(),
+        render_other=bool(),
         diagram_output_format='png' or 'svg',
         webui_links=bool(),
         task_lists=bool(),

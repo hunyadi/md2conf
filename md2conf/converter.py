@@ -27,19 +27,19 @@ from .coalesce import coalesce_dataclass
 from .collection import ConfluencePageCollection, ConfluenceUserCollection
 from .compatibility import override, path_relative_to
 from .csf import AC_ATTR, AC_ELEM, HTML, RI_ATTR, RI_ELEM, ElementType, ParseError, elements_from_strings, elements_to_string, normalize_inline
-from .drawio.extension import DrawioExtension
+from .drawio.extension import DrawioExtensionFactory
 from .emoticon import emoji_to_emoticon
 from .environment import PageError
-from .extension import DiagramExtension, ExtensionOptions
+from .extension import ExtensionOptions, ImageGenerator, ImageGeneratorOptions, MarketplaceExtension
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes
-from .image import ImageGenerator, ImageGeneratorOptions, to_element_attrs
+from .image import DefaultImageGenerator, to_element_attrs
 from .latex import render_latex
 from .markdown import markdown_to_html, markdown_with_line_numbers
-from .mermaid.extension import MermaidExtension
+from .mermaid.extension import MermaidExtensionFactory
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
-from .options_converter import ConverterOptions, MarketplaceExtension
-from .plantuml.extension import PlantUMLExtension
+from .options_converter import ConverterOptions
+from .plantuml.extension import PlantUMLExtensionFactory
 from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner
 from .serializer import JsonType
@@ -588,19 +588,19 @@ class ConfluenceStorageFormatConverter(NodeVisitor):
         self.page_metadata = page_metadata or ConfluencePageCollection()
         self.user_metadata = user_metadata or ConfluenceUserCollection()
 
-        self.image_generator = ImageGenerator(
+        self.image_generator = DefaultImageGenerator(
             self.base_dir,
             self.attachments,
             ImageGeneratorOptions(self.options.diagram_output_format, self.options.prefer_raster, self.options.layout.image.max_width),
         )
 
         if options.extensions is not None:
-            self.extensions = options.extensions
+            self.extensions = [factory.create(self.image_generator, ExtensionOptions(render=self.options.render_other)) for factory in options.extensions]
         else:
-            extensions: Sequence[DiagramExtension] = [
-                DrawioExtension(self.image_generator, ExtensionOptions(render=self.options.render_drawio)),
-                MermaidExtension(self.image_generator, ExtensionOptions(render=self.options.render_mermaid)),
-                PlantUMLExtension(self.image_generator, ExtensionOptions(render=self.options.render_plantuml)),
+            extensions: Sequence[MarketplaceExtension] = [
+                DrawioExtensionFactory().create(self.image_generator, ExtensionOptions(render=self.options.render_drawio)),
+                MermaidExtensionFactory().create(self.image_generator, ExtensionOptions(render=self.options.render_mermaid)),
+                PlantUMLExtensionFactory().create(self.image_generator, ExtensionOptions(render=self.options.render_plantuml)),
             ]
             self.extensions = extensions
 

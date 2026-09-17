@@ -15,8 +15,8 @@ from lxml.etree import CDATA
 
 from md2conf.compatibility import override
 from md2conf.csf import AC_ATTR, AC_ELEM, ElementType
+from md2conf.extension import ExtensionOptions, ImageGenerator, MarketplaceExtension, MarketplaceExtensionFactory
 from md2conf.formatting import ImageAttributes
-from md2conf.options_converter import MarketplaceExtension
 
 _RELATION_REGEXP: re.Pattern[str] = re.compile(r"^\s*(?P<parent>\w+)\s*<\|--\s*(?P<child>\w+)\s*$")
 
@@ -105,3 +105,9 @@ class MermaidTreeExtension(MarketplaceExtension):
             ),
             AC_ELEM("plain-text-body", CDATA(render_mermaid_tree(content))),
         )
+
+
+class MermaidTreeExtensionFactory(MarketplaceExtensionFactory):
+    @override
+    def create(self, generator: ImageGenerator, options: ExtensionOptions) -> MarketplaceExtension:
+        return MermaidTreeExtension()

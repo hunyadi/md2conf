@@ -12,7 +12,8 @@ from pathlib import Path
 from md2conf.attachment import EmbeddedFileData, ImageData, attachment_name
 from md2conf.compatibility import override, path_relative_to
 from md2conf.csf import AC_ATTR, AC_ELEM, ElementType
-from md2conf.extension import DiagramExtension, ExtensionError
+from md2conf.diagram import DiagramExtension
+from md2conf.extension import ExtensionError, ExtensionOptions, ImageGenerator, MarketplaceExtension, MarketplaceExtensionFactory
 from md2conf.formatting import ImageAlignment, ImageAttributes
 
 from .render import extract_diagram, render_diagram
@@ -110,3 +111,9 @@ class DrawioExtension(DiagramExtension):
             },
             *parameters,
         )
+
+
+class DrawioExtensionFactory(MarketplaceExtensionFactory):
+    @override
+    def create(self, generator: ImageGenerator, options: ExtensionOptions) -> MarketplaceExtension:
+        return DrawioExtension(generator, options)

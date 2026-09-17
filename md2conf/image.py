@@ -7,13 +7,14 @@ Copyright 2022-2026, Levente Hunyadi
 """
 
 import hashlib
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, overload
+from typing import overload
 
-from .attachment import AttachmentCatalog, EmbeddedFileData, ImageData, attachment_name
-from .compatibility import path_relative_to
+from .attachment import EmbeddedFileData, ImageData, attachment_name
+from .compatibility import override, path_relative_to
 from .csf import AC_ATTR, AC_ELEM, RI_ATTR, RI_ELEM, ElementType
+from .extension import ImageGenerator
+from .extension import ImageGeneratorOptions as ImageGeneratorOptions
 from .formatting import FormattingContext, ImageAlignment, ImageAttributes, display_width
 from .jpeg import extract_jpeg_dimensions
 from .png import extract_png_dimensions
@@ -66,33 +67,9 @@ def to_element_attrs(attrs: ImageAttributes, *, max_width: int | None) -> dict[s
     return attributes
 
 
-@dataclass(frozen=True)
-class ImageGeneratorOptions:
-    """
-    Configures how images are pre-rendered and what Confluence Storage Format output they produce.
-
-    :param output_format: Target image format for diagrams.
-    :param prefer_raster: Whether to choose PNG files over SVG files when available.
-    :param max_width: Maximum display width for images [px]. Wider images are scaled down for page display. Original size kept for full-size viewing.
-    """
-
-    output_format: Literal["png", "svg"]
-    prefer_raster: bool
-    max_width: int | None
-
-
-class ImageGenerator:
-    base_dir: Path
-    attachments: AttachmentCatalog
-
-    def __init__(self, base_dir: Path, attachments: AttachmentCatalog, options: ImageGeneratorOptions) -> None:
-        self.base_dir = base_dir
-        self.attachments = attachments
-        self.options = options
-
+class DefaultImageGenerator(ImageGenerator):
+    @override
     def transform_attached_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for an attached raster or vector image."
-
         if self.options.prefer_raster and absolute_path.suffix == ".svg":
             # prefer PNG over SVG; Confluence displays SVG in wrong size, and text labels are truncated
             png_file = absolute_path.with_suffix(".png")
@@ -116,7 +93,7 @@ class ImageGenerator:
 
         self.attachments.add_image(ImageData(absolute_path, attrs.alt))
         image_name = attachment_name(path_relative_to(absolute_path, self.base_dir))
-        return self.create_attached_image(image_name, attrs)
+        return self._create_attached_image(image_name, attrs)
 
     @overload
     def transform_attached_data(self, image_data: bytes, attrs: ImageAttributes, *, relative_path: Path, image_type: str = "embedded") -> ElementType: ...
@@ -124,11 +101,10 @@ class ImageGenerator:
     @overload
     def transform_attached_data(self, image_data: bytes, attrs: ImageAttributes, *, content: str, image_type: str = "embedded") -> ElementType: ...
 
+    @override
     def transform_attached_data(
         self, image_data: bytes, attrs: ImageAttributes, relative_path: Path | None = None, content: str | None = None, *, image_type: str = "embedded"
     ) -> ElementType:
-        "Emits Confluence Storage Format XHTML for an attached raster or vector image."
-
         # extract dimensions and update attributes based on format
         dimensions: tuple[int, int] | None
         match self.options.output_format:
@@ -155,9 +131,9 @@ class ImageGenerator:
 
         # add as attachment
         self.attachments.add_embed(image_filename, EmbeddedFileData(image_data, attrs.alt))
-        return self.create_attached_image(image_filename, attrs)
+        return self._create_attached_image(image_filename, attrs)
 
-    def create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ElementType:
+    def _create_attached_image(self, image_name: str, attrs: ImageAttributes) -> ElementType:
         "Emits Confluence Storage Format XHTML for an image embedded into the page, linking to an attachment."
 
         elements: list[ElementType] = []
