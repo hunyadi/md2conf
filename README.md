@@ -137,18 +137,19 @@ We recommend the following scopes for scoped API tokens:
 * `read:comment:confluence` (only required for checking comments)
 * `read:content:confluence`
 * `read:content-details:confluence`
-* `read:folder:confluence` (only required if your content hierarchy has folders)
+* `read:folder:confluence` (only required when retrieving or validating folders referenced by folder descriptors)
+* `read:hierarchical-content:confluence` (only required when matching folder descriptors to existing folders)
 * `read:label:confluence`
 * `read:page:confluence`
 * `read:space:confluence`
 * `write:attachment:confluence`
 * `write:content:confluence`
-* `write:folder:confluence` (only required for directories with no index page)
+* `write:folder:confluence` (only required when creating folders from index descriptors)
 * `write:label:confluence`
 * `write:page:confluence`
 * `delete:attachment:confluence`
 * `delete:content:confluence`
-* `delete:folder:confluence` (only required for directories with no index page)
+* `delete:folder:confluence` (only required to remove obsolete Confluence folders when reconciling folder descriptors with the Confluence hierarchy)
 * `delete:page:confluence`
 
 If a Confluence username is set, the tool uses HTTP *Basic* authentication to pass the username and the API key to Confluence REST API endpoints. If no username is provided, the tool authenticates with HTTP *Bearer*, and passes the API key as the bearer token.
@@ -223,6 +224,17 @@ In single-page mode, you specify a single Markdown file as the source, which can
 First, *md2conf* builds an index of pages in the directory hierarchy. The index maps each Markdown file path to a Confluence page ID. Whenever a relative link is encountered in a Markdown file, the relative link is replaced with a Confluence URL to the referenced page with the help of the index. All relative links must point to Markdown files that are located in the directory hierarchy.
 
 If a Markdown file doesn't yet pair up with a Confluence page, *md2conf* creates a new page and assigns a parent. Parent-child relationships are reflected in the navigation panel in Confluence. You can set a root page ID with the command-line option `-r`, which constitutes the topmost parent. (This could correspond to the landing page of your Confluence space. The Confluence page ID is always revealed when you edit a page.) Whenever a directory contains the file `index.md` or `README.md`, this page becomes the future parent page, and all Markdown files in this directory (and possibly nested directories) become its child pages (unless they already have a page ID). However, if an `index.md` or `README.md` file is subsequently found in one of the nested directories, it becomes the parent page of that directory, and any of its subdirectories.
+
+With `--keep-hierarchy`, an `index.md` can instead describe a Confluence folder. The descriptor must have no Markdown body and must set `content_type: folder` in its front-matter. Its `title` becomes the folder title; if omitted, the directory name is used. For example:
+
+```yaml
+---
+title: Product Guides
+content_type: folder
+---
+```
+
+When the folder is created or matched by title among the intended parent's direct children, *md2conf* writes its ID back as a `confluence-folder-id` HTML comment. A known folder can also be associated explicitly by supplying `folder_id` in front-matter; in that case, `content_type` is optional. `page_id` and `folder_id` are mutually exclusive. Folder descriptors require Confluence REST API v2. Without `--keep-hierarchy`, `content_type: folder` retains the existing flattened page behavior, while `folder_id` is rejected because a folder ID must never be used as a page ID.
 
 *md2conf* synchronizes the order of child pages in Confluence with the order of Markdown files in a directory (as per lexicographical sort). Pages are rearranged when there is a mismatch. We employ a conservative approach and invoke a minimum number of *insert before* and *insert after* operations to ensure that wiki pages follow the same order as Markdown files. The position of pages not being synchronized by *md2conf* is maintained w.r.t. their siblings as much as possible.
 

@@ -13,7 +13,16 @@ from pathlib import Path
 
 from . import __version__
 from .api_base import ConfluenceSession
-from .api_types import ConfluenceCommentStatus, ConfluenceContentProperty, ConfluenceContentState, ConfluenceLabel, ConfluencePage, ConfluenceStatus
+from .api_types import (
+    ConfluenceCommentStatus,
+    ConfluenceContentProperty,
+    ConfluenceContentState,
+    ConfluenceContentType,
+    ConfluenceLabel,
+    ConfluencePage,
+    ConfluenceStatus,
+    ConfluenceTypedID,
+)
 from .attachment import attachment_name
 from .coalesce import coalesce_json
 from .collection import ConfluenceUserCollection
@@ -21,7 +30,7 @@ from .comment import MergeResult, merge_comments, remove_comments
 from .compatibility import LiteralString, override, path_relative_to
 from .converter import ConfluenceDocument, apply_generated_by_template, get_orderless_elements, get_volatile_attributes, get_volatile_elements
 from .csf import ElementType, elements_from_string, elements_to_string
-from .environment import ArgumentError, PageError
+from .environment import ArgumentError, ConfluenceAPIVersionMismatch, PageError
 from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .options_converter import ConverterOptions
@@ -47,9 +56,9 @@ class ParentCatalog:
     "Maintains a catalog of child-parent relationships."
 
     _api: ConfluenceSession
-    _child_to_parent: dict[str, str | None]
+    _child_to_parent: dict[ConfluenceTypedID, ConfluenceTypedID | None]
     _parent_to_children: dict[str, dict[str, int]]
-    _known: set[str]
+    _known: set[ConfluenceTypedID]
 
     def __init__(self, api: ConfluenceSession) -> None:
         self._api = api
@@ -57,24 +66,24 @@ class ParentCatalog:
         self._parent_to_children = {}
         self._known = set()
 
-    def add_known(self, page_id: str) -> None:
+    def add_known(self, object_id: ConfluenceTypedID) -> None:
         """
         Adds a new well-known page such as the root page or a page paired with a Markdown file using an explicit page ID.
         """
 
-        self._known.add(page_id)
+        self._known.add(object_id)
 
-    def add_parent(self, *, page_id: str, parent_id: str | None, position: int | None) -> None:
+    def add_parent(self, *, object_id: ConfluenceTypedID, parent_id: ConfluenceTypedID | None, position: int | None) -> None:
         """
         Adds a new child-parent relationship.
 
         This method is useful to persist information acquired by a previous API call.
         """
 
-        self._child_to_parent[page_id] = parent_id
+        self._child_to_parent[object_id] = parent_id
         if parent_id is not None and position is not None:
-            children = self._parent_to_children.setdefault(parent_id, {})
-            children[page_id] = position
+            children = self._parent_to_children.setdefault(parent_id.id, {})
+            children[object_id.id] = position
 
     def get_tree(self) -> dict[str, list[str]]:
         """
@@ -89,25 +98,25 @@ class ParentCatalog:
             tree[parent_id] = children
         return tree
 
-    def is_traceable(self, page_id: str) -> bool:
+    def is_traceable(self, object_id: ConfluenceTypedID) -> bool:
         """
         Verifies if a page traces back to a well-known root page.
 
         :param page_id: The page to check.
         """
 
-        if page_id in self._known:
+        if object_id in self._known:
             return True
 
-        known_parent_id = self._child_to_parent.get(page_id, _MissingDefault)
+        known_parent_id = self._child_to_parent.get(object_id, _MissingDefault)
         if not isinstance(known_parent_id, _MissingType):
             parent_id = known_parent_id
         else:
-            parent_id, position = self._api.get_object_parent_position(page_id)
-            self._child_to_parent[page_id] = parent_id
+            parent_id, position = self._api.get_object_parent_position(object_id)
+            self._child_to_parent[object_id] = parent_id
             if parent_id is not None and position is not None:
-                children = self._parent_to_children.setdefault(parent_id, {})
-                children[page_id] = position
+                children = self._parent_to_children.setdefault(parent_id.id, {})
+                children[object_id.id] = position
 
         if parent_id is None:
             return False
@@ -217,23 +226,29 @@ class SynchronizingProcessor(Processor):
         Updates the original Markdown document to add tags to associate the document with its corresponding Confluence page.
         """
 
-        topmost_id: str | None = None
-        if tree.page_id is not None:
-            # explicitly associated page takes precedence
-            topmost_id = self.api.get_page_properties(tree.page_id).parentId
+        topmost_id: ConfluenceTypedID | None = None
+        if tree.is_folder and not self.api.supports_folders:
+            raise ConfluenceAPIVersionMismatch(f"Confluence folders require REST API v2 when synchronizing {tree.absolute_path}")
+
+        if tree.object_id is not None and tree.object_id.type == ConfluenceContentType.FOLDER:
+            folder = self.api.get_folder_properties(tree.object_id.folder_id)
+            topmost_id = folder.parent
+        elif tree.object_id is not None:
+            page = self.api.get_page_properties(tree.object_id.page_id)
+            topmost_id = page.parent
         elif self.options.root_page is not None:
             # explicit parameter value
-            topmost_id = self.options.root_page
+            topmost_id = ConfluenceTypedID(self.options.root_page, ConfluenceContentType.PAGE)
         elif self.site.space_key is not None:
             # infer root page from space key
-            topmost_id = self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key))
+            topmost_id = ConfluenceTypedID(self.api.get_homepage_id(self.api.space_key_to_id(self.site.space_key)), ConfluenceContentType.PAGE)
 
         if topmost_id is None:
             raise PageError(f"expected: root page ID in options, or explicit page ID in {tree.absolute_path}")
 
         catalog = ParentCatalog(self.api)
         catalog.add_known(topmost_id)
-        self._synchronize_subtree(tree, ConfluencePageID(topmost_id), catalog)
+        self._synchronize_subtree(tree, topmost_id, catalog)
         return catalog.get_tree()
 
     @override
@@ -242,18 +257,17 @@ class SynchronizingProcessor(Processor):
         Recursively arranges child pages of a parent page in the same order as files in their parent directory.
         """
 
-        metadata = self.page_metadata.get(tree.absolute_path)
-        if metadata is None:
+        if tree.object_id is None:
             return  # not associated with a page
-        parent_id = metadata.page_id
+        parent_id = tree.object_id.id
 
         # get order of child pages
         local_order: list[str] = []
         for child in tree.children():
-            metadata = self.page_metadata.get(child.absolute_path)
-            if metadata is None:
+            if child.object_id is None:
                 continue
-            local_order.append(metadata.page_id)
+            if child.object_id.type == ConfluenceContentType.PAGE:
+                local_order.append(child.object_id.page_id)
         if not local_order:
             return  # nothing to sort
 
@@ -295,12 +309,16 @@ class SynchronizingProcessor(Processor):
                     user_metadata.add(email, remote_user.accountId)
         return user_metadata
 
-    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluencePageID, catalog: ParentCatalog) -> None:
-        if node.page_id is not None:
+    def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluenceTypedID, catalog: ParentCatalog) -> None:
+        if node.is_folder:
+            self._synchronize_folder_subtree(node, parent_id, catalog)
+            return
+
+        if node.object_id is not None:
             # verify if page exists
-            page = self.api.get_page_properties(node.page_id)
-            catalog.add_known(page.id)
-            catalog.add_parent(page_id=page.id, parent_id=page.parentId, position=page.position)
+            page = self.api.get_page_properties(node.object_id.page_id)
+            catalog.add_known(page.typed_id)
+            catalog.add_parent(object_id=page.typed_id, parent_id=page.parent, position=page.position)
             update = False
         else:
             if node.title is not None:
@@ -315,7 +333,7 @@ class SynchronizingProcessor(Processor):
 
             # look up page by (possibly auto-generated) title
             page = self.api.get_or_create_page(title, parent_id)
-            catalog.add_parent(page_id=page.id, parent_id=page.parentId, position=page.position)
+            catalog.add_parent(object_id=page.typed_id, parent_id=page.parent, position=page.position)
 
             match page.status:
                 case ConfluenceStatus.CURRENT | ConfluenceStatus.DRAFT:
@@ -324,7 +342,7 @@ class SynchronizingProcessor(Processor):
                     # user has archived, trashed or deleted a page with this (possibly auto-generated) title
                     raise PageError(f"unable to update page with ID {page.id} and status {page.status.value} when synchronizing {node.absolute_path}")
 
-            if not catalog.is_traceable(page.id):
+            if not catalog.is_traceable(page.typed_id):
                 raise PageError(
                     f"expected: page with ID {page.id} to be a descendant of the root page or one of the pages paired with a Markdown file using an explicit "
                     f"page ID when synchronizing {node.absolute_path}"
@@ -336,7 +354,8 @@ class SynchronizingProcessor(Processor):
         if update and not self.options.skip_update and node.synchronized:
             self._update_markdown(
                 node.absolute_path,
-                page_id=page.id,
+                object_id=page.id,
+                object_type=ConfluenceContentType.PAGE,
                 space_key=space_key,
             )
 
@@ -347,9 +366,47 @@ class SynchronizingProcessor(Processor):
             synchronized=node.synchronized,
         )
         self.page_metadata.add(node.absolute_path, data)
+        node.object_id = page.typed_id
 
         for child_node in node.children():
-            self._synchronize_subtree(child_node, ConfluencePageID(page.id), catalog)
+            self._synchronize_subtree(child_node, page.typed_id, catalog)
+
+    def _synchronize_folder_subtree(self, node: DocumentNode, parent_id: ConfluenceTypedID, catalog: ParentCatalog) -> None:
+        """Associates a metadata-only index document with a Confluence folder."""
+
+        if not self.api.supports_folders:
+            raise ConfluenceAPIVersionMismatch(f"Confluence folders require REST API v2 when synchronizing {node.absolute_path}")
+
+        if node.object_id is not None:
+            folder = self.api.get_folder_properties(node.object_id.folder_id)
+            catalog.add_known(folder.typed_id)
+            catalog.add_parent(object_id=folder.typed_id, parent_id=folder.parent, position=folder.position)
+            update = False
+        else:
+            title = self._get_extended_title(node.title or node.absolute_path.parent.name)
+            folder = self.api.get_or_create_folder(title, parent_id)
+            catalog.add_parent(object_id=folder.typed_id, parent_id=folder.parent, position=folder.position)
+            if folder.status != ConfluenceStatus.CURRENT:
+                raise PageError(f"unable to use folder with ID {folder.id} and status {folder.status.value} when synchronizing {node.absolute_path}")
+            if not catalog.is_traceable(folder.typed_id):
+                raise PageError(
+                    f"expected: folder with ID {folder.id} to be a descendant of the root page or one of the objects paired with a Markdown file using an "
+                    f"explicit ID when synchronizing {node.absolute_path}"
+                )
+            update = True
+
+        space_key = self.api.space_id_to_key(folder.spaceId)
+        if update and not self.options.skip_update and node.synchronized:
+            self._update_markdown(
+                node.absolute_path,
+                object_id=folder.id,
+                object_type=ConfluenceContentType.FOLDER,
+                space_key=space_key,
+            )
+
+        node.object_id = folder.typed_id
+        for child_node in node.children():
+            self._synchronize_subtree(child_node, folder.typed_id, catalog)
 
     @override
     def _update_page(self, page_id: ConfluencePageID, document: ConfluenceDocument, path: Path) -> None:
@@ -641,30 +698,40 @@ class SynchronizingProcessor(Processor):
 
         return title
 
-    def _update_markdown(self, path: Path, *, page_id: str, space_key: str) -> None:
+    def _update_markdown(self, path: Path, *, object_id: str, object_type: ConfluenceContentType, space_key: str) -> None:
         """
-        Writes the Confluence page ID and space key at the beginning of the Markdown file.
+        Writes the Confluence object ID and space key at the beginning of the Markdown file.
         """
 
         document = path.read_text(encoding="utf-8")
 
-        # check if the file has frontmatter
+        # Insert identifiers after optional front-matter, preserving it as author-managed metadata.
         index = 0
         if document.startswith("---\n"):
-            index = document.find("\n---\n", 4) + 4
+            closing_marker = "\n---"
+            closing_index = document.find(closing_marker, 4)
         elif document.startswith("<!--\n"):
-            index = document.find("\n-->\n", 5) + 4
+            closing_marker = "\n-->"
+            closing_index = document.find(closing_marker, 5)
+        else:
+            closing_index = -1
 
-        content: list[str] = []
+        if closing_index >= 0:
+            index = closing_index + len(closing_marker)
+            if document[index : index + 1] == "\n":
+                index += 1
 
-        if index > 0:
-            # insert the Confluence keys after the frontmatter
-            content.append(document[:index])
+        match object_type:
+            case ConfluenceContentType.PAGE:
+                identifier = "confluence-page-id"
+            case ConfluenceContentType.FOLDER:
+                identifier = "confluence-folder-id"
+            case _:
+                raise ArgumentError(f"unsupported Confluence object type for Markdown metadata: {object_type.value}")
 
-        content.append(f"<!-- confluence-page-id: {page_id} -->")
-        content.append(f"<!-- confluence-space-key: {space_key} -->")
-        content.append(document[index:])
-        path.write_text("\n".join(content), encoding="utf-8")
+        metadata = f"<!-- {identifier}: {object_id} -->\n<!-- confluence-space-key: {space_key} -->\n"
+        document = f"{document[:index]}{metadata}{document[index:]}"
+        path.write_text(document, encoding="utf-8")
 
 
 class SynchronizingProcessorFactory(ProcessorFactory):

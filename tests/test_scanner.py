@@ -45,6 +45,20 @@ blank_document_frontmatter = """---
 title: "Blank document"
 ---"""
 
+folder_frontmatter = """---
+title: Product Guides
+content_type: folder
+folder_id: "7654321"
+---
+"""
+
+folder_comment = """---
+title: Product Guides
+content_type: folder
+---
+<!-- confluence-folder-id: FOLDER_7654321 -->
+"""
+
 comment_frontmatter = """<!--
 title: 🏠 árvíztűrő tükörfúrógép
 -->
@@ -104,6 +118,20 @@ class TestScanner(TypedTestCase):
         document = Scanner().parse(blank_document_frontmatter)
         props = document.properties
         self.assertEqual(props.title, "Blank document")
+
+    def test_folder_frontmatter(self) -> None:
+        document = Scanner().parse(folder_frontmatter)
+        props = document.properties
+        self.assertEqual(props.title, "Product Guides")
+        self.assertEqual(props.content_type, "folder")
+        self.assertEqual(props.folder_id, "7654321")
+        self.assertFalse(document.text.strip())
+
+    def test_folder_comment(self) -> None:
+        document = Scanner().parse(folder_comment)
+        props = document.properties
+        self.assertEqual(props.folder_id, "FOLDER_7654321")
+        self.assertFalse(document.text.strip())
 
     def test_comment_frontmatter(self) -> None:
         document = Scanner().parse(comment_frontmatter)

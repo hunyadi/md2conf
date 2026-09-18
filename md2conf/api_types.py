@@ -9,6 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import datetime
 import enum
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from .serializer import JsonType
 
@@ -30,9 +31,9 @@ class ConfluenceVersion(enum.Enum):
 
 
 @enum.unique
-class ConfluenceParentType(enum.Enum):
+class ConfluenceContentType(enum.Enum):
     """
-    Content types that can be a parent to a Confluence page.
+    Content types used by Confluence content objects.
     """
 
     PAGE = "page"
@@ -40,6 +41,55 @@ class ConfluenceParentType(enum.Enum):
     DATABASE = "database"
     EMBED = "embed"
     FOLDER = "folder"
+
+
+# compatibility alias for the former public name
+ConfluenceParentType: TypeAlias = ConfluenceContentType
+
+
+@dataclass(frozen=True)
+class ConfluenceTypedID:
+    """Associates a Confluence content ID with its content type."""
+
+    id: str
+    type: ConfluenceContentType
+
+    @property
+    def page_id(self) -> str:
+        """Returns the ID if it identifies a page, and fails otherwise."""
+
+        if self.type != ConfluenceContentType.PAGE:
+            raise ValueError(f"expected: page ID; got: {self.type.value} ID")
+        return self.id
+
+    @property
+    def folder_id(self) -> str:
+        """Returns the ID if it identifies a folder, and fails otherwise."""
+
+        if self.type != ConfluenceContentType.FOLDER:
+            raise ValueError(f"expected: folder ID; got: {self.type.value} ID")
+        return self.id
+
+
+@dataclass(frozen=True)
+class ConfluenceChildProperties:
+    """
+    Minimal properties returned for an item in the Confluence content tree.
+
+    :param id: Confluence content ID.
+    :param status: Content status.
+    :param title: Content title.
+    :param type: Content type.
+    :param spaceId: Confluence space ID, if returned by the endpoint.
+    :param childPosition: Position of the item among its siblings.
+    """
+
+    id: str
+    status: "ConfluenceStatus"
+    title: str
+    type: ConfluenceContentType
+    childPosition: int
+    spaceId: str | None = None
 
 
 @enum.unique
@@ -170,6 +220,62 @@ class ConfluencePageProperties:
     ownerId: str
     createdAt: datetime.datetime
     version: ConfluenceContentVersion
+
+    @property
+    def typed_id(self) -> ConfluenceTypedID:
+        return ConfluenceTypedID(self.id, ConfluenceContentType.PAGE)
+
+    @property
+    def parent(self) -> ConfluenceTypedID | None:
+        if self.parentId is None or self.parentType is None:
+            if self.parentId is not None or self.parentType is not None:
+                raise ValueError("expected: parent ID and parent type to be both set or both omitted")
+            return None
+        return ConfluenceTypedID(self.parentId, self.parentType)
+
+
+@dataclass(frozen=True)
+class ConfluenceFolderProperties:
+    """
+    Holds Confluence folder properties used for folder synchronization.
+
+    We intentionally exclude `createdAt`, which is transmitted as a UNIX timestamp in milliseconds, unlike datetime
+    fields in other Confluence objects, which are transmitted as ISO 8601 strings.
+
+    :param id: Confluence folder ID.
+    :param status: Folder status.
+    :param title: Folder title.
+    :param spaceId: Confluence space ID.
+    :param parentId: ID of the immediate parent.
+    :param parentType: Identifies the content type of the parent.
+    :param position: Position of the folder among its siblings.
+    :param authorId: Account ID of the user who created the folder.
+    :param ownerId: Account ID of the user who owns the folder.
+    :param version: Folder version.
+    """
+
+    id: str
+    status: ConfluenceStatus
+    title: str
+    spaceId: str
+    parentId: str | None
+    parentType: ConfluenceContentType | None
+    position: int | None
+    authorId: str
+    ownerId: str
+    version: ConfluenceContentVersion
+
+    @property
+    def typed_id(self) -> ConfluenceTypedID:
+        return ConfluenceTypedID(self.id, ConfluenceContentType.FOLDER)
+
+    @property
+    def parent(self) -> ConfluenceTypedID | None:
+        if self.parentId is None or self.parentType is None:
+            if self.parentId is not None or self.parentType is not None:
+                raise ValueError("expected: parent ID and parent type to be both set or both omitted")
+            return None
+        return ConfluenceTypedID(self.parentId, self.parentType)
 
 
 @dataclass(frozen=True)

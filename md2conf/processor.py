@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from .api_types import ConfluenceContentType, ConfluenceTypedID
 from .collection import ConfluencePageCollection, ConfluenceUserCollection
 from .converter import ConfluenceDocument
 from .environment import ArgumentError, PageError
@@ -34,7 +35,8 @@ class DocumentNode:
     "Represents a Markdown document in a hierarchy."
 
     absolute_path: Path
-    page_id: str | None
+    object_id: ConfluenceTypedID | None
+    content_type: ConfluenceContentType
     space_key: str | None
     title: str | None
     synchronized: bool
@@ -45,19 +47,25 @@ class DocumentNode:
     def __init__(
         self,
         absolute_path: Path,
-        page_id: str | None,
+        object_id: ConfluenceTypedID | None,
+        content_type: ConfluenceContentType,
         space_key: str | None,
         title: str | None,
         synchronized: bool,
         users: set[tuple[str, str]],
     ):
         self.absolute_path = absolute_path
-        self.page_id = page_id
+        self.object_id = object_id
+        self.content_type = content_type
         self.space_key = space_key
         self.title = title
         self.synchronized = synchronized
         self.users = users
         self._children = []
+
+    @property
+    def is_folder(self) -> bool:
+        return self.content_type == ConfluenceContentType.FOLDER
 
     def __len__(self) -> int:
         "Number of direct children of this node."
@@ -161,7 +169,8 @@ class Processor:
         # build index of all Markdown files in directory hierarchy
         root = DocumentNode(
             absolute_path=local_dir / "index.md",  # virtual node; not necessarily a real file
-            page_id=None,
+            object_id=None,
+            content_type=ConfluenceContentType.PAGE,
             space_key=None,
             title=None,
             synchronized=False,
@@ -343,11 +352,36 @@ class Processor:
         text = path.read_text(encoding="utf-8")
         document = Scanner().parse(text)
         props = document.properties
-        title = props.title or unique_title(document.text)
+        if props.page_id is not None and props.folder_id is not None:
+            raise PageError(f"expected: only one of `page_id` and `folder_id` in {path}")
+        if props.page_id is not None and props.content_type == "folder":
+            raise PageError(f"expected: `folder_id` instead of `page_id` for folder descriptor: {path}")
+        if props.folder_id is not None and props.content_type == "page":
+            raise PageError(f"expected: `content_type: folder` or no `content_type` when using `folder_id` in {path}")
+
+        is_folder = self.options.keep_hierarchy and (props.content_type == "folder" or props.folder_id is not None)
+        if props.folder_id is not None and not self.options.keep_hierarchy:
+            raise PageError(f"expected: `keep_hierarchy` enabled when using `folder_id` in {path}")
+        if is_folder:
+            if path.name != "index.md":
+                raise PageError(f"expected: folder descriptor named `index.md`; got: {path}")
+            if document.text.strip():
+                raise PageError(f"expected: folder descriptor with no Markdown body: {path}")
+
+        title = props.title or (path.parent.name if is_folder else unique_title(document.text))
+
+        object_id: ConfluenceTypedID | None
+        if props.page_id is not None:
+            object_id = ConfluenceTypedID(props.page_id, ConfluenceContentType.PAGE)
+        elif props.folder_id is not None:
+            object_id = ConfluenceTypedID(props.folder_id, ConfluenceContentType.FOLDER)
+        else:
+            object_id = None
 
         return DocumentNode(
             absolute_path=path,
-            page_id=props.page_id,
+            object_id=object_id,
+            content_type=ConfluenceContentType.FOLDER if is_folder else ConfluenceContentType.PAGE,
             space_key=props.space_key,
             title=title,
             synchronized=props.synchronized if props.synchronized is not None else True,

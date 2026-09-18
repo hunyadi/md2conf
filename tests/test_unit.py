@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
+from md2conf.api_types import ConfluenceChildProperties, ConfluenceContentType, ConfluenceParentType, ConfluenceStatus, ConfluenceTypedID
 from md2conf.attachment import attachment_name
 from md2conf.coalesce import coalesce_dataclass, coalesce_json
 from md2conf.converter import title_to_ascii_slug, title_to_identifier, title_to_slug
@@ -62,6 +63,38 @@ class TestUnit(TypedTestCase):
 
     def test_datetime(self) -> None:
         self.assertEqual(object_to_json_payload(json_to_object(datetime, "2004-03-01T23:59:59Z")), b'"2004-03-01T23:59:59+00:00"')
+
+    def test_child_properties_without_space_id(self) -> None:
+        """Direct-child responses can omit the optional space ID."""
+
+        child = json_to_object(
+            ConfluenceChildProperties,
+            {
+                "id": "12345",
+                "status": "current",
+                "title": "Product Guides",
+                "type": "folder",
+                "childPosition": 0,
+            },
+        )
+        self.assertEqual(child.id, "12345")
+        self.assertEqual(child.status, ConfluenceStatus.CURRENT)
+        self.assertEqual(child.type, ConfluenceContentType.FOLDER)
+        self.assertIsNone(child.spaceId)
+
+    def test_typed_id_rejects_wrong_content_type(self) -> None:
+        page_id = ConfluenceTypedID("12345", ConfluenceContentType.PAGE)
+        folder_id = ConfluenceTypedID("67890", ConfluenceContentType.FOLDER)
+
+        self.assertEqual(page_id.page_id, "12345")
+        self.assertEqual(folder_id.folder_id, "67890")
+        with self.assertRaises(ValueError):
+            _ = page_id.folder_id
+        with self.assertRaises(ValueError):
+            _ = folder_id.page_id
+
+    def test_parent_type_is_content_type_alias(self) -> None:
+        self.assertIs(ConfluenceParentType, ConfluenceContentType)
 
     def test_attachment(self) -> None:
         self.assertEqual(attachment_name("image"), "image")

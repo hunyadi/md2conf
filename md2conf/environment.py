@@ -18,6 +18,10 @@ class PageError(ValueError):
     "Raised in case there is an issue with a Confluence page."
 
 
+class ConfluenceAPIVersionMismatch(PageError):
+    "Raised when a feature is unavailable in the selected Confluence REST API version."
+
+
 class ConfluenceError(RuntimeError):
     "Raised when a Confluence API call fails."
 

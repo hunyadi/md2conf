@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import ClassVar, Literal
 
 from md2conf.api import ConfluenceAPI
-from md2conf.api_types import ConfluenceAttachment, ConfluencePage
+from md2conf.api_types import ConfluenceAttachment, ConfluenceContentType, ConfluencePage, ConfluenceTypedID
 from md2conf.compatibility import override
 from md2conf.converter import ElementAction, NodeVisitor, get_volatile_attributes, get_volatile_elements
 from md2conf.csf import ElementType, elements_from_string, elements_to_string
@@ -87,8 +87,10 @@ class TestAPI(TypedTestCase):
 
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
-            cls.feature_test_page_id = ConfluencePageID(api.get_or_create_page(title=FEATURE_TEST_PAGE_TITLE, parent_id=homepage_id).id)
-            cls.image_test_page_id = ConfluencePageID(api.get_or_create_page(title=IMAGE_TEST_PAGE_TITLE, parent_id=cls.feature_test_page_id).id)
+            homepage = ConfluenceTypedID(homepage_id, ConfluenceContentType.PAGE)
+            cls.feature_test_page_id = ConfluencePageID(api.get_or_create_page(title=FEATURE_TEST_PAGE_TITLE, parent_id=homepage).id)
+            feature_test_page = ConfluenceTypedID(cls.feature_test_page_id, ConfluenceContentType.PAGE)
+            cls.image_test_page_id = ConfluencePageID(api.get_or_create_page(title=IMAGE_TEST_PAGE_TITLE, parent_id=feature_test_page).id)
 
     @override
     def setUp(self) -> None:

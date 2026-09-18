@@ -24,6 +24,7 @@ from .api_types import (
     ConfluenceContentState,
     ConfluenceContentStateResponse,
     ConfluenceContentVersion,
+    ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
     ConfluenceIdentifiedLabel,
     ConfluenceLabel,
@@ -32,11 +33,12 @@ from .api_types import (
     ConfluencePageProperties,
     ConfluencePageRef,
     ConfluenceStatus,
+    ConfluenceTypedID,
     ConfluenceUser,
     ConfluenceVersion,
 )
 from .compatibility import override
-from .environment import ArgumentError, ConfluenceError, PageError
+from .environment import ArgumentError, ConfluenceAPIVersionMismatch, ConfluenceError, PageError
 from .metadata import ConfluenceSiteMetadata
 from .options_api import ConfluenceSessionOptions
 from .serializer import JsonType, json_to_object, object_to_json_payload
@@ -103,7 +105,7 @@ class ConfluenceSession(ABC):
     def close(self) -> None: ...
 
     @abstractmethod
-    def get_object_space_id(self, object_id: str) -> str:
+    def get_object_space_id(self, object_id: ConfluenceTypedID) -> str:
         """
         Returns the space ID that contains the given Confluence object (page, folder, etc.).
 
@@ -113,12 +115,12 @@ class ConfluenceSession(ABC):
         ...
 
     @abstractmethod
-    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
+    def get_object_parent_position(self, object_id: ConfluenceTypedID) -> tuple[ConfluenceTypedID | None, int | None]:
         """
         Returns the parent of the given Confluence object (page, folder, etc.) and its position among its siblings.
 
         :param object_id: The Confluence object ID.
-        :returns: A tuple containing the parent ID (or `None` if no parent) and the position among siblings (or `None` if not applicable).
+        :returns: A tuple containing the typed parent ID (or `None` if no parent) and the position among siblings (or `None` if not applicable).
         """
         ...
 
@@ -141,6 +143,39 @@ class ConfluenceSession(ABC):
         :returns: Page ID of the space homepage.
         """
         ...
+
+    @property
+    def supports_folders(self) -> bool:
+        """Whether this Confluence API supports folders in the content tree."""
+
+        return False
+
+    def get_folder_properties(self, folder_id: str) -> ConfluenceFolderProperties:
+        """Retrieves a Confluence folder by its explicitly identified folder ID."""
+
+        raise ConfluenceAPIVersionMismatch("Confluence folders require REST API v2")
+
+    def get_folder_properties_by_title(self, title: str, *, parent_id: ConfluenceTypedID) -> ConfluenceFolderProperties | None:
+        """Finds a direct child folder with a matching title."""
+
+        raise ConfluenceAPIVersionMismatch("Confluence folders require REST API v2")
+
+    def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:
+        """Creates a folder in the Confluence content tree."""
+
+        raise ConfluenceAPIVersionMismatch("Confluence folders require REST API v2")
+
+    def get_or_create_folder(self, title: str, parent_id: ConfluenceTypedID) -> ConfluenceFolderProperties:
+        """Finds a direct child folder with the given title, or creates it."""
+
+        folder = self.get_folder_properties_by_title(title, parent_id=parent_id)
+        if folder is not None:
+            LOGGER.debug("Retrieving existing folder: %s", folder.id)
+            return folder
+
+        LOGGER.debug("Creating new folder with title: %s", title)
+        space_id = self.get_object_space_id(parent_id)
+        return self.create_folder(title=title, parent_id=parent_id.id, space_id=space_id)
 
     @abstractmethod
     def get_users(self, expr: str) -> list[ConfluenceUser]:
@@ -295,7 +330,7 @@ class ConfluenceSession(ABC):
         """
         ...
 
-    def get_or_create_page(self, title: str, parent_id: str) -> ConfluencePage:
+    def get_or_create_page(self, title: str, parent_id: ConfluenceTypedID) -> ConfluencePage:
         """
         Finds a page with the given title, or creates a new page if no such page exists.
 
@@ -312,7 +347,7 @@ class ConfluenceSession(ABC):
             return self.get_page(page_id)
         else:
             LOGGER.debug("Creating new page with title: %s", title)
-            return self.create_page(title=title, content="", parent_id=parent_id, space_id=space_id)
+        return self.create_page(title=title, content="", parent_id=parent_id.id, space_id=space_id)
 
     @abstractmethod
     def move_page(self, page_id: str, position: Literal["before", "after", "append"], ref_id: str) -> None:
