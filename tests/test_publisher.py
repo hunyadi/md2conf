@@ -17,7 +17,7 @@ from tempfile import TemporaryDirectory
 from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import ConfluenceFolderProperties, ConfluencePageProperties
 from md2conf.compatibility import override
-from md2conf.environment import PageError
+from md2conf.environment import ConfluenceAPIVersionMismatch, PageError
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
 from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
@@ -362,7 +362,7 @@ class TestPublisher(unittest.TestCase):
     def test_folder_descriptor_rejects_rest_api_v1(self) -> None:
         with MockConfluenceAPIV1() as api, _create_temporary_directory() as source_dir:
             (source_dir / "index.md").write_text("---\ncontent_type: folder\n---\n", encoding="utf-8")
-            with self.assertRaisesRegex(PageError, "require REST API v2"):
+            with self.assertRaises(ConfluenceAPIVersionMismatch):
                 Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
     def test_toplevel(self) -> None:

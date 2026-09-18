@@ -19,6 +19,7 @@ from .api_types import (
     ConfluenceChildProperties,
     ConfluenceComment,
     ConfluenceContentProperty,
+    ConfluenceContentType,
     ConfluenceContentVersion,
     ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
@@ -27,10 +28,10 @@ from .api_types import (
     ConfluencePageBody,
     ConfluencePageProperties,
     ConfluencePageStorage,
-    ConfluenceParentType,
     ConfluenceRepresentation,
     ConfluenceResultSet,
     ConfluenceStatus,
+    ConfluenceTypedID,
     ConfluenceVersion,
     ConfluenceVersionedContentProperty,
 )
@@ -170,34 +171,28 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
         return id
 
     @override
-    def get_object_space_id(self, object_id: str) -> str:
-        LOGGER.debug("Determining space ID for %s", object_id)
-        try:
-            page = self._get_page_properties(object_id, retry=False)
-            space_id = page.spaceId
-        except RequestException as e:
-            if e.response is not None and e.response.status_code == 404:
-                folder = self._get_folder_properties(object_id, retry=False)
-                space_id = folder.spaceId
-            else:
-                raise
-        return space_id
+    def get_object_space_id(self, object_id: ConfluenceTypedID) -> str:
+        LOGGER.debug("Determining space ID for %s", object_id.id)
+        match object_id.type:
+            case ConfluenceContentType.PAGE:
+                return self._get_page_properties(object_id.page_id, retry=False).spaceId
+            case ConfluenceContentType.FOLDER:
+                return self._get_folder_properties(object_id.folder_id, retry=False).spaceId
+            case _:
+                raise ConfluenceError(f"unsupported content type: {object_id.type.value}")
 
     @override
-    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
-        LOGGER.debug("Determining parent and position for %s", object_id)
-        try:
-            page = self._get_page_properties(object_id, retry=False)
-            parent_id = page.parentId
-            position = page.position
-        except RequestException as e:
-            if e.response is not None and e.response.status_code == 404:
-                folder = self._get_folder_properties(object_id, retry=False)
-                parent_id = folder.parentId
-                position = folder.position
-            else:
-                raise
-        return parent_id, position
+    def get_object_parent_position(self, object_id: ConfluenceTypedID) -> tuple[ConfluenceTypedID | None, int | None]:
+        LOGGER.debug("Determining parent and position for %s", object_id.id)
+        obj: ConfluenceFolderProperties | ConfluencePageProperties
+        match object_id.type:
+            case ConfluenceContentType.PAGE:
+                obj = self._get_page_properties(object_id.page_id, retry=False)
+            case ConfluenceContentType.FOLDER:
+                obj = self._get_folder_properties(object_id.folder_id, retry=False)
+            case _:
+                raise ConfluenceError(f"unsupported content type: {object_id.type.value}")
+        return obj.parent, obj.position
 
     @override
     def get_homepage_id(self, space_id: str) -> str:
@@ -209,20 +204,6 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
     @override
     def supports_folders(self) -> bool:
         return True
-
-    @override
-    def get_object_type(self, object_id: str) -> ConfluenceParentType:
-        data = self._post(
-            ConfluenceVersion.VERSION_2,
-            "/content/convert-ids-to-types",
-            {"contentIds": [object_id]},
-            dict[str, JsonType],
-        )
-        results = typing.cast(dict[str, JsonType], data["results"])
-        content_type = results.get(object_id)
-        if not isinstance(content_type, str):
-            raise ConfluenceError(f"content type not found for ID: {object_id}")
-        return ConfluenceParentType(content_type)
 
     @override
     def get_attachments(self, page_id: str) -> list[ConfluenceAttachment]:
@@ -293,22 +274,20 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
         return self._get_folder_properties(folder_id, retry=True)
 
     @override
-    def get_folder_properties_by_title(self, title: str, *, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties | None:
-        match parent_type:
-            case ConfluenceParentType.PAGE:
-                path = f"/pages/{parent_id}/direct-children"
-            case ConfluenceParentType.FOLDER:
-                path = f"/folders/{parent_id}/direct-children"
+    def get_folder_properties_by_title(self, title: str, *, parent_id: ConfluenceTypedID) -> ConfluenceFolderProperties | None:
+        match parent_id.type:
+            case ConfluenceContentType.PAGE:
+                path = f"/pages/{parent_id.page_id}/direct-children"
+            case ConfluenceContentType.FOLDER:
+                path = f"/folders/{parent_id.folder_id}/direct-children"
             case _:
-                raise ConfluenceError(f"unsupported parent type for folder: {parent_type.value}")
+                raise ConfluenceError(f"unsupported parent type for folder: {parent_id.type.value}")
 
         children = json_to_object(list[ConfluenceChildProperties], self._fetch_v2(path))
-        matches = [child for child in children if child.type == ConfluenceParentType.FOLDER and child.title == title]
-        if len(matches) > 1:
-            raise ConfluenceError(f"multiple folders named {title!r} found under parent with ID: {parent_id}")
-        if not matches:
+        match = next((child for child in children if child.type == ConfluenceContentType.FOLDER and child.title == title), None)
+        if match is None:
             return None
-        return self.get_folder_properties(matches[0].id)
+        return self.get_folder_properties(match.id)
 
     @override
     def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from md2conf.collection import ConfluenceUserCollection
 
+from .api_types import ConfluenceTypedID
 from .compatibility import override
 from .converter import ConfluenceDocument
 from .metadata import ConfluencePageMetadata, ConfluenceSiteMetadata
@@ -55,23 +56,21 @@ class LocalProcessor(Processor):
         """
 
         for node in tree.all():
-            if node.folder_id is not None:
-                page_id = node.folder_id
-            elif node.page_id is not None:
-                page_id = node.page_id
+            if node.object_id is not None:
+                object_id = node.object_id
             else:
                 digest = self._generate_hash(node.absolute_path)
                 LOGGER.info("Identifier %s assigned to page: %s", digest, node.absolute_path)
-                page_id = digest
+                object_id = ConfluenceTypedID(digest, node.content_type)
 
-            node.object_id = page_id
+            node.object_id = object_id
             if node.is_folder:
                 continue
 
             self.page_metadata.add(
                 node.absolute_path,
                 ConfluencePageMetadata(
-                    page_id=page_id,
+                    page_id=object_id.page_id,
                     space_key=node.space_key or self.site.space_key or "HOME",
                     title=node.title or "",
                     synchronized=node.synchronized,

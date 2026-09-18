@@ -20,6 +20,7 @@ from md2conf.api_types import (
     ConfluenceComment,
     ConfluenceContentProperty,
     ConfluenceContentState,
+    ConfluenceContentType,
     ConfluenceContentVersion,
     ConfluenceFolderProperties,
     ConfluenceIdentifiedContentProperty,
@@ -29,9 +30,9 @@ from md2conf.api_types import (
     ConfluencePageBody,
     ConfluencePageProperties,
     ConfluencePageStorage,
-    ConfluenceParentType,
     ConfluenceRepresentation,
     ConfluenceStatus,
+    ConfluenceTypedID,
     ConfluenceUser,
 )
 from md2conf.compatibility import override
@@ -81,7 +82,9 @@ class MockConfluenceSession(ConfluenceSession):
             CREATE TABLE pages (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
+                spaceId TEXT NOT NULL,
                 parentId TEXT,
+                parentType TEXT,
                 position INTEGER NOT NULL,  -- uses multiples of 2 to allow inserting between existing pages without immediate renumbering
                 createdAt INTEGER NOT NULL,  -- stored as UNIX timestamp
                 version INTEGER NOT NULL,
@@ -94,10 +97,13 @@ class MockConfluenceSession(ConfluenceSession):
             CREATE TABLE folders (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
+                spaceId TEXT NOT NULL,
                 parentId TEXT,
+                parentType TEXT,
                 position INTEGER NOT NULL,
                 createdAt INTEGER NOT NULL,
-                version INTEGER NOT NULL
+                version INTEGER NOT NULL,
+                UNIQUE (parentId, title)
             )
             """
         )
@@ -136,7 +142,7 @@ class MockConfluenceSession(ConfluenceSession):
 
     def _get_page_row(self, page_id: str) -> sqlite3.Row:
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, position, createdAt, version, body FROM pages WHERE id = ?",
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, body FROM pages WHERE id = ?",
             (page_id,),
         ).fetchone()
         if row is None:
@@ -145,12 +151,19 @@ class MockConfluenceSession(ConfluenceSession):
 
     def _get_folder_row(self, folder_id: str) -> sqlite3.Row:
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, position, createdAt, version FROM folders WHERE id = ?",
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version FROM folders WHERE id = ?",
             (folder_id,),
         ).fetchone()
         if row is None:
             raise ConfluenceError(f"folder not found with ID: {folder_id}")
         return row
+
+    def _get_content_type(self, object_id: str) -> ConfluenceContentType:
+        if self._db.execute("SELECT 1 FROM pages WHERE id = ?", (object_id,)).fetchone() is not None:
+            return ConfluenceContentType.PAGE
+        if self._db.execute("SELECT 1 FROM folders WHERE id = ?", (object_id,)).fetchone() is not None:
+            return ConfluenceContentType.FOLDER
+        raise ConfluenceError(f"content not found with ID: {object_id}")
 
     def _get_child_ids(self, parent_id: str | None) -> list[str]:
         rows = self._db.execute(
@@ -195,14 +208,13 @@ class MockConfluenceSession(ConfluenceSession):
         )
 
     def _row_to_page_properties(self, row: sqlite3.Row) -> ConfluencePageProperties:
-        parent_id = row["parentId"]
         return ConfluencePageProperties(
             id=row["id"],
             status=ConfluenceStatus.CURRENT,
             title=row["title"],
-            spaceId="SPACE_ID",
-            parentId=parent_id,
-            parentType=None if parent_id is None else self.get_object_type(parent_id),
+            spaceId=row["spaceId"],
+            parentId=row["parentId"],
+            parentType=ConfluenceContentType(row["parentType"]) if row["parentType"] is not None else None,
             position=int(row["position"]) // 2,
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
@@ -211,15 +223,13 @@ class MockConfluenceSession(ConfluenceSession):
         )
 
     def _row_to_folder_properties(self, row: sqlite3.Row) -> ConfluenceFolderProperties:
-        parent_id = row["parentId"]
-        parent_type = None if parent_id is None else self.get_object_type(parent_id)
         return ConfluenceFolderProperties(
             id=row["id"],
             status=ConfluenceStatus.CURRENT,
             title=row["title"],
-            spaceId="SPACE_ID",
-            parentId=parent_id,
-            parentType=parent_type,
+            spaceId=row["spaceId"],
+            parentId=row["parentId"],
+            parentType=ConfluenceContentType(row["parentType"]) if row["parentType"] is not None else None,
             position=int(row["position"]) // 2,
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
@@ -257,20 +267,20 @@ class MockConfluenceSession(ConfluenceSession):
         )
 
     @override
-    def get_object_space_id(self, object_id: str) -> str:
-        LOGGER.debug("object_id: %s", object_id)
-        return "SPACE_ID"
+    def get_object_space_id(self, object_id: ConfluenceTypedID) -> str:
+        LOGGER.debug("object_id: %s", object_id.id)
+        if object_id.type == ConfluenceContentType.FOLDER:
+            return str(self._get_folder_row(object_id.folder_id)["spaceId"])
+        return str(self._get_page_row(object_id.page_id)["spaceId"])
 
     @override
-    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
+    def get_object_parent_position(self, object_id: ConfluenceTypedID) -> tuple[ConfluenceTypedID | None, int | None]:
         obj: ConfluenceFolderProperties | ConfluencePageProperties
-        if self.get_object_type(object_id) == ConfluenceParentType.FOLDER:
-            obj = self.get_folder_properties(object_id)
+        if object_id.type == ConfluenceContentType.FOLDER:
+            obj = self.get_folder_properties(object_id.folder_id)
         else:
-            obj = self.get_page_properties(object_id)
-        parent_id = obj.parentId
-        position = obj.position
-        return parent_id, position
+            obj = self.get_page_properties(object_id.page_id)
+        return obj.parent, obj.position
 
     @property
     @override
@@ -278,19 +288,14 @@ class MockConfluenceSession(ConfluenceSession):
         return True
 
     @override
-    def get_object_type(self, object_id: str) -> ConfluenceParentType:
-        row = self._db.execute("SELECT 1 FROM folders WHERE id = ?", (object_id,)).fetchone()
-        return ConfluenceParentType.FOLDER if row is not None else ConfluenceParentType.PAGE
-
-    @override
     def get_folder_properties(self, folder_id: str) -> ConfluenceFolderProperties:
         return self._row_to_folder_properties(self._get_folder_row(folder_id))
 
     @override
-    def get_folder_properties_by_title(self, title: str, *, parent_id: str, parent_type: ConfluenceParentType) -> ConfluenceFolderProperties | None:
+    def get_folder_properties_by_title(self, title: str, *, parent_id: ConfluenceTypedID) -> ConfluenceFolderProperties | None:
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, position, createdAt, version FROM folders WHERE title = ? AND parentId = ? LIMIT 1",
-            (title, parent_id),
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version FROM folders WHERE title = ? AND parentId = ? LIMIT 1",
+            (title, parent_id.id),
         ).fetchone()
         return self._row_to_folder_properties(row) if row is not None else None
 
@@ -303,9 +308,10 @@ class MockConfluenceSession(ConfluenceSession):
             "SELECT position FROM pages WHERE parentId = ? UNION ALL SELECT position FROM folders WHERE parentId = ?)",
             (parent_id, parent_id),
         ).fetchone()
+        parent_type = self._get_content_type(parent_id)
         self._db.execute(
-            "INSERT INTO folders (id, title, parentId, position, createdAt, version) VALUES (?, ?, ?, ?, ?, ?)",
-            (folder_id, title, parent_id, int(row["position"]), int(created_at.timestamp()), 1),
+            "INSERT INTO folders (id, title, spaceId, parentId, parentType, position, createdAt, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (folder_id, title, space_id, parent_id, parent_type.value, int(row["position"]), int(created_at.timestamp()), 1),
         )
         self._db.commit()
         return self.get_folder_properties(folder_id)
@@ -459,7 +465,7 @@ class MockConfluenceSession(ConfluenceSession):
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
         LOGGER.debug("title: %s", title)
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, parentId, position, createdAt, version, body FROM pages WHERE title = ? LIMIT 1",
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, body FROM pages WHERE title = ? LIMIT 1",
             (title,),
         ).fetchone()
         if row is None:
@@ -506,9 +512,10 @@ class MockConfluenceSession(ConfluenceSession):
         ).fetchone()
         position = int(row["position"])
 
+        parent_type = self._get_content_type(parent_id).value if parent_id is not None else None
         self._db.execute(
-            "INSERT INTO pages (id, title, parentId, position, createdAt, version, body) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (page_id, title, parent_id, position, int(created_at.timestamp()), version, content),
+            "INSERT INTO pages (id, title, spaceId, parentId, parentType, position, createdAt, version, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (page_id, title, space_id, parent_id, parent_type, position, int(created_at.timestamp()), version, content),
         )
         self._db.commit()
         return self.get_page(page_id)

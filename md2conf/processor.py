@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from .api_types import ConfluenceContentType, ConfluenceTypedID
 from .collection import ConfluencePageCollection, ConfluenceUserCollection
 from .converter import ConfluenceDocument
 from .environment import ArgumentError, PageError
@@ -34,10 +35,8 @@ class DocumentNode:
     "Represents a Markdown document in a hierarchy."
 
     absolute_path: Path
-    page_id: str | None
-    folder_id: str | None
-    is_folder: bool
-    object_id: str | None
+    object_id: ConfluenceTypedID | None
+    content_type: ConfluenceContentType
     space_key: str | None
     title: str | None
     synchronized: bool
@@ -48,24 +47,25 @@ class DocumentNode:
     def __init__(
         self,
         absolute_path: Path,
-        page_id: str | None,
-        folder_id: str | None,
-        is_folder: bool,
+        object_id: ConfluenceTypedID | None,
+        content_type: ConfluenceContentType,
         space_key: str | None,
         title: str | None,
         synchronized: bool,
         users: set[tuple[str, str]],
     ):
         self.absolute_path = absolute_path
-        self.page_id = page_id
-        self.folder_id = folder_id
-        self.is_folder = is_folder
-        self.object_id = None
+        self.object_id = object_id
+        self.content_type = content_type
         self.space_key = space_key
         self.title = title
         self.synchronized = synchronized
         self.users = users
         self._children = []
+
+    @property
+    def is_folder(self) -> bool:
+        return self.content_type == ConfluenceContentType.FOLDER
 
     def __len__(self) -> int:
         "Number of direct children of this node."
@@ -169,9 +169,8 @@ class Processor:
         # build index of all Markdown files in directory hierarchy
         root = DocumentNode(
             absolute_path=local_dir / "index.md",  # virtual node; not necessarily a real file
-            page_id=None,
-            folder_id=None,
-            is_folder=False,
+            object_id=None,
+            content_type=ConfluenceContentType.PAGE,
             space_key=None,
             title=None,
             synchronized=False,
@@ -207,8 +206,6 @@ class Processor:
         title_to_path: dict[str, Path] = {}
         duplicates: set[Path] = set()
         for node in root.all():
-            if node.is_folder:
-                continue  # unlike page titles, folder titles need not be unique across a space
             if node.title is not None:
                 path = title_to_path.get(node.title)
                 if path is not None:
@@ -373,11 +370,18 @@ class Processor:
 
         title = props.title or (path.parent.name if is_folder else unique_title(document.text))
 
+        object_id: ConfluenceTypedID | None
+        if props.page_id is not None:
+            object_id = ConfluenceTypedID(props.page_id, ConfluenceContentType.PAGE)
+        elif props.folder_id is not None:
+            object_id = ConfluenceTypedID(props.folder_id, ConfluenceContentType.FOLDER)
+        else:
+            object_id = None
+
         return DocumentNode(
             absolute_path=path,
-            page_id=props.page_id,
-            folder_id=props.folder_id,
-            is_folder=is_folder,
+            object_id=object_id,
+            content_type=ConfluenceContentType.FOLDER if is_folder else ConfluenceContentType.PAGE,
             space_key=props.space_key,
             title=title,
             synchronized=props.synchronized if props.synchronized is not None else True,

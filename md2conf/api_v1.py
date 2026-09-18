@@ -28,6 +28,7 @@ from .api_types import (
     ConfluenceParentType,
     ConfluenceRepresentation,
     ConfluenceStatus,
+    ConfluenceTypedID,
     ConfluenceVersion,
     ConfluenceVersionedContentProperty,
 )
@@ -162,16 +163,14 @@ class ConfluenceSessionV1(ConfluenceSessionShared):
             return ""
 
     @override
-    def get_object_space_id(self, object_id: str) -> str:
-        page = self.get_page_properties(object_id)
+    def get_object_space_id(self, object_id: ConfluenceTypedID) -> str:
+        page = self.get_page_properties(object_id.page_id)
         return page.spaceId
 
     @override
-    def get_object_parent_position(self, object_id: str) -> tuple[str | None, int | None]:
-        page = self.get_page_properties(object_id)
-        parent_id = page.parentId
-        position = page.position
-        return parent_id, position
+    def get_object_parent_position(self, object_id: ConfluenceTypedID) -> tuple[ConfluenceTypedID | None, int | None]:
+        page = self.get_page_properties(object_id.page_id)
+        return page.parent, page.position
 
     @override
     def get_homepage_id(self, space_id: str) -> str:

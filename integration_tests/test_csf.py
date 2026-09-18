@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from md2conf.api import ConfluenceAPI
+from md2conf.api_types import ConfluenceContentType, ConfluenceTypedID
 from md2conf.compatibility import override
 from md2conf.csf import content_to_string
 from tests.utility import TypedTestCase
@@ -31,7 +32,8 @@ class TestConfluenceStorageFormat(TypedTestCase):
 
             space_id = api.space_key_to_id(api.site.space_key)
             homepage_id = api.get_homepage_id(space_id)
-            cls.test_page_id = api.get_or_create_page(title="Publish Markdown to Confluence", parent_id=homepage_id).id
+            parent_id = ConfluenceTypedID(homepage_id, ConfluenceContentType.PAGE)
+            cls.test_page_id = api.get_or_create_page(title="Publish Markdown to Confluence", parent_id=parent_id).id
 
     @override
     def setUp(self) -> None:

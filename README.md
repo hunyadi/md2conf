@@ -137,9 +137,8 @@ We recommend the following scopes for scoped API tokens:
 * `read:comment:confluence` (only required for checking comments)
 * `read:content:confluence`
 * `read:content-details:confluence`
-* `read:content.metadata:confluence` (only required when publishing folder descriptors beneath an explicit root)
-* `read:folder:confluence` (only required if your content hierarchy has folders)
-* `read:hierarchical-content:confluence` (only required if your content hierarchy has folders)
+* `read:folder:confluence` (only required when retrieving or validating folders referenced by folder descriptors)
+* `read:hierarchical-content:confluence` (only required when matching folder descriptors to existing folders)
 * `read:label:confluence`
 * `read:page:confluence`
 * `read:space:confluence`
@@ -150,7 +149,7 @@ We recommend the following scopes for scoped API tokens:
 * `write:page:confluence`
 * `delete:attachment:confluence`
 * `delete:content:confluence`
-* `delete:folder:confluence`
+* `delete:folder:confluence` (only required to remove obsolete Confluence folders when reconciling folder descriptors with the Confluence hierarchy)
 * `delete:page:confluence`
 
 If a Confluence username is set, the tool uses HTTP *Basic* authentication to pass the username and the API key to Confluence REST API endpoints. If no username is provided, the tool authenticates with HTTP *Bearer*, and passes the API key as the bearer token.
