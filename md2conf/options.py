@@ -11,10 +11,11 @@ from pathlib import Path
 from typing import Literal, NewType
 
 from .clio import boolean_option, composite_option, nullable_option, value_option
+from .extension import MarketplaceExtension as MarketplaceExtension
+from .extension import MarketplaceExtensionFactory as MarketplaceExtensionFactory
 from .options_converter import ConverterOptions
 from .options_converter import ImageLayoutOptions as ImageLayoutOptions
 from .options_converter import LayoutOptions as LayoutOptions
-from .options_converter import MarketplaceExtension as MarketplaceExtension
 from .options_converter import TableLayoutOptions as TableLayoutOptions
 
 # Encapsulates a Confluence page ID

@@ -6,15 +6,12 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Literal
 
 from .clio import boolean_option, composite_option, value_option
-from .csf import ElementType
-from .formatting import ImageAttributes
+from .extension import MarketplaceExtensionFactory
 
 
 @dataclass
@@ -66,34 +63,6 @@ class LayoutOptions:
         return self.image.alignment or self.alignment or "center"
 
 
-class MarketplaceExtension(ABC):
-    """
-    Base class for integrating third-party Atlassian Marketplace extensions.
-
-    Derive from this class to generate custom Confluence Storage Format output for Markdown image references and fenced code blocks.
-    """
-
-    @abstractmethod
-    def matches_image(self, absolute_path: Path) -> bool:
-        "True if the extension is able to process the external file."
-        ...
-
-    @abstractmethod
-    def matches_fenced(self, language: str, content: str) -> bool:
-        "True if the extension can process the fenced code block."
-        ...
-
-    @abstractmethod
-    def transform_image(self, absolute_path: Path, attrs: ImageAttributes) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram linked as an image."
-        ...
-
-    @abstractmethod
-    def transform_fenced(self, content: str) -> ElementType:
-        "Emits Confluence Storage Format XHTML for a drawing or diagram defined in a fenced code block."
-        ...
-
-
 @dataclass
 class ConverterOptions:
     """
@@ -109,6 +78,7 @@ class ConverterOptions:
     :param render_mermaid: Whether to pre-render Mermaid diagrams into PNG/SVG images.
     :param render_plantuml: Whether to pre-render PlantUML diagrams into PNG/SVG images.
     :param render_latex: Whether to pre-render LaTeX formulas into PNG/SVG images.
+    :param render_other: Whether to pre-render other types of diagrams into PNG/SVG images.
     :param diagram_output_format: Target image format for diagrams.
     :param webui_links: When true, convert relative URLs to Confluence Web UI links.
     :param task_lists: When true, convert GitHub/GitLab-style task lists into Confluence task list objects.
@@ -176,6 +146,13 @@ class ConverterOptions:
             "Inline LaTeX formulas in Confluence page. (Marketplace app required to display.)",
         ),
     )
+    render_other: bool = field(
+        default=True,
+        metadata=boolean_option(
+            "Render other supported diagrams as image files. (Installed utilities required to convert.)",
+            "Upload other diagram sources as Confluence page attachments. (Marketplace app required to display.)",
+        ),
+    )
     diagram_output_format: Literal["png", "svg"] = field(
         default="png",
         metadata=value_option("Format for rendering Mermaid and draw.io diagrams."),
@@ -216,4 +193,4 @@ class ConverterOptions:
         ),
     )
     layout: LayoutOptions = field(default_factory=LayoutOptions, metadata=composite_option())
-    extensions: Sequence[MarketplaceExtension] | None = None
+    extensions: Sequence[MarketplaceExtensionFactory] | None = None
