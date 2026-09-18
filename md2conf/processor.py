@@ -361,7 +361,7 @@ class Processor:
 
         is_folder = self.options.keep_hierarchy and (props.content_type == "folder" or props.folder_id is not None)
         if props.folder_id is not None and not self.options.keep_hierarchy:
-            raise PageError(f"expected: `--keep-hierarchy` when using `folder_id` in {path}")
+            raise PageError(f"expected: `keep_hierarchy` enabled when using `folder_id` in {path}")
         if is_folder:
             if path.name != "index.md":
                 raise PageError(f"expected: folder descriptor named `index.md`; got: {path}")
