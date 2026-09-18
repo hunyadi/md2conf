@@ -239,8 +239,8 @@ class ConfluenceFolderProperties:
     """
     Holds Confluence folder properties used for folder synchronization.
 
-    The `createdAt` field is intentionally omitted because Confluence has returned it in a format inconsistent with
-    other content objects.
+    We intentionally exclude `createdAt`, which is transmitted as a UNIX timestamp in milliseconds, unlike datetime
+    fields in other Confluence objects, which are transmitted as ISO 8601 strings.
 
     :param id: Confluence folder ID.
     :param status: Folder status.
