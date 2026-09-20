@@ -102,7 +102,7 @@ class ParentCatalog:
         """
         Verifies if a page traces back to a well-known root page.
 
-        :param page_id: The page to check.
+        :param object_id: The page or folder to check.
         """
 
         if object_id in self._known:
