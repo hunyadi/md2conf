@@ -49,7 +49,12 @@ ConfluenceParentType: TypeAlias = ConfluenceContentType
 
 @dataclass(frozen=True)
 class ConfluenceTypedID:
-    """Associates a Confluence content ID with its content type."""
+    """
+    Associates a Confluence content ID with its content type.
+
+    :param id: Confluence content ID.
+    :param type: Confluence content type.
+    """
 
     id: str
     type: ConfluenceContentType
