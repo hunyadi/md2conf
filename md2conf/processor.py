@@ -65,7 +65,7 @@ class DocumentNode:
 
     @property
     def is_folder(self) -> bool:
-        return self.content_type == ConfluenceContentType.FOLDER
+        return self.content_type is ConfluenceContentType.FOLDER
 
     def __len__(self) -> int:
         "Number of direct children of this node."
@@ -197,6 +197,7 @@ class Processor:
 
         LOGGER.info("Processing page: %s", path)
         node = self._index_file(path)
+        self._check_documents(node)
         self._synchronize_structure(node)
         self._synchronize_content(node, {})
 
@@ -365,7 +366,7 @@ class Processor:
         if is_folder:
             if path.name != "index.md":
                 raise PageError(f"expected: folder descriptor named `index.md`; got: {path}")
-            if document.text.strip():
+            if document.text and not document.text.isspace():
                 raise PageError(f"expected: folder descriptor with no Markdown body: {path}")
 
         title = props.title or (path.parent.name if is_folder else unique_title(document.text))

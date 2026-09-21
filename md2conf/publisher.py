@@ -217,6 +217,16 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
+    def _check_documents(self, root: DocumentNode) -> None:
+        """Verifies documents before any remote objects are synchronized."""
+
+        super()._check_documents(root)
+        if not self.api.supports_folders:
+            for node in root.all():
+                if node.is_folder:
+                    raise ConfluenceAPIVersionMismatch(f"Confluence folders require REST API v2 when synchronizing {node.absolute_path}")
+
+    @override
     def _synchronize_structure(self, tree: DocumentNode) -> dict[str, list[str]]:
         """
         Creates the cross-reference index and synchronizes the directory tree structure with the Confluence page hierarchy.
@@ -227,15 +237,16 @@ class SynchronizingProcessor(Processor):
         """
 
         topmost_id: ConfluenceTypedID | None = None
-        if tree.is_folder and not self.api.supports_folders:
-            raise ConfluenceAPIVersionMismatch(f"Confluence folders require REST API v2 when synchronizing {tree.absolute_path}")
-
-        if tree.object_id is not None and tree.object_id.type == ConfluenceContentType.FOLDER:
-            folder = self.api.get_folder_properties(tree.object_id.folder_id)
-            topmost_id = folder.parent
-        elif tree.object_id is not None:
-            page = self.api.get_page_properties(tree.object_id.page_id)
-            topmost_id = page.parent
+        if tree.object_id is not None:
+            match tree.object_id.type:
+                case ConfluenceContentType.PAGE:
+                    page = self.api.get_page_properties(tree.object_id.page_id)
+                    topmost_id = page.parent
+                case ConfluenceContentType.FOLDER:
+                    folder = self.api.get_folder_properties(tree.object_id.folder_id)
+                    topmost_id = folder.parent
+                case _:
+                    raise PageError(f"unsupported content type {tree.object_id.type.value} when synchronizing {tree.absolute_path}")
         elif self.options.root_page is not None:
             # explicit parameter value
             topmost_id = ConfluenceTypedID(self.options.root_page, ConfluenceContentType.PAGE)
@@ -266,7 +277,8 @@ class SynchronizingProcessor(Processor):
         for child in tree.children():
             if child.object_id is None:
                 continue
-            if child.object_id.type == ConfluenceContentType.PAGE:
+            # Confluence exposes an API for moving pages relative to pages, but no equivalent operation for folders.
+            if child.object_id.type is ConfluenceContentType.PAGE:
                 local_order.append(child.object_id.page_id)
         if not local_order:
             return  # nothing to sort
@@ -310,9 +322,18 @@ class SynchronizingProcessor(Processor):
         return user_metadata
 
     def _synchronize_subtree(self, node: DocumentNode, parent_id: ConfluenceTypedID, catalog: ParentCatalog) -> None:
-        if node.is_folder:
-            self._synchronize_folder_subtree(node, parent_id, catalog)
-            return
+        """Routes a document node to the synchronization logic for its content type."""
+
+        match node.content_type:
+            case ConfluenceContentType.PAGE:
+                self._synchronize_page_subtree(node, parent_id, catalog)
+            case ConfluenceContentType.FOLDER:
+                self._synchronize_folder_subtree(node, parent_id, catalog)
+            case _:
+                raise PageError(f"unsupported content type {node.content_type.value} when synchronizing {node.absolute_path}")
+
+    def _synchronize_page_subtree(self, node: DocumentNode, parent_id: ConfluenceTypedID, catalog: ParentCatalog) -> None:
+        """Associates a Markdown document with a Confluence page."""
 
         if node.object_id is not None:
             # verify if page exists
@@ -373,9 +394,6 @@ class SynchronizingProcessor(Processor):
 
     def _synchronize_folder_subtree(self, node: DocumentNode, parent_id: ConfluenceTypedID, catalog: ParentCatalog) -> None:
         """Associates a metadata-only index document with a Confluence folder."""
-
-        if not self.api.supports_folders:
-            raise ConfluenceAPIVersionMismatch(f"Confluence folders require REST API v2 when synchronizing {node.absolute_path}")
 
         if node.object_id is not None:
             folder = self.api.get_folder_properties(node.object_id.folder_id)

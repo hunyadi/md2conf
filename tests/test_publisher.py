@@ -361,9 +361,13 @@ class TestPublisher(unittest.TestCase):
 
     def test_folder_descriptor_rejects_rest_api_v1(self) -> None:
         with MockConfluenceAPIV1() as api, _create_temporary_directory() as source_dir:
-            (source_dir / "index.md").write_text("---\ncontent_type: folder\n---\n", encoding="utf-8")
+            (source_dir / "page.md").write_text("# Page\n", encoding="utf-8")
+            folder_descriptor = source_dir / "folder" / "index.md"
+            folder_descriptor.parent.mkdir()
+            folder_descriptor.write_text("---\ncontent_type: folder\n---\n", encoding="utf-8")
             with self.assertRaises(ConfluenceAPIVersionMismatch):
                 Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
+            self.assertEqual(api.get_page_count(), 1)  # validation happens before creating the page
 
     def test_toplevel(self) -> None:
         "Checks if a missing top-level document is handled correctly."

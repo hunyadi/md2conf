@@ -284,10 +284,12 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
                 raise ConfluenceError(f"unsupported parent type for folder: {parent_id.type.value}")
 
         children = json_to_object(list[ConfluenceChildProperties], self._fetch_v2(path))
-        match = next((child for child in children if child.type == ConfluenceContentType.FOLDER and child.title == title), None)
-        if match is None:
+        for child in children:
+            if child.type is ConfluenceContentType.FOLDER and child.title == title:
+                break
+        else:
             return None
-        return self.get_folder_properties(match.id)
+        return self.get_folder_properties(child.id)
 
     @override
     def create_folder(self, *, title: str, parent_id: str, space_id: str) -> ConfluenceFolderProperties:

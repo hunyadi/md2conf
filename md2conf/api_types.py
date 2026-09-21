@@ -63,7 +63,7 @@ class ConfluenceTypedID:
     def page_id(self) -> str:
         """Returns the ID if it identifies a page, and fails otherwise."""
 
-        if self.type != ConfluenceContentType.PAGE:
+        if self.type is not ConfluenceContentType.PAGE:
             raise ValueError(f"expected: page ID; got: {self.type.value} ID")
         return self.id
 
@@ -71,7 +71,7 @@ class ConfluenceTypedID:
     def folder_id(self) -> str:
         """Returns the ID if it identifies a folder, and fails otherwise."""
 
-        if self.type != ConfluenceContentType.FOLDER:
+        if self.type is not ConfluenceContentType.FOLDER:
             raise ValueError(f"expected: folder ID; got: {self.type.value} ID")
         return self.id
 
