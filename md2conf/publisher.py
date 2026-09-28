@@ -547,10 +547,11 @@ class SynchronizingProcessor(Processor):
             synchronized.add(name)
 
         # delete attachments no longer referenced
-        for name, attachment_id in attachments.items():
-            if name in synchronized:
-                continue
-            self.api.delete_attachment(attachment_id)
+        if self.options.attachment_sync == "full":
+            for name, attachment_id in attachments.items():
+                if name in synchronized:
+                    continue
+                self.api.delete_attachment(attachment_id)
 
         # synchronize page if page has any changes
         if has_changes:
@@ -612,6 +613,10 @@ class SynchronizingProcessor(Processor):
         """Synchronizes an attachment using a checksum when the API supports content properties."""
 
         path_or_data(attachment_path=attachment_path, raw_data=raw_data)
+
+        if self.options.attachment_sync == "create" and attachment_id is not None:
+            LOGGER.info("Leaving existing attachment unchanged: %s", attachment_name)
+            return
 
         if self.api.supports_attachment_content_properties:
             digest = hashlib.md5()

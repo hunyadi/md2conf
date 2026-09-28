@@ -35,6 +35,10 @@ class ProcessorOptions:
     :param title_prefix: String to prepend to Confluence page title for each published page.
     :param generated_by: Text to use as the generated-by prompt (or `None` to omit a prompt).
     :param overwrite: Whether to overwrite (manual) page changes that occurred since last synchronization.
+    :param attachment_sync: Behavior for synchronizing page attachments:
+        `full` aligns the Confluence state with the Markdown source as much as possible, removing unreferenced page attachments;
+        `upsert` uploads new files and replaces existing attachments with updated files but keeps unreferenced page attachments;
+        `create` leaves existing attachments unchanged, even if updated in the source directory.
     :param comments: Behavior for inline comments when page is updated: remove, check if open, or keep.
     :param skip_update: Whether to skip saving Confluence page ID in Markdown files.
     :param keep_state: Whether to keep the Confluence content state (rough draft, in progress, ready for review, verified, etc.) when updating a page.
@@ -73,6 +77,10 @@ class ProcessorOptions:
             "Overwrite (manual) page changes that occurred since last synchronization.",
             "Skip pages with (manual) changes that occurred since last synchronization.",
         ),
+    )
+    attachment_sync: Literal["full", "upsert", "create"] = field(
+        default="full",
+        metadata=value_option("Synchronization mode for Confluence page attachments."),
     )
     comments: Literal["keep", "remove", "check-open"] = field(default="remove", metadata=value_option("Behavior for inline comments when page is updated."))
     skip_update: bool = field(

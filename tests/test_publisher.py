@@ -13,6 +13,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Literal
 
 from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import ConfluenceFolderProperties, ConfluencePageProperties
@@ -221,6 +222,40 @@ class TestPublisher(unittest.TestCase):
             remove_checksum_after_first_upload=True,
             change_content=False,
         )
+
+    def test_attachment_sync_modes(self) -> None:
+        """Checks whether each attachment synchronization mode updates and removes attachments as configured."""
+
+        attachment_create_data = (Path(__file__).parent / "source" / "figure" / "raster.png").read_bytes()
+        attachment_update_data = (Path(__file__).parent / "source" / "figure" / "diagram.drawio.png").read_bytes()
+        cases: tuple[tuple[Literal["full", "upsert", "create"], int, set[str]], ...] = (
+            ("full", 2, {"diagram.png"}),
+            ("upsert", 2, {"diagram.png", "unused.png"}),
+            ("create", 1, {"diagram.png", "unused.png"}),
+        )
+        for mode, expected_version, expected_names in cases:
+            with self.subTest(mode=mode), MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+                document_path = source_dir / "index.md"
+                diagram_path = source_dir / "diagram.png"
+                unused_path = source_dir / "unused.png"
+                document_path.write_text("# Diagram\n\n![diagram](diagram.png)\n![unused](unused.png)\n", encoding="utf-8")
+                diagram_path.write_bytes(attachment_create_data)
+                unused_path.write_bytes(attachment_create_data)
+
+                options = self.get_processor_options(api, keep_hierarchy=False, skip_update=True)
+                options.attachment_sync = mode
+                publisher = Publisher(api, options)
+                publisher.process_directory(source_dir)
+
+                page = api.get_page_properties_by_title("Diagram")
+                document_path.write_text("# Diagram\n\n![diagram](diagram.png)\n", encoding="utf-8")
+                diagram_path.write_bytes(attachment_update_data)
+                publisher.process_directory(source_dir)
+
+                attachments = api.get_attachments(page.id)
+                self.assertEqual({attachment.title for attachment in attachments}, expected_names)
+                diagram = api.get_attachment_by_name(page.id, "diagram.png")
+                self.assertEqual(diagram.version.number, expected_version)
 
     def test_update(self) -> None:
         "Checks if Markdown files are updated with a page ID when synchronized."
