@@ -140,6 +140,11 @@ class ConfluenceResultSet:
 
 
 @dataclass(frozen=True)
+class ConfluenceContentMetadata:
+    mediaType: str
+
+
+@dataclass(frozen=True)
 class ConfluenceContentVersion:
     number: int
     minorEdit: bool = False

@@ -20,6 +20,7 @@ from requests import RequestException, Response, Session
 from .api_types import (
     ConfluenceAttachment,
     ConfluenceComment,
+    ConfluenceContentMetadata,
     ConfluenceContentProperty,
     ConfluenceContentState,
     ConfluenceContentStateResponse,
@@ -100,6 +101,7 @@ class ConfluenceUpdateAttachmentRequest:
     type: ConfluenceLegacyType
     status: ConfluenceStatus
     title: str
+    metadata: ConfluenceContentMetadata
     version: ConfluenceContentVersion
 
 
@@ -857,7 +859,7 @@ class ConfluenceSessionShared(ConfluenceSession):
                     "file": (
                         attachment_name,  # will truncate path component
                         attachment_file,
-                        content_type,
+                        "application/octet-stream",
                         {"Expires": "0"},
                     ),
                 }
@@ -886,7 +888,7 @@ class ConfluenceSessionShared(ConfluenceSession):
                 "file": (
                     attachment_name,  # will truncate path component
                     raw_file,
-                    content_type,
+                    "application/octet-stream",
                     {"Expires": "0"},
                 ),
             }
@@ -914,9 +916,9 @@ class ConfluenceSessionShared(ConfluenceSession):
         version = result["version"]["number"] + 1
 
         # ensure path component is retained in attachment name
-        self._update_attachment(page_id, attachment_id, version, attachment_name)
+        self._update_attachment(page_id, attachment_id, version, attachment_name, content_type)
 
-    def _update_attachment(self, page_id: str, attachment_id: str, version: int, attachment_title: str) -> None:
+    def _update_attachment(self, page_id: str, attachment_id: str, version: int, attachment_title: str, content_type: str) -> None:
         id = attachment_id.removeprefix("att")
         path = f"/content/{page_id}/child/attachment/{id}"
         request = ConfluenceUpdateAttachmentRequest(
@@ -924,6 +926,7 @@ class ConfluenceSessionShared(ConfluenceSession):
             type=ConfluenceLegacyType.ATTACHMENT,
             status=ConfluenceStatus.CURRENT,
             title=attachment_title,
+            metadata=ConfluenceContentMetadata(mediaType=content_type),
             version=ConfluenceContentVersion(number=version, minorEdit=True),
         )
 
