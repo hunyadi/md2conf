@@ -40,10 +40,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -54,7 +54,7 @@ jobs:
 
       # Setup Java for PlantUML
       - name: Set up Java for PlantUML
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: "temurin"
           java-version: "17"
@@ -67,14 +67,14 @@ jobs:
 
       - name: Download PlantUML JAR
         env:
-          PLANTUML_VERSION: "1.2026.2"
+          PLANTUML_VERSION: "1.2026.8"
         run: |
           curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-${{ env.PLANTUML_VERSION }}.jar
           java -jar plantuml.jar -version
 
       # Setup Node.js for Mermaid
       - name: Set up Node.js for Mermaid
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
 
@@ -107,7 +107,7 @@ jobs:
       # Upload test output artifacts on failure for debugging
       - name: Upload test artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-outputs
           path: integration_tests/output/

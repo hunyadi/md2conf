@@ -36,7 +36,7 @@ jobs:
     strategy:
       matrix:
         # Matches what is in setup.cfg
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
       - name: Determine ref
         id: ref
@@ -49,11 +49,11 @@ jobs:
             echo "ref=${{ github.ref }}" >> $GITHUB_OUTPUT
           fi
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.ref.outputs.ref }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -61,7 +61,7 @@ jobs:
       - name: Run static type checker and verify formatting guidelines
         run: bash check.sh
       - name: Set up Java for PlantUML
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: "temurin"
           java-version: "17"
@@ -72,12 +72,12 @@ jobs:
           dot -V
       - name: Download PlantUML JAR
         env:
-          PLANTUML_VERSION: "1.2026.2"
+          PLANTUML_VERSION: "1.2026.8"
         run: |
           curl -L -o plantuml.jar https://github.com/plantuml/plantuml/releases/download/v${{ env.PLANTUML_VERSION }}/plantuml-${{ env.PLANTUML_VERSION }}.jar
           java -jar plantuml.jar -version
       - name: Set up Node.js for Mermaid
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
       - name: Install Mermaid CLI

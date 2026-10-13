@@ -5,7 +5,6 @@
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}"
     },
-    "python.terminal.useEnvFile": true,
     "files.insertFinalNewline": true,
     "[python]": {
         "editor.codeActionsOnSave": {
@@ -15,6 +14,22 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff"
     },
+    "mypy-type-checker.importStrategy": "fromEnvironment",
+    "mypy-type-checker.args": [
+        "--enable-incomplete-feature=TypeForm"
+    ],
+    "python.analysis.typeCheckingMode": "strict",
+    "python.terminal.useEnvFile": true,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true,
+    "python-envs.defaultEnvManager": "ms-python.python:system",
     "cSpell.words": [
         "addnext",
         "arithmatex",
@@ -67,15 +82,5 @@
         "viewbox",
         "viewpage",
         "webui"
-    ],
-    "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python.testing.unittestArgs": [
-        "-v",
-        "-s",
-        "./tests",
-        "-p",
-        "test_*.py"
-    ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    ]
 }

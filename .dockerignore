@@ -10,6 +10,7 @@ __pycache__
 /build
 /dist
 /docs
+/node_modules
 /wheel
 /.env
 /.envrc
@@ -19,3 +20,4 @@ __pycache__
 /load.ps1
 /package.bat
 /package.sh
+/plantuml.jar

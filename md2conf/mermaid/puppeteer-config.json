@@ -1,5 +1,6 @@
 {
     "executablePath": "/usr/bin/chromium-browser",
+    "timeout": 120000,
     "args": [
         "--no-sandbox",
         "--disable-gpu",

@@ -118,11 +118,12 @@ class ConfluenceSessionV2(ConfluenceSessionShared):
 
                 LOGGER.info("Configured scoped Confluence REST API URL: %s", self._api_url)
             except HTTPError as ex:
-                match ex.response.status_code:
-                    case 401:
-                        raise ConfluenceError("Confluence scoped API token has expired or is invalid") from ex
-                    case _:
-                        pass
+                if ex.response is not None:
+                    match ex.response.status_code:
+                        case 401:
+                            raise ConfluenceError("Confluence scoped API token has expired or is invalid") from ex
+                        case _:
+                            pass
 
                 # fall back to classic REST API URL
                 self._api_url = self._get_base()

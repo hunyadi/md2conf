@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed"
 ]
@@ -33,9 +34,9 @@ dependencies = [
     "cattrs>=26.2",
     "lxml>=6.1",
     "markdown>=3.10",
-    "orjson>=3.12",
+    "orjson>=3.13",
     "pathspec>=1.1",
-    "pymdown-extensions>=12.0",
+    "pymdown-extensions>=12.2",
     "pyyaml>=6.0",
     "requests>=2.34",
     "truststore>=0.10",
@@ -49,9 +50,8 @@ dev = [
     "types-lxml>=2026.2.16",
     "types-markdown>=3.10",
     "types-pyyaml>=6.0",
-    "types-requests>=2.33",
-    "mypy[faster-cache]>=2.3",
-    "ruff>=0.16"
+    "mypy[faster-cache]>=2.4",
+    "ruff>=0.17"
 ]
 formulas = [
     "matplotlib>=3.10"
