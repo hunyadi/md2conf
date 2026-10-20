@@ -346,6 +346,17 @@ function fib(n)
 end
 ```
 
+Markdown:
+
+```md
+# Heading
+
+Paragraph with **bold** and *italic* text.
+
+* Item 1
+* Item 2
+```
+
 Mathematica:
 
 ```mathematica
@@ -367,6 +378,18 @@ end
 greet('User');
 
 disp(['3^2 = ', num2str(3^2)])
+```
+
+NGINX:
+
+```nginx
+server {
+    listen 8080;
+    root /data/up1;
+
+    location / {
+    }
+}
 ```
 
 Objective-C:
