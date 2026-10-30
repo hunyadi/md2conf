@@ -8,6 +8,7 @@ Copyright 2022-2026, Levente Hunyadi
 
 import re
 from argparse import ArgumentParser, Namespace
+from collections.abc import Callable
 from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
 from types import NoneType, UnionType
 from typing import Any, Literal, NewType, TypeVar, Union, cast, get_args, get_origin
@@ -54,6 +55,17 @@ def nullable_option(value_text: LiteralString, omit_text: LiteralString) -> dict
     "Identifies a command-line argument as an option that sets or un-sets a value."
 
     return {BaseOption.field_name(): NullableOption(value_text, omit_text)}
+
+
+@dataclass(frozen=True)
+class FunctionOption(BaseOption):
+    text: LiteralString
+
+
+def function_option(text: LiteralString) -> dict[str, Any]:
+    "Identifies a command-line argument as an option that takes a function."
+
+    return {BaseOption.field_name(): FunctionOption(text)}
 
 
 @dataclass(frozen=True)
@@ -190,6 +202,33 @@ class _OptionTreeVisitor:
             help=omit_help_text,
         )
 
+    def _add_function_field(self, field: Field[Any], field_type: Any) -> None:
+        arg_name = field.name.replace("_", "-")
+        func_opt = _get_metadata(field, FunctionOption)
+        help_text = func_opt.text
+        if field.default is not MISSING and field.default is not None:
+            help_text += f" (default: {field.default!s})"
+        if get_origin(field_type) is not Callable:
+            raise TypeError(f"expected: `Callable[[...], R]` as argument type; got: {field_type}")
+        args = get_args(field_type)
+        param_types, return_type = args
+        if len(param_types) != 1:
+            raise TypeError(f"expected: `Callable[[T], R]` with a single parameter; got: {len(param_types)}")
+        metavar = _get_metavar(return_type)
+
+        def parse_constant(value: str) -> Callable[[Any], Any]:
+            parsed = return_type(value)
+            return lambda _: parsed
+
+        self.parser.add_argument(
+            self._get_arg_name(arg_name),
+            dest=self._get_field_name(field.name),
+            default=lambda: field.default,
+            type=parse_constant,
+            help=help_text,
+            metavar=metavar,
+        )
+
     def _add_composite_field(self, field: Field[Any], field_type: Any) -> None:
         arg_name = field.name.replace("_", "-")
         composite_opt = _get_metadata(field, CompositeOption)
@@ -223,6 +262,9 @@ class _OptionTreeVisitor:
                 help=value_text,
             )
 
+        elif origin is Callable:
+            self._add_function_field(field, field.type)
+
         elif origin is Union or origin is UnionType:
             union_types = list(get_args(field.type))
             if len(union_types) != 2 or NoneType not in union_types:
@@ -235,10 +277,12 @@ class _OptionTreeVisitor:
                     self._add_value_field(field, required_type)
                 case NullableOption():
                     self._add_nullable_field(field, required_type)
+                case FunctionOption():
+                    self._add_function_field(field, required_type)
                 case None:
-                    raise TypeError(f"expected: object of type {ValueOption.__name__} or {NullableOption.__name__}; got: None")
+                    raise TypeError(f"expected: object of type {ValueOption.__name__} or {NullableOption.__name__} or {FunctionOption.__name__}; got: None")
                 case _:
-                    raise TypeError(f"expected: object of type {ValueOption.__name__} or {NullableOption.__name__}; got: {attrs}")
+                    raise TypeError(f"expected: object of type {ValueOption.__name__} or {NullableOption.__name__} or {FunctionOption.__name__}; got: {attrs}")
 
         elif isinstance(field.type, type):
             if hasattr(field.type, "__dataclass_fields__"):
@@ -274,7 +318,7 @@ def _get_options(args: Namespace, options_type: type[T], prefixes: tuple[str, ..
             field_prefixes = (*prefixes, field.name)
             attrs = field.metadata.get(BaseOption.field_name())
             match attrs:
-                case BooleanOption() | ValueOption() | NullableOption():
+                case BooleanOption() | ValueOption() | NullableOption() | FunctionOption():
                     field_param = getattr(args, "_".join(field_prefixes), MISSING)
                     if field_param is not MISSING:
                         params[field.name] = field_param

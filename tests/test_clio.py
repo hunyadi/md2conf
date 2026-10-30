@@ -8,11 +8,12 @@ Copyright 2022-2026, Levente Hunyadi
 
 import unittest
 from argparse import ArgumentParser
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from io import StringIO
 from typing import Literal
 
-from md2conf.clio import add_arguments, boolean_option, composite_option, get_options, value_option
+from md2conf.clio import add_arguments, boolean_option, composite_option, function_option, get_options, value_option
 
 
 @dataclass
@@ -20,6 +21,7 @@ class CompositeOption:
     int_val: int = field(default=12, metadata=value_option("Help text for integer option."))
     optional_int_val: int | None = field(default=None, metadata=value_option("Help text for integer option."))
     str_val: str = field(default="string", metadata=value_option("Help text for string option."))
+    func_val: Callable[[int], int] = field(default=lambda x: x, metadata=function_option("Help text for function option."))
     literal_val: Literal["one", "two", "three"] = field(
         default="two",
         metadata=value_option("Help text for choice option."),
@@ -62,15 +64,29 @@ class TestCommandLine(unittest.TestCase):
         self.assertIn("options:", text)
         self.assertIn("--bool-flag", text)
         self.assertIn("--no-bool-flag", text)
+        self.assertIn("--nested-str-val", text)
+        self.assertIn("--nested-func-val", text)
         self.assertIn("--nested-int-val INT", text)
 
-        args = parser.parse_args(["--nested-int-val=23", "--nested-optional-int-val=45", "--nested-str-val=text", "--nested-literal-val=three", "--bool-flag"])
+        args = parser.parse_args(
+            [
+                "--nested-int-val=23",
+                "--nested-optional-int-val=45",
+                "--nested-str-val=text",
+                "--nested-func-val=67",
+                "--nested-literal-val=three",
+                "--bool-flag",
+            ]
+        )
         options = get_options(args, NestedOptions)
 
         self.assertTrue(options.bool_flag)
         self.assertEqual(options.nested.int_val, 23)
         self.assertEqual(options.nested.optional_int_val, 45)
         self.assertEqual(options.nested.str_val, "text")
+        self.assertTrue(callable(options.nested.func_val))
+        self.assertEqual(options.nested.func_val(0), 67)
+        self.assertEqual(options.nested.func_val(89), 67)
         self.assertEqual(options.nested.literal_val, "three")
         self.assertEqual(options.nested.untracked_val, "untracked")
 
@@ -87,7 +103,15 @@ class TestCommandLine(unittest.TestCase):
         self.assertIn("--no-bool-flag", text)
         self.assertIn("--int-val INT", text)
 
-        args = parser.parse_args(["--int-val=23", "--optional-int-val=45", "--str-val=text", "--literal-val=three", "--bool-flag"])
+        args = parser.parse_args(
+            [
+                "--int-val=23",
+                "--optional-int-val=45",
+                "--str-val=text",
+                "--literal-val=three",
+                "--bool-flag",
+            ]
+        )
         options = get_options(args, FlatOptions)
 
         self.assertTrue(options.bool_flag)

@@ -88,6 +88,7 @@ class MockConfluenceSession(ConfluenceSession):
                 position INTEGER NOT NULL,  -- uses multiples of 2 to allow inserting between existing pages without immediate renumbering
                 createdAt INTEGER NOT NULL,  -- stored as UNIX timestamp
                 version INTEGER NOT NULL,
+                versionMessage TEXT,
                 body TEXT NOT NULL
             )
             """
@@ -142,7 +143,7 @@ class MockConfluenceSession(ConfluenceSession):
 
     def _get_page_row(self, page_id: str) -> sqlite3.Row:
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, body FROM pages WHERE id = ?",
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, versionMessage, body FROM pages WHERE id = ?",
             (page_id,),
         ).fetchone()
         if row is None:
@@ -219,7 +220,7 @@ class MockConfluenceSession(ConfluenceSession):
             authorId="AUTHOR_ID",
             ownerId="OWNER_ID",
             createdAt=datetime.datetime.fromtimestamp(row["createdAt"], tz=datetime.timezone.utc),
-            version=ConfluenceContentVersion(number=row["version"]),
+            version=ConfluenceContentVersion(number=row["version"], message=row["versionMessage"]),
         )
 
     def _row_to_folder_properties(self, row: sqlite3.Row) -> ConfluenceFolderProperties:
@@ -465,7 +466,7 @@ class MockConfluenceSession(ConfluenceSession):
     def get_page_properties_by_title(self, title: str, *, space_id: str | None = None, space_key: str | None = None) -> ConfluencePageProperties:
         LOGGER.debug("title: %s", title)
         row: sqlite3.Row | None = self._db.execute(
-            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, body FROM pages WHERE title = ? LIMIT 1",
+            "SELECT id, title, spaceId, parentId, parentType, position, createdAt, version, versionMessage FROM pages WHERE title = ? LIMIT 1",
             (title,),
         ).fetchone()
         if row is None:
@@ -488,8 +489,8 @@ class MockConfluenceSession(ConfluenceSession):
         row = self._get_page_row(page_id)
         _require_greater_version(row["version"], version)
         cursor = self._db.execute(
-            "UPDATE pages SET title = ?, version = ?, body = ? WHERE id = ?",
-            (title, version, content, page_id),
+            "UPDATE pages SET title = ?, version = ?, versionMessage = ?, body = ? WHERE id = ?",
+            (title, version, message, content, page_id),
         )
         self._db.commit()
         if cursor.rowcount == 0:
@@ -514,8 +515,9 @@ class MockConfluenceSession(ConfluenceSession):
 
         parent_type = self._get_content_type(parent_id).value if parent_id is not None else None
         self._db.execute(
-            "INSERT INTO pages (id, title, spaceId, parentId, parentType, position, createdAt, version, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (page_id, title, space_id, parent_id, parent_type, position, int(created_at.timestamp()), version, content),
+            "INSERT INTO pages (id, title, spaceId, parentId, parentType, position, createdAt, version, versionMessage, body) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (page_id, title, space_id, parent_id, parent_type, position, int(created_at.timestamp()), version, None, content),
         )
         self._db.commit()
         return self.get_page(page_id)

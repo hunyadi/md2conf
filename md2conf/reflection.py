@@ -6,7 +6,7 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import fields, is_dataclass
 from types import NoneType, UnionType
 from typing import Any, Literal, NewType, Union, get_args, get_origin, get_type_hints
@@ -66,6 +66,10 @@ def format_initializer(tp: Any) -> str:
         return f"[{format_initializer(elem_type)}]"
     elif origin is Literal:
         return " or ".join(repr(arg) for arg in get_args(tp))
+    elif origin is Callable:
+        arg_types, return_type = get_args(tp)
+        arg_initializers = ", ".join("_" for _ in arg_types)
+        return f"(lambda {arg_initializers}: {format_initializer(return_type)})"
     elif origin is UnionType or origin is Union:
         return " or ".join(format_initializer(arg) for arg in get_args(tp))
     elif isinstance(tp, (NewType, type)):

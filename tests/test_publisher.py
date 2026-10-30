@@ -9,7 +9,7 @@ Copyright 2022-2026, Levente Hunyadi
 import hashlib
 import logging
 import unittest
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -278,6 +278,38 @@ class TestPublisher(unittest.TestCase):
                 page = _get_page_for_document(api, absolute_path)
                 api.delete_page(page.id)
             self.assertEqual(api.get_page_count(), 1)
+
+    def test_version_message(self) -> None:
+        "Checks custom version messages and the default source-path message."
+
+        for configured_message, expected_message in (
+            (None, "Synchronized by md2conf from Markdown file: index.md"),
+            ("Source file: $PATH$", "Source file: index.md"),
+        ):
+            with self.subTest(configured_message=configured_message), MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
+                document_path = source_dir / "index.md"
+                document_path.write_text("# Page\n\nInitial content.\n", encoding="utf-8")
+
+                version_message: Callable[[Path], str] | None
+                if configured_message is not None:
+
+                    def _version_message(path: Path, *, message: str = configured_message) -> str:
+                        return message.replace("$PATH$", path.as_posix())
+
+                    version_message = _version_message
+                else:
+                    version_message = None
+
+                options = self.get_processor_options(api, keep_hierarchy=False, skip_update=True)
+                options.version_message = version_message
+                publisher = Publisher(api, options)
+                publisher.process_directory(source_dir)
+
+                document_path.write_text("# Page\n\nUpdated content.\n", encoding="utf-8")
+                publisher.process_directory(source_dir)
+
+                page = api.get_page_properties_by_title("Page")
+                self.assertEqual(page.version.message, expected_message)
 
     def test_hierarchy(self) -> None:
         "Checks if a matching Confluence page hierarchy is created from a directory tree of Markdown files."

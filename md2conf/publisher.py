@@ -560,7 +560,11 @@ class SynchronizingProcessor(Processor):
 
             version = page.version.number + 1
             relative_path = path_relative_to(path, self.root_dir)
-            self.api.update_page(page.id, content, title=title, version=version, message=f"Synchronized by md2conf from Markdown file: {relative_path}")
+            if self.options.version_message is not None:
+                message = self.options.version_message(relative_path)
+            else:
+                message = f"Synchronized by md2conf from Markdown file: {relative_path}"
+            self.api.update_page(page.id, content, title=title, version=version, message=message)
         else:
             version = page.version.number
 
