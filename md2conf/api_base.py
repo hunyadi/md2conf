@@ -843,30 +843,42 @@ class ConfluenceSessionShared(ConfluenceSession):
             path = f"/content/{page_id}/child/attachment/{id}/data"
 
         except ConfluenceError:
+            if comment:
+                # When uploading attachments via this endpoint, Confluence rejects `,` (comma) in comment text,
+                # assuming the text is to be split by commas and refers to multiple files (but we are uploading only
+                # one) and gives the HTTP 400 response: "Must be same number of attachment files and comments".
+                comment = comment.replace(",", ";")
             path = f"/content/{page_id}/child/attachment"
 
         url = self._build_url(ConfluenceVersion.VERSION_1, path)
 
+        payload: dict[str, tuple[str | None, Any, str, dict[str, str]]] = {}
+        if comment:
+            payload["comment"] = (
+                None,
+                comment,
+                "text/plain; charset=utf-8",
+                {},
+            )
+        payload["minorEdit"] = (
+            None,
+            "true",
+            "text/plain; charset=utf-8",
+            {},
+        )
+
         if attachment_path is not None:
             with open(attachment_path, "rb") as attachment_file:
-                file_to_upload: dict[str, tuple[str | None, Any, str, dict[str, str]]] = {
-                    "comment": (
-                        None,
-                        comment,
-                        "text/plain; charset=utf-8",
-                        {},
-                    ),
-                    "file": (
-                        attachment_name,  # will truncate path component
-                        attachment_file,
-                        "application/octet-stream",
-                        {"Expires": "0"},
-                    ),
-                }
+                payload["file"] = (
+                    attachment_name,  # will truncate path component
+                    attachment_file,
+                    "application/octet-stream",
+                    {"Expires": "0"},
+                )
                 LOGGER.info("Uploading attachment: %s", attachment_name)
                 response = self._session.post(
                     url,
-                    files=file_to_upload,
+                    files=payload,
                     headers={
                         "X-Atlassian-Token": "no-check",
                         "Accept": "application/json",
@@ -878,23 +890,15 @@ class ConfluenceSessionShared(ConfluenceSession):
 
             raw_file = io.BytesIO(raw_data)
             raw_file.name = attachment_name
-            file_to_upload = {
-                "comment": (
-                    None,
-                    comment,
-                    "text/plain; charset=utf-8",
-                    {},
-                ),
-                "file": (
-                    attachment_name,  # will truncate path component
-                    raw_file,
-                    "application/octet-stream",
-                    {"Expires": "0"},
-                ),
-            }
+            payload["file"] = (
+                attachment_name,  # will truncate path component
+                raw_file,
+                "application/octet-stream",
+                {"Expires": "0"},
+            )
             response = self._session.post(
                 url,
-                files=file_to_upload,
+                files=payload,
                 headers={
                     "X-Atlassian-Token": "no-check",
                     "Accept": "application/json",

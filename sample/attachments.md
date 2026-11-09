@@ -8,7 +8,7 @@ layout:
 
 ![JPEG image with caption](figure/blue.jpg)
 
-![PNG image with caption](figure/interoperability.png)
+![PNG image with symbols #, $, %, &, *, @, ~ in caption text](figure/interoperability.png)
 
 Prefer PNG over SVG if both are available in the same directory:
 
@@ -20,15 +20,15 @@ Extracted editable draw.io diagram with `render_drawio=False`, uploaded PNG imag
 
 Editable draw.io diagram with `render_drawio=False`, static image with `render_drawio=True`:
 
-![Editable or rendered draw.io image](figure/diagram.drawio)
+![draw.io image](figure/diagram.drawio)
 
 Editable Mermaid diagram with `render_mermaid=False`, static image with `render_mermaid=True`:
 
-![Editable or rendered Mermaid diagram](figure/mermaid.mmd)
+![Mermaid diagram](figure/mermaid.mmd)
 
 Editable PlantUML diagram with `render_plantuml=False`, static image with `render_plantuml=True`:
 
-![Editable or rendered PlantUML diagram](figure/plantuml.puml)
+![PlantUML diagram](figure/plantuml.puml)
 
 Static image hosted at an external location:
 

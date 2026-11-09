@@ -124,7 +124,7 @@ class TestAPI(TypedTestCase):
                 self.image_test_page_id,
                 "figure_interoperability.png",
                 attachment_path=self.sample_dir / "figure" / "interoperability.png",
-                comment="A sample figure",
+                comment="A sample figure, for testing purposes, with symbols #, $, %, &, *, @, ~",
                 force=True,
             )
 

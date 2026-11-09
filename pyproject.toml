@@ -67,6 +67,10 @@ formulas = [
 [project.scripts]
 md2conf = "md2conf.__main__:main"
 
+[tool.pytest.ini_options]
+testpaths = ["tests", "integration_tests"]
+python_files = ["test_*.py"]
+
 [tool.setuptools]
 include-package-data = true
 zip-safe = true
