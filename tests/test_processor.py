@@ -56,6 +56,16 @@ class TestProcessor(TypedTestCase):
         self.assertTrue((self.out_dir / "code.csf").is_file())
         self.assertFalse((self.sample_dir / "code.csf").is_file())
 
+    def test_missing_global_properties_raises_argument_error(self) -> None:
+        from md2conf.environment import ArgumentError
+
+        options = ProcessorOptions(
+            root_page=ConfluencePageID("None"),
+            global_properties=Path("does-not-exist-properties.yaml"),
+        )
+        with self.assertRaises(ArgumentError):
+            self.create_converter(options).process(self.sample_dir / "code.md")
+
     def test_process_directory(self) -> None:
         options = ProcessorOptions(
             root_page=ConfluencePageID("ROOT_PAGE_ID"),
