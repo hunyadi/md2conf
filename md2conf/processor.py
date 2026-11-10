@@ -149,10 +149,13 @@ class Processor:
 
         self.global_properties = {}
         if self.options.global_properties is not None:
-            with open(self.options.global_properties, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                if not isinstance(data, dict):
-                    raise ValueError("expected: YAML/JSON dictionary of Confluence content properties")
+            try:
+                with open(self.options.global_properties, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+            except OSError as e:
+                raise ArgumentError(f"expected: readable properties file; got: {self.options.global_properties} ({e.strerror or e})") from e
+            if not isinstance(data, dict):
+                raise ValueError("expected: YAML/JSON dictionary of Confluence content properties")
                 self.global_properties = typing.cast(dict[str, JsonType], data)
 
         self.page_metadata = ConfluencePageCollection()
