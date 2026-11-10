@@ -6,27 +6,28 @@ Copyright 2022-2026, Levente Hunyadi
 :see: https://github.com/hunyadi/md2conf
 """
 
-import logging
 import unittest
 
 from md2conf.text import user_references, wrap_text
 from tests.utility import TypedTestCase
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(funcName)s [%(lineno)d] - %(message)s",
-)
 
 
 class TestText(TypedTestCase):
     def test_reference(self) -> None:
         text = (
             "[](mailto:nobody@example.com): [Laura](mailto:laura@example.com), "
-            "[Levente](mailto:levente@example.com) and [Kornél](mailto:kornel@example.com) "
+            "[Levente](mailto:levente@example.com) and [Kornél](mailto:kornel@example.com) "  # spellchecker: disable-line
             "at [example.com](https://example.com)."
         )
         refs = user_references(text)
-        self.assertCountEqual(refs, [("kornel@example.com", "Kornél"), ("laura@example.com", "Laura"), ("levente@example.com", "Levente")])
+        self.assertCountEqual(
+            refs,
+            [
+                ("kornel@example.com", "Kornél"),  # spellchecker: disable-line
+                ("laura@example.com", "Laura"),
+                ("levente@example.com", "Levente"),
+            ],
+        )
 
     def test_basic_wrap(self) -> None:
         text = "This is a simple test sentence that should wrap nicely with no issues whatsoever."

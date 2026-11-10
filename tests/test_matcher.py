@@ -76,6 +76,7 @@ class TestMatcher(TypedTestCase):
         expected.remove(Entry("anchors.md", False))
         expected.remove(Entry("extension.md", False))
         expected.remove(Entry("missing.md", False))
+        expected.remove(Entry("slug.md", False))
         expected.remove(Entry("title.md", False))
 
         options = MatcherOptions(".mdignore", ".md")

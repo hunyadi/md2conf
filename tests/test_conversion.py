@@ -276,6 +276,22 @@ class TestConversion(TypedTestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_heading_slug(self) -> None:
+        _, doc = ConfluenceDocument.create(
+            self.source_dir / "slug.md",
+            ProcessorOptions(converter=ConverterOptions(heading_anchors=True)),
+            self.source_dir,
+            self.site_metadata,
+            self.page_metadata,
+            self.user_metadata,
+        )
+        actual = standardize(doc.xhtml())
+
+        with open(self.target_dir / "slug.xml", "r", encoding="utf-8") as f:
+            expected = substitute(self.target_dir, f.read())
+
+        self.assertEqual(actual, expected)
+
     def test_images(self) -> None:
         _, doc = ConfluenceDocument.create(
             self.source_dir / "images" / "images.md",

@@ -51,7 +51,7 @@ class TestDrawio(TypedTestCase):
             b"</svg>"
         )
         first = normalize_svg_ids(template % {b"id": b"1vCaTWRffH3CVbDsn_Bi"})
-        second = normalize_svg_ids(template % {b"id": b"ho60hhIV57KdgwCItvaR"})
+        second = normalize_svg_ids(template % {b"id": b"ho60hhIV57KdgwCItvaR"})  # spellchecker: disable-line
 
         self.assertEqual(first, second)
         self.assertNotIn(b"1vCaTWRffH3CVbDsn_Bi", first)

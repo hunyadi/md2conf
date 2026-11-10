@@ -10,7 +10,6 @@ import copy
 import logging
 import os.path
 import re
-import unicodedata
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -43,6 +42,7 @@ from .plantuml.extension import PlantUMLExtensionFactory
 from .png import remove_png_chunks
 from .scanner import ScannedDocument, Scanner
 from .serializer import JsonType
+from .slug import title_to_slug
 from .toc import TableOfContentsBuilder
 from .uri import is_absolute_url, to_uuid_urn
 from .xml import element_to_text, remove_element
@@ -276,66 +276,6 @@ class NodeVisitor(ABC):
 
     @abstractmethod
     def transform(self, child: ElementType) -> ElementType | ElementAction: ...
-
-
-_DISALLOWED_CHAR_REGEXP = re.compile(r"[^\sa-z0-9_-]")
-_PUNCTUATION_REMOVE_REGEXP = re.compile(r"[^\s\w-]")
-_SPACE_COLLAPSE_REGEXP = re.compile(r"\s+")
-
-
-def title_to_identifier(title: str) -> str:
-    """
-    Converts a section heading title to a Markdown same-page anchor.
-
-    :param title: Heading title text without formatting.
-    """
-
-    # remove leading and trailing whitespace, convert letters to lowercase
-    s = title.strip().lower()
-    # remove international characters
-    s = _DISALLOWED_CHAR_REGEXP.sub("", s)
-    # collapse whitespace to hyphens
-    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
-    return s
-
-
-def title_to_ascii_slug(title: str) -> str:
-    """
-    Converts a section heading title to a Markdown same-page anchor with accent removal.
-
-    :param title: Heading title text without formatting.
-    """
-
-    s = title.strip()
-    # normalize to NFD (decomposes accents)
-    s = unicodedata.normalize("NFD", s)
-    # remove non-spacing combining diacritic marks (zero advance width) (Unicode category `Mn`)
-    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
-    # transform to lowercase
-    s = s.lower()
-    # remove punctuation except spaces and hyphens
-    s = _DISALLOWED_CHAR_REGEXP.sub("", s)
-    # collapse whitespace to hyphens
-    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
-
-    return s
-
-
-def title_to_slug(title: str) -> str:
-    """
-    Converts a section heading title to a Markdown same-page anchor retaining Unicode word characters.
-
-    :param title: Heading title text without formatting.
-    :returns: A slug compatible with GitHub and GitLab flavor Markdown.
-    """
-
-    # normalize equivalent Unicode sequences and transform letters to lowercase
-    s = unicodedata.normalize("NFC", title.strip()).lower()
-    # remove punctuation except spaces, hyphens and Unicode word characters
-    s = _PUNCTUATION_REMOVE_REGEXP.sub("", s)
-    # collapse whitespace to hyphens
-    s = _SPACE_COLLAPSE_REGEXP.sub("-", s)
-    return s
 
 
 _HEADING_IDENTIFIER_REGEXP = re.compile(r"\s*\{#(?P<id>[^{}]+)\}$")

@@ -1,0 +1,13 @@
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>This page has been generated with a tool.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<h2><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">heading-slugs</ac:parameter></ac:structured-macro>Heading slugs</h2>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">a--heading</ac:parameter></ac:structured-macro>A  heading</h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">a-heading-with-markdown</ac:parameter></ac:structured-macro>A <strong>heading</strong> with <em>Markdown</em></h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">a-heading--with-hyphens</ac:parameter></ac:structured-macro>A heading--with-hyphens</h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">árvíztűrő-tükörfúrógép</ac:parameter></ac:structured-macro>árvíztűrő tükörfúrógép</h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">árvíztűrő-tükörfúrógép</ac:parameter></ac:structured-macro>ÁRVÍZTŰRŐ TÜKÖRFÚRÓGÉP</h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">i--unicode-кириллица-עברית-日本語-한글</ac:parameter></ac:structured-macro>I ♥ Unicode: Кириллица, עברית, 日本語, 한글</h3>
+<h3><ac:structured-macro ac:name="anchor" ac:schema-version="1"><ac:parameter ac:name="">_-emoji</ac:parameter></ac:structured-macro>😄_😄 emoji</h3>

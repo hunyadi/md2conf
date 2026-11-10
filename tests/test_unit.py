@@ -16,7 +16,6 @@ from typing import Literal
 from md2conf.api_types import ConfluenceChildProperties, ConfluenceContentType, ConfluenceParentType, ConfluenceStatus, ConfluenceTypedID
 from md2conf.attachment import attachment_name
 from md2conf.coalesce import coalesce_dataclass, coalesce_json
-from md2conf.converter import title_to_ascii_slug, title_to_identifier, title_to_slug
 from md2conf.formatting import display_width
 from md2conf.latex import LATEX_ENABLED, render_latex
 from md2conf.png import extract_png_dimensions, remove_png_chunks
@@ -129,39 +128,6 @@ class TestUnit(TypedTestCase):
         source: dict[str, JsonType] = {"age": 32, "country": "Hungary", "settings": {"theme": "dark", "notifications": False, "language": "en"}}
         merged: dict[str, JsonType] = {"name": "Laura", "age": 32, "country": "Hungary", "settings": {"theme": "dark", "notifications": True, "language": "en"}}
         self.assertEqual(coalesce_json(target, source), merged)
-
-    def test_title_to_identifier(self) -> None:
-        self.assertEqual(title_to_identifier("This is  a Heading  "), "this-is-a-heading")
-        self.assertEqual(title_to_identifier("What's New in v2.0?"), "whats-new-in-v20")
-        self.assertEqual(title_to_identifier("C++ & C# Comparison"), "c-c-comparison")
-        self.assertEqual(title_to_identifier("Hello -- World!!"), "hello----world")
-        self.assertEqual(title_to_identifier("árvíztűrő tükörfúrógép"), "rvztr-tkrfrgp")  # spellchecker:disable-line
-
-    def test_title_to_ascii_slug(self) -> None:
-        self.assertEqual(title_to_ascii_slug("This is  a Heading  "), "this-is-a-heading")
-        self.assertEqual(title_to_ascii_slug("What's New in v2.0?"), "whats-new-in-v20")
-        self.assertEqual(title_to_ascii_slug("C++ & C# Comparison"), "c-c-comparison")
-        self.assertEqual(title_to_ascii_slug("Hello -- World!!"), "hello----world")
-        # spellchecker: disable
-        self.assertEqual(title_to_ascii_slug("paramètres"), "parametres")
-        self.assertEqual(title_to_ascii_slug("árvíztűrő tükörfúrógép"), "arvizturo-tukorfurogep")
-        # spellchecker: enable
-
-    def test_title_to_slug(self) -> None:
-        self.assertEqual(title_to_slug("This is  a Heading  "), "this-is-a-heading")
-        self.assertEqual(title_to_slug("What's New in v2.0?"), "whats-new-in-v20")
-        self.assertEqual(title_to_slug("C++ & C# Comparison"), "c-c-comparison")
-        self.assertEqual(title_to_slug("Hello -- World!!"), "hello----world")
-        # spellchecker: disable
-        self.assertEqual(title_to_slug("paramètres"), "paramètres")
-        self.assertEqual(title_to_slug("árvíztűrő tükörfúrógép"), "árvíztűrő-tükörfúrógép")
-        # spellchecker: enable
-
-        self.assertEqual(title_to_slug("spaces in it"), "spaces-in-it")
-        self.assertEqual(title_to_slug("a :thumbsup: in it"), "a-thumbsup-in-it")
-        self.assertEqual(title_to_slug("Unicode: 한글"), "unicode-한글")
-        self.assertEqual(title_to_slug("3.5 (and parentheses)"), "35-and-parentheses")
-        self.assertEqual(title_to_slug("multiple  spaces and --- hyphens_and_underscores"), "multiple-spaces-and-----hyphens_and_underscores")
 
     @unittest.skipUnless(LATEX_ENABLED, "matplotlib not installed")
     def test_formula(self) -> None:

@@ -87,16 +87,16 @@ def _get_folder_for_document(api: ConfluenceSession, absolute_path: Path) -> Con
     return api.get_folder_properties(folder_id)
 
 
-class MockConfluenceSessionV1(MockConfluenceSession):
+class MockConfluenceSessionAPIv1(MockConfluenceSession):
     @property
     @override
     def supports_folders(self) -> bool:
         return False
 
 
-class MockConfluenceAPIV1(MockConfluenceAPI):
+class MockConfluenceAPIv1(MockConfluenceAPI):
     def __init__(self) -> None:
-        self._session = MockConfluenceSessionV1()
+        self._session = MockConfluenceSessionAPIv1()
 
 
 class TestPublisher(unittest.TestCase):
@@ -427,7 +427,7 @@ class TestPublisher(unittest.TestCase):
                 Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
     def test_folder_descriptor_rejects_rest_api_v1(self) -> None:
-        with MockConfluenceAPIV1() as api, _create_temporary_directory() as source_dir:
+        with MockConfluenceAPIv1() as api, _create_temporary_directory() as source_dir:
             (source_dir / "page.md").write_text("# Page\n", encoding="utf-8")
             folder_descriptor = source_dir / "folder" / "index.md"
             folder_descriptor.parent.mkdir()
