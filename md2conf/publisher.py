@@ -36,7 +36,7 @@ from .metadata import ConfluencePageMetadata
 from .options import ConfluencePageID, ProcessorOptions
 from .options_converter import ConverterOptions
 from .order import sort_items_in_order
-from .processor import DocumentNode, DocumentProcessor, Processor, ProcessorFactory
+from .processor import DocumentNode, DocumentProcessor, Node, Processor, ProcessorFactory
 from .serializer import json_to_object, object_to_json, object_to_json_payload
 from .xml import ElementComparatorOptions, is_xml_equal
 
@@ -218,10 +218,10 @@ class SynchronizingProcessor(Processor):
         self.api = api
 
     @override
-    def _check_documents(self, root: DocumentNode) -> None:
+    def check_documents(self, root: Node) -> None:
         """Verifies documents before any remote objects are synchronized."""
 
-        super()._check_documents(root)
+        super().check_documents(root)
         if not self.api.supports_folders:
             for node in root.all():
                 if node.is_folder:

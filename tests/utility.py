@@ -15,6 +15,14 @@ from pathlib import Path
 from typing import TypeVar
 from unittest.util import safe_repr
 
+import yaml
+
+
+def frontmatter(data: dict[str, bool | int | str]) -> str:
+    """Serializes a mapping as Markdown YAML front matter."""
+
+    return f"---\n{yaml.safe_dump(data, sort_keys=False)}---\n"
+
 
 @contextmanager
 def temporary_file(data: str | bytes, *, suffix: str | None = None) -> Generator[Path]:

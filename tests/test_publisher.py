@@ -18,12 +18,14 @@ from typing import Literal
 from md2conf.api_base import ConfluenceSession
 from md2conf.api_types import ConfluenceFolderProperties, ConfluencePageProperties
 from md2conf.compatibility import override
-from md2conf.environment import ConfluenceAPIVersionMismatch, PageError
+from md2conf.environment import ConfluenceAPIVersionMismatch
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
+from md2conf.processor import ProcessorError
 from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
 from md2conf.scanner import Scanner
 from tests.api import MockConfluenceAPI, MockConfluenceSession
+from tests.utility import frontmatter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -365,9 +367,9 @@ class TestPublisher(unittest.TestCase):
             root_descriptor = source_dir / "index.md"
             guides_descriptor = source_dir / "guides" / "index.md"
             guide = source_dir / "guides" / "getting-started.md"
-            root_descriptor.write_text("---\ntitle: Documentation\ncontent_type: folder\n---\n", encoding="utf-8")
+            root_descriptor.write_text(frontmatter({"title": "Documentation", "content_type": "folder"}), encoding="utf-8")
             guides_descriptor.parent.mkdir()
-            guides_descriptor.write_text("---\ntitle: Product Guides\ncontent_type: folder\n---\n", encoding="utf-8")
+            guides_descriptor.write_text(frontmatter({"title": "Product Guides", "content_type": "folder"}), encoding="utf-8")
             guide.write_text("# Getting Started\n", encoding="utf-8")
 
             publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False))
@@ -396,7 +398,7 @@ class TestPublisher(unittest.TestCase):
             homepage_id = api.get_homepage_id("SPACE_ID")
             existing = api.create_folder(title="Documentation", parent_id=homepage_id, space_id="SPACE_ID")
             descriptor = source_dir / "index.md"
-            descriptor.write_text("---\ntitle: Documentation\ncontent_type: folder\n---\n", encoding="utf-8")
+            descriptor.write_text(frontmatter({"title": "Documentation", "content_type": "folder"}), encoding="utf-8")
 
             Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
@@ -413,7 +415,7 @@ class TestPublisher(unittest.TestCase):
                 space_id="SPACE_ID",
             )
             descriptor = source_dir / "index.md"
-            descriptor.write_text(f'---\ntitle: Documentation\nfolder_id: "{existing.id}"\n---\n', encoding="utf-8")
+            descriptor.write_text(frontmatter({"title": "Documentation", "folder_id": existing.id}), encoding="utf-8")
 
             Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
@@ -422,8 +424,8 @@ class TestPublisher(unittest.TestCase):
 
     def test_folder_descriptor_rejects_markdown_body(self) -> None:
         with MockConfluenceAPI() as api, _create_temporary_directory() as source_dir:
-            (source_dir / "index.md").write_text("---\ncontent_type: folder\n---\n\nNot allowed.\n", encoding="utf-8")
-            with self.assertRaisesRegex(PageError, "no Markdown body"):
+            (source_dir / "index.md").write_text(frontmatter({"content_type": "folder"}) + "\nNot allowed.\n", encoding="utf-8")
+            with self.assertRaisesRegex(ProcessorError, "no Markdown body"):
                 Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
 
     def test_folder_descriptor_rejects_rest_api_v1(self) -> None:
@@ -431,7 +433,7 @@ class TestPublisher(unittest.TestCase):
             (source_dir / "page.md").write_text("# Page\n", encoding="utf-8")
             folder_descriptor = source_dir / "folder" / "index.md"
             folder_descriptor.parent.mkdir()
-            folder_descriptor.write_text("---\ncontent_type: folder\n---\n", encoding="utf-8")
+            folder_descriptor.write_text(frontmatter({"content_type": "folder"}), encoding="utf-8")
             with self.assertRaises(ConfluenceAPIVersionMismatch):
                 Publisher(api, self.get_processor_options(api, keep_hierarchy=True, skip_update=False)).process_directory(source_dir)
             self.assertEqual(api.get_page_count(), 1)  # validation happens before creating the page

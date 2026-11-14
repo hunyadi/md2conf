@@ -18,8 +18,9 @@ import yaml
 
 from .api_types import ConfluenceContentType, ConfluenceTypedID
 from .collection import ConfluencePageCollection, ConfluenceUserCollection
+from .compatibility import Self
 from .converter import ConfluenceDocument
-from .environment import ArgumentError, PageError
+from .environment import ArgumentError
 from .matcher import DirectoryEntry, FileEntry, Matcher, MatcherOptions
 from .metadata import ConfluenceSiteMetadata
 from .options import ConfluencePageID, ProcessorOptions
@@ -31,36 +32,25 @@ from .toc import unique_title
 LOGGER = logging.getLogger(__name__)
 
 
-class DocumentNode:
-    "Represents a Markdown document in a hierarchy."
+class ProcessorError(ValueError):
+    "Raised in case there is an issue with Markdown sources, detected at an early validation stage."
+
+
+class Node:
+    "Base class for nodes in the document hierarchy."
 
     absolute_path: Path
     object_id: ConfluenceTypedID | None
     content_type: ConfluenceContentType
-    space_key: str | None
     title: str | None
-    synchronized: bool
-    users: set[tuple[str, str]]
 
-    _children: list["DocumentNode"]
+    _children: list[Self]
 
-    def __init__(
-        self,
-        absolute_path: Path,
-        object_id: ConfluenceTypedID | None,
-        content_type: ConfluenceContentType,
-        space_key: str | None,
-        title: str | None,
-        synchronized: bool,
-        users: set[tuple[str, str]],
-    ):
+    def __init__(self, absolute_path: Path, object_id: ConfluenceTypedID | None, content_type: ConfluenceContentType, title: str | None):
         self.absolute_path = absolute_path
         self.object_id = object_id
         self.content_type = content_type
-        self.space_key = space_key
         self.title = title
-        self.synchronized = synchronized
-        self.users = users
         self._children = []
 
     @property
@@ -84,24 +74,24 @@ class DocumentNode:
             c += child.count()
         return c
 
-    def first(self) -> "DocumentNode":
+    def first(self) -> Self:
         "Returns the first child node."
 
         if not self._children:
             raise IndexError("no children available")
         return self._children[0]
 
-    def add_child(self, child: "DocumentNode") -> None:
+    def add_child(self, child: Self) -> None:
         "Adds a new node to the list of direct children."
 
         self._children.append(child)
 
-    def children(self) -> Iterable["DocumentNode"]:
+    def children(self) -> Iterable[Self]:
         "Direct children of this node."
 
         yield from self._children
 
-    def descendants(self) -> Iterable["DocumentNode"]:
+    def descendants(self) -> Iterable[Self]:
         """
         Descendants of this node, part of its sub-tree.
 
@@ -112,7 +102,7 @@ class DocumentNode:
             yield child
             yield from child.descendants()
 
-    def all(self) -> Iterable["DocumentNode"]:
+    def all(self) -> Iterable[Self]:
         """
         Descendants of this node, part of the sub-tree including the top-level node.
 
@@ -122,6 +112,29 @@ class DocumentNode:
         yield self
         for child in self._children:
             yield from child.all()
+
+
+class DocumentNode(Node):
+    "Represents a Markdown document in a hierarchy."
+
+    space_key: str | None
+    synchronized: bool
+    users: set[tuple[str, str]]
+
+    def __init__(
+        self,
+        absolute_path: Path,
+        object_id: ConfluenceTypedID | None,
+        content_type: ConfluenceContentType,
+        space_key: str | None,
+        title: str | None,
+        synchronized: bool,
+        users: set[tuple[str, str]],
+    ):
+        super().__init__(absolute_path, object_id, content_type, title)
+        self.space_key = space_key
+        self.synchronized = synchronized
+        self.users = users
 
 
 class Processor:
@@ -179,8 +192,8 @@ class Processor:
         self._index_directory(local_dir, root, Matcher(local_dir, options=MatcherOptions(source=".mdignore", extension="md")))
         LOGGER.info("Indexed %d document(s)", root.count())
 
-        # verify if pages have a unique title
-        self._check_documents(root)
+        # verify that pages have unique titles and explicitly assigned page IDs
+        self.check_documents(root)
 
         # synchronize directory tree structure with page hierarchy in space (find matching pages in Confluence)
         parent_to_children: dict[str, list[str]] = {}
@@ -197,27 +210,41 @@ class Processor:
 
         LOGGER.info("Processing page: %s", path)
         node = self._index_file(path)
-        self._check_documents(node)
+        self.check_documents(node)
         self._synchronize_structure(node)
         self._synchronize_content(node, {})
 
-    def _check_documents(self, root: DocumentNode) -> None:
-        "Verifies if pages have a unique title to avoid overwrites within synchronized set."
+    def check_documents(self, root: Node) -> None:
+        "Verifies unique titles and explicit page IDs to avoid overwrites within the synchronized set."
 
         title_to_path: dict[str, Path] = {}
-        duplicates: set[Path] = set()
+        duplicates_with_title: dict[str, set[Path]] = {}
+        page_id_to_path: dict[str, Path] = {}
+        duplicates_with_id: dict[str, set[Path]] = {}
         for node in root.all():
             if node.title is not None:
                 path = title_to_path.get(node.title)
                 if path is not None:
-                    duplicates.add(path)
-                    duplicates.add(node.absolute_path)
+                    duplicates_with_title.setdefault(node.title, set()).update((path, node.absolute_path))
                 else:
                     title_to_path[node.title] = node.absolute_path
-        if duplicates:
-            raise PageError(
-                f"expected: each synchronized page to have a unique title but duplicates found in files: {', '.join(str(p) for p in sorted(duplicates))}"
+            if node.object_id is not None:
+                object_id = node.object_id.id  # page and folder IDs must be globally unique
+                path = page_id_to_path.get(object_id)
+                if path is not None:
+                    duplicates_with_id.setdefault(object_id, set()).update((path, node.absolute_path))
+                else:
+                    page_id_to_path[object_id] = node.absolute_path
+        if duplicates_with_title:
+            duplicates = "; ".join(
+                "title {!r}: {}".format(title, ", ".join(str(path) for path in sorted(paths))) for title, paths in sorted(duplicates_with_title.items())
             )
+            raise ProcessorError(f"expected: each synchronized page to have a unique title but duplicates found in files: {duplicates}")
+        if duplicates_with_id:
+            duplicates = "; ".join(
+                "page ID {!r}: {}".format(object_id, ", ".join(str(path) for path in sorted(paths))) for object_id, paths in sorted(duplicates_with_id.items())
+            )
+            raise ProcessorError(f"expected: each synchronized page to have a unique page ID but duplicates found in files: {duplicates}")
 
     def _synchronize_content(self, tree: DocumentNode, parent_to_children: dict[str, list[str]]) -> None:
         """
@@ -354,20 +381,20 @@ class Processor:
         document = Scanner().parse(text)
         props = document.properties
         if props.page_id is not None and props.folder_id is not None:
-            raise PageError(f"expected: only one of `page_id` and `folder_id` in {path}")
+            raise ProcessorError(f"expected: only one of `page_id` and `folder_id` in {path}")
         if props.page_id is not None and props.content_type == "folder":
-            raise PageError(f"expected: `folder_id` instead of `page_id` for folder descriptor: {path}")
+            raise ProcessorError(f"expected: `folder_id` instead of `page_id` for folder descriptor: {path}")
         if props.folder_id is not None and props.content_type == "page":
-            raise PageError(f"expected: `content_type: folder` or no `content_type` when using `folder_id` in {path}")
+            raise ProcessorError(f"expected: `content_type: folder` or no `content_type` when using `folder_id` in {path}")
 
         is_folder = self.options.keep_hierarchy and (props.content_type == "folder" or props.folder_id is not None)
         if props.folder_id is not None and not self.options.keep_hierarchy:
-            raise PageError(f"expected: `keep_hierarchy` enabled when using `folder_id` in {path}")
+            raise ProcessorError(f"expected: `keep_hierarchy` enabled when using `folder_id` in {path}")
         if is_folder:
             if path.name != "index.md":
-                raise PageError(f"expected: folder descriptor named `index.md`; got: {path}")
+                raise ProcessorError(f"expected: folder descriptor named `index.md`; got: {path}")
             if document.text and not document.text.isspace():
-                raise PageError(f"expected: folder descriptor with no Markdown body: {path}")
+                raise ProcessorError(f"expected: folder descriptor with no Markdown body: {path}")
 
         title = props.title or (path.parent.name if is_folder else unique_title(document.text))
 
