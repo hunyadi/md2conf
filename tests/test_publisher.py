@@ -21,8 +21,9 @@ from md2conf.compatibility import override
 from md2conf.environment import ConfluenceAPIVersionMismatch, PageError
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
-from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
+from md2conf.publisher import CONTENT_PROPERTY_TAG, AggregateOptions, ConfluenceMarkdownTag, DocumentHasher, Publisher
 from md2conf.scanner import Scanner
+from md2conf.serializer import json_to_object
 from tests.api import MockConfluenceAPI, MockConfluenceSession
 
 logging.basicConfig(
@@ -97,6 +98,44 @@ class MockConfluenceSessionAPIv1(MockConfluenceSession):
 class MockConfluenceAPIv1(MockConfluenceAPI):
     def __init__(self) -> None:
         self._session = MockConfluenceSessionAPIv1()
+
+
+class AttachmentAdvancesPageSession(MockConfluenceSession):
+    """
+    A session in which uploading an attachment creates a new page version.
+
+    Confluence advances the page version when an attachment is added or replaced.
+    The publisher reads the page version before that upload.
+    """
+
+    @override
+    def upload_attachment(
+        self,
+        page_id: str,
+        attachment_name: str,
+        *,
+        attachment_path: Path | None = None,
+        raw_data: bytes | None = None,
+        content_type: str | None = None,
+        comment: str | None = None,
+        force: bool = False,
+    ) -> None:
+        super().upload_attachment(
+            page_id,
+            attachment_name,
+            attachment_path=attachment_path,
+            raw_data=raw_data,
+            content_type=content_type,
+            comment=comment,
+            force=force,
+        )
+        page = self.get_page(page_id)
+        self.update_page(page_id, page.content, title=page.title, version=page.version.number + 1, message="Uploaded attachment")
+
+
+class AttachmentAdvancesPageAPI(MockConfluenceAPI):
+    def __init__(self) -> None:
+        self._session = AttachmentAdvancesPageSession()
 
 
 class TestPublisher(unittest.TestCase):
@@ -214,6 +253,39 @@ class TestPublisher(unittest.TestCase):
             publisher.process_directory(source_dir)
             unchanged_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
             self.assertEqual(unchanged_version, first_version)
+
+    def test_page_write_uses_the_version_after_an_attachment_upload(self) -> None:
+        """Checks that a page write succeeds when uploading an attachment advances the page version.
+
+        The publisher reads the page, uploads attachments, then writes the page as the version it
+        read plus one. The upload has already consumed that version, so the write is rejected.
+        The version stored for the next synchronization is the version the write persisted.
+        """
+
+        with AttachmentAdvancesPageAPI() as api, _create_temporary_directory() as source_dir:
+            document_path = source_dir / "index.md"
+            document_path.write_text("# Diagram\n\nA page without an image.\n", encoding="utf-8")
+
+            publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=False, skip_update=True))
+            publisher.process_directory(source_dir)
+
+            page = api.get_page_properties_by_title("Diagram")
+            version_before_upload = page.version.number
+
+            attachment_path = source_dir / "diagram.png"
+            attachment_path.write_bytes((Path(__file__).parent / "source" / "figure" / "raster.png").read_bytes())
+            document_path.write_text("# Diagram\n\n![diagram](diagram.png)\n", encoding="utf-8")
+            publisher.process_directory(source_dir)
+
+            page = api.get_page_properties_by_title("Diagram")
+            # The upload advances the version once, and the body write advances it once more.
+            self.assertEqual(page.version.number, version_before_upload + 2)
+
+            prop = api.get_content_property_for_page(page.id, CONTENT_PROPERTY_TAG)
+            self.assertIsNotNone(prop)
+            if prop is not None:
+                tag = json_to_object(ConfluenceMarkdownTag, prop.value)
+                self.assertEqual(tag.page_version, page.version.number)
 
     def test_initialize_missing_attachment_checksum(self) -> None:
         """Checks if REST API v2 initializes a missing checksum with one upload."""
