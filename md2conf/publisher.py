@@ -553,9 +553,7 @@ class SynchronizingProcessor(Processor):
                     continue
                 self.api.delete_attachment(attachment_id)
 
-        # Uploading or removing an attachment can advance the page version after the read at the
-        # start of this method. A write that still carries that earlier version is rejected.
-        # Read the version again so the write, and the sync tag below, use the version the page has now.
+        # re-read the page version; an attachment upload or removal may have advanced it
         version = self.api.get_page_version(page.id)
 
         # synchronize page if page has any changes
