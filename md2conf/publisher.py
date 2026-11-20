@@ -553,20 +553,21 @@ class SynchronizingProcessor(Processor):
                     continue
                 self.api.delete_attachment(attachment_id)
 
+        # re-read the page version; an attachment upload or removal may have advanced it
+        version = self.api.get_page_version(page.id)
+
         # synchronize page if page has any changes
         if has_changes:
             content = elements_to_string(root)
             LOGGER.debug("Generated Confluence Storage Format document:\n%s", content)
 
-            version = page.version.number + 1
+            version += 1
             relative_path = path_relative_to(path, self.root_dir)
             if self.options.version_message is not None:
                 message = self.options.version_message(relative_path)
             else:
                 message = f"Synchronized by md2conf from Markdown file: {relative_path}"
             self.api.update_page(page.id, content, title=title, version=version, message=message)
-        else:
-            version = page.version.number
 
         # update page labels
         if document.labels is not None:

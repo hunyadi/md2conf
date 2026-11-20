@@ -21,8 +21,9 @@ from md2conf.compatibility import override
 from md2conf.environment import ConfluenceAPIVersionMismatch, PageError
 from md2conf.options import ConfluencePageID, ProcessorOptions
 from md2conf.options_converter import ConverterOptions
-from md2conf.publisher import AggregateOptions, DocumentHasher, Publisher
+from md2conf.publisher import AggregateOptions, ConfluenceMarkdownTag, DocumentHasher, Publisher
 from md2conf.scanner import Scanner
+from md2conf.serializer import json_to_object
 from tests.api import MockConfluenceAPI, MockConfluenceSession
 
 logging.basicConfig(
@@ -97,6 +98,39 @@ class MockConfluenceSessionAPIv1(MockConfluenceSession):
 class MockConfluenceAPIv1(MockConfluenceAPI):
     def __init__(self) -> None:
         self._session = MockConfluenceSessionAPIv1()
+
+
+class AttachmentAdvancesPageSession(MockConfluenceSession):
+    "A session in which uploading an attachment creates a new page version."
+
+    @override
+    def upload_attachment(
+        self,
+        page_id: str,
+        attachment_name: str,
+        *,
+        attachment_path: Path | None = None,
+        raw_data: bytes | None = None,
+        content_type: str | None = None,
+        comment: str | None = None,
+        force: bool = False,
+    ) -> None:
+        super().upload_attachment(
+            page_id,
+            attachment_name,
+            attachment_path=attachment_path,
+            raw_data=raw_data,
+            content_type=content_type,
+            comment=comment,
+            force=force,
+        )
+        page = self.get_page(page_id)
+        self.update_page(page_id, page.content, title=page.title, version=page.version.number + 1, message="Uploaded attachment")
+
+
+class AttachmentAdvancesPageAPI(MockConfluenceAPI):
+    def __init__(self) -> None:
+        self._session = AttachmentAdvancesPageSession()
 
 
 class TestPublisher(unittest.TestCase):
@@ -214,6 +248,28 @@ class TestPublisher(unittest.TestCase):
             publisher.process_directory(source_dir)
             unchanged_version = api.get_attachment_by_name(page.id, "diagram.png").version.number
             self.assertEqual(unchanged_version, first_version)
+
+    def test_page_write_uses_the_version_after_an_attachment_upload(self) -> None:
+        "Checks if a page write uses the version advanced by an attachment upload."
+
+        with AttachmentAdvancesPageAPI() as api, _create_temporary_directory() as source_dir:
+            document_path = source_dir / "index.md"
+            attachment_path = source_dir / "diagram.png"
+            document_path.write_text("# Diagram\n\n![diagram](diagram.png)\n", encoding="utf-8")
+            attachment_path.write_bytes((Path(__file__).parent / "source" / "figure" / "raster.png").read_bytes())
+
+            publisher = Publisher(api, self.get_processor_options(api, keep_hierarchy=False, skip_update=True))
+            publisher.process_directory(source_dir)
+
+            page = api.get_page_properties_by_title("Diagram")
+            # created at 1, then one for the upload and one for the body write
+            self.assertEqual(page.version.number, 3)
+
+            property = api.get_content_property_for_page(page.id, "md2conf")
+            self.assertIsNotNone(property)
+            if property is not None:
+                tag = json_to_object(ConfluenceMarkdownTag, property.value)
+                self.assertEqual(tag.page_version, page.version.number)
 
     def test_initialize_missing_attachment_checksum(self) -> None:
         """Checks if REST API v2 initializes a missing checksum with one upload."""
